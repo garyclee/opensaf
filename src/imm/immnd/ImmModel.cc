@@ -18113,19 +18113,23 @@ SaAisErrorT ImmModel::rtObjectUpdate(
               err = SA_AIS_ERR_INVALID_PARAM;
               break;  // out of switch
             }
-            if (doIt) {
-              osafassert(attrValue->isMultiValued());
-              ImmAttrMultiValue* multiattr = (ImmAttrMultiValue*)attrValue;
-              if ((attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES) &&
-                  (multiattr->hasMatchingValue(tmpos))) {
-                LOG_NO(
-                    "ERR_INVALID_PARAM: multivalued attr '%s' with NO_DUPLICATES "
-                    "yet duplicate values provided in rta-update call. Object:'%s'.",
-                    attrName.c_str(), objectName.c_str());
-                err = SA_AIS_ERR_INVALID_PARAM;
-                break;  // out of for switch
-              }
 
+            osafassert(attrValue->isMultiValued());
+            ImmAttrMultiValue* multiattr = (ImmAttrMultiValue*)attrValue;
+            eduAtValToOs(&tmpos, &(p->attrValue.attrValue),
+                (SaImmValueTypeT)p->attrValue.attrValueType);
+
+            if ((attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES) &&
+                (multiattr->hasMatchingValue(tmpos))) {
+              LOG_NO(
+                  "ERR_INVALID_PARAM: multivalued attr '%s' with "
+                  "NO_DUPLICATES yet duplicate values provided in rta-update "
+                  "call. Object:'%s'.", attrName.c_str(), objectName.c_str());
+              err = SA_AIS_ERR_INVALID_PARAM;
+              break;  // out of for switch
+            }
+
+            if (doIt) {
               multiattr->setExtraValue(tmpos);
             }
           }
@@ -18139,27 +18143,30 @@ SaAisErrorT ImmModel::rtObjectUpdate(
                   attrName.c_str());
               err = SA_AIS_ERR_INVALID_PARAM;
               break;  // out of switch
-            } else if (doIt) {
-              osafassert(attrValue->isMultiValued());
-              ImmAttrMultiValue* multiattr = (ImmAttrMultiValue*)attrValue;
+            }
 
-              IMMSV_EDU_ATTR_VAL_LIST* al = p->attrValue.attrMoreValues;
-              while (al) {
-                eduAtValToOs(&tmpos, &(al->n),
-                             (SaImmValueTypeT)p->attrValue.attrValueType);
-                if ((attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES) &&
-                    (multiattr->hasMatchingValue(tmpos))) {
-                  LOG_NO(
-                      "ERR_INVALID_PARAM: multivalued attr '%s' with NO_DUPLICATES "
-                      "yet duplicate values provided in rta-update call. Object:'%s'.",
-                      attrName.c_str(), objectName.c_str());
-                  err = SA_AIS_ERR_INVALID_PARAM;
-                  break;  // out of loop
-                }
+            osafassert(attrValue->isMultiValued());
+            ImmAttrMultiValue* multiattr = (ImmAttrMultiValue*)attrValue;
+            IMMSV_EDU_ATTR_VAL_LIST* al = p->attrValue.attrMoreValues;
 
-                multiattr->setExtraValue(tmpos);
-                al = al->next;
+            while (al) {
+              eduAtValToOs(&tmpos, &(al->n),
+                  (SaImmValueTypeT)p->attrValue.attrValueType);
+              if ((attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES) &&
+                  (multiattr->hasMatchingValue(tmpos))) {
+                LOG_NO(
+                    "ERR_INVALID_PARAM: multivalued attr '%s' with "
+                    "NO_DUPLICATES yet duplicate values provided in rta-update "
+                    "call. Object:'%s'.", attrName.c_str(), objectName.c_str());
+                err = SA_AIS_ERR_INVALID_PARAM;
+                break;  // out of loop
               }
+
+              if (doIt) {
+                multiattr->setExtraValue(tmpos);
+              }
+
+              al = al->next;
             }
           }
           break;
