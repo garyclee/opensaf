@@ -86,7 +86,7 @@ class Consensus {
       std::chrono::milliseconds(500);  // in ms
   static constexpr uint32_t kLockTimeout = 0;  // lock is persistent by default
   static constexpr uint32_t kMaxTakeoverRetry = 20;
-  static constexpr uint32_t kMaxRetry = 60;
+  static constexpr uint32_t kMaxRetry = 30;
   static constexpr uint32_t kTakeoverValidTime = 15;  // in seconds
 
   void CheckForExistingTakeoverRequest();

@@ -92,7 +92,7 @@ uint32_t fm_rda_set_role(FM_CB *fm_cb, PCS_RDA_ROLE role) {
     // be processing MDS down events and updating cluster_size concurrently.
     // We need cluster_size to be as accurate as possible, without waiting
     // too long for node down events.
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(4));
 
     rc = consensus_service.PromoteThisNode(true, fm_cb->cluster_size);
     if (rc != SA_AIS_OK && rc != SA_AIS_ERR_EXIST) {

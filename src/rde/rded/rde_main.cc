@@ -260,10 +260,6 @@ static int initialize_rde() {
     goto init_failed;
   }
 
-  // normally populated through AMFND svc up, but always
-  // insert ourselves into the set on startup.
-  rde_cb->cluster_members.insert(own_node_id);
-
   rc = NCSCC_RC_SUCCESS;
 
 init_failed:
