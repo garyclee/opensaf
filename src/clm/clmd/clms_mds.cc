@@ -1097,7 +1097,7 @@ static uint32_t clms_mds_node_event(struct ncsmds_callback_info *mds_info) {
     clmsv_evt->info.node_mds_info.node_id = mds_info->info.node_evt.node_id;
     clmsv_evt->info.node_mds_info.nodeup = SA_TRUE;
 
-    rc = m_NCS_IPC_SEND(&clms_cb->mbx, clmsv_evt, NCS_IPC_PRIORITY_NORMAL);
+    rc = m_NCS_IPC_SEND(&clms_cb->mbx, clmsv_evt, NCS_IPC_PRIORITY_HIGH);
     if (rc != NCSCC_RC_SUCCESS) {
       TRACE("IPC send failed %d", rc);
       free(clmsv_evt);
