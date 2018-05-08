@@ -18119,7 +18119,7 @@ SaAisErrorT ImmModel::rtObjectUpdate(
             eduAtValToOs(&tmpos, &(p->attrValue.attrValue),
                 (SaImmValueTypeT)p->attrValue.attrValueType);
 
-            if ((attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES) &&
+            if (!doIt && (attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES) &&
                 (multiattr->hasMatchingValue(tmpos))) {
               LOG_NO(
                   "ERR_INVALID_PARAM: multivalued attr '%s' with "
@@ -18127,9 +18127,7 @@ SaAisErrorT ImmModel::rtObjectUpdate(
                   "call. Object:'%s'.", attrName.c_str(), objectName.c_str());
               err = SA_AIS_ERR_INVALID_PARAM;
               break;  // out of for switch
-            }
-
-            if (doIt) {
+            } else if (doIt){
               multiattr->setExtraValue(tmpos);
             }
           }
@@ -18147,22 +18145,36 @@ SaAisErrorT ImmModel::rtObjectUpdate(
 
             osafassert(attrValue->isMultiValued());
             ImmAttrMultiValue* multiattr = (ImmAttrMultiValue*)attrValue;
-            IMMSV_EDU_ATTR_VAL_LIST* al = p->attrValue.attrMoreValues;
 
+            // Note: tmpMultiVal is used for validation purpose. It is only
+            // valid when doIt = 0. It holds the first value which does not
+            // exist in p->attrValue.attrMoreValues.
+            ImmAttrMultiValue tmpMultiVal;
+            if (!doIt && (attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES)) {
+              eduAtValToOs(&tmpos, &(p->attrValue.attrValue),
+                              (SaImmValueTypeT)p->attrValue.attrValueType);
+              tmpMultiVal = *multiattr;
+              tmpMultiVal.setExtraValue(tmpos);
+            }
+
+            IMMSV_EDU_ATTR_VAL_LIST* al = p->attrValue.attrMoreValues;
             while (al) {
               eduAtValToOs(&tmpos, &(al->n),
                   (SaImmValueTypeT)p->attrValue.attrValueType);
-              if ((attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES) &&
-                  (multiattr->hasMatchingValue(tmpos))) {
-                LOG_NO(
-                    "ERR_INVALID_PARAM: multivalued attr '%s' with "
-                    "NO_DUPLICATES yet duplicate values provided in rta-update "
-                    "call. Object:'%s'.", attrName.c_str(), objectName.c_str());
-                err = SA_AIS_ERR_INVALID_PARAM;
-                break;  // out of loop
-              }
 
-              if (doIt) {
+              if (!doIt && (attr->mFlags & SA_IMM_ATTR_NO_DUPLICATES)) {
+                if (tmpMultiVal.hasMatchingValue(tmpos)) {
+                  LOG_NO(
+                      "ERR_INVALID_PARAM: multivalued attr '%s' with "
+                      "NO_DUPLICATES yet duplicate values provided in "
+                      "rta-update call. Object:'%s'.",
+                      attrName.c_str(), objectName.c_str());
+                  err = SA_AIS_ERR_INVALID_PARAM;
+                  break;  // out of loop
+                } else {
+                  tmpMultiVal.setExtraValue(tmpos);
+                }
+              } else if (doIt) {
                 multiattr->setExtraValue(tmpos);
               }
 
