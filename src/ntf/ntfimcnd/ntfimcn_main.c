@@ -78,18 +78,6 @@ static void sigusr2_handler(int sig)
 	}
 }
 
-/**
- * TERM signal handler
- *
- * @param sig[in]
- */
-static void sigterm_handler(int sig)
-{
-	(void)sig;
-	signal(SIGTERM, SIG_IGN);
-	_Exit(EXIT_SUCCESS);
-}
-
 /*
  * Exit if anything fails. This will cause ntfs to restart ntfimcn
  */
@@ -98,12 +86,6 @@ int main(int argc, char **argv)
 	const char *logPath;
 	const char *trace_label = "osafntfimcnd";
 	SaAisErrorT ais_error = SA_AIS_OK;
-
-	// To make sure the SIGTERM is not lost during init phase
-	if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
-		LOG_ER("signal TERM failed: %s", strerror(errno));
-		_Exit(EXIT_FAILURE);
-	}
 
 	/*
 	 * Activate Log Trace

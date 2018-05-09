@@ -51,37 +51,6 @@ typedef struct {
 static init_params_t ipar = {0, 0, 0, false};
 pthread_mutex_t ntfimcn_mutex;
 
-/**
- * Kill the osafntfimcn child process using previously saved Pid
- * Error handled
- *
- * @param signal A valid signal
- * @return -1 on error (kill failed
- */
-static void kill_imcnproc(int signal)
-{
-	int rc = 0;
-
-	rc = kill(ipar.pid, signal);
-	if (rc == -1) {
-		if (errno == EPERM) {
-			/* We don't have permission to kill the process! */
-			LOG_ER(
-			    "Child process osafntfimcn could not be killed: %s",
-			    strerror(errno));
-		} else if (errno == ESRCH) {
-			/* The process was not found */
-			LOG_NO(
-			    "Child process osafntfimcn could not be killed: %s",
-			    strerror(errno));
-		} else {
-			/* EINVAL Invalid or unsupported signal number */
-			LOG_ER("%s Fatal error when killing %s", __FUNCTION__,
-			       strerror(errno));
-			osaf_abort(0);
-		}
-	}
-}
 
 /**
  * Timed out wait for the imcnproc to terminate.
@@ -137,58 +106,47 @@ static int wait_imcnproc_termination(void)
 }
 
 /**
- * Wait for imcn process to exit.
- *  1.Send SIGTERM to the imcn process
- *  - Wait for process to terminate
- *    ~ Prevents "zombie" process
- *    ~ Guaranty that process is terminated before return
- *    If the process does not terminate after a timeout the
- *    termination escalates with the following steps:
- *  2. Abort signal is sent to imcn process
- *     Wait for termination. If fail do next step.
- *  3. Send SIGKILL
- *     Wait for termination. If no termination is detected, ignore and
- *     continue NTF. Something is wrong and we may end up with a 'zombie'
- *     process but there is nothing more to do except aborting NTF causing a
- *     node restart.
- *
- * Also handle the case that the process already is killed before
- * this function is called.
+ * Send SIGKILL to osafntfimcnd then waiting for termination. If no termination
+ * is detected, ignore and continue NTF. Something is wrong and we may end up
+ * with a 'zombie' process but there is nothing more to do  except aborting NTF
+ * causing a node restart.
  *
  */
-static void timedwait_imcn_exit(void)
+static void kill_imcnproc_in_timewait(void)
 {
 	int rc = 0;
 	TRACE_ENTER();
 
-	/* Send SIGTERM for normal termination */
-	kill_imcnproc(SIGTERM);
-	rc = wait_imcnproc_termination();
-	if (rc == 0) {
-		TRACE("\tImcn successfully terminated");
-		goto done;
+	LOG_NO("%s: SIGKILL sent to osafntfimcnd process pid = %d",
+	       __FUNCTION__, ipar.pid);
+	rc = kill(ipar.pid, SIGKILL);
+	if (rc == -1) {
+		if (errno == EPERM) {
+			/* We don't have permission to kill the process! */
+			LOG_ER(
+			    "Child process osafntfimcn could not be killed: %s",
+			    strerror(errno));
+		} else if (errno == ESRCH) {
+			/* The process was not found */
+			LOG_NO(
+			    "Child process osafntfimcn could not be killed: %s",
+			    strerror(errno));
+		} else {
+			/* EINVAL Invalid or unsupported signal number */
+			LOG_ER("%s Fatal error when killing %s", __FUNCTION__,
+			       strerror(errno));
+			osaf_abort(0);
+		}
 	}
 
-	/* Normal termination has timed out. Escalate to step 2 */
-	TRACE("\tNormal termination failed. Escalate to abort");
-	kill_imcnproc(SIGABRT);
-	rc = wait_imcnproc_termination();
-	if (rc == 0) {
-		TRACE("\tImcn successfully aborted");
-		goto done;
-	}
-
-	/* Abort has also timed out. Escalate to step 3 */
-	TRACE("\tNormal termination failed. Escalate to kill");
-	kill_imcnproc(SIGKILL);
 	rc = wait_imcnproc_termination();
 	if (rc == 0) {
 		TRACE("\tImcn successfully killed");
 	} else {
-		LOG_WA("The osafntfimcnd process could not be killed!");
+		LOG_WA("%s: The osafntfimcnd process termination has "
+		       "timed out!", __FUNCTION__);
 	}
 
-done:
 	TRACE_LEAVE();
 }
 
@@ -331,7 +289,7 @@ void handle_state_ntfimcn(SaAmfHAStateT ha_state)
 			ipar.ha_state = ha_state;
 			TRACE("%s: Terminating osafntfimcnd process",
 			      __FUNCTION__);
-			timedwait_imcn_exit();
+			kill_imcnproc_in_timewait();
 		} else {
 			TRACE("%s: osafntfimcnd process not restarted. "
 			      "Already in correct state",
@@ -362,7 +320,7 @@ int stop_ntfimcn(void)
 	osaf_mutex_lock_ordie(&ntfimcn_mutex);
 	ipar.ntfimcn_on = false;
 	TRACE("%s: Terminating osafntfimcnd process", __FUNCTION__);
-	timedwait_imcn_exit();
+	kill_imcnproc_in_timewait();
 	osaf_mutex_unlock_ordie(&ntfimcn_mutex);
 
 	/* Cancel the surveillance thread */
