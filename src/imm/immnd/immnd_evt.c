@@ -10779,6 +10779,7 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 			LOG_ER(
 			    "MESSAGE:%llu OUT OF ORDER my highest processed:%llu - exiting",
 			    msgNo, cb->highestProcessed);
+			immnd_ackToNid(NCSCC_RC_FAILURE);
 			exit(1);
 		} else if (cb
 			       ->mSync) { /* If we receive out of sync message
