@@ -89,8 +89,8 @@ SaAisErrorT Consensus::PromoteThisNode(const bool graceful_takeover,
     }
 
     if (take_over_request_created == true) {
-      rc = RemoveTakeoverRequest();
-      if (rc != SA_AIS_OK) {
+      SaAisErrorT rc1 = RemoveTakeoverRequest();
+      if (rc1 != SA_AIS_OK) {
         LOG_WA("Could not remove takeover request");
       }
     }
@@ -364,9 +364,9 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
     return CreateTakeoverRequest(current_owner, proposed_owner, cluster_size);
   }
 
-  // wait up to 10s for request to be answered
+  // wait up to 15s for request to be answered
   retries = 0;
-  while (retries < kMaxTakeoverRetry) {
+  while (retries < (kMaxTakeoverRetry * 1.5)) {
     std::vector<std::string> tokens;
     if (ReadTakeoverRequest(tokens) == SA_AIS_OK) {
       const std::string state =

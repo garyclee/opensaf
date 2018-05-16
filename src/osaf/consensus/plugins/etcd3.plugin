@@ -38,8 +38,14 @@ get() {
     key_=$(echo "$output" | tail -n2 | head -n1)
     value=$(echo "$output" | tail -n1)
     if [ "$key_" = "$directory$key" ]; then
-      echo "$value"
-      return 0
+      if [ "$key_" = "$value" ]; then
+        # blank value returned
+        echo ""
+        return 0
+      else
+        echo "$value"
+        return 0
+      fi
     else
       # key missing!
       return 1
@@ -258,12 +264,13 @@ unlock() {
     fi
 
     # failed! check we own the lock
-    current_owner=lock_owner
-    if [[ "$owner" != "$current_owner" && -n "$current_owner" ]]; then
-      # for troubleshooting
-      echo "$output"
-      echo "$current_owner"
-      return 1
+    if current_owner=$(lock_owner); then
+      if [[ "$owner" != "$current_owner" && -n "$current_owner" ]]; then
+        # for troubleshooting
+        echo "$output"
+        echo "$current_owner"
+        return 1
+      fi
     fi
 
     # for troubleshooting
