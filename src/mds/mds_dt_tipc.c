@@ -2700,7 +2700,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 					    req->src_svc_id,
 					    get_svc_names(req->dest_svc_id),
 					    req->dest_svc_id);
-					if (len > MDS_DIRECT_BUF_MAXSIZE) {
+					if (len - sum_mds_hdr_plus_mdtm_hdr_plus_len > MDS_DIRECT_BUF_MAXSIZE) {
 						m_MMGR_FREE_BUFR_LIST(usrbuf);
 						free(body);
 						LOG_NO(

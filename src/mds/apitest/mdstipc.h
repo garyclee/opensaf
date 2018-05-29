@@ -361,6 +361,8 @@ void tet_broadcast_to_svc_tp_3(void);
 void tet_broadcast_to_svc_tp_4(void);
 void tet_broadcast_to_svc_tp_5(void);
 void tet_broadcast_to_svc_tp_6(void);
+void tet_broadcast_to_svc_tp_7(void);
+void tet_broadcast_to_svc_tp_8(void);
 void tet_direct_just_send_tp_1(void);
 void tet_direct_just_send_tp_2(void);
 void tet_direct_just_send_tp_3(void);

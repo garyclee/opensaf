@@ -7479,9 +7479,137 @@ void tet_broadcast_to_svc_tp_6()
 	test_validate(FAIL, 0);
 }
 
+void tet_broadcast_to_svc_tp_7(void)
+{
+	int FAIL = 0;
+	MDS_SVC_ID svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+
+	// Test broadcast of large message
+	char tmp[65220] = " Hi All ";
+	TET_MDS_MSG *mesg;
+
+	mesg = (TET_MDS_MSG *)malloc(sizeof(TET_MDS_MSG));
+
+	memset(mesg, 0, sizeof(TET_MDS_MSG));
+	memcpy(mesg->send_data, tmp, sizeof(tmp));
+	mesg->send_len = sizeof(tmp);
+
+	/*Start up*/
+	if (tet_initialise_setup(false)) {
+		printf("\nSetup Initialisation has Failed\n");
+		FAIL = 1;
+	} else {
+		/*------------------------------------------------------------*/
+		printf(
+		    "\nCase 1: Svc INTMIN on VDEST=200 Broadcasting a LOW Priority message to Svc EXTMIN\n");
+		if (mds_service_subscribe(gl_tet_vdest[1].mds_pwe1_hdl,
+					  NCSMDS_SVC_ID_INTERNAL_MIN,
+					  NCSMDS_SCOPE_NONE, 1,
+					  svcids) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_vdest[1].mds_pwe1_hdl,
+					 NCSMDS_SVC_ID_INTERNAL_MIN,
+					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_broadcast_to_svc(
+			gl_tet_vdest[1].mds_pwe1_hdl,
+			NCSMDS_SVC_ID_INTERNAL_MIN, NCSMDS_SVC_ID_EXTERNAL_MIN,
+			NCSMDS_SCOPE_NONE, MDS_SEND_PRIORITY_LOW,
+			mesg) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		} else
+			printf("\nSuccess\n");
+		if (mds_service_cancel_subscription(
+			gl_tet_vdest[1].mds_pwe1_hdl,
+			NCSMDS_SVC_ID_INTERNAL_MIN, 1,
+			svcids) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+	}
+	/*-------------------------------------------------------------*/
+	/*clean up*/
+	if (tet_cleanup_setup()) {
+		printf("\nSetup Clean Up has Failed\n");
+		FAIL = 1;
+	}
+
+	free(mesg);
+	test_validate(FAIL, 0);
+}
+
+void tet_broadcast_to_svc_tp_8(void)
+{
+	int FAIL = 0;
+	MDS_SVC_ID svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+
+	// Test broadcast of large message
+	char tmp[66000] = " Hi All ";
+	TET_MDS_MSG *mesg;
+
+	mesg = (TET_MDS_MSG *)malloc(sizeof(TET_MDS_MSG));
+
+	memset(mesg, 0, sizeof(TET_MDS_MSG));
+	memcpy(mesg->send_data, tmp, sizeof(tmp));
+	mesg->send_len = sizeof(tmp);
+
+	/*Start up*/
+	if (tet_initialise_setup(false)) {
+		printf("\nSetup Initialisation has Failed\n");
+		FAIL = 1;
+	} else {
+		/*---------------------------------------------*/
+		printf(
+		    "\nCase 1: Svc INTMIN on VDEST=200 Broadcasting a LOW Priority message to Svc EXTMIN\n");
+		if (mds_service_subscribe(gl_tet_vdest[1].mds_pwe1_hdl,
+					  NCSMDS_SVC_ID_INTERNAL_MIN,
+					  NCSMDS_SCOPE_NONE, 1,
+					  svcids) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_vdest[1].mds_pwe1_hdl,
+					 NCSMDS_SVC_ID_INTERNAL_MIN,
+					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_broadcast_to_svc(
+			gl_tet_vdest[1].mds_pwe1_hdl,
+			NCSMDS_SVC_ID_INTERNAL_MIN, NCSMDS_SVC_ID_EXTERNAL_MIN,
+			NCSMDS_SCOPE_NONE, MDS_SEND_PRIORITY_LOW,
+			mesg) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		} else
+			printf("\nSuccess\n");
+		if (mds_service_cancel_subscription(
+			gl_tet_vdest[1].mds_pwe1_hdl,
+			NCSMDS_SVC_ID_INTERNAL_MIN, 1,
+			svcids) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+	}
+	/*-----------------------------------------------*/
+	/*clean up*/
+	if (tet_cleanup_setup()) {
+		printf("\nSetup Clean Up has Failed\n");
+		FAIL = 1;
+	}
+
+	free(mesg);
+	test_validate(FAIL, 0);
+}
+
 /*---------------- DIRECT SEND TEST CASES--------------------------------*/
 
-void tet_direct_just_send_tp_1()
+void tet_direct_just_send_tp_1(void)
 {
 	int FAIL = 0;
 	MDS_SVC_ID svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
@@ -13422,6 +13550,12 @@ __attribute__((constructor)) static void mdsTipcAPI_constructor(void)
 	test_case_add(
 	    12, tet_broadcast_to_svc_tp_6,
 	    "Svc INTMIN on VDEST=200 Broadcasting a VERY HIGH Priority message (>MDS_DIRECT_BUF_MAXSIZE) to Svc EXTMIN");
+	test_case_add(
+	    12, tet_broadcast_to_svc_tp_7,
+	    "Svc INTMIN on VDEST=200 Broadcasting a LOW Priority message to Svc EXTMIN, large buffer near MDS_DIRECT_BUF_MAXSIZE");
+	test_case_add(
+	    12, tet_broadcast_to_svc_tp_8,
+	    "Svc INTMIN on VDEST=200 Broadcasting a LOW Priority message to Svc EXTMIN, large buffer > MDS_DIRECT_BUF_MAXSIZE");
 
 	test_suite_add(13, "Direct Just Send test cases");
 	test_case_add(
