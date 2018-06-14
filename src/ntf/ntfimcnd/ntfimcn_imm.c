@@ -71,23 +71,11 @@ struct s_get_created_dn {
 	SaNameT objectName;
 } s_get_created_dn;
 
-/* Used with function get_operation_invoke_name_create() */
-struct {
-	SaNameT iname;
-	SaNameT *iname_ptr;
-
-} s_get_operation_invoke_name_create;
-
-/* Used with function get_operation_invoke_name_modify() --*/
-struct {
-	SaNameT iname;
-	SaNameT *iname_ptr;
-} s_get_operation_invoke_name_modify;
-
 #define NOTIFYING_OBJECT "safApp=safImmService"
 
 static bool initializeImmOmHandle(SaImmHandleT* immOmHandle);
 static void finalizeImmOmHandle(SaImmHandleT immOmHandle);
+static void free_ccb_data(CcbUtilCcbData_t *ccb_data);
 
 /**
  * Get a class description for the given className
@@ -310,11 +298,26 @@ static SaNameT *get_created_dn(const SaImmClassNameT className,
 }
 
 /**
+ * Free memory for CcbUtilCcbData
+ *
+ * @param ccb_data[in]
+ *
+ * @return None
+ */
+static void free_ccb_data(CcbUtilCcbData_t *ccb_data) {
+	if (ccb_data != NULL) {
+		if (ccb_data->userData != NULL) {
+			osaf_extended_name_free(ccb_data->userData);
+			free(ccb_data->userData);
+		}
+		ccbutil_deleteCcbData(ccb_data);
+	}
+}
+
+/**
  * Get the operation invoker name.
  * If ccb id is 0 or >0 return the value in SaImmAttrImplementerName or
  * SaImmAttrAdminOwnerName respective
- * Note:
- * Uses in file global struct s_get_operation_invoke_name_create
  *
  * @param ccbId[in]
  * @param attr[in]
@@ -328,11 +331,9 @@ get_operation_invoke_name_create(SaImmOiCcbIdT ccbId,
 {
 	int i = 0;
 	char *attrName;
+	SaNameT* operation_invoke_name = NULL;
 
 	TRACE_ENTER();
-
-	s_get_operation_invoke_name_create.iname_ptr =
-	    &s_get_operation_invoke_name_create.iname;
 
 	if (ccbId == 0) {
 		attrName = NTFIMCN_IMPLEMENTER_NAME;
@@ -341,13 +342,12 @@ get_operation_invoke_name_create(SaImmOiCcbIdT ccbId,
 	}
 
 	/* Get the value from Admin owner name or Implementer name */
-	osaf_extended_name_free(&s_get_operation_invoke_name_create.iname);
-	osaf_extended_name_clear(&s_get_operation_invoke_name_create.iname);
+	operation_invoke_name = malloc(sizeof(SaNameT));
 	for (i = 0; attr[i] != NULL; i++) {
 		if (strcmp(attr[i]->attrName, attrName) == 0) {
 			osaf_extended_name_alloc(
 			    *((char **)attr[i]->attrValues[0]),
-			    &s_get_operation_invoke_name_create.iname);
+			    operation_invoke_name);
 			goto done;
 		}
 	}
@@ -357,15 +357,13 @@ get_operation_invoke_name_create(SaImmOiCcbIdT ccbId,
 
 done:
 	TRACE_LEAVE();
-	return s_get_operation_invoke_name_create.iname_ptr;
+	return operation_invoke_name;
 }
 
 /**
  * Get the operation invoker name.
  * If ccb id is 0 or >0 return the value in SaImmAttrImplementerName or
  * SaImmAttrAdminOwnerName respective.
- *
- * Note:
  *
  * @param ccbId[in]
  * @param attrMods[in]
@@ -379,11 +377,9 @@ get_operation_invoke_name_modify(SaImmOiCcbIdT ccbId,
 {
 	int i = 0;
 	char *attrName;
+	SaNameT* operation_invoke_name = NULL;
 
 	TRACE_ENTER();
-
-	s_get_operation_invoke_name_modify.iname_ptr =
-	    &s_get_operation_invoke_name_modify.iname;
 
 	if (ccbId == 0) {
 		attrName = NTFIMCN_IMPLEMENTER_NAME;
@@ -392,13 +388,12 @@ get_operation_invoke_name_modify(SaImmOiCcbIdT ccbId,
 	}
 
 	/* Get the value from Admin owner name or Implementer name */
-	osaf_extended_name_free(&s_get_operation_invoke_name_modify.iname);
-	osaf_extended_name_clear(&s_get_operation_invoke_name_modify.iname);
+	operation_invoke_name = malloc(sizeof(SaNameT));
 	for (i = 0; attrMods[i] != NULL; i++) {
 		if (strcmp(attrMods[i]->modAttr.attrName, attrName) == 0) {
 			osaf_extended_name_alloc(
 			    *((char **)attrMods[i]->modAttr.attrValues[0]),
-			    &s_get_operation_invoke_name_modify.iname);
+			    operation_invoke_name);
 			goto done;
 		}
 	}
@@ -408,7 +403,7 @@ get_operation_invoke_name_modify(SaImmOiCcbIdT ccbId,
 
 done:
 	TRACE_LEAVE();
-	return s_get_operation_invoke_name_modify.iname_ptr;
+	return operation_invoke_name;
 }
 
 /**
@@ -456,7 +451,7 @@ static SaAisErrorT saImmOiCcbObjectDeleteCallback(SaImmOiHandleT immOiHandle,
 			goto done;
 		}
 
-		ccbutil_deleteCcbData(ccbUtilCcbData);
+		free_ccb_data(ccbUtilCcbData);
 
 		if (internal_rc != 0) {
 			LOG_ER("%s send_object_create_notification fail",
@@ -535,7 +530,7 @@ saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
 		internal_rc = ntfimcn_send_object_create_notification(
 		    ccbUtilOperationData, rdn_attr_name, SA_FALSE);
 
-		ccbutil_deleteCcbData(ccbUtilCcbData);
+		free_ccb_data(ccbUtilCcbData);
 
 		if (internal_rc != 0) {
 			LOG_ER("%s send_object_create_notification fail",
@@ -599,7 +594,7 @@ saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
 		internal_rc = ntfimcn_send_object_modify_notification(
 		    ccbUtilOperationData, invoker_name_ptr, SA_FALSE);
 
-		ccbutil_deleteCcbData(ccbUtilCcbData);
+		free_ccb_data(ccbUtilCcbData);
 
 		if (internal_rc != 0) {
 			LOG_ER("%s send_object_modify_notification fail",
@@ -634,7 +629,7 @@ static void saImmOiCcbAbortCallback(SaImmOiHandleT immOiHandle,
 	TRACE_ENTER();
 
 	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) != NULL) {
-		ccbutil_deleteCcbData(ccbUtilCcbData);
+		free_ccb_data(ccbUtilCcbData);
 	} else {
 		LOG_ER("%s: Failed to find CCB object for ccb Id %llu",
 		       __FUNCTION__, ccbId);
@@ -744,9 +739,7 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 	}
 
 done:
-	if (ccbUtilCcbData != NULL) {
-		ccbutil_deleteCcbData(ccbUtilCcbData);
-	}
+	free_ccb_data(ccbUtilCcbData);
 	TRACE_LEAVE();
 	if (internal_rc != 0) {
 		/* If we fail to send a notification we exit. This will signal
