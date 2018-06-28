@@ -1523,6 +1523,7 @@ fi
 %{_bindir}/immoitest
 %{_bindir}/immapplier
 %{_bindir}/immpopulate
+%{_bindir}/lcktest
 %{_bindir}/logtest
 %{_bindir}/saflogtest
 %{_bindir}/logtestfr
@@ -1537,7 +1538,8 @@ fi
 %{_bindir}/ccbdemo_create
 %{_bindir}/ccbdemo_delete
 %{_bindir}/ccbdemo_modify
-%{_bindir}/ccbhdl_test
+%{_bindir}/test_ccbhdl
+%{_bindir}/test_objexist
 %endif
 %if %is_ais_ckpt
 %{_bindir}/ckpttest

@@ -24,9 +24,13 @@
 #include <vector>
 #include <list>
 
+#include "ais/include/saAis.h"
+#include "ais/include/saAmf.h"
+#include "ais/include/saImmOm.h"
+#include "base/macros.h"
+
 #include "smf/smfd/SmfUpgradeStep.h"
 
-#if 1
 //==============================================================================
 // Operates on the units of an external unitNameAndState list that is provided
 // when an object of this class is created. Nodes admin state is handled in
@@ -39,12 +43,7 @@
 // Units handled can be Nodes or SUs
 //
 // All methods return bool false if the admin operation fail.
-// An error log is written to inform why the operation failed.
-//
-// TODO(Lennart) This will not be the case. All possibilities to recover node
-// group creation will be used. True for other OM handling?
-// All IMM handles needed are created by the constructor. If this fail an
-// error log is created and abort is done.
+// Syslog is written to inform why the operation failed.
 //
 //==============================================================================
 class SmfAdminStateHandler {
@@ -62,8 +61,6 @@ class SmfAdminStateHandler {
 
  private:
   bool initImmOmAndSetAdminOwnerName();
-  bool becomeNgAdmOwnerAndInitCcb();
-  void releaseNgAdmOwnerAndCcb();
   bool becomeAdminOwnerOf(const std::string& object_name);
   bool releaseAdminOwnerOf(const std::string& object_name);
   void finalizeNodeGroupOm();
@@ -111,17 +108,11 @@ class SmfAdminStateHandler {
   // Indicate if creation was succesful
   bool creation_fail_;
 
-#if 1
-// TODO(Lennart) Not needed. Error shall only be logged once and that is in
-// the place where it is detected. Functions at higher levels shall only log
-// Fail to make it possible to see the call chain.
-
   // This variable will contain the AIS return code after a calling a
   // method using OpenSAF API. If this variable does not contain
   // SA_AIS_OK the called method has failed.
   //
   SaAisErrorT errno_;
-#endif
 
   // Count instances of this class
   static std::atomic<unsigned int> next_instance_number_;
@@ -135,7 +126,6 @@ class SmfAdminStateHandler {
 
   DELETE_COPY_AND_MOVE_OPERATORS(SmfAdminStateHandler);
 };
-#endif
 
 #endif /* SMF_SMFD_SMFADMINSTATE_H_ */
 

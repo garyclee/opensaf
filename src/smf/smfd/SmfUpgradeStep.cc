@@ -15,26 +15,24 @@
  *
  */
 
-/* ========================================================================
- *   INCLUDE FILES
- * ========================================================================
- */
+#include "smf/smfd/SmfUpgradeStep.h"
+
 #include <poll.h>
 #include <sched.h>
-#include <cinttypes>
+#include <stdio.h>
 
 #include <atomic>
+#include <cinttypes>
+#include <sstream>
 #include <string>
 
 #include "base/ncssysf_def.h"
 #include "base/ncssysf_ipc.h"
 #include "base/ncssysf_tsk.h"
 
-#include <saAis.h>
-#include <saSmf.h>
-#include <stdio.h>
+#include "ais/include/saAis.h"
+#include "ais/include/saSmf.h"
 #include "base/logtrace.h"
-#include <sstream>
 #include "base/saf_error.h"
 #include "base/osaf_time.h"
 #include "base/osaf_extended_name.h"
@@ -901,13 +899,13 @@ bool SmfUpgradeStep::setMaintenanceState(SmfActivationUnit &i_units) {
     } else {
       SmfImmModifyOperation *modop = new (std::nothrow) SmfImmModifyOperation;
       osafassert(modop != 0);
-      modop->setDn(*it);
-      modop->setOp("SA_IMM_ATTR_VALUES_REPLACE");
+      modop->SetObjectDn(*it);
+      modop->SetModificationType("SA_IMM_ATTR_VALUES_REPLACE");
       SmfImmAttribute saAmfSUMaintenanceCampaign;
-      saAmfSUMaintenanceCampaign.setName("saAmfSUMaintenanceCampaign");
-      saAmfSUMaintenanceCampaign.setType("SA_IMM_ATTR_SANAMET");
-      saAmfSUMaintenanceCampaign.addValue(campDn);
-      modop->addValue(saAmfSUMaintenanceCampaign);
+      saAmfSUMaintenanceCampaign.SetAttributeName("saAmfSUMaintenanceCampaign");
+      saAmfSUMaintenanceCampaign.SetAttributeType("SA_IMM_ATTR_SANAMET");
+      saAmfSUMaintenanceCampaign.AddAttributeValue(campDn);
+      modop->AddAttributeObject(saAmfSUMaintenanceCampaign);
       operations.push_back(modop);
     }
   }
@@ -1040,20 +1038,20 @@ bool SmfUpgradeStep::createOneSaAmfNodeSwBundle(const std::string &i_node,
         object.c_str());
   SmfImmCreateOperation icoSaAmfNodeSwBundle;
 
-  icoSaAmfNodeSwBundle.setClassName("SaAmfNodeSwBundle");
-  icoSaAmfNodeSwBundle.setParentDn(i_node);
+  icoSaAmfNodeSwBundle.SetClassName("SaAmfNodeSwBundle");
+  icoSaAmfNodeSwBundle.SetParentDn(i_node);
 
   SmfImmAttribute attrsafInstalledSwBundle;
-  attrsafInstalledSwBundle.setName("safInstalledSwBundle");
-  attrsafInstalledSwBundle.setType("SA_IMM_ATTR_SANAMET");
-  attrsafInstalledSwBundle.addValue("safInstalledSwBundle=" + escapedDn);
-  icoSaAmfNodeSwBundle.addValue(attrsafInstalledSwBundle);
+  attrsafInstalledSwBundle.SetAttributeName("safInstalledSwBundle");
+  attrsafInstalledSwBundle.SetAttributeType("SA_IMM_ATTR_SANAMET");
+  attrsafInstalledSwBundle.AddAttributeValue("safInstalledSwBundle=" + escapedDn);
+  icoSaAmfNodeSwBundle.AddAttributeObject(attrsafInstalledSwBundle);
 
   SmfImmAttribute attrsaAmfNodeSwBundlePathPrefix;
-  attrsaAmfNodeSwBundlePathPrefix.setName("saAmfNodeSwBundlePathPrefix");
-  attrsaAmfNodeSwBundlePathPrefix.setType("SA_IMM_ATTR_SASTRINGT");
-  attrsaAmfNodeSwBundlePathPrefix.addValue(i_bundle.getPathNamePrefix());
-  icoSaAmfNodeSwBundle.addValue(attrsaAmfNodeSwBundlePathPrefix);
+  attrsaAmfNodeSwBundlePathPrefix.SetAttributeName("saAmfNodeSwBundlePathPrefix");
+  attrsaAmfNodeSwBundlePathPrefix.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  attrsaAmfNodeSwBundlePathPrefix.AddAttributeValue(i_bundle.getPathNamePrefix());
+  icoSaAmfNodeSwBundle.AddAttributeObject(attrsaAmfNodeSwBundlePathPrefix);
 
   std::list<SmfImmOperation *> immOperations;
   immOperations.push_back(&icoSaAmfNodeSwBundle);
@@ -1084,7 +1082,7 @@ bool SmfUpgradeStep::deleteOneSaAmfNodeSwBundle(const std::string &i_node,
     TRACE("SaAmfNodeSwBundle %s exist in Imm, delete it", object.c_str());
     SmfImmDeleteOperation idoSaAmfNodeSwBundle;
 
-    idoSaAmfNodeSwBundle.setDn(object);
+    idoSaAmfNodeSwBundle.SetDn(object);
     std::list<SmfImmOperation *> immOperations;
     immOperations.push_back(&idoSaAmfNodeSwBundle);
 
@@ -1805,26 +1803,26 @@ SaAisErrorT SmfUpgradeStep::setSingleStepRebootInfo(int i_rebootInfo) {
 
     SmfImmRTCreateOperation icoSingleStepInfo;
 
-    icoSingleStepInfo.setClassName("OpenSafSmfSingleStepInfo");
-    icoSingleStepInfo.setParentDn(parent);
-    icoSingleStepInfo.setImmHandle(
+    icoSingleStepInfo.SetClassName("OpenSafSmfSingleStepInfo");
+    icoSingleStepInfo.SetParentDn(parent);
+    icoSingleStepInfo.SetImmHandle(
         getProcedure()->getProcThread()->getImmHandle());
 
     SmfImmAttribute attrsmfSingleStepInfo;
-    attrsmfSingleStepInfo.setName("smfSingleStepInfo");
-    attrsmfSingleStepInfo.setType("SA_IMM_ATTR_SASTRINGT");
-    attrsmfSingleStepInfo.addValue(rdn);
-    icoSingleStepInfo.addValue(attrsmfSingleStepInfo);
+    attrsmfSingleStepInfo.SetAttributeName("smfSingleStepInfo");
+    attrsmfSingleStepInfo.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+    attrsmfSingleStepInfo.AddAttributeValue(rdn);
+    icoSingleStepInfo.AddValue(attrsmfSingleStepInfo);
 
     SmfImmAttribute attrsmfRebootType;
-    attrsmfRebootType.setName("smfRebootType");
-    attrsmfRebootType.setType("SA_IMM_ATTR_SAUINT32T");
+    attrsmfRebootType.SetAttributeName("smfRebootType");
+    attrsmfRebootType.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
     char buf[5];
     snprintf(buf, 4, "%d", i_rebootInfo);
-    attrsmfRebootType.addValue(buf);
-    icoSingleStepInfo.addValue(attrsmfRebootType);
+    attrsmfRebootType.AddAttributeValue(buf);
+    icoSingleStepInfo.AddValue(attrsmfRebootType);
 
-    rc = icoSingleStepInfo.execute();  // Create the object
+    rc = icoSingleStepInfo.Execute();  // Create the object
     if (rc != SA_AIS_OK) {
       LOG_NO("Creation of SingleStepInfo object fails, rc= %s, [dn=%s]",
              obj.c_str(), saf_error(rc));
@@ -1832,20 +1830,20 @@ SaAisErrorT SmfUpgradeStep::setSingleStepRebootInfo(int i_rebootInfo) {
 
   } else {  // Update the object
     SmfImmRTUpdateOperation imoSingleStepInfo;
-    imoSingleStepInfo.setDn(obj);
-    imoSingleStepInfo.setImmHandle(
+    imoSingleStepInfo.SetDn(obj);
+    imoSingleStepInfo.SetImmHandle(
         getProcedure()->getProcThread()->getImmHandle());
-    imoSingleStepInfo.setOp("SA_IMM_ATTR_VALUES_REPLACE");
+    imoSingleStepInfo.SetOp("SA_IMM_ATTR_VALUES_REPLACE");
 
     SmfImmAttribute attrsmfRebootType;
-    attrsmfRebootType.setName("smfRebootType");
-    attrsmfRebootType.setType("SA_IMM_ATTR_SAUINT32T");
+    attrsmfRebootType.SetAttributeName("smfRebootType");
+    attrsmfRebootType.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
     char buf[5];
     snprintf(buf, 4, "%d", i_rebootInfo);
-    attrsmfRebootType.addValue(buf);
-    imoSingleStepInfo.addValue(attrsmfRebootType);
+    attrsmfRebootType.AddAttributeValue(buf);
+    imoSingleStepInfo.AddValue(attrsmfRebootType);
 
-    rc = imoSingleStepInfo.execute();  // Modify the object
+    rc = imoSingleStepInfo.Execute();  // Modify the object
     if (rc != SA_AIS_OK) {
       LOG_NO(
           "Modification SingleStepInfo fails, rc=%s, dn=[%s], attr=[smfRebootType], value=[%s]",

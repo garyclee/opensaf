@@ -22,6 +22,7 @@
 #include "rde/rded/role.h"
 #include <cinttypes>
 #include <cstdint>
+#include <thread>
 #include "base/getenv.h"
 #include "base/logtrace.h"
 #include "base/ncs_main_papi.h"
@@ -63,6 +64,55 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
   osafassert(status == NCSCC_RC_SUCCESS);
 }
 
+void Role::PromoteNode(const uint64_t cluster_size) {
+  TRACE_ENTER();
+  SaAisErrorT rc;
+
+  Consensus consensus_service;
+
+  rc = consensus_service.PromoteThisNode(true, cluster_size);
+  if (rc != SA_AIS_OK && rc != SA_AIS_ERR_EXIST) {
+    LOG_ER("Unable to set active controller in consensus service");
+    opensaf_reboot(0, nullptr,
+                   "Unable to set active controller in consensus service");
+  }
+
+  if (rc == SA_AIS_ERR_EXIST) {
+    LOG_WA("Another controller is already active");
+    return;
+  }
+
+  RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+
+  // send msg to main thread
+  rde_msg* msg = static_cast<rde_msg*>(malloc(sizeof(rde_msg)));
+  msg->type = RDE_MSG_ACTIVE_PROMOTION_SUCCESS;
+  uint32_t status;
+  status = m_NCS_IPC_SEND(&cb->mbx, msg, NCS_IPC_PRIORITY_HIGH);
+  osafassert(status == NCSCC_RC_SUCCESS);
+}
+
+void Role::NodePromoted() {
+  ExecutePreActiveScript();
+  LOG_NO("Switched to ACTIVE from %s", to_string(role()));
+  role_ = PCS_RDA_ACTIVE;
+  rde_rda_send_role(role_);
+
+  Consensus consensus_service;
+  RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+
+  // register for callback if active controller is changed
+  // in consensus service
+  if (cb->monitor_lock_thread_running == false) {
+    cb->monitor_lock_thread_running = true;
+    consensus_service.MonitorLock(MonitorCallback, cb->mbx);
+  }
+  if (cb->monitor_takeover_req_thread_running == false) {
+    cb->monitor_takeover_req_thread_running = true;
+    consensus_service.MonitorTakeoverRequest(MonitorCallback, cb->mbx);
+  }
+}
+
 Role::Role(NODE_ID own_node_id)
     : known_nodes_{},
       role_{PCS_RDA_QUIESCED},
@@ -82,37 +132,10 @@ timespec* Role::Poll(timespec* ts) {
       *ts = election_end_time_ - now;
       timeout = ts;
     } else {
+      election_end_time_ = base::kTimespecMax;
       RDE_CONTROL_BLOCK* cb = rde_get_control_block();
-      SaAisErrorT rc;
-      Consensus consensus_service;
-
-      rc = consensus_service.PromoteThisNode(true, cb->cluster_members.size());
-      if (rc != SA_AIS_OK && rc != SA_AIS_ERR_EXIST) {
-        LOG_ER("Unable to set active controller in consensus service");
-        opensaf_reboot(0, nullptr,
-                       "Unable to set active controller in consensus service");
-      }
-
-      if (rc == SA_AIS_ERR_EXIST) {
-        LOG_WA("Another controller is already active");
-        return timeout;
-      }
-
-      ExecutePreActiveScript();
-      LOG_NO("Switched to ACTIVE from %s", to_string(role()));
-      role_ = PCS_RDA_ACTIVE;
-      rde_rda_send_role(role_);
-
-      // register for callback if active controller is changed
-      // in consensus service
-      if (cb->monitor_lock_thread_running == false) {
-        cb->monitor_lock_thread_running = true;
-        consensus_service.MonitorLock(MonitorCallback, cb->mbx);
-      }
-      if (cb->monitor_takeover_req_thread_running == false) {
-        cb->monitor_takeover_req_thread_running = true;
-        consensus_service.MonitorTakeoverRequest(MonitorCallback, cb->mbx);
-      }
+      std::thread(&Role::PromoteNode,
+                 this, cb->cluster_members.size()).detach();
     }
   }
   return timeout;

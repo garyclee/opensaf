@@ -145,13 +145,13 @@ SaAisErrorT SmfCampState::verify(SmfUpgradeCampaign *i_camp,
 }
 
 //------------------------------------------------------------------------------
-// prerequsitescheck()
+// prerequisitescheck()
 //------------------------------------------------------------------------------
-SaAisErrorT SmfCampState::prerequsitescheck(SmfUpgradeCampaign *i_camp,
+SaAisErrorT SmfCampState::prerequisitescheck(SmfUpgradeCampaign *i_camp,
                                             std::string &error) {
   TRACE_ENTER();
   LOG_ER(
-      "SmfCampState::prerequsitescheck default implementation, should NEVER be executed.");
+      "SmfCampState::prerequisitescheck default implementation, should NEVER be executed.");
   TRACE_LEAVE();
   return SA_AIS_OK;
 }
@@ -272,7 +272,7 @@ SmfCampResultT SmfCampStateInitial::execute(SmfUpgradeCampaign *i_camp) {
   // In such case an error string is present in initial state
   SmfCampaignThread::instance()->campaign()->setError("");
 
-  if (prerequsitescheck(i_camp, error) != SA_AIS_OK) {
+  if (prerequisitescheck(i_camp, error) != SA_AIS_OK) {
     goto exit_error;
   }
   if (exechdl->smfProtectExecControlDuringInit(NULL)) {
@@ -413,9 +413,9 @@ SaAisErrorT SmfCampStateInitial::verify(SmfUpgradeCampaign *i_camp,
 }
 
 //------------------------------------------------------------------------------
-// prerequsitescheck()
+// prerequisitescheck()
 //------------------------------------------------------------------------------
-SaAisErrorT SmfCampStateInitial::prerequsitescheck(SmfUpgradeCampaign *i_camp,
+SaAisErrorT SmfCampStateInitial::prerequisitescheck(SmfUpgradeCampaign *i_camp,
                                                    std::string &error) {
   TRACE_ENTER();
   std::string s;
@@ -558,14 +558,14 @@ SaAisErrorT SmfCampStateInitial::prerequsitescheck(SmfUpgradeCampaign *i_camp,
     SmfImmCreateOperation *ico =
         dynamic_cast<SmfImmCreateOperation *>((operElem));
     if (ico != NULL) {
-      if (ico->getClassName() == "SaSmfSwBundle") {  // This is sw bundle
+      if (ico->GetClassName() == "SaSmfSwBundle") {  // This is sw bundle
         std::list<SmfImmAttribute> attr =
-            ico->getValues();          // Get all instance attributes
+            ico->GetAttributeObjects();          // Get all instance attributes
         for (auto &attrElem : attr) {  // Search for safSmfBundle attribute
-          if ((attrElem).getName() == "safSmfBundle") {
-            std::string val = (attrElem).getValues().front();  // Only one value
-            if (ico->getParentDn().size() > 0) {
-              val += "," + ico->getParentDn();
+          if ((attrElem).GetAttributeName() == "safSmfBundle") {
+            std::string val = (attrElem).GetAttributeValues().front();  // Only one value
+            if (ico->GetParentDn().size() > 0) {
+              val += "," + ico->GetParentDn();
             }
             TRACE("SW Bundle %s will be created by campaign", val.c_str());
             addToImmBundleDn.push_back(val);

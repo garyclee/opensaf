@@ -26,7 +26,7 @@
 #include "base/macros.h"
 #include "base/unix_server_socket.h"
 #include "dtm/common/osaflog_protocol.h"
-#include "dtm/transport/log_writer.h"
+#include "base/log_writer.h"
 
 // This class implements a loop that receives log messages over a UNIX socket
 // and sends them to a LogWriter instance.

@@ -25,11 +25,12 @@
 
 #include <string>
 #include <list>
-#include <saImmOm.h>
-#include <saAis.h>
+
+#include "ais/include/saImmOm.h"
+#include "ais/include/saAis.h"
 #include "osaf/saflog/saflog.h"
 
-#include "smfd.h"
+#include "smf/smfd/smfd.h"
 #include "smf/smfd/smfd_smfnd.h"
 #include "smf/smfd/SmfUpgradeStep.h"
 
@@ -195,11 +196,17 @@ class SmfImmUtils {
       const SaImmAdminOperationParamsT_2** i_params = NULL,
       SaTimeT i_timeout = SA_TIME_ONE_MINUTE);
 
-  ///
-  /// Purpose: Call administrative operation on an object.
-  /// @param   i_immOperationList A list of Imm operations to be done.
-  /// @return  True if successful, otherwise false
-  ///
+
+  // Fill in a CCB descriptor (immccb.h), store rollback data for
+  // each operation in the CCB and apply the modifications
+  // An IMM operation list is given to doImmOperations() when the imm operations
+  // shall be done. The list is owned by the operation that wants to do the
+  // operations and consists of SmfImmOperation objects where each
+  // The doImmOperations() function will iterate over the list and
+  // add all operations to a ccb descriptor that is used with an immccb
+  // DoModelModification() operation.
+  // Note that doImmOperations() not only do the IMM operations. It also creates
+  // a rollback operation for each IMM operation and stores it in a list
   SaAisErrorT doImmOperations(std::list<SmfImmOperation*>& i_immOperationList,
                               SmfRollbackCcb* io_rollbackCcb = NULL);
 

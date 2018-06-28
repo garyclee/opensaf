@@ -88,10 +88,10 @@ static bool StringToNumericValue(const std::string& str_value,
       }
     }
   } catch(std::invalid_argument& e) {
-    LOG_NO("%s: Invalid argument", __FUNCTION__);
+    LOG_NO("%s Fail: Invalid argument", __FUNCTION__);
     rc = false;
   } catch(std::out_of_range& e) {
-    LOG_NO("%s: Out of range", __FUNCTION__);
+    LOG_NO("%s Fail: Out of range", __FUNCTION__);
     rc = false;
   }
 
@@ -104,10 +104,16 @@ static bool StringToNumericValue(const std::string& str_value,
 
 bool AttributeHandler::AddAttributesForObjectCreate(const CreateDescriptor&
                                      create_descriptor) {
+  TRACE_ENTER();
   bool rc = true;
   for (auto& attribute_descriptor : create_descriptor.attributes) {
     rc = AddAttribute(attribute_descriptor, Request::kCreate);
+    if (rc == false) {
+      LOG_NO("%s: AddAttribute() Fail", __FUNCTION__);
+      break;
+    }
   }
+
   return rc;
 }
 
@@ -134,6 +140,9 @@ bool AttributeHandler::AddAttributesForModification(const ModifyDescriptor&
         rc = false;
         break;
     }
+    // break out of the 'for' loop if a 'switch case' fails
+    if (rc == false)
+      break;
   }
 
   TRACE_LEAVE();
@@ -228,7 +237,8 @@ StoreNumericAttribute(const AttributeDescriptor& attribute, Request request) {
     // Create a vector containing all values for this attribute
     if (StringToNumericValue<T>
         (value_str, numeric_value, value_type) == false) {
-      LOG_NO("%s: StringToNumericValue() Fail", __FUNCTION__);
+      LOG_NO("%s Fail: name=%s, value=%s", __FUNCTION__,
+             attribute.attribute_name.c_str(), value_str.c_str());
       rc = false;
       break;
     }

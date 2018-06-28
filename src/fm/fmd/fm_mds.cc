@@ -763,7 +763,7 @@ uint32_t fm_mds_async_send(FM_CB *fm_cb, NCSCONTEXT msg, NCSMDS_SVC_ID svc_id,
 
     memset(&(info.info.svc_send.info.snd.i_to_dest), 0, sizeof(MDS_DEST));
 
-    if (bcast_scope) {
+    if (bcast_scope != NCSMDS_SCOPE_NONE) {
       info.info.svc_send.info.bcast.i_bcast_scope = bcast_scope;
     } else {
       info.info.svc_send.info.snd.i_to_dest = i_to_dest;

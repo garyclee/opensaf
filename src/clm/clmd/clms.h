@@ -100,7 +100,7 @@ extern uint32_t clms_mds_msg_bcast(CLMS_CB *cb, CLMSV_MSG *bcast_msg);
 extern SaAisErrorT clms_imm_activate(CLMS_CB *cb);
 extern uint32_t clms_node_trackresplist_empty(CLMS_CLUSTER_NODE *op_node);
 extern uint32_t clms_send_cbk_start_sub(CLMS_CB *cb, CLMS_CLUSTER_NODE *node);
-extern void clms_clear_node_dep_list(CLMS_CLUSTER_NODE *node);
+extern void clms_clear_node_dep_list(CLMS_CLUSTER_NODE *node, bool checkpoint);
 extern uint32_t clms_client_del_trackresp(SaUint32T client_id);
 extern CLMS_CLUSTER_NODE *clms_node_get_by_name(const SaNameT *name);
 extern CLMS_CLUSTER_NODE *clms_node_getnext_by_name(const SaNameT *name);

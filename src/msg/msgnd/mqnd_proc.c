@@ -1446,12 +1446,24 @@ uint32_t mqnd_send_mqp_ulink_rsp(MQND_CB *cb, MQSV_SEND_INFO *sinfo,
  *
  ******************************************************************************************/
 void mqnd_clm_cluster_track_cbk(
-    const SaClmClusterNotificationBufferT *notificationBuffer,
-    SaUint32T numberOfMembers, SaAisErrorT error)
+	const SaClmClusterNotificationBufferT_4 *notificationBuffer,
+	SaUint32T numberOfMembers,
+	SaInvocationT invocation,
+	const SaNameT *rootCauseEntity,
+	const SaNtfCorrelationIdsT *correlationIds,
+	SaClmChangeStepT step,
+	SaTimeT timeSupervision,
+	SaAisErrorT error)
 {
 	MQND_CB *cb;
 	uint32_t counter = 0;
 	uint32_t cb_hdl = m_MQND_GET_HDL();
+
+	if (error != SA_AIS_OK) {
+		LOG_ER("mqnd_clm_cluster_track_cbk failed: %i", error);
+		goto done;
+	}
+
 
 	/* Get the CB from the handle */
 	cb = ncshm_take_hdl(NCS_SERVICE_ID_MQND, cb_hdl);
@@ -1493,6 +1505,7 @@ void mqnd_clm_cluster_track_cbk(
 	/* Return the Handle */
 	ncshm_give_hdl(cb_hdl);
 
+done:
 	return;
 }
 

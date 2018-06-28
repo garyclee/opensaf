@@ -80,6 +80,11 @@ typedef struct mqsv_dsend_info {
   amf_ver.majorVersion = 0x01;      \
   amf_ver.minorVersion = 0x01;
 
+#define m_MQSV_GET_CLM_VER(clm_ver) \
+  clm_ver.releaseCode = 'B';        \
+  clm_ver.majorVersion = 0x04;      \
+  clm_ver.minorVersion = 0x01;
+
 #define m_MQSV_IS_ACKFLAGS_NOT_VALID(ackFlags) \
   ((ackFlags) && ((ackFlags) != SA_MSG_MESSAGE_DELIVERED_ACK))
 

@@ -82,8 +82,6 @@ class SmfExecControlObjHandler {
   bool readOpenSafSmfConfig();
   bool copyExecControlObject();
   void removeExecControlObjectCopy();
-  bool createImmOmHandles();
-  void finalizeImmOmHandles();
 
   // For OpenSafSmfExecControl object data
   SmfImmUtils *p_immutil_object;
@@ -101,12 +99,6 @@ class SmfExecControlObjHandler {
   // For OpenSafSmfExecControl object copy
   std::string kOpenSafSmfExecControl_copy = "openSafSmfExecControl=SmfHdlCopy";
   SaImmAttrValuesT_2 **m_attributes;
-
-  // For storing IMM handles
-  const SaVersionT m_immVersion{'A', 2, 17};
-  SaImmHandleT m_omHandle;
-  SaImmAdminOwnerHandleT m_ownerHandle;
-  SaImmCcbHandleT m_ccbHandle;
 
   DELETE_COPY_AND_MOVE_OPERATORS(SmfExecControlObjHandler);
 };

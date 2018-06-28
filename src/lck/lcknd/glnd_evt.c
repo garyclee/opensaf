@@ -1223,23 +1223,24 @@ static uint32_t glnd_process_gla_resource_close(GLND_CB *glnd_cb,
 		/* decrement the resource count and if zero send the event to
 		 * the gld */
 		if (resource_del == true) {
-			if (res_node->lcl_ref_cnt != 0 &&
-			    rsc_info->lcl_resource_id_count == 1) {
-				res_node->lcl_ref_cnt--;
-				glnd_restart_resource_info_ckpt_overwrite(
-				    glnd_cb, res_node);
+			res_node->lcl_ref_cnt--;
+			glnd_restart_resource_info_ckpt_overwrite(
+			    glnd_cb,
+			    res_node);
 
-				if (res_node->lcl_ref_cnt == 0 &&
-				    glnd_resource_grant_list_orphan_locks(
-					res_node, &mode) == false) {
-					glnd_resource_node_destroy(
-					    glnd_cb, res_node, orphan);
-					res_node =
-					    NULL; /* It is freed inside
-						     glnd_resource_node_destroy
-						   */
-				}
+			orphan = glnd_resource_grant_list_orphan_locks(
+				    res_node,
+				    &mode);
+
+			if (res_node->lcl_ref_cnt == 0 && orphan == false) {
+				glnd_resource_node_destroy(glnd_cb,
+							res_node, orphan);
+				/* It is freed inside
+				   glnd_resource_node_destroy
+				 */
+				res_node = NULL;
 			}
+
 			if (res_node) {
 				glnd_resource_master_lock_resync_grant_list(
 				    glnd_cb, res_node);
@@ -1250,7 +1251,9 @@ static uint32_t glnd_process_gla_resource_close(GLND_CB *glnd_cb,
 				gld_evt.info.rsc_details.rsc_id =
 				    res_node->resource_id;
 				gld_evt.info.rsc_details.lcl_ref_cnt =
-				    rsc_info->lcl_resource_id_count;
+					res_node->lcl_ref_cnt;
+				gld_evt.info.rsc_details.orphan = orphan;
+
 				glnd_mds_msg_send_gld(glnd_cb, &gld_evt,
 						      glnd_cb->gld_mdest_id);
 			}
@@ -2734,7 +2737,20 @@ static uint32_t glnd_process_glnd_lck_req_orphan(GLND_CB *glnd_cb,
 				    SA_LCK_PR_LOCK_MODE)
 					res_node->lck_master_info.pr_orphaned =
 					    true;
+
+				/* notify GLD of the orphan */
+				GLSV_GLD_EVT gld_evt;
+
+				memset(&gld_evt, 0, sizeof(GLSV_GLD_EVT));
+				m_GLND_RESOURCE_LCK_FILL(
+					gld_evt, GLSV_GLD_EVT_SET_ORPHAN,
+					res_node->resource_id, true,
+					lck_list_info->lock_info.lock_type);
+
+				glnd_mds_msg_send_gld(glnd_cb, &gld_evt,
+					glnd_cb->gld_mdest_id);
 			}
+
 			/* free the lck_list info */
 			glnd_resource_lock_req_delete(res_node, lck_list_info);
 

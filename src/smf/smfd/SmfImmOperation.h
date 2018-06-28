@@ -18,343 +18,256 @@
 #ifndef SMF_SMFD_SMFIMMOPERATION_H_
 #define SMF_SMFD_SMFIMMOPERATION_H_
 
-/* ========================================================================
- *   INCLUDE FILES
- * ========================================================================
- */
-
 #include <string>
 #include <list>
 
-#include <saImmOm.h>
-#include <saImmOi.h>
+#include "ais/include/saImmOm.h"
+#include "ais/include/saImmOi.h"
 
-/* ========================================================================
- *   DEFINITIONS
- * ========================================================================
- */
+#include "smf/smfd/SmfRollback.h"
+#include "smf/smfd/imm_modify_config/immccb.h"
 
-/* ========================================================================
- *   TYPE DEFINITIONS
- * ========================================================================
- */
-
-class SmfRollbackData;
-
-/* ========================================================================
- *   DATA DECLARATIONS
- * ========================================================================
- */
-
-///
-/// Purpose: Holds information about an IMM attribute.
-///
-
+// =========================================
+// Holds information about one IMM attribute
 class SmfImmAttribute {
  public:
-  ///
-  /// Purpose: Constructor.
-  /// @param   None
-  /// @return  None
-  ///
-  SmfImmAttribute();
+  SmfImmAttribute() {};
+  ~SmfImmAttribute() {};
 
-  ///
-  /// Purpose: Destructor.
-  /// @param   None
-  /// @return  None
-  ///
-  ~SmfImmAttribute();
+  void SetAttributeName(const std::string& i_name) {
+    m_name = i_name;
+    attribute_.attribute_name = i_name;
+  }
 
-  ///
-  /// Purpose: Set the attribute name.
-  /// @param   i_name A reference to a std::string containing the attribute
-  /// name.
-  /// @return  None.
-  ///
-  void setName(const std::string& i_name);
+  const std::string& GetAttributeName() { return attribute_.attribute_name; }
 
-  ///
-  /// Purpose: Get the attribute name.
-  /// @param   None.
-  /// @return  A reference to a std::string containing the attribute name.
-  ///
-  const std::string& getName();
+  void SetAttributeType(const std::string& i_type) {
+    m_type = i_type;
+    attribute_.value_type = modelmodify::StringToSaImmValueType(i_type);
+  }
 
-  ///
-  /// Purpose: Set the attribute type.
-  /// @param   i_name A reference to a std::string containing the type name.
-  /// @return  None.
-  ///
-  void setType(const std::string& i_type);
+  // Note: More than one value can be added (multi-value)
+  void AddAttributeValue(const std::string& i_value) {
+    m_values.push_back(i_value);
+    if (i_value.compare("<_empty_>") != 0)
+      attribute_.AddValue(i_value);
+  }
 
-  ///
-  /// Purpose: Add an attribute value.
-  /// @param   i_name A reference to a std::string containing the attribute
-  /// value.
-  /// @return  None.
-  ///
-  void addValue(const std::string& i_value);
+  // Note: This is the legacy function that returns a list of strings. Is kept
+  //       for backwards compatibility
+  //       This class also contains an attribute descriptor that has a vector
+  //       of values which is used with the model modifier (immccb.h)
+  const std::list<std::string>& GetAttributeValues() { return m_values; }
 
-  ///
-  /// Purpose: Get the attribute values.
-  /// @param   i_name A reference to a std::string containing the attribute
-  /// value.
-  /// @return  A reference to a std::list <std::string> containing the attribute
-  /// values.
-  ///
-  const std::list<std::string>& getValues();
+  const modelmodify::AttributeDescriptor
+  GetAttributeDescriptor() { return attribute_; }
 
+#if 1
+  // Note: Should be refactored. Use GetAttributeDescriptor instead.
+  // Must be kept until further refactoring is done
   friend class SmfImmOperation;
-  friend class SmfImmCreateOperation;
-  friend class SmfImmModifyOperation;
+  friend class SmfImmCreateOperation; // Using m_values, m_name, m_type
+  friend class SmfImmModifyOperation; // Using m_values, m_name, m_type
   friend class SmfImmDeleteOperation;
-  friend class SmfImmRTCreateOperation;
-  friend class SmfImmRTUpdateOperation;
+#endif
+  friend class SmfImmRTCreateOperation; // Using m_values, m_name, m_type
+  friend class SmfImmRTUpdateOperation; // Using m_values, m_name, m_type
 
  private:
+  // Note: Used directly by (friend) SmfImmRT operations
   std::string m_name;              /* Attribute name */
   std::string m_type;              /* Attribute type */
   std::list<std::string> m_values; /* Attribute values */
+
+  // Also store in an attribute descriptor
+  // Note: Above parameters can be removed when we get rid of all the friend
+  //       classes
+  modelmodify::AttributeDescriptor attribute_;
 };
 
-///
-/// Purpose: Base class for IMM operations.
-///
+// =============================
+// Base class for IMM operations
+// Create, Delete and Modify
+// =============================
 
 class SmfImmOperation {
  public:
-  ///
-  /// Purpose: Constructor.
-  /// @param   None
-  /// @return  None
-  ///
-  SmfImmOperation();
+  SmfImmOperation()
+    : imm_operation_(NotSet) {}
+  virtual ~SmfImmOperation() {}
 
-  ///
-  /// Purpose: Destructor.
-  /// @param   None
-  /// @return  None
-  ///
-  virtual ~SmfImmOperation();
+  // This "Execute" do all IMM operations needed to create and apply a CCB
+  // Uses immccb to do this. See immccb.h
+  virtual SaAisErrorT Execute(SmfRollbackData* o_rollbackData = NULL) {
+    LOG_NO("execute must be specialised");
+    return (SaAisErrorT)-1;
+  }
 
-  ///
-  /// Purpose: Execute the operation.
-  /// @param   None.
-  /// @return  None.
-  ///
-  virtual SaAisErrorT execute(SmfRollbackData* o_rollbackData = NULL);
+  virtual int Rollback() {
+    LOG_NO("rollback must be specialised");
+    return -1;
+  }
 
-  ///
-  /// Purpose: Rollback the operation.
-  /// @param   None.
-  /// @return  None.
-  ///
-  virtual int rollback();
+  // Add an attribute object of class SmfImmAttribute
+  virtual void AddAttributeObject(const SmfImmAttribute& i_value) {
+    LOG_NO("addValue must be specialised");
+  }
 
-  ///
-  /// Purpose: Set the IMM CCB handle to be used by the operation.
-  /// @param   i_ccbHandle The SaImmCcbHandleT for the IMM operation.
-  /// @return  None.
-  ///
-  virtual void setCcbHandle(SaImmCcbHandleT i_ccbHandle);
-
-  ///
-  /// Purpose: Set the IMM owner handle to be used by the operation.
-  /// @param   i_immOwnerHandle The SaImmAdminOwnerHandleT for the IMM
-  /// operation.
-  /// @return  None.
-  ///
-  virtual void setImmOwnerHandle(SaImmAdminOwnerHandleT i_immOwnerHandle);
-
-  ///
-  /// Purpose: Add a value to be used in the IMM operation.
-  /// @param   i_value A reference to a SmfImmAttribute to be added.
-  /// @return  None.
-  ///
-  virtual void addValue(const SmfImmAttribute& i_value);
-
-  ///
-  /// Purpose: Add a attribute value to be used in the IMM operation.
-  /// @param   i_name The name of the attribute to add.
-  /// @param   i_type The type of the attribute to add.
-  /// @param   i_value The value of the attribute to add.
-  /// @return  None.
-  ///
-  virtual void addAttrValue(const std::string& i_name,
+  // Create and add a new attribute if the attribute does not already
+  // exist (based on name). If an attribute with the given name already exist
+  // no attribute is created but the value (i_value) is added (multivalue).
+  //
+  // Note: The attribute must be an attribute defined in the class for the
+  //       object to be created.
+  virtual void AddOrUpdateAttribute(const std::string& i_name,
                             const std::string& i_type,
-                            const std::string& i_value);
+                            const std::string& i_value) {
+    LOG_NO("addAttrValue must be specialised");
+  }
+
+  // get the correct operation descriptor
+  enum OperationType { NotSet, Create, Delete, Modify };
+
+  const OperationType GetOperationType() { return imm_operation_; }
+  const modelmodify::CreateDescriptor GetCreateDescriptor() {
+    return object_create_;
+  }
+  const modelmodify::DeleteDescriptor GetDeleteDescriptor() {
+    return object_delete_;
+  }
+  const modelmodify::ModifyDescriptor GetModifyDescriptor() {
+    return object_modify_;
+  }
 
  protected:
-  SaImmCcbHandleT m_ccbHandle;
-  SaImmAdminOwnerHandleT m_immOwnerHandle;
+  OperationType imm_operation_;
+  modelmodify::CreateDescriptor object_create_;
+  modelmodify::DeleteDescriptor object_delete_;
+  modelmodify::ModifyDescriptor object_modify_;
+
 };
 
-///
-/// Purpose: Class for creation of IMM object.
-///
-
+// Create an IMM object.
+// Holds information about one create operation
+// The interface is documented in (virtual) class SmfImmOperation
 class SmfImmCreateOperation : public SmfImmOperation {
  public:
-  ///
-  /// Purpose: Constructor.
-  /// @param   None
-  /// @return  None
-  ///
-  SmfImmCreateOperation();
+  SmfImmCreateOperation()
+      : SmfImmOperation(),
+      class_name_(""),
+      parent_dn_(""),
+      attributes_(0) { imm_operation_ = Create; }
+      //m_immAttrValues(0) { imm_operation_ = Create; }
 
-  ///
-  /// Purpose: Destructor.
-  /// @param   None
-  /// @return  None
-  ///
-  ~SmfImmCreateOperation();
+  ~SmfImmCreateOperation() {};
 
-  ///
-  /// Purpose: Execute the operation.
-  /// @param   None.
-  /// @return  None.
-  ///
-  SaAisErrorT execute(SmfRollbackData* o_rollbackData = NULL);
+  // Verifies parameters in a create descriptor and adds the attributes to
+  // the create descriptor
+  SaAisErrorT Execute(SmfRollbackData* o_rollbackData = NULL);
 
   ///
   /// Purpose: Rollback the operation.
   /// @param   None.
   /// @return  None.
   ///
-  int rollback();
+  int Rollback() {
+    LOG_NO("Rollback not implemented yet");
+    return -1;
+  }
 
-  ///
-  /// Purpose: Set the class name of the object to be created.
-  /// @param   i_name The name of the class.
-  /// @return  None.
-  ///
-  void setClassName(const std::string& i_name);
+  // Set the class name of the object to be created.
+  void SetClassName(const std::string& i_name) {
+    class_name_ = i_name;
+    object_create_.class_name = i_name;
+  }
 
-  ///
-  /// Purpose: Get the class name of the object to be created.
-  /// @param   None.
-  /// @return  A const std::string containing the class name.
-  ///
-  const std::string& getClassName();
+  // Get the class name of the object to be created.
+  const std::string& GetClassName() {
+    return object_create_.class_name;
+  }
 
-  ///
-  /// Purpose: Set the parent DN for the created object.
-  /// @param   i_dn The parent DN.
-  /// @return  None.
-  ///
-  void setParentDn(const std::string& i_dn);
+  // Set parent DN for object to be created
+  void SetParentDn(const std::string& i_dn) {
+    parent_dn_ = i_dn;
+    object_create_.parent_name = i_dn;
+  }
 
-  ///
-  /// Purpose: Get the parent DN for the created object.
-  /// @param   None.
-  /// @return  A const std::string containing the parent DN.
-  ///
-  const std::string& getParentDn();
+  // Get parent DN for object to be created
+  const std::string& GetParentDn() {
+    return object_create_.parent_name;
+  }
 
-  ///
-  /// Purpose: Add a value for an attribute of the object to be created.
-  /// @param   i_value A SmfImmAttribute containing the attribute information.
-  /// @return  None.
-  ///
-  void addValue(const SmfImmAttribute& i_value);
+  void AddAttributeObject(const SmfImmAttribute& i_attribute) {
+    attributes_.push_back(i_attribute);
+  }
 
-  ///
-  /// Purpose: Add a attribute value to be used in the IMM operation.
-  /// @param   i_name The name of the attribute to add.
-  /// @param   i_type The type of the attribute to add.
-  /// @param   i_value The value of the attribute to add.
-  /// @return  None.
-  ///
-  void addAttrValue(const std::string& i_name, const std::string& i_type,
-                    const std::string& i_value);
+  void AddOrUpdateAttribute(const std::string& i_name,
+                               const std::string& i_type,
+                               const std::string& i_value);
 
-  ///
-  /// Purpose: Get the values set for the object to create
-  /// @param   None.
-  /// @return  A list of SmfImmAttribute.
-  ///
-  const std::list<SmfImmAttribute>& getValues();
-
-  ///
-  /// Purpose: Create the attr values structure from previously added string
-  /// values.
-  /// @param   None.
-  /// @return  Bool true if successful, otherwise false.
-  ///
-  bool createAttrValues(void);
+  // Get the list of attributes given for creation of this object
+  const std::list<SmfImmAttribute>& GetAttributeObjects() {
+    return attributes_;
+  }
 
  private:
-  ///
-  /// Purpose: Set the SaImmAttrValuesT_2**, pointing to the array of pointers
-  /// to SaImmAttrValuesT_2.
-  /// @param   i_values A SaImmAttrValuesT_2** pointing to a null terminated
-  /// array of SaImmAttrValuesT_2 pointers.
-  /// @return  None.
-  ///
-  void setAttrValues(SaImmAttrValuesT_2** i_values);
-
   ///
   /// Purpose: Prepare rollback of the operation.
   /// @param   None.
   /// @return  None.
   ///
-  SaAisErrorT prepareRollback(SmfRollbackData* o_rollbackData);
+  SaAisErrorT PrepareRollback(SmfRollbackData* o_rollbackData);
 
-  std::string m_className; /* class name for the object to be created */
-  std::string m_parentDn;  /* dn to the parent object */
-  std::list<SmfImmAttribute> m_values;  /* Attribute creation values */
-  SaImmAttrValuesT_2** m_immAttrValues; /* The array of opinters to
-                                           SaImmAttrValuesT_2 structures */
+  // Note: The following two variables are used in PrepareRollback.
+  // PrepareRollback() could be refactored to use attributes_ instead
+  std::string class_name_; /* class name for the object to be created */
+  std::string parent_dn_;  /* dn to the parent object */
+
+  // Note: Used in PrepareRollback
+  std::list<SmfImmAttribute> attributes_;  /* Attributes set at creation */
 };
 
-///
-/// Purpose: Class for deletion of an IMM object.
-///
-
+// Delete an IMM object.
+// Holds information about one delete operation
+// The interface is documented in (virtual) class SmfImmOperation
 class SmfImmDeleteOperation : public SmfImmOperation {
  public:
-  ///
-  /// Purpose: Constructor.
-  /// @param   None
-  /// @return  None
-  ///
-  SmfImmDeleteOperation();
-
-  ///
-  /// Purpose: Destructor.
-  /// @param   None
-  /// @return  None
-  ///
-  ~SmfImmDeleteOperation();
+  SmfImmDeleteOperation() : SmfImmOperation() { imm_operation_ = Delete; }
+  ~SmfImmDeleteOperation() {}
 
   ///
   /// Purpose: Execute the operation.
   /// @param   None.
   /// @return  None.
   ///
-  SaAisErrorT execute(SmfRollbackData* o_rollbackData = NULL);
+  SaAisErrorT Execute(SmfRollbackData* o_rollbackData = NULL);
 
   ///
   /// Purpose: Rollback the operation.
   /// @param   None.
   /// @return  None.
   ///
-  int rollback();
+  int Rollback() {
+    LOG_NO("Rollback not implemented yet");
+    return -1;
+  }
 
   ///
   /// Purpose: Set the DN for the object to be deleted.
   /// @param   i_dn The DN.
   /// @return  None.
   ///
-  void setDn(const std::string& i_dn);
+  void SetDn(const std::string& i_dn) {
+    m_dn = i_dn;
+    object_delete_.object_name = i_dn;
+  }
 
   ///
   /// Purpose: Get the DN for the object to be deleted.
   /// @param   None
   /// @return  const std::string
   ///
-  const std::string& getDn();
+  const std::string& GetDn() { return object_delete_.object_name; }
 
  private:
   ///
@@ -362,122 +275,94 @@ class SmfImmDeleteOperation : public SmfImmOperation {
   /// @param   None.
   /// @return  None.
   ///
-  SaAisErrorT prepareRollback(SmfRollbackData* o_rollbackData);
+  SaAisErrorT PrepareRollback(SmfRollbackData* o_rollbackData);
 
+  // Used in PrepareRollback
   std::string m_dn; /* dn to the object to delete */
 };
 
-///
-/// Purpose: Class for modification of IMM object.
-///
-
+// Modify an IMM object.
+// Holds information about one modify operation
+// The interface is documented in (virtual) class SmfImmOperation
+// Note: Only one modification type can be set for the whole object. This means
+// that if a list of attributes is given all attributes will be modified
+// based on the same type.
+// This is a limitation since the IMM API allows each attribute to have its
+// own modification type
 class SmfImmModifyOperation : public SmfImmOperation {
  public:
-  ///
-  /// Purpose: Constructor.
-  /// @param   None
-  /// @return  None
-  ///
-  SmfImmModifyOperation();
+  SmfImmModifyOperation()
+    : SmfImmOperation(),
+    object_name_(""),
+    modification_type_(""),
+    attributes_(0),
+    //m_immAttrMods(0)
+    m_rdn("")  { imm_operation_ = Modify; }
 
-  ///
-  /// Purpose: Destructor.
-  /// @param   None
-  /// @return  None
-  ///
-  ~SmfImmModifyOperation();
+  ~SmfImmModifyOperation() {}
 
-  ///
-  /// Purpose: Execute the operation.
-  /// @param   None.
-  /// @return  None.
-  ///
-  SaAisErrorT execute(SmfRollbackData* o_rollbackData = NULL);
+  SaAisErrorT Execute(SmfRollbackData* o_rollbackData = NULL);
 
-  ///
-  /// Purpose: Rollback the operation.
-  /// @param   None.
-  /// @return  None.
-  ///
-  int rollback();
+  int Rollback() {
+    LOG_NO("Rollback not implemented yet");
+    return -1;
+  }
 
-  ///
-  /// Purpose: Set the DN of the object to be modified.
-  /// @param   i_dn The DN of the object to be modified.
-  /// @return  None.
-  ///
-  void setDn(const std::string& i_dn);
+  // Set the DN of the object to be modified.
+  void SetObjectDn(const std::string& i_dn) {
+    object_name_ = i_dn;
+    object_modify_.object_name = i_dn;
+  }
+  // Get the DN of the object to be modified.
+  const std::string& GetObjectDn() { return object_modify_.object_name; }
 
-  ///
-  /// Purpose: Get the DN of the object to be modified.
-  /// @param   None.
-  /// @return  std::string The DN of the object to be modified.
-  ///
-  const std::string& getDn();
+  // NOTE: Rdn is not used with this imm operation.
+  //       This object is only used as a store for this information.
+  // Set the RDN of the object to be modified.
+  void SetRdn(const std::string& i_rdn) { m_rdn = i_rdn; }
+  // Set the RDN of the object to be modified.
+  const std::string& GetRdn() { return m_rdn; }
 
-  ///
-  /// Purpose: Set the RDN of the object to be modified.
-  /// @param   i_dn The RDN of the object to be modified.
-  /// @return  None.
-  ///
-  void setRdn(const std::string& i_rdn);
+  // Set type of modification as a string
+  // The string must correspond with a SaImmAttrModificationTypeT
+  // SA_IMM_ATTR_VALUES_ADD, SA_IMM_ATTR_VALUES_DELETE or
+  // SA_IMM_ATTR_VALUES_REPLACE
+  void SetModificationType(const std::string& i_op) {
+    modification_type_ = i_op;
+  }
 
-  ///
-  /// Purpose: Get the RDN of the object to be modified.
-  /// @param   None.
-  /// @return  std::string The RDN of the object to be modified.
-  ///
-  const std::string& getRdn();
+  void AddAttributeObject(const SmfImmAttribute& i_value) {
+    attributes_.push_back(i_value);
+  }
 
-  ///
-  /// Purpose: Set the type of modification operation.
-  /// @param   i_op The name of the operation
-  /// (SA_IMM_ATTR_VALUES_ADD/SA_IMM_ATTR_VALUES_DELETE/SA_IMM_ATTR_VALUES_REPLACE).
-  /// @return  None.
-  ///
-  void setOp(const std::string& i_op);
+  void AddOrUpdateAttribute(const std::string& i_name, const std::string& i_type,
+                    const std::string& i_value);
 
+ private:
   ///
   /// Purpose: Create the attr modification structure from string
   /// representation.
   /// @param   None.
   /// @return  Bool true if successful, otherwise false.
   ///
-  bool createAttrMods(void);
+  void CreateAttrMods(void);
 
-  ///
-  /// Purpose: Add a value for an attribute of the object to be modified.
-  /// @param   i_value A SmfImmAttribute containing the attribute information.
-  /// @return  None.
-  ///
-  void addValue(const SmfImmAttribute& i_value);
-
-  ///
-  /// Purpose: Add a attribute value to be used in the IMM operation.
-  /// @param   i_name The name of the attribute to add.
-  /// @param   i_type The type of the attribute to add.
-  /// @param   i_value The value of the attribute to add.
-  /// @return  None.
-  ///
-  void addAttrValue(const std::string& i_name, const std::string& i_type,
-                    const std::string& i_value);
-
- private:
   ///
   /// Purpose: Prepare rollback of the operation.
   /// @param   None.
   /// @return  None.
   ///
-  SaAisErrorT prepareRollback(SmfRollbackData* o_rollbackData);
+  SaAisErrorT PrepareRollback(SmfRollbackData* o_rollbackData);
 
-  std::string m_dn;                    /* dn to the object to be modified */
-  std::string m_rdn;                   /* rdn is an optional attribute which may be set in the
-                                          campaign taregtEntityTemplate */
-  std::string m_op;                    /* type of modification operation */
-  std::list<SmfImmAttribute> m_values; /* Attribute modification values */
-  SaImmAttrModificationT_2** m_immAttrMods; /* The array of opinters to
-                                               SaImmAttrModificationT_2
-                                               structures */
+  std::string object_name_;
+  std::string modification_type_;
+
+  std::list<SmfImmAttribute> attributes_;
+
+  // NOTE: This attribute is not used in this class. Is only stored here
+  // rdn is an optional attribute which may be set in the
+  // campaign targetEntityTemplate
+  std::string m_rdn;
 };
 
 ///
@@ -505,35 +390,35 @@ class SmfImmRTCreateOperation {
   /// @param   None.
   /// @return  None.
   ///
-  SaAisErrorT execute();
+  SaAisErrorT Execute();
 
   ///
   /// Purpose: Set the class name of the object to be created.
   /// @param   i_name The name of the class.
   /// @return  None.
   ///
-  void setClassName(const std::string& i_name);
+  void SetClassName(const std::string& i_name);
 
   ///
   /// Purpose: Set the parent DN for the created object.
   /// @param   i_dn The parent DN.
   /// @return  None.
   ///
-  void setParentDn(const std::string& i_dn);
+  void SetParentDn(const std::string& i_dn);
 
   ///
   /// Purpose: Set the IMM OI handle.
   /// @param   i_handle The SaImmOiHandleT.
   /// @return  None.
   ///
-  void setImmHandle(const SaImmOiHandleT& i_handle);
+  void SetImmHandle(const SaImmOiHandleT& i_handle);
 
   ///
   /// Purpose: Add a value for an attribute of the object to be created.
   /// @param   i_value A SmfImmAttribute containing the attribute information.
   /// @return  None.
   ///
-  void addValue(const SmfImmAttribute& i_value);
+  void AddValue(const SmfImmAttribute& i_value);
 
   ///
   /// Purpose: Create the attr values structure from previously added string
@@ -541,7 +426,7 @@ class SmfImmRTCreateOperation {
   /// @param   None.
   /// @return  Bool true if successful, otherwise false.
   ///
-  bool createAttrValues(void);
+  bool CreateAttrValues(void);
 
  private:
   ///
@@ -551,7 +436,7 @@ class SmfImmRTCreateOperation {
   /// array of SaImmAttrValuesT_2 pointers.
   /// @return  None.
   ///
-  void setAttrValues(SaImmAttrValuesT_2** i_values);
+  void SetAttrValues(SaImmAttrValuesT_2** i_values);
 
   std::string m_className;    /* class name for the object to be created */
   std::string m_parentDn;     /* dn to the parent object */
@@ -586,14 +471,14 @@ class SmfImmRTUpdateOperation {
   /// @param   None.
   /// @return  None.
   ///
-  SaAisErrorT execute();
+  SaAisErrorT Execute();
 
   ///
   /// Purpose: Set the DN for the object to modify
   /// @param   i_dn The object DN.
   /// @return  None.
   ///
-  void setDn(const std::string& i_dn);
+  void SetDn(const std::string& i_dn);
 
   ///
   /// Purpose: Set the type of modification operation.
@@ -601,21 +486,21 @@ class SmfImmRTUpdateOperation {
   /// (SA_IMM_ATTR_VALUES_ADD/SA_IMM_ATTR_VALUES_DELETE/SA_IMM_ATTR_VALUES_REPLACE).
   /// @return  None.
   ///
-  void setOp(const std::string& i_op);
+  void SetOp(const std::string& i_op);
 
   ///
   /// Purpose: Set the IMM OI handle.
   /// @param   i_handle The SaImmOiHandleT.
   /// @return  None.
   ///
-  void setImmHandle(const SaImmOiHandleT& i_handle);
+  void SetImmHandle(const SaImmOiHandleT& i_handle);
 
   ///
   /// Purpose: Add a value for an attribute of the object to be created.
   /// @param   i_value A SmfImmAttribute containing the attribute information.
   /// @return  None.
   ///
-  void addValue(const SmfImmAttribute& i_value);
+  void AddValue(const SmfImmAttribute& i_value);
 
   ///
   /// Purpose: Create the attr values structure from previously added string
@@ -623,7 +508,7 @@ class SmfImmRTUpdateOperation {
   /// @param   None.
   /// @return  Bool true if successful, otherwise false.
   ///
-  bool createAttrMods(void);
+  bool CreateAttrMods(void);
 
  private:
   ///

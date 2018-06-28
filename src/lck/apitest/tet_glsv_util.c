@@ -16,9 +16,10 @@ compilation process.
 #
 ********************************************************************************************/
 
-#include "tet_startup.h"
-#include "ncs_main_papi.h"
+/*#include "tet_startup.h"*/
+#include "base/ncs_main_papi.h"
 #include "tet_glsv.h"
+#include "osaf/apitest/utest.h"
 
 void tet_run_gld();
 void tet_run_glnd();
@@ -234,43 +235,6 @@ void tet_glsv_start_instance(TET_GLSV_INST *inst)
 
 #else
 
-/* ******** Function modification  ********* */
-void glsv_it_res_cr_del_06_01() { glsv_it_res_cr_del_06(0); }
-
-void glsv_it_res_cr_del_06_02() { glsv_it_res_cr_del_06(1); }
-
-void glsv_it_lck_modes_wt_clbk_01_01() { glsv_it_lck_modes_wt_clbk_01(0); }
-
-void glsv_it_lck_modes_wt_clbk_01_02() { glsv_it_lck_modes_wt_clbk_01(1); }
-
-void glsv_it_lck_modes_wt_clbk_02_01() { glsv_it_lck_modes_wt_clbk_02(0); }
-
-void glsv_it_lck_modes_wt_clbk_02_02() { glsv_it_lck_modes_wt_clbk_02(1); }
-
-void glsv_it_lck_modes_wt_clbk_03_01() { glsv_it_lck_modes_wt_clbk_03(0); }
-
-void glsv_it_lck_modes_wt_clbk_03_02() { glsv_it_lck_modes_wt_clbk_03(1); }
-
-void glsv_it_lck_modes_wt_clbk_04_01() { glsv_it_lck_modes_wt_clbk_04(0); }
-
-void glsv_it_lck_modes_wt_clbk_04_02() { glsv_it_lck_modes_wt_clbk_04(1); }
-
-void glsv_it_ddlcks_orplks_02_01() { glsv_it_ddlcks_orplks_02(0); }
-
-void glsv_it_ddlcks_orplks_02_02() { glsv_it_ddlcks_orplks_02(1); }
-
-void glsv_it_ddlcks_orplks_03_01() { glsv_it_ddlcks_orplks_03(0); }
-
-void glsv_it_ddlcks_orplks_03_02() { glsv_it_ddlcks_orplks_03(1); }
-
-void glsv_it_ddlcks_orplks_04_01() { glsv_it_ddlcks_orplks_04(0); }
-
-void glsv_it_ddlcks_orplks_04_02() { glsv_it_ddlcks_orplks_04(1); }
-
-void glsv_it_ddlcks_orplks_07_01() { glsv_it_ddlcks_orplks_07(0); }
-
-void glsv_it_ddlcks_orplks_07_02() { glsv_it_ddlcks_orplks_07(1); }
-
 /* ******** TET_LIST Arrays ********* */
 struct tet_testlist tet_testlist[] = {{glsv_it_init_01, 1},
 				      {glsv_it_init_02, 2},
@@ -415,17 +379,17 @@ struct tet_testlist tet_testlist[] = {{glsv_it_init_01, 1},
 				      {glsv_it_res_cr_del_03, 128},
 				      {glsv_it_res_cr_del_04, 129},
 				      {glsv_it_res_cr_del_05, 130},
-				      {glsv_it_res_cr_del_06_01, 131},
-				      {glsv_it_res_cr_del_06_02, 132},
+				      //{glsv_it_res_cr_del_06_01, 131},
+				      //{glsv_it_res_cr_del_06_02, 132},
 
-				      {glsv_it_lck_modes_wt_clbk_01_01, 133},
-				      {glsv_it_lck_modes_wt_clbk_01_02, 134},
-				      {glsv_it_lck_modes_wt_clbk_02_01, 135},
-				      {glsv_it_lck_modes_wt_clbk_02_02, 136},
-				      {glsv_it_lck_modes_wt_clbk_03_01, 137},
-				      {glsv_it_lck_modes_wt_clbk_03_02, 138},
-				      {glsv_it_lck_modes_wt_clbk_04_01, 139},
-				      {glsv_it_lck_modes_wt_clbk_04_02, 140},
+				      //{glsv_it_lck_modes_wt_clbk_01_01, 133},
+				      //{glsv_it_lck_modes_wt_clbk_01_02, 134},
+				      //{glsv_it_lck_modes_wt_clbk_02_01, 135},
+				      //{glsv_it_lck_modes_wt_clbk_02_02, 136},
+				      //{glsv_it_lck_modes_wt_clbk_03_01, 137},
+				      //{glsv_it_lck_modes_wt_clbk_03_02, 138},
+				      //{glsv_it_lck_modes_wt_clbk_04_01, 139},
+				      //{glsv_it_lck_modes_wt_clbk_04_02, 140},
 				      {glsv_it_lck_modes_wt_clbk_05, 141},
 				      {glsv_it_lck_modes_wt_clbk_06, 142},
 				      {glsv_it_lck_modes_wt_clbk_07, 143},
@@ -433,16 +397,8 @@ struct tet_testlist tet_testlist[] = {{glsv_it_init_01, 1},
 				      {glsv_it_lck_modes_wt_clbk_09, 145},
 
 				      {glsv_it_ddlcks_orplks_01, 146},
-				      {glsv_it_ddlcks_orplks_02_01, 147},
-				      {glsv_it_ddlcks_orplks_02_02, 148},
-				      {glsv_it_ddlcks_orplks_03_01, 149},
-				      {glsv_it_ddlcks_orplks_03_02, 150},
-				      {glsv_it_ddlcks_orplks_04_01, 151},
-				      {glsv_it_ddlcks_orplks_04_02, 152},
 				      {glsv_it_ddlcks_orplks_05, 153},
 				      {glsv_it_ddlcks_orplks_06, 154},
-				      {glsv_it_ddlcks_orplks_07_01, 155},
-				      {glsv_it_ddlcks_orplks_07_02, 156},
 
 				      {glsv_it_lck_strip_purge_01, 157},
 				      {glsv_it_lck_strip_purge_02, 158},
@@ -516,9 +472,507 @@ void tet_glsv_startup(void)
 	tet_run_glnd();
 #endif
 
-#if (TET_A == 1)
 	tet_run_glsv_app();
-#endif
 }
 
-void tet_glsv_end() { tet_infoline(" Ending the agony.. "); }
+void tet_glsv_end() { printf(" Ending the agony.. "); }
+
+__attribute__((constructor)) static void glsv_constructor(void)
+{
+  tet_glsv_startup();
+
+  test_suite_add(1, "saLckInitialize Test Suite");
+  test_case_add(1, glsv_it_init_01,
+          "saLckInitialize with valid parameters");
+  test_case_add(1, glsv_it_init_02,
+      "saLckInitialize with NULL callback structure");
+  test_case_add(1, glsv_it_init_03,
+      "saLckInitialize with NULL version parameter");
+  test_case_add(1, glsv_it_init_04,
+      "saLckInitialize with NULL lock handle");
+  test_case_add(1, glsv_it_init_05,
+      "saLckInitialize with NULL callback and version paramters");
+  test_case_add(1, glsv_it_init_06,
+      "saLckInitialize with release code > supported release code");
+  test_case_add(1, glsv_it_init_07,
+      "saLckInitialize with invalid release code in version");
+  test_case_add(1, glsv_it_init_08,
+      "saLckInitialize with major version > supported major version");
+  test_case_add(1, glsv_it_init_09,
+      "saLckInitialize returns supported version when called with invalid version");
+  test_case_add(1, glsv_it_init_10,
+      "saLckInitialize without registering any callback");
+
+
+  test_suite_add(2, "saLckSelectionObjectGet Test Suite");
+  test_case_add(2,
+                glsv_it_selobj_01,
+                "saLckSelectionObjectGet with valid parameters");
+  test_case_add(2,
+                glsv_it_selobj_02,
+                "saLckSelectionObjectGet with NULL selection object parameter");
+  test_case_add(2,
+                glsv_it_selobj_03,
+                "saLckSelectionObjectGet with uninitialized lock handle");
+  test_case_add(2,
+                glsv_it_selobj_04,
+                "saLckSelectionObjectGet with finalized lock handle");
+  test_case_add(2,
+                glsv_it_selobj_05,
+                "saLckSelectionObjectGet when called twice with same lock handle");
+
+  test_suite_add(3, "saLckOptionCheck Test Suite");
+  test_case_add(3,
+                glsv_it_option_chk_01,
+                "saLckOptionCheck with invalid lock handle");
+  test_case_add(3,
+                glsv_it_option_chk_02,
+                "saLckOptionCheck with NULL pointer to lckOptions parameter");
+  test_case_add(3,
+                glsv_it_option_chk_03,
+                "saLckOptionCheck with valid parameters");
+
+  test_suite_add(4, "saLckDispatch Test Suite");
+  test_case_add(4,
+                glsv_it_dispatch_01,
+                "saLckDispatch invokes pending callbacks - SA_DISPATCH_ONE");
+  test_case_add(4,
+                glsv_it_dispatch_02,
+                "saLckDispatch invokes pending callbacks - SA_DISPATCH_ALL");
+  test_case_add(4,
+                glsv_it_dispatch_03,
+                "saLckDispatch invokes pending callbacks - SA_DISPATCH_BLOCKING");
+  test_case_add(4,
+                glsv_it_dispatch_04,
+                "saLckDispatch with invalid dispatch flags");
+  test_case_add(4,
+                glsv_it_dispatch_05,
+                "saLckDispatch with invalid lock handle - SA_DISPATCH_ONE");
+  test_case_add(4,
+                glsv_it_dispatch_06,
+                "saLckDispatch with invalid lock handle - SA_DISPATCH_ALL");
+  test_case_add(4,
+                glsv_it_dispatch_07,
+                "saLckDispatch with invalid lock handle - SA_DISPATCH_BLOCKING");
+  test_case_add(4,
+                glsv_it_dispatch_08,
+                "saLckDispatch in case of no pending callbacks - SA_DISPATCH_ONE");
+  test_case_add(4,
+                glsv_it_dispatch_09,
+                "saLckDispatch in case of no pending callbacks - SA_DISPATCH_ALL");
+
+  test_suite_add(5, "saLckFinalize Test Suite");
+  test_case_add(5,
+                glsv_it_finalize_01,
+                "saLckFinalize closes association between Message Service and app process");
+  test_case_add(5,
+                glsv_it_finalize_02,
+                "saLckFinalize with uninitialized lock handle");
+  test_case_add(5,
+                glsv_it_finalize_03,
+                "saLckFinalize with finalized lock handle");
+  test_case_add(5,
+                glsv_it_finalize_04,
+                "Selection object becomes invalid after finalizing the lock handle");
+  test_case_add(5,
+                glsv_it_finalize_05,
+                "Resources that are opened are closed after finalizing the lock handle");
+  test_case_add(5,
+                glsv_it_finalize_06,
+                "All locks and lock requests with the resource hdls associated with the lock hdl "
+      "are dropped after finalizing lck hdl");
+
+  test_suite_add(6, "saLckResourceOpen Test Suite");
+  test_case_add(6,
+                glsv_it_res_open_01,
+                "saLckResourceOpen with invalid lock handle");
+  test_case_add(6,
+                glsv_it_res_open_02,
+                "saLckResourceOpen with NULL lock resource name");
+  test_case_add(6,
+                glsv_it_res_open_03,
+                "saLckResourceOpen with NULL lock resource handle");
+  test_case_add(6,
+                glsv_it_res_open_04,
+                "saLckResourceOpen with invalid resource flags");
+  test_case_add(6,
+                glsv_it_res_open_05,
+                "saLckResourceOpen with small timeout value");
+  test_case_add(6,
+                glsv_it_res_open_06,
+                "Open a resource that does not exist without SA_LCK_RESOURCE_CREATE flag");
+  test_case_add(6,
+                glsv_it_res_open_07,
+                "Create a lock resource");
+  test_case_add(6,
+                glsv_it_res_open_08,
+                "Open a resource that already exists and open");
+  test_case_add(6,
+                glsv_it_res_open_09,
+                "Open a resource that already exists and open with SA_LCK_RESOURCE_CREATE flag");
+  test_case_add(6, glsv_it_res_open_10, "Open a closed resource");
+
+  test_suite_add(7, "saLckResourceOpenAsync Test Suite");
+  test_case_add(7, glsv_it_res_open_async_01, "saLckResourceOpenAsync with invalid lock handle");
+  test_case_add(7, glsv_it_res_open_async_02, "saLckResourceOpenAsync with NULL lock resource name");
+  test_case_add(7, glsv_it_res_open_async_03, "saLckResourceOpenAsync with invalid resource flags");
+  test_case_add(7, glsv_it_res_open_async_04, "Open a resource that does not exist without SA_LCK_RESOURCE_CREATE flag");
+  test_case_add(7, glsv_it_res_open_async_05, "Create a lock resource");
+  test_case_add(7, glsv_it_res_open_async_06, "Invocation in open callback is same as that supplied in saLckResourceOpenAsync");
+  test_case_add(7, glsv_it_res_open_async_07, "saLckResourceOpenAsync without registering with resource open callback");
+  test_case_add(7, glsv_it_res_open_async_08, "Open a resource that already exists and that is open");
+  test_case_add(7, glsv_it_res_open_async_09, "Open a resource that already exists and that is open with create flag");
+  test_case_add(7, glsv_it_res_open_async_10, "Open a closed resource");
+
+  test_suite_add(8, "saLckResourceClose Test Suite");
+  test_case_add(8,
+                glsv_it_res_close_01,
+                "Close a lock resource");
+  test_case_add(8,
+                glsv_it_res_close_02,
+                "saLckResourceClose with invalid resource handle");
+  test_case_add(8,
+                glsv_it_res_close_03,
+                "saLckResourceClose with a resource handle associated with finalized lock handle");
+  test_case_add(8,
+                glsv_it_res_close_04,
+                "saLckResourceClose closes the reference to that resource");
+  test_case_add(8,
+                glsv_it_res_close_05,
+                "saLckResourceClose drops all the locks held on that resource handle");
+  test_case_add(8,
+                glsv_it_res_close_06,
+                "saLckResourceClose drops all the lock requests made on that resource handle");
+  test_case_add(8,
+                glsv_it_res_close_07,
+                "saLckResourceClose does not effect the locks held on the resource by other appls");
+  test_case_add(8,
+                glsv_it_res_close_08,
+                "saLckResourceClose with a resource handle that is already closed");
+  test_case_add(8,
+                glsv_it_res_close_09,
+                "The resource no longer exists once all references to it are closed");
+  test_case_add(8,
+                glsv_it_res_close_10,
+                "saLckResourceClose cancels all the pending locks that "
+                "refer to the resource handle");
+  test_case_add(8,
+                glsv_it_res_close_11,
+                "saLckResourceClose cancels all the pending callbacks that "
+                "refer to the resource handle");
+
+  test_suite_add(9, "saLckResourceLock Test Suite");
+  test_case_add(9,
+                glsv_it_res_lck_01,
+                "saLckResourceLock with invalid resource handle");
+  test_case_add(9,
+                glsv_it_res_lck_02,
+                "saLckResourceLock after finalizing the lock handle");
+  test_case_add(9,
+                glsv_it_res_lck_03,
+                "saLckResourceLock after closing the resource handle");
+  test_case_add(9,
+                glsv_it_res_lck_04,
+                "saLckResourceLock with NULL lock id parameter");
+  test_case_add(9,
+                glsv_it_res_lck_05,
+                "saLckResourceLock with NULL lock status parameter");
+  test_case_add(9,
+                glsv_it_res_lck_06,
+                "saLckResourceLock with invalid lock mode");
+  test_case_add(9,
+                glsv_it_res_lck_07,
+                "saLckResourceLock with invalid lock flag value");
+  test_case_add(9,
+                glsv_it_res_lck_08,
+                "saLckResourceLock with small timeout value");
+  test_case_add(9,
+                glsv_it_res_lck_09,
+                "Request a PR lock on the resource");
+  test_case_add(9,
+                glsv_it_res_lck_10,
+                "Request a PR lock on the resource with SA_LCK_LOCK_NO_QUEUE flag");
+  test_case_add(9,
+                glsv_it_res_lck_11,
+                "Request a PR lock on the resource with SA_LCK_LOCK_ORPHAN flag");
+  test_case_add(9,
+                glsv_it_res_lck_12,
+                "Request an EX lock on the resource");
+  test_case_add(9,
+                glsv_it_res_lck_13,
+                "Request an EX lock on the resource with SA_LCK_LOCK_NO_QUEUE flag");
+  test_case_add(9,
+                glsv_it_res_lck_14,
+                "Request an EX lock on the resource with SA_LCK_LOCK_ORPHAN flag");
+  test_case_add(9,
+                glsv_it_res_lck_15,
+                "Request a PR lock on a resource on which an EX lock is held by another appl");
+  test_case_add(9,
+                glsv_it_res_lck_16,
+                "Request a PR lock on a resource on which an EX lock is held using same res hdl");
+  test_case_add(9,
+                glsv_it_res_lck_17,
+                "Request an EX lock on a resource on which an EX lock is held using same res hdl");
+  test_case_add(9,
+                glsv_it_res_lck_18,
+                "Request a PR lock with SA_LCK_LOCK_NO_QUEUE on a resource on "
+                "which an EX lock is held");
+
+  test_suite_add(10, "saLckResourceLockAsync Test Suite");
+  test_case_add(10,
+                glsv_it_res_lck_async_01,
+                "saLckResourceLockAsync with invalid resource handle");
+  test_case_add(10,
+                glsv_it_res_lck_async_02,
+                "saLckResourceLockAsync with resource handle associated with finalized lock handle");
+  test_case_add(10,
+                glsv_it_res_lck_async_03,
+                "saLckResourceLockAsync with closed resource handle");
+  test_case_add(10,
+                glsv_it_res_lck_async_04,
+                "saLckResourceLockAsync with NULL lock id parameter");
+  test_case_add(10,
+                glsv_it_res_lck_async_05,
+                "saLckResourceLockAsync with invalid lock mode parameter");
+  test_case_add(10,
+                glsv_it_res_lck_async_06,
+                "saLckResourceLockAsync with invalid lock flag parameter");
+  test_case_add(10,
+                glsv_it_res_lck_async_07,
+                "saLckResourceLockAsync with lock hdl initialized with NULL grant callback");
+  test_case_add(10,
+                glsv_it_res_lck_async_08,
+                "Request a PR lock on the resource");
+  test_case_add(10,
+                glsv_it_res_lck_async_09,
+                "Invocation value in grant callback is same as that in the api call");
+  test_case_add(10,
+                glsv_it_res_lck_async_10,
+                "Request a PR lock on the resource with SA_LCK_LOCK_NO_QUEUE flag");
+  test_case_add(10,
+                glsv_it_res_lck_async_11,
+                "Request a PR lock on the resource with SA_LCK_LOCK_ORPHAN flag");
+  test_case_add(10,
+                glsv_it_res_lck_async_12,
+                "Request an EX lock on the resource");
+  test_case_add(10,
+                glsv_it_res_lck_async_13,
+                "Request an EX lock on the resource with SA_LCK_LOCK_NO_QUEUE flag");
+  test_case_add(10,
+                glsv_it_res_lck_async_14,
+                "Request an EX lock on the resource with SA_LCK_LOCK_ORPHAN flag");
+  test_case_add(10,
+                glsv_it_res_lck_async_15,
+                "Request a PR lock on a resource on which an EX lock is held by another appl");
+  test_case_add(10,
+                glsv_it_res_lck_async_16,
+                "Request a PR lock on a resource on which an EX lock is held using same res hdl");
+  test_case_add(10,
+                glsv_it_res_lck_async_17,
+                "Request an EX lock on a resource on which an EX lock is held using same res hdl");
+  test_case_add(10,
+                glsv_it_res_lck_async_18,
+                "Request a PR lock with SA_LCK_LOCK_NO_QUEUE on a resource on "
+                "which an EX lock is held");
+  test_case_add(10,
+                glsv_it_res_lck_async_19,
+                "Lock id value obtained is valid before the invocation of grant clbk");
+  test_case_add(10,
+                glsv_it_res_lck_async_20,
+                "Lock id value obtained is valid before the invocation of grant clbk");
+
+  test_suite_add(11, "saLckResourceUnlock Test Suite");
+  test_case_add(11,
+                glsv_it_res_unlck_01,
+                "saLckResourceUnlock with invalid lock id parameter");
+  test_case_add(11,
+                glsv_it_res_unlck_02,
+                "saLckResourceUnlock with lock id associated with resource hdl that is closed");
+  test_case_add(11,
+                glsv_it_res_unlck_03,
+                "saLckResourceUnlock after finalizing the lock handle");
+  test_case_add(11,
+                glsv_it_res_unlck_04,
+                "saLckResourceUnlock with small timeout value");
+  test_case_add(11,
+                glsv_it_res_unlck_05,
+                "Unlock a lock");
+  test_case_add(11,
+                glsv_it_res_unlck_06,
+                "Unlock a pending lock request");
+  test_case_add(11,
+                glsv_it_res_unlck_07,
+                "saLckResourceUnlock with a lock id that is already unlocked");
+  test_case_add(11,
+                glsv_it_res_unlck_08,
+                "Unlock the lock id before the invocation of grant clbk (sync case)");
+
+  test_suite_add(12, "saLckResourceUnlockAsync Test Suite");
+  test_case_add(12,
+                glsv_it_res_unlck_async_01,
+                "saLckResourceUnlockAsync with invalid lock id");
+  test_case_add(12,
+                glsv_it_res_unlck_async_02,
+                "saLckResourceUnlockAsync with lock id associated with rsc hdl that is closed");
+  test_case_add(12,
+                glsv_it_res_unlck_async_03,
+                "saLckResourceUnlockAsync after finalizing the lock handle");
+  test_case_add(12,
+                glsv_it_res_unlck_async_04,
+                "saLckResourceUnlockAsync without registering unlock callback");
+  test_case_add(12,
+                glsv_it_res_unlck_async_05,
+                "Unlock a lock");
+  test_case_add(12,
+                glsv_it_res_unlck_async_06,
+                "Unlock a pending lock request");
+  test_case_add(12,
+                glsv_it_res_unlck_async_07,
+                "saLckResourceUnlockAsync with a lock id that is already unlocked");
+  test_case_add(12,
+                glsv_it_res_unlck_async_08,
+                "Unlock the lock id before the invocation of grant clbk (async case)");
+  test_case_add(12,
+                glsv_it_res_unlck_async_09,
+                "Unlocking the lock id before the invocation of unlock callback");
+  test_case_add(12,
+                glsv_it_res_unlck_async_10,
+                "Closing the lock resource before the invocation of unlock callback");
+
+  test_suite_add(13, "saLckLockPurge Test Suite");
+  test_case_add(13,
+                glsv_it_lck_purge_01,
+                "saLckLockPurge with invalid lock resource handle");
+  test_case_add(13,
+                glsv_it_lck_purge_02,
+                "saLckLockPurge with closed resource handle");
+  test_case_add(13,
+                glsv_it_lck_purge_03,
+                "saLckLockPurge with rsc hdl associated with lock handle that is finalized");
+  test_case_add(13,
+                glsv_it_lck_purge_04,
+                "saLckLockPurge when there are no orphan locks on the resource");
+  test_case_add(13,
+                glsv_it_lck_purge_05,
+                "Purge the orphan locks on the resource");
+
+  test_suite_add(14, "Creation and Deletion of Resources Test Suite");
+  test_case_add(14,
+                glsv_it_res_cr_del_01,
+                "Creation of multiple resources by same application");
+  test_case_add(14,
+                glsv_it_res_cr_del_02,
+                "Creation of multiple resources by same application");
+  test_case_add(14,
+                glsv_it_res_cr_del_03,
+                "saLckResourceClose will close all the resource handles given by Lock Service");
+  test_case_add(14,
+                glsv_it_res_cr_del_04,
+                "Resource hdl obtained from the open clbk is valid only when error = SA_AIS_OK");
+  test_case_add(14,
+                glsv_it_res_cr_del_05,
+                "Resource open clbk is inovoked when saLckResourceOpenAsync returns SA_AIS_OK");
+  test_case_add(14,
+                glsv_it_res_cr_del_06,
+                "Closing a res hdl does not effect locks on other res hdl of "
+                "the same resource in same appl");
+  test_case_add(14,
+                glsv_it_res_cr_del_07,
+                "Closing a res hdl does not effect locks on other res hdl of "
+                "the same resource in same appl (async)");
+
+  test_suite_add(15, "Lock Modes and Lock Waiter Callback Test Suite");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_01,
+                "Acquire multiple PR locks on a resource (async)");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_02,
+                "Acquire multiple PR locks on a resource (sync)");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_03,
+                "Request two EX locks on a resource from two different applications (async)");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_04,
+                "Request two EX locks on a resource from two different applications (sync)");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_05,
+                "Request two EX locks on a resource from same app but different res hdl (async)");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_06,
+                "Request two EX locks on a resource from same app but different res hdl (sync)");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_07,
+                "Waiter callback is invoked when a lock request is blocked by "
+                "a lock held on that resource (async)");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_08,
+                "Waiter callback is invoked when a lock request is blocked by "
+                "a lock held on that resource (sync)");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_09,
+                "Waiter signal in the waiter clbk is same as that in the blocked lock request");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_10,
+                "No of waiter callback invoked = No of locks blocking the lock request");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_11,
+                "No of waiter callback invoked = No of locks requests blocked");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_12,
+                "Lock Grant clbk is inovoked when saLckResourceLockAsync returns SA_AIS_OK");
+  test_case_add(15,
+                glsv_it_lck_modes_wt_clbk_13,
+                "Request an EX lock on a resource on which an EX lock is held "
+                "using diff res hdl and same application");
+
+  test_suite_add(16, "Lock Types, Deadlocks and Orphan Locks");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_01,
+                "Finalizing the app does not delete the resource if there are orphan locks on it");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_02,
+                "SA_LCK_LOCK_ORPHANED status is returned when a lock request "
+                "is blocked by an orphan lock (async)");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_03,
+                "SA_LCK_LOCK_ORPHANED status is returned when a lock request "
+                "is blocked by an orphan lock (sync)");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_04,
+                "SA_LCK_LOCK_ORPHANED status is not returned when a lock request "
+                "requested without SA_LCK_LOCK_ORPHAN lock flag is blocked by an orphan lock (async)");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_05,
+                "SA_LCK_LOCK_ORPHANED status is not returned when a lock request "
+                "requested without SA_LCK_LOCK_ORPHAN lock flag is blocked by an orphan lock (sync)");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_06,
+                "Deadlock scenario with two resourcess and single process (async)");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_07,
+                "Deadlock scenario with two resourcess and single process (sync)");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_08,
+                "SA_LCK_LOCK_DEADLOCK is returned if a PR lock is requested on a "
+                "resource on which EX lock is held with different res hdl");
+  test_case_add(16, glsv_it_ddlcks_orplks_09, "Pending orphan lock scenario");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_10,
+                "SA_LCK_LOCK_NOT_QUEUED status is returned when a lock request "
+                "with SA_LCK_LOCK_NO_QUEUE flag is blocked by an orphan lock (async)");
+  test_case_add(16,
+                glsv_it_ddlcks_orplks_11,
+                "SA_LCK_LOCK_NOT_QUEUED status is returned when a lock request "
+                "with SA_LCK_LOCK_NO_QUEUE flag is blocked by an orphan lock (sync)");
+
+  test_suite_add(17, "Lock Stripping and Purging");
+  test_case_add(17,
+                glsv_it_lck_strip_purge_01,
+                "saLckLockPurge will purge all the orphan locks on a resource");
+  test_case_add(17,
+                glsv_it_lck_strip_purge_02,
+                "Orphan locks are not stripped by saLckResourceClose");
+  test_case_add(17,
+                glsv_it_lck_strip_purge_03,
+                "saLckLockPurge does not effect the other shared locks on the same resource");
+}

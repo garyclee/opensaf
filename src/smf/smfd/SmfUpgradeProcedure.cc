@@ -1,6 +1,7 @@
 /*
  *
  * (C) Copyright 2009 The OpenSAF Foundation
+ * Copyright (C) 2018 Ericsson AB. All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -1040,7 +1041,7 @@ bool SmfUpgradeProcedure::calculateSingleStep(
         return false;
       }
       SmfImmDeleteOperation *deleteop = new SmfImmDeleteOperation;
-      deleteop->setDn(e.getName());
+      deleteop->SetDn(e.getName());
       newStep->addImmOperation(deleteop);
     }
 
@@ -1295,10 +1296,17 @@ bool SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure *i_proc,
     getCallbackList((*proc_elem).getUpgradeMethod());
   }
 
-  // Remove DU duplicates
-  LOG_NO("Remove duplicates from the merged DU list");
+  // Remove duplicates from tmpDU list
+  LOG_NO("Remove duplicates from the merged symmetric DU/AU list");
   tmpDU.sort(compare_du_part);
   tmpDU.unique(unique_du_part);
+
+  // Remove duplicates from forAddRemoveDU/AU lists
+  LOG_NO("Remove duplicates from the forAddRemoveDU/AU lists");
+  forAddRemoveDU.sort(compare_du_part);
+  forAddRemoveDU.unique(unique_du_part);
+  forAddRemoveAU.sort(compare_du_part);
+  forAddRemoveAU.unique(unique_du_part);
 
   // Reduce the DU list, check if smaller scope is within bigger scope.
   LOG_NO("Optimize AU/DU");
@@ -1382,67 +1390,43 @@ bool SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure *i_proc,
     }
   }
 
-  // For forAddRemove AU/DU the node level AU/DU will be optimized with other
-  // rolling/formodify proceduers. Because node will never be optimized away.
-  // But AU/DU at SU/Comp will not be optimized for AddRemove and will be as is,
-  // because there is a chance that Su/comp can be removed if they are in the
-  // scope of the node/Su.
+  // Compile all the optimized symmetric DU lists on Node, SU, Comp levels
+  // into one single merged symmetric DU list
+  //
+  // Copy nodeLevelDU list first, then append suLevelDU and tmpDU lists in turn
+  std::list<unitNameAndState> allSymmetricDU(nodeLevelDU);
+  allSymmetricDU.splice(allSymmetricDU.end(), suLevelDU);
+  allSymmetricDU.splice(allSymmetricDU.end(), tmpDU);  // tmpDU is compLevelDU
 
-  std::list<unitNameAndState>::iterator addRemoveUnit_iter, nodeLevel_iter;
-  for (addRemoveUnit_iter = forAddRemoveAU.begin();
-       addRemoveUnit_iter != forAddRemoveAU.end();) {
-    for (nodeLevel_iter = nodeLevelDU.begin();
-         nodeLevel_iter != nodeLevelDU.end(); ++nodeLevel_iter) {
-      if ((*addRemoveUnit_iter).name == (*nodeLevel_iter).name) {
-        // if item is already presented in nodeLevelDU, erase it from the
-        // forAddRemove list
-        LOG_NO(
-            "[%s] is already presented in the merged DU list, remove it from forAddRemoveAU list",
-            (*addRemoveUnit_iter).name.c_str());
-        addRemoveUnit_iter = forAddRemoveAU.erase(addRemoveUnit_iter);
-        break;
-      }
-    }
-    if (nodeLevel_iter == nodeLevelDU.end()) {
-      ++addRemoveUnit_iter;
-    }
-  }
+  // The following loop removes any duplicate between the forAddRemoveDU/AU
+  // lists and the merged symmetric DU list (forModify/Rolling procedures).
+  // This is to avoid campaign failure due to repeating an admin operation
+  // twice on the same DU/AU object
+  std::list<unitNameAndState>::size_type init_list_size;
+  for (auto &symmetric_du : allSymmetricDU) {
+    // Remove any duplicate from forAddRemoveDU list
+    init_list_size = forAddRemoveDU.size();
+    forAddRemoveDU.remove(symmetric_du);
+    if (forAddRemoveDU.size() < init_list_size)
+      LOG_NO("[%s] is already presented in the merged symmetric DU list, "
+             "remove it from forAddRemoveDU list", symmetric_du.name.c_str());
 
-  for (addRemoveUnit_iter = forAddRemoveDU.begin();
-       addRemoveUnit_iter != forAddRemoveDU.end();) {
-    for (nodeLevel_iter = nodeLevelDU.begin();
-         nodeLevel_iter != nodeLevelDU.end(); ++nodeLevel_iter) {
-      if ((*addRemoveUnit_iter).name == (*nodeLevel_iter).name) {
-        // if item is already presented in nodeLevelDU, erase it from the
-        // forAddRemove list
-        LOG_NO(
-            "[%s] is already presented in the merged DU list, remove it from forAddRemoveDU list",
-            (*addRemoveUnit_iter).name.c_str());
-        addRemoveUnit_iter = forAddRemoveDU.erase(addRemoveUnit_iter);
-        break;
-      }
-    }
-    if (nodeLevel_iter == nodeLevelDU.end()) {
-      ++addRemoveUnit_iter;
-    }
-  }
+    // Remove any duplicate from forAddRemoveAU list
+    init_list_size = forAddRemoveAU.size();
+    forAddRemoveAU.remove(symmetric_du);
+    if (forAddRemoveAU.size() < init_list_size)
+      LOG_NO("[%s] is already presented in the merged symmetric AU list, "
+             "remove it from forAddRemoveAU list", symmetric_du.name.c_str());
+  }  // for (auto &symmetric_du : allSymmetricDU)
 
-  newStep->addDeactivationUnits(nodeLevelDU);  // Add the node level DU
-  newStep->addDeactivationUnits(suLevelDU);    // Add the SU level DU
-  newStep->addDeactivationUnits(tmpDU);        // Add the comp level DU
-  newStep->addActivationUnits(nodeLevelDU);    // Rolling and forModify are
-                                             // symetric, add the node level DU
-  newStep->addActivationUnits(
-      suLevelDU);  // Rolling and forModify are symetric, Add the SU level DU
-  newStep->addActivationUnits(
-      tmpDU);  // Rolling and forModify are symetric, Add the comp level DU
-
-  // Copy the forAddRemove AU/DU(except the optimized nodes) into the lists as
-  // is. They must be run as specified in the campaign.
+  // Add the final DU and AU lists after the merge->optimize->de-duplicate
+  // process to the single step of the merged procedure
+  newStep->addDeactivationUnits(allSymmetricDU);
   newStep->addDeactivationUnits(forAddRemoveDU);
+  newStep->addActivationUnits(allSymmetricDU);
   newStep->addActivationUnits(forAddRemoveAU);
 
-  // Add the merged single step to the procedure if allocated in this method
+  // Add the single step to the merged procedure if allocated in this method
   if (i_newStep == 0) {
     i_proc->addProcStep(newStep);
   }
@@ -2361,20 +2345,20 @@ bool SmfUpgradeProcedure::addStepModificationList(
   std::list<SmfImmModifyOperation *>::const_iterator modit;
   for (modit = i_modificationList.begin(); modit != i_modificationList.end();
        ++modit) {
-    if ((*modit)->getRdn().size() > 0) {
-      std::string dn = (*modit)->getRdn();
+    if ((*modit)->GetRdn().size() > 0) {
+      std::string dn = (*modit)->GetRdn();
       dn += "," + i_dn;
 
       // Check if object exist
       SaImmAttrValuesT_2 **attributes;
       if (immUtil.getObject(dn, &attributes) == true) {
         SmfImmModifyOperation *modOp = new SmfImmModifyOperation(*(*modit));
-        modOp->setDn(dn);
+        modOp->SetObjectDn(dn);
         i_newStep->addModification(modOp);
       }
     } else {
       SmfImmModifyOperation *modOp = new SmfImmModifyOperation(*(*modit));
-      modOp->setDn(i_dn);
+      modOp->SetObjectDn(i_dn);
       i_newStep->addModification(modOp);
     }
   }
@@ -2674,53 +2658,53 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
 
   /* Create the SaSmfStep object */
   SmfImmRTCreateOperation icoSaSmfStep;
-  icoSaSmfStep.setClassName("SaSmfStep");
-  icoSaSmfStep.setParentDn(getDn());
-  icoSaSmfStep.setImmHandle(getProcThread()->getImmHandle());
+  icoSaSmfStep.SetClassName("SaSmfStep");
+  icoSaSmfStep.SetParentDn(getDn());
+  icoSaSmfStep.SetImmHandle(getProcThread()->getImmHandle());
 
   SmfImmAttribute attrSafSmfStep;
-  attrSafSmfStep.setName("safSmfStep");
-  attrSafSmfStep.setType("SA_IMM_ATTR_SASTRINGT");
-  attrSafSmfStep.addValue(i_step->getRdn());
-  icoSaSmfStep.addValue(attrSafSmfStep);
+  attrSafSmfStep.SetAttributeName("safSmfStep");
+  attrSafSmfStep.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  attrSafSmfStep.AddAttributeValue(i_step->getRdn());
+  icoSaSmfStep.AddValue(attrSafSmfStep);
 
   SmfImmAttribute attrsaSmfStepMaxRetry;
-  attrsaSmfStepMaxRetry.setName("saSmfStepMaxRetry");
-  attrsaSmfStepMaxRetry.setType("SA_IMM_ATTR_SAUINT32T");
+  attrsaSmfStepMaxRetry.SetAttributeName("saSmfStepMaxRetry");
+  attrsaSmfStepMaxRetry.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
   snprintf(str, strSize, "%d", i_step->getMaxRetry());
-  attrsaSmfStepMaxRetry.addValue(str);
-  icoSaSmfStep.addValue(attrsaSmfStepMaxRetry);
+  attrsaSmfStepMaxRetry.AddAttributeValue(str);
+  icoSaSmfStep.AddValue(attrsaSmfStepMaxRetry);
 
   SmfImmAttribute attrsaSmfStepRetryCount;
-  attrsaSmfStepRetryCount.setName("saSmfStepRetryCount");
-  attrsaSmfStepRetryCount.setType("SA_IMM_ATTR_SAUINT32T");
+  attrsaSmfStepRetryCount.SetAttributeName("saSmfStepRetryCount");
+  attrsaSmfStepRetryCount.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
   snprintf(str, strSize, "%d", i_step->getRetryCount());
-  attrsaSmfStepRetryCount.addValue(str);
-  icoSaSmfStep.addValue(attrsaSmfStepRetryCount);
+  attrsaSmfStepRetryCount.AddAttributeValue(str);
+  icoSaSmfStep.AddValue(attrsaSmfStepRetryCount);
 
   SmfImmAttribute attrsaSmfStepRestartOption;
-  attrsaSmfStepRestartOption.setName("saSmfStepRestartOption");
-  attrsaSmfStepRestartOption.setType("SA_IMM_ATTR_SAUINT32T");
+  attrsaSmfStepRestartOption.SetAttributeName("saSmfStepRestartOption");
+  attrsaSmfStepRestartOption.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
   snprintf(str, strSize, "%d", i_step->getRestartOption());
-  attrsaSmfStepRestartOption.addValue(str);
-  icoSaSmfStep.addValue(attrsaSmfStepRestartOption);
+  attrsaSmfStepRestartOption.AddAttributeValue(str);
+  icoSaSmfStep.AddValue(attrsaSmfStepRestartOption);
 
   SmfImmAttribute attrsaSmfStepState;
-  attrsaSmfStepState.setName("saSmfStepState");
-  attrsaSmfStepState.setType("SA_IMM_ATTR_SAUINT32T");
+  attrsaSmfStepState.SetAttributeName("saSmfStepState");
+  attrsaSmfStepState.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
   snprintf(str, strSize, "%d", i_step->getState());
-  attrsaSmfStepState.addValue(str);
-  icoSaSmfStep.addValue(attrsaSmfStepState);
+  attrsaSmfStepState.AddAttributeValue(str);
+  icoSaSmfStep.AddValue(attrsaSmfStepState);
 
   SmfImmAttribute attrsaSmfStepError;
-  attrsaSmfStepError.setName("saSmfStepError");
-  attrsaSmfStepError.setType("SA_IMM_ATTR_SASTRINGT");
-  attrsaSmfStepError.addValue("");
-  icoSaSmfStep.addValue(attrsaSmfStepError);
+  attrsaSmfStepError.SetAttributeName("saSmfStepError");
+  attrsaSmfStepError.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  attrsaSmfStepError.AddAttributeValue("");
+  icoSaSmfStep.AddValue(attrsaSmfStepError);
 
   // Accept rc = SA_AIS_ERR_EXIST. This could happend if the execution
   // is taken over by the other controller.
-  SaAisErrorT rc = icoSaSmfStep.execute();  // Create the object
+  SaAisErrorT rc = icoSaSmfStep.Execute();  // Create the object
   if ((rc != SA_AIS_OK) && (rc != SA_AIS_ERR_EXIST)) {
     LOG_NO(
         "SmfUpgradeProcedure::createImmStep: Creation of SaSmfStep object fails, rc=%s, [dn=%s]",
@@ -2738,39 +2722,39 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
       i_step->getDeactivationUnitList();
   if (deactList.size() != 0) {
     SmfImmRTCreateOperation icoSaSmfDeactivationUnit;
-    icoSaSmfDeactivationUnit.setClassName("SaSmfDeactivationUnit");
-    icoSaSmfDeactivationUnit.setParentDn(i_step->getRdn() + "," + getDn());
-    icoSaSmfDeactivationUnit.setImmHandle(getProcThread()->getImmHandle());
+    icoSaSmfDeactivationUnit.SetClassName("SaSmfDeactivationUnit");
+    icoSaSmfDeactivationUnit.SetParentDn(i_step->getRdn() + "," + getDn());
+    icoSaSmfDeactivationUnit.SetImmHandle(getProcThread()->getImmHandle());
 
     SmfImmAttribute attrsafSmfDu;
-    attrsafSmfDu.setName("safSmfDu");
-    attrsafSmfDu.setType("SA_IMM_ATTR_SASTRINGT");
-    attrsafSmfDu.addValue("safSmfDu=smfDeactivationUnit");
-    icoSaSmfDeactivationUnit.addValue(attrsafSmfDu);
+    attrsafSmfDu.SetAttributeName("safSmfDu");
+    attrsafSmfDu.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+    attrsafSmfDu.AddAttributeValue("safSmfDu=smfDeactivationUnit");
+    icoSaSmfDeactivationUnit.AddValue(attrsafSmfDu);
 
     SmfImmAttribute attrsaSmfDuActedOn;
-    attrsaSmfDuActedOn.setName("saSmfDuActedOn");
-    attrsaSmfDuActedOn.setType("SA_IMM_ATTR_SANAMET");
+    attrsaSmfDuActedOn.SetAttributeName("saSmfDuActedOn");
+    attrsaSmfDuActedOn.SetAttributeType("SA_IMM_ATTR_SANAMET");
 
     iter = deactList.begin();
     iterE = deactList.end();
     while (iter != iterE) {
-      attrsaSmfDuActedOn.addValue((*iter).name);
+      attrsaSmfDuActedOn.AddAttributeValue((*iter).name);
       ++iter;
     }
 
-    icoSaSmfDeactivationUnit.addValue(attrsaSmfDuActedOn);
+    icoSaSmfDeactivationUnit.AddValue(attrsaSmfDuActedOn);
 
     SmfImmAttribute attrsaSmfDuEntityToRemove;
-    attrsaSmfDuEntityToRemove.setName("saSmfDuEntityToRemove");
-    attrsaSmfDuEntityToRemove.setType("SA_IMM_ATTR_SANAMET");
+    attrsaSmfDuEntityToRemove.SetAttributeName("saSmfDuEntityToRemove");
+    attrsaSmfDuEntityToRemove.SetAttributeType("SA_IMM_ATTR_SANAMET");
 
     if (!setEntitiesToAddRemMod(i_step, &attrsaSmfDuEntityToRemove)) {
       rc = SA_AIS_ERR_CAMPAIGN_ERROR_DETECTED;
     }
-    icoSaSmfDeactivationUnit.addValue(attrsaSmfDuEntityToRemove);
+    icoSaSmfDeactivationUnit.AddValue(attrsaSmfDuEntityToRemove);
 
-    rc = icoSaSmfDeactivationUnit.execute();  // Create the object
+    rc = icoSaSmfDeactivationUnit.Execute();  // Create the object
     if ((rc != SA_AIS_OK) && (rc != SA_AIS_ERR_EXIST)) {
       LOG_NO(
           "SmfUpgradeProcedure::createImmStep: Creation of SaSmfDeactivationUnit object fails, rc=%s, [dn=%s]",
@@ -2798,14 +2782,14 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
     // SaSmfDeactivationUnit
     while (bundleRefiter != bundleRefiterE) {
       SmfImmRTCreateOperation icoSaSmfImageNodes;
-      icoSaSmfImageNodes.setClassName("SaSmfImageNodes");
-      icoSaSmfImageNodes.setParentDn(dnDeactUnit + "," + i_step->getRdn() +
+      icoSaSmfImageNodes.SetClassName("SaSmfImageNodes");
+      icoSaSmfImageNodes.SetParentDn(dnDeactUnit + "," + i_step->getRdn() +
                                      "," + getDn());
-      icoSaSmfImageNodes.setImmHandle(getProcThread()->getImmHandle());
+      icoSaSmfImageNodes.SetImmHandle(getProcThread()->getImmHandle());
 
       SmfImmAttribute safIMageNode;
-      safIMageNode.setName("safImageNode");
-      safIMageNode.setType("SA_IMM_ATTR_SASTRINGT");
+      safIMageNode.SetAttributeName("safImageNode");
+      safIMageNode.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
       // Extract the bundle name from the DN
       std::string imageNode = "safImageNode=";
       std::string bundleName = (*bundleRefiter).getBundleDn();
@@ -2819,30 +2803,30 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
       }
       pos++;
       imageNode += bundleName.substr(pos, bundleName.find(",") - pos);
-      safIMageNode.addValue(imageNode);
-      icoSaSmfImageNodes.addValue(safIMageNode);
+      safIMageNode.AddAttributeValue(imageNode);
+      icoSaSmfImageNodes.AddValue(safIMageNode);
 
       SmfImmAttribute saSmfINSwBundle;
-      saSmfINSwBundle.setName("saSmfINSwBundle");
-      saSmfINSwBundle.setType("SA_IMM_ATTR_SANAMET");
-      saSmfINSwBundle.addValue((*bundleRefiter).getBundleDn());
-      icoSaSmfImageNodes.addValue(saSmfINSwBundle);
+      saSmfINSwBundle.SetAttributeName("saSmfINSwBundle");
+      saSmfINSwBundle.SetAttributeType("SA_IMM_ATTR_SANAMET");
+      saSmfINSwBundle.AddAttributeValue((*bundleRefiter).getBundleDn());
+      icoSaSmfImageNodes.AddValue(saSmfINSwBundle);
 
       SmfImmAttribute saSmfINNode;
-      saSmfINNode.setName("saSmfINNode");
-      saSmfINNode.setType("SA_IMM_ATTR_SANAMET");
+      saSmfINNode.SetAttributeName("saSmfINNode");
+      saSmfINNode.SetAttributeType("SA_IMM_ATTR_SANAMET");
 
       // Rolling steps contain only one node
       // Single step may contain several nodes
       if (getUpgradeMethod()->getUpgradeMethod() == SA_SMF_ROLLING) {
-        saSmfINNode.addValue(i_step->getSwNode());
+        saSmfINNode.AddAttributeValue(i_step->getSwNode());
       } else {  // SA_SMF_SINGLE_STEP
         std::list<std::string> swNodeList;
         if (i_step->calculateSingleStepNodes(bundleRefiter->getPlmExecEnvList(),
                                              swNodeList)) {
           std::list<std::string>::const_iterator it;
           for (it = swNodeList.begin(); it != swNodeList.end(); ++it) {
-            saSmfINNode.addValue(*it);
+            saSmfINNode.AddAttributeValue(*it);
           }
         } else {
           LOG_NO(
@@ -2851,15 +2835,15 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
       }
 
       // Fail the campaign if no node is given for the bundle.
-      if (saSmfINNode.getValues().size() == 0) {
+      if (saSmfINNode.GetAttributeValues().empty()) {
         LOG_NO(
             "SmfUpgradeProcedure::createImmStep: No node given for bundle %s",
             bundleName.c_str());
         return SA_AIS_ERR_NOT_EXIST;
       }
 
-      icoSaSmfImageNodes.addValue(saSmfINNode);
-      rc = icoSaSmfImageNodes.execute();  // Create the object
+      icoSaSmfImageNodes.AddValue(saSmfINNode);
+      rc = icoSaSmfImageNodes.Execute();  // Create the object
       if ((rc != SA_AIS_OK) && (rc != SA_AIS_ERR_EXIST)) {
         LOG_NO(
             "SmfUpgradeProcedure::createImmStep: Creation of SaSmfImageNodes object fails, rc=%s, [dn=%s]",
@@ -2879,39 +2863,39 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
   const std::list<unitNameAndState> &actList = i_step->getActivationUnitList();
   if (actList.size() != 0) {
     SmfImmRTCreateOperation icoSaSmfActivationUnit;
-    icoSaSmfActivationUnit.setClassName("SaSmfActivationUnit");
-    icoSaSmfActivationUnit.setParentDn(i_step->getRdn() + "," + getDn());
-    icoSaSmfActivationUnit.setImmHandle(getProcThread()->getImmHandle());
+    icoSaSmfActivationUnit.SetClassName("SaSmfActivationUnit");
+    icoSaSmfActivationUnit.SetParentDn(i_step->getRdn() + "," + getDn());
+    icoSaSmfActivationUnit.SetImmHandle(getProcThread()->getImmHandle());
 
     SmfImmAttribute attrsafSmfAu;
-    attrsafSmfAu.setName("safSmfAu");
-    attrsafSmfAu.setType("SA_IMM_ATTR_SASTRINGT");
-    attrsafSmfAu.addValue("safSmfAu=smfActivationUnit");
-    icoSaSmfActivationUnit.addValue(attrsafSmfAu);
+    attrsafSmfAu.SetAttributeName("safSmfAu");
+    attrsafSmfAu.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+    attrsafSmfAu.AddAttributeValue("safSmfAu=smfActivationUnit");
+    icoSaSmfActivationUnit.AddValue(attrsafSmfAu);
 
     SmfImmAttribute attrsaSmfAuActedOn;
-    attrsaSmfAuActedOn.setName("saSmfAuActedOn");
-    attrsaSmfAuActedOn.setType("SA_IMM_ATTR_SANAMET");
+    attrsaSmfAuActedOn.SetAttributeName("saSmfAuActedOn");
+    attrsaSmfAuActedOn.SetAttributeType("SA_IMM_ATTR_SANAMET");
     const std::list<unitNameAndState> actList = i_step->getActivationUnitList();
     iter = actList.begin();
     iterE = actList.end();
     while (iter != iterE) {
-      attrsaSmfAuActedOn.addValue((*iter).name);
+      attrsaSmfAuActedOn.AddAttributeValue((*iter).name);
       ++iter;
     }
 
-    icoSaSmfActivationUnit.addValue(attrsaSmfAuActedOn);
+    icoSaSmfActivationUnit.AddValue(attrsaSmfAuActedOn);
 
     SmfImmAttribute attrsaSmfAuEntityToAdd;
-    attrsaSmfAuEntityToAdd.setName("saSmfAuEntityToAdd");
-    attrsaSmfAuEntityToAdd.setType("SA_IMM_ATTR_SANAMET");
+    attrsaSmfAuEntityToAdd.SetAttributeName("saSmfAuEntityToAdd");
+    attrsaSmfAuEntityToAdd.SetAttributeType("SA_IMM_ATTR_SANAMET");
 
     if (!setEntitiesToAddRemMod(i_step, &attrsaSmfAuEntityToAdd)) {
       rc = SA_AIS_ERR_CAMPAIGN_ERROR_DETECTED;
     }
-    icoSaSmfActivationUnit.addValue(attrsaSmfAuEntityToAdd);
+    icoSaSmfActivationUnit.AddValue(attrsaSmfAuEntityToAdd);
 
-    rc = icoSaSmfActivationUnit.execute();  // Create the object
+    rc = icoSaSmfActivationUnit.Execute();  // Create the object
     if ((rc != SA_AIS_OK) && (rc != SA_AIS_ERR_EXIST)) {
       LOG_NO(
           "SmfUpgradeProcedure::createImmStep: Creation of SaSmfActivationUnit object fails [rdn=%s], rc=%s",
@@ -2938,14 +2922,14 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
     // SaSmfActivationUnit
     while (bundleRefiter != bundleRefiterE) {
       SmfImmRTCreateOperation icoSaSmfImageNodes;
-      icoSaSmfImageNodes.setClassName("SaSmfImageNodes");
-      icoSaSmfImageNodes.setParentDn(dnActUnit + "," + i_step->getRdn() + "," +
+      icoSaSmfImageNodes.SetClassName("SaSmfImageNodes");
+      icoSaSmfImageNodes.SetParentDn(dnActUnit + "," + i_step->getRdn() + "," +
                                      getDn());
-      icoSaSmfImageNodes.setImmHandle(getProcThread()->getImmHandle());
+      icoSaSmfImageNodes.SetImmHandle(getProcThread()->getImmHandle());
 
       SmfImmAttribute safIMageNode;
-      safIMageNode.setName("safImageNode");
-      safIMageNode.setType("SA_IMM_ATTR_SASTRINGT");
+      safIMageNode.SetAttributeName("safImageNode");
+      safIMageNode.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
       // Extract the bundle name from the DN
       std::string imageNode = "safImageNode=";
       std::string bundleName = (*bundleRefiter).getBundleDn();
@@ -2955,30 +2939,30 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
       if (pos == std::string::npos) break;
       pos++;
       imageNode += bundleName.substr(pos, bundleName.find(",") - pos);
-      safIMageNode.addValue(imageNode);
-      icoSaSmfImageNodes.addValue(safIMageNode);
+      safIMageNode.AddAttributeValue(imageNode);
+      icoSaSmfImageNodes.AddValue(safIMageNode);
 
       SmfImmAttribute saSmfINSwBundle;
-      saSmfINSwBundle.setName("saSmfINSwBundle");
-      saSmfINSwBundle.setType("SA_IMM_ATTR_SANAMET");
-      saSmfINSwBundle.addValue((*bundleRefiter).getBundleDn());
-      icoSaSmfImageNodes.addValue(saSmfINSwBundle);
+      saSmfINSwBundle.SetAttributeName("saSmfINSwBundle");
+      saSmfINSwBundle.SetAttributeType("SA_IMM_ATTR_SANAMET");
+      saSmfINSwBundle.AddAttributeValue((*bundleRefiter).getBundleDn());
+      icoSaSmfImageNodes.AddValue(saSmfINSwBundle);
 
       SmfImmAttribute saSmfINNode;
-      saSmfINNode.setName("saSmfINNode");
-      saSmfINNode.setType("SA_IMM_ATTR_SANAMET");
+      saSmfINNode.SetAttributeName("saSmfINNode");
+      saSmfINNode.SetAttributeType("SA_IMM_ATTR_SANAMET");
 
       // Rolling steps contain only one node
       // Single step may contain several nodes
       if (getUpgradeMethod()->getUpgradeMethod() == SA_SMF_ROLLING) {
-        saSmfINNode.addValue(i_step->getSwNode());
+        saSmfINNode.AddAttributeValue(i_step->getSwNode());
       } else {  // SA_SMF_SINGLE_STEP
         std::list<std::string> swNodeList;
         if (i_step->calculateSingleStepNodes(bundleRefiter->getPlmExecEnvList(),
                                              swNodeList)) {
           std::list<std::string>::const_iterator it;
           for (it = swNodeList.begin(); it != swNodeList.end(); ++it) {
-            saSmfINNode.addValue(*it);
+            saSmfINNode.AddAttributeValue(*it);
           }
         } else {
           LOG_NO(
@@ -2987,15 +2971,15 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
       }
 
       // Fail the campaign if no node is given for the bundle.
-      if (saSmfINNode.getValues().size() == 0) {
+      if (saSmfINNode.GetAttributeValues().empty()) {
         LOG_NO(
             "SmfUpgradeProcedure::createImmStep: No node given for bundle %s",
             bundleName.c_str());
         return SA_AIS_ERR_NOT_EXIST;
       }
 
-      icoSaSmfImageNodes.addValue(saSmfINNode);
-      rc = icoSaSmfImageNodes.execute();  // Create the object
+      icoSaSmfImageNodes.AddValue(saSmfINNode);
+      rc = icoSaSmfImageNodes.Execute();  // Create the object
       if ((rc != SA_AIS_OK) && (rc != SA_AIS_ERR_EXIST)) {
         LOG_NO(
             "SmfUpgradeProcedure::createImmStep: Creation of SaSmfImageNodes object fails, rc=%s, [dn=%s]",
@@ -4053,7 +4037,7 @@ bool SmfUpgradeProcedure::setEntitiesToAddRemMod(
 
   if (modList.size() == 0) {
     /* A value must always be supplied to a cached runtime attribute */
-    io_smfEntityToAddRemove->addValue("");
+    io_smfEntityToAddRemove->AddAttributeValue("");
     TRACE_LEAVE();
     return true;
   }
@@ -4064,17 +4048,17 @@ bool SmfUpgradeProcedure::setEntitiesToAddRemMod(
       SmfImmUtils immUtil;
       // Get class decription
       SaImmAttrDefinitionT_2 **attrDefinitionsOut = NULL;
-      if (!immUtil.getClassDescription(createOper->getClassName(),
+      if (!immUtil.getClassDescription(createOper->GetClassName(),
                                        &attrDefinitionsOut)) {
         LOG_NO(
             "SmfUpgradeProcedure::setEntitiesToAddRemMod: getClassDescription FAILED for [%s]",
-            createOper->getClassName().c_str());
+            createOper->GetClassName().c_str());
         return false;
       }
       if (attrDefinitionsOut == NULL) {
         LOG_NO(
             "SmfUpgradeProcedure::setEntitiesToAddRemMod: Could not get attributes for class [%s]",
-            createOper->getClassName().c_str());
+            createOper->GetClassName().c_str());
         return false;
       }
 
@@ -4092,30 +4076,30 @@ bool SmfUpgradeProcedure::setEntitiesToAddRemMod(
       immUtil.classDescriptionMemoryFree(attrDefinitionsOut);
 
       // Find attribute name in SmfImmCreateOperation attributes
-      const std::list<SmfImmAttribute> values = createOper->getValues();
+      const std::list<SmfImmAttribute> values = createOper->GetAttributeObjects();
       if (values.size() != 0) {
         std::list<SmfImmAttribute>::const_iterator it;
         for (it = values.begin(); it != values.end(); ++it) {
-          if (((SmfImmAttribute)(*it)).getName() == rdnAttr) {
+          if (((SmfImmAttribute)(*it)).GetAttributeName() == rdnAttr) {
             std::string rdn = ((SmfImmAttribute)(*it))
-                                  .getValues()
+                                  .GetAttributeValues()
                                   .front();  // RDN always one value
-            std::string str = rdn + "," + createOper->getParentDn();
-            io_smfEntityToAddRemove->addValue(rdn + "," +
-                                              createOper->getParentDn());
+            std::string str = rdn + "," + createOper->GetParentDn();
+            io_smfEntityToAddRemove->AddAttributeValue(rdn + "," +
+                                              createOper->GetParentDn());
             break;
           }
         }
       } else {
         LOG_NO(
             "SmfUpgradeProcedure::setEntitiesToAddRemMod: no values set in create operation for instance of class %s",
-            createOper->getClassName().c_str());
+            createOper->GetClassName().c_str());
         return false;
       }
     } else if ((deleteOper = dynamic_cast<SmfImmDeleteOperation *>(*it)) != 0) {
-      io_smfEntityToAddRemove->addValue(deleteOper->getDn());
+      io_smfEntityToAddRemove->AddAttributeValue(deleteOper->GetDn());
     } else if ((modifyOper = dynamic_cast<SmfImmModifyOperation *>(*it)) != 0) {
-      io_smfEntityToAddRemove->addValue(modifyOper->getDn());
+      io_smfEntityToAddRemove->AddAttributeValue(modifyOper->GetObjectDn());
     } else {
       LOG_NO("SmfUpgradeProcedure::setEntitiesToAddRemMod: unknown operation");
       return false;

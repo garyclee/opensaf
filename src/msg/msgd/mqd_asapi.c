@@ -1298,18 +1298,18 @@ static uint32_t mqd_asapi_queue_make(MQD_OBJ_INFO *pObjInfo,
 					    "%s:%u:ERR_MEMORY:Failed To Allocate Memory for QGroups",
 					    __FILE__, __LINE__);
 				return SA_AIS_ERR_NO_MEMORY;
-				return SA_AIS_ERR_NO_MEMORY;
 			}
 
 			itr.state = 0;
-			for (idx = 0; idx < qcnt; idx++) {
-				pOelm = (MQD_OBJECT_ELEM *)ncs_walk_items(
-				    &pObjInfo->ilist, &itr);
+			idx = 0;
+			while ((pOelm = (MQD_OBJECT_ELEM *)ncs_walk_items(
+				    &pObjInfo->ilist, &itr))) {
 
 				memcpy(&pQueue[idx].name, &pOelm->pObject->name,
 				       sizeof(SaNameT));
 				mqd_qparam_fill(&pOelm->pObject->info.q,
 						&pQueue[idx]);
+				idx++;
 			}
 		}
 	} else {
@@ -1632,6 +1632,8 @@ void mqd_nd_restart_update_dest_info(MQD_CB *pMqd, MDS_DEST dest)
 	NCS_Q_ITR itr;
 	uint32_t count = 0;
 
+	m_NCS_LOCK(&pMqd->mqd_cb_lock, NCS_LOCK_WRITE);
+
 	pObjNode = (MQD_OBJ_NODE *)ncs_patricia_tree_getnext(&pMqd->qdb,
 							     (uint8_t *)NULL);
 	while (pObjNode) {
@@ -1686,6 +1688,8 @@ void mqd_nd_restart_update_dest_info(MQD_CB *pMqd, MDS_DEST dest)
 		pObjNode = (MQD_OBJ_NODE *)ncs_patricia_tree_getnext(
 		    &pMqd->qdb, (uint8_t *)&name);
 	}
+
+	m_NCS_UNLOCK(&pMqd->mqd_cb_lock, NCS_LOCK_WRITE);
 }
 
 /****************************************************************************\
@@ -1706,6 +1710,8 @@ void mqd_nd_down_update_info(MQD_CB *pMqd, MDS_DEST dest)
 	MQD_OBJECT_ELEM *pOelm = 0;
 	NCS_Q_ITR itr;
 	uint32_t count = 0;
+
+	m_NCS_LOCK(&pMqd->mqd_cb_lock, NCS_LOCK_WRITE);
 
 	pObjNode = (MQD_OBJ_NODE *)ncs_patricia_tree_getnext(&pMqd->qdb,
 							     (uint8_t *)NULL);
@@ -1757,6 +1763,9 @@ void mqd_nd_down_update_info(MQD_CB *pMqd, MDS_DEST dest)
 		pObjNode = (MQD_OBJ_NODE *)ncs_patricia_tree_getnext(
 		    &pMqd->qdb, (uint8_t *)&name);
 	}
+
+	m_NCS_UNLOCK(&pMqd->mqd_cb_lock, NCS_LOCK_WRITE);
+
 	return;
 }
 

@@ -29,7 +29,8 @@ extern void clms_imm_impl_set(CLMS_CB *cb);
 extern CLMS_CLUSTER_NODE *clms_node_new(SaNameT *name,
                                         const SaImmAttrValuesT_2 **attrs);
 extern void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
-                            SaClmChangeStepT step, bool node_reboot);
+                            SaClmChangeStepT step, bool node_reboot,
+                            const SaNameT *rootCauseEntity);
 extern uint32_t clms_node_dn_chk(SaNameT *objName);
 extern SaAisErrorT clms_cluster_config_get();
 extern SaAisErrorT clms_node_create_config();
@@ -48,10 +49,12 @@ extern CLMS_CLUSTER_NODE *clms_node_get_by_eename(SaNameT *name);
 extern uint32_t clms_prep_and_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
                                          CLMS_CLIENT_INFO *client,
                                          SaClmChangeStepT step,
-                                         SaClmClusterNotificationT_4 *notify);
+                                         SaClmClusterNotificationT_4 *notify,
+                                         const SaNameT *rootCauseEntity);
 extern uint32_t clms_send_track_local(CLMS_CLUSTER_NODE *node,
                                       CLMS_CLIENT_INFO *client,
-                                      SaClmChangeStepT step);
+                                      SaClmChangeStepT step,
+                                      const SaNameT *rootCauseEntity);
 extern void clms_trackresp_patricia_init(CLMS_CLUSTER_NODE *node);
 extern void clms_switchoff_all_pending_rtupdates();
 extern void clms_switchon_all_pending_rtupdates();

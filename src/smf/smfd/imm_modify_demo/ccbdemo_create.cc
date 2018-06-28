@@ -343,9 +343,9 @@ int main(void) {
   name_values.value_type = SA_IMM_ATTR_SANAMET;
   // Short name
   osaf_extended_name_lend("a_name1", &a_name);
-  name_values.AddValue(SaNametToString(&a_name));
+  name_values.AddValue(modelmodify::SaNametToString(&a_name));
   osaf_extended_name_lend("a_name2", &a_name);
-  name_values.AddValue(SaNametToString(&a_name));
+  name_values.AddValue(modelmodify::SaNametToString(&a_name));
   // Long name
   char long_name[300];
   for (size_t i = 0; i < 299; i++) {
@@ -353,9 +353,9 @@ int main(void) {
   }
   long_name[299] = '\0';
   osaf_extended_name_lend(long_name, &a_name);
-  name_values.AddValue(SaNametToString(&a_name));
+  name_values.AddValue(modelmodify::SaNametToString(&a_name));
   osaf_extended_name_lend("a_name3", &a_name);
-  name_values.AddValue(SaNametToString(&a_name));
+  name_values.AddValue(modelmodify::SaNametToString(&a_name));
 
 
 
@@ -367,13 +367,13 @@ int main(void) {
   SaUint8T buffer1[] = {1, 2, 3, 4, 5};
   any_value1.bufferAddr = buffer1;
   any_value1.bufferSize = sizeof(buffer1);
-  any_values.AddValue(SaAnytToString(&any_value1));
+  any_values.AddValue(modelmodify::SaAnytToString(&any_value1));
 
   SaAnyT any_value2;
   SaUint8T buffer2[] = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
   any_value2.bufferAddr = buffer2;
   any_value2.bufferSize = sizeof(buffer2);
-  any_values.AddValue(SaAnytToString(&any_value2));
+  any_values.AddValue(modelmodify::SaAnytToString(&any_value2));
 
   // SA_IMM_ATTR_SASTRINGT
   string_values.attribute_name = "SaStringValues";

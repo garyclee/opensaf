@@ -1448,7 +1448,8 @@ void ntfs_sanamet_alloc(SaConstStringT value, size_t length, SaNameT *pName)
 	/* Accept the old SaNameT which's @.length counting the null termination
 	 */
 	if (!osaf_is_an_extended_name(pName) &&
-	    ((ntfs_sanamet_length(pName) + 1) == length)) {
+			(length < SA_MAX_UNEXTENDED_NAME_LENGTH) &&
+			((ntfs_sanamet_length(pName) + 1) == length)) {
 		*((SaUint16T *)pName) += 1;
 	}
 }
@@ -1466,7 +1467,8 @@ void ntfs_sanamet_steal(SaStringT value, size_t length, SaNameT *pName)
 	/* Accept the old SaNameT which's @.length counting the null termination
 	 */
 	if (!osaf_is_an_extended_name(pName) &&
-	    ((ntfs_sanamet_length(pName) + 1) == length)) {
+			(length < SA_MAX_UNEXTENDED_NAME_LENGTH) &&
+			((ntfs_sanamet_length(pName) + 1) == length)) {
 		*((SaUint16T *)pName) += 1;
 	}
 }

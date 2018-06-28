@@ -64,10 +64,6 @@ uint32_t glnd_client_node_del(GLND_CB *glnd_cb, GLND_CLIENT_INFO *client_info);
 uint32_t glnd_client_node_resource_add(GLND_CLIENT_INFO *client_info,
                                        struct glnd_resource_info_tag *res_info);
 
-uint32_t glnd_client_node_resource_del(GLND_CB *glnd_cb,
-                                       GLND_CLIENT_INFO *client_info,
-                                       struct glnd_resource_info_tag *res_info);
-
 uint32_t glnd_client_node_lcl_resource_del(
     GLND_CB *glnd_cb, GLND_CLIENT_INFO *client_info,
     struct glnd_resource_info_tag *res_info, SaLckResourceIdT lcl_resource_id,

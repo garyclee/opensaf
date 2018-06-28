@@ -135,21 +135,4 @@ bool ImmOmHandle::DispatchBlocking() {
   return Dispatch(SA_DISPATCH_BLOCKING);
 }
 
-// TODO(Lennart) Removed like this. We may want this back if this becomes a
-// library again in the future
-#if 0
-// To enable tracing early when the library is loaded.
-__attribute__((constructor))
-static void logtrace_init_constructor(void) {
-  char* value;
-  // Initialize trace system first of all so we can see what is going.
-  if ((value = getenv("IMMOMCPP_TRACE_PATHNAME")) != nullptr) {
-    if (logtrace_init("immomcpp", value, CATEGORY_ALL) != 0) {
-      // Error, we cannot do anything
-      return;
-    }
-  }
-}
-#endif
-
 }  // namespace immom

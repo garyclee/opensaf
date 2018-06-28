@@ -6095,6 +6095,78 @@ void objectModifyTest_3507(void) {
   test_validate(error, SA_AIS_OK);
 }
 
+/**
+ * Modify (REPLACE, NAME) a runtime test object with empty SaNameT and verify
+ * correctness of generated notification.
+ */
+void objectModifyTest_empty_sanamet(void) {
+  SaAisErrorT error = SA_AIS_OK;
+  safassert(init_ntf(), SA_AIS_OK);
+  safassert(subscribe_notifications(), SA_AIS_OK);
+  rec_notif_data.populated = SA_FALSE;
+
+  /* modify the runtime object with an empty attribute*/
+
+  const SaUint8T empty_name[] = {};
+  SaNameT modify_var = {.length = sizeof(empty_name)};
+  memcpy(modify_var.value, empty_name, sizeof(empty_name));
+  void *v[] = {&modify_var};
+  TestAttributeValue att = {.attrName = "testName",
+          .attrType = SA_IMM_ATTR_SANAMET,
+          .attrValues = v};
+  TestAttributeValue *attrs[] = {&att, NULL};
+
+  /*
+   * Modify (ADD) the object in IMM.
+   */
+  modify_rt_test_object(DNTESTRT, SA_IMM_ATTR_VALUES_REPLACE, attrs);
+
+  /*
+   * Wait for notification reception.
+   */
+  int dwCnt = 0;
+  while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
+    NtfTest::saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
+    if (!rec_notif_data.populated)
+      base::Sleep(base::kOneMillisecond);
+  }
+
+  if (rec_notif_data.populated) {
+    NotifData n_exp;
+    safassert(
+        set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED, DNTESTRT, 3, 3),
+        SA_AIS_OK);
+    safassert(
+        set_add_info(&n_exp, 0, 0, "SaImmAttrImplementerName"),
+        SA_AIS_OK);
+    safassert(set_add_info(&n_exp, 1, 1, "SaImmAttrClassName"),
+        SA_AIS_OK);
+    safassert(set_add_info(&n_exp, 2, 2, "testName"), SA_AIS_OK);
+    safassert(set_attr_change_str(&n_exp, 0, 0, IMPLEMENTERNAME_RT),
+        SA_AIS_OK);
+    safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestRT"),
+        SA_AIS_OK);
+    ++modify_var.length;
+    safassert(set_attr_change_buf(&n_exp, 2, 2,
+                SA_NTF_VALUE_LDAP_NAME, &modify_var),
+        SA_AIS_OK);
+
+    if (!compare_notifs(&n_exp, &rec_notif_data)) {
+      print_notif(&n_exp);
+      print_notif(&rec_notif_data);
+      error = SA_AIS_ERR_FAILED_OPERATION;
+    }
+    safassert(saNtfNotificationFree(rec_notif_data.nHandle),
+        SA_AIS_OK);
+    safassert(saNtfNotificationFree(n_exp.nHandle), SA_AIS_OK);
+  } else {
+    error = SA_AIS_ERR_FAILED_OPERATION;
+  }
+  safassert(unsub_notifications(), SA_AIS_OK);
+  safassert(NtfTest::saNtfFinalize(ntfHandle), SA_AIS_OK);
+  test_validate(error, SA_AIS_OK);
+}
+
 __attribute__((constructor)) static void ntf_imcn_constructor(void) {
   struct stat buf;
   int rc = 0;
@@ -6163,6 +6235,7 @@ __attribute__((constructor)) static void ntf_imcn_constructor(void) {
   test_case_add(32, objectModifyTest_11,
           "runtime, attr ch, ADD (STRING)");
   test_case_add(32, objectModifyTest_12, "runtime, attr ch, ADD (NAME)");
+
   test_case_add(32, objectModifyTest_13, "runtime, attr ch, ADD (ANY)");
   test_case_add(32, objectModifyTest_14,
           "runtime, attr ch, REPLACE (STRING, DOUBLE)");
@@ -6174,6 +6247,8 @@ __attribute__((constructor)) static void ntf_imcn_constructor(void) {
           "runtime, attr ch, DELETE (STRING, INT32)");
   test_case_add(32, objectModifyTest_18,
           "runtime, attr ch, ADD (ALL TYPES)");
+  test_case_add(32, objectModifyTest_empty_sanamet,
+          "runtime, attr ch, replace empty sanamet (NAME)");
   test_case_add(32, objectDeleteTest_19,
           "DELETE, runtime (OsafNtfCmTestRT) object");
   test_case_add(32, objectCreateTest_20,

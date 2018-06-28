@@ -190,6 +190,6 @@ uint32_t mqd_red_db_node_add(MQD_CB *pMqd, MQD_ND_DB_NODE *pNode);
 uint32_t mqd_red_db_node_create(MQD_CB *pMqd, MQD_ND_DB_NODE **o_pnode);
 void mqd_red_db_node_del(MQD_CB *pMqd, MQD_ND_DB_NODE *pNode);
 void mqd_qparam_upd(MQD_OBJ_NODE *, ASAPi_QUEUE_PARAM *);
-void mqd_qparam_fill(MQD_QUEUE_PARAM *, ASAPi_QUEUE_PARAM *);
+void mqd_qparam_fill(const MQD_QUEUE_PARAM *, ASAPi_QUEUE_PARAM *);
 
 #endif  // MSG_MSGD_MQD_DB_H_

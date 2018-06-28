@@ -16,28 +16,25 @@
  *
  */
 
-#include <stdio.h>
+#include "smf/smfd/SmfAdminState.h"
 
+#include <stdio.h>
 #include <atomic>
 #include <string>
 
 #include "ais/include/saAis.h"
-
-#include "base/saf_error.h"
+#include "ais/include/saAmf.h"
+#include "ais/include/saImmOm.h"
 #include "base/osaf_extended_name.h"
+#include "base/saf_error.h"
 #include "base/time.h"
 
-// TODO(Lennart) Needed to solve some dependencies.
-//               Should be refactored.
 #include "osaf/immutil/immutil.h"
 #include "smf/smfd/smfd.h"
 #include "smf/smfd/SmfUtils.h"
-// END TODO
-
-#include "smf/smfd/SmfAdminState.h"
-#include "smf/smfd/SmfUpgradeStep.h"
 
 #include "smf/smfd/imm_modify_config/immccb.h"
+#include "smf/smfd/SmfUpgradeStep.h"
 
 //==============================================================================
 // Class SmfAdminOperation methods
@@ -88,8 +85,8 @@ SmfAdminStateHandler::SmfAdminStateHandler(std::list<unitNameAndState>*
 SmfAdminStateHandler::~SmfAdminStateHandler() { finalizeNodeGroupOm(); }
 
 ///
-/// Operates on the i_allUnits list
-/// Using m_nodeList and m_suList
+/// Operates on the allUnits_ list
+/// Using nodeList_ and suList_
 /// - Save all units state before locking
 /// - Lock all units with admin state unlocked
 /// Return false if Fail
@@ -123,7 +120,7 @@ done:
 }
 
 ///
-/// Using m_nodeList and m_suList
+/// Using nodeList_ and suList_
 /// Lock instantiate all units with admin state locked
 /// Return false if Fail
 ///
@@ -156,8 +153,8 @@ done:
 }
 
 ///
-/// Using m_nodeList and m_suList
-/// Unlock instanciate all units with admin state locked in
+/// Using nodeList_ and suList_
+/// Unlock instantiate all units with admin state locked in
 /// Return false if Fail
 ///
 bool SmfAdminStateHandler::unlock_in() {
@@ -193,7 +190,7 @@ done:
 }
 
 ///
-/// Using m_nodeList and m_suList
+/// Using nodeList_ and suList_
 /// Unlock all units with admin state unlocked in
 /// Return false if Fail
 ///
@@ -225,7 +222,7 @@ done:
   return rc;
 }
 
-/// Try to restart all units in the m_allUnits list.
+/// Try to restart all units in the allUnits_ list.
 /// Return false if Fail
 ///
 bool SmfAdminStateHandler::restart() {
@@ -253,7 +250,7 @@ done:
 }
 
 /// -----------------------------------------------
-/// SmfSetAdminState Private
+/// SmfAdminStateHandler Private
 /// -----------------------------------------------
 
 // Initialize an OM (get an OM handle) and become admin owner with
@@ -301,9 +298,8 @@ bool SmfAdminStateHandler::initImmOmAndSetAdminOwnerName() {
 }
 
 // Become admin owner of one object
-//
-// Note: The admin owner handle must have been initiated. See initAdminOwner()
-//
+// Note: The admin owner handle must have been initialized.
+//       See initImmOmAndSetAdminOwnerName()
 // Return false if Fail
 bool SmfAdminStateHandler::becomeAdminOwnerOf(const std::string& object_name) {
   TRACE_ENTER();
@@ -335,6 +331,7 @@ bool SmfAdminStateHandler::becomeAdminOwnerOf(const std::string& object_name) {
   if (ais_rc != SA_AIS_OK) {
     LOG_NO("%s: saImmOmAdminOwnerSet owner name '%s' Fail '%s'", __FUNCTION__,
            admin_owner_name_.c_str(), saf_error(ais_rc));
+    rc = false;
   }
 
   TRACE_LEAVE();
@@ -342,8 +339,8 @@ bool SmfAdminStateHandler::becomeAdminOwnerOf(const std::string& object_name) {
 }
 
 // Release admin ownership of one object
-// Note: The admin owner handle must have been initiated. See initAdminOwner()
-//
+// Note: The admin owner handle must have been initialized.
+//       See initImmOmAndSetAdminOwnerName()
 // Return false if Fail
 bool SmfAdminStateHandler::releaseAdminOwnerOf(const std::string& object_name) {
   TRACE_ENTER();
@@ -392,7 +389,7 @@ bool SmfAdminStateHandler::isRestartError(SaAisErrorT ais_rc) {
   return rc;
 }
 
-/// Return false if Fail. m_ais_errno is set
+/// Return false if Fail. errno_ is set
 /// Only SU and Node
 ///
 bool SmfAdminStateHandler::saveInitAndCurrentStateForAllUnits() {
@@ -418,7 +415,7 @@ bool SmfAdminStateHandler::saveInitAndCurrentStateForAllUnits() {
   return rc;
 }
 
-/// Return false if Fail. m_ais_errno is set
+/// Return false if Fail. errno_ is set
 /// Only SU and Node
 ///
 bool SmfAdminStateHandler::saveCurrentStateForAllUnits() {
@@ -443,7 +440,7 @@ bool SmfAdminStateHandler::saveCurrentStateForAllUnits() {
   return rc;
 }
 
-/// From the allUnits list create a list of SUs and a
+/// From the allUnits_ list create a list of SUs and a
 /// list of Nodes that has given admin state
 /// of the list
 ///
@@ -452,7 +449,7 @@ void SmfAdminStateHandler::createNodeAndSULockLists(SaAmfAdminStateT
   createUnitLists(adminState, false);
 }
 
-/// From the allUnits list create a list of SUs and a
+/// From the allUnits_ list create a list of SUs and a
 /// list of Nodes that has given admin state
 /// If smfKeepDuState set then nodes that already has the init state shall not
 /// be in list
@@ -462,7 +459,7 @@ void SmfAdminStateHandler::createNodeAndSUUnlockLists(
   createUnitLists(adminState, smfKeepDuState_);
 }
 
-/// From the allUnits list create a list of SUs and a
+/// From the allUnits_ list create a list of SUs and a
 /// list of Nodes that has given admin state
 /// If checkInitState is true then nodes  and SUs that are in their init state
 /// shall not be part of the list
@@ -513,19 +510,19 @@ bool SmfAdminStateHandler::changeAdminState(SaAmfAdminStateT fromState,
       LOG_NO("%s: changeNodeGroupAdminState() Fail %s", __FUNCTION__,
              saf_error(errno_));
     }
-  } else if (nodeList_.size() > 0) {
-    TRACE("%s: Use serialized for Node", __FUNCTION__);
+  } else if (nodeList_.size() == 1) {
+    TRACE("%s: Use serialized for one node", __FUNCTION__);
     rc = adminOperationSerialized(toState, nodeList_);
     if (rc == false) {
-      LOG_NO("%s: setAdminStateSUs() Fail %s", __FUNCTION__,
+      LOG_NO("%s: setAdminStateNode() Fail %s", __FUNCTION__,
              saf_error(errno_));
     }
   }
 
   // Set admin state for SUs
-  if ((rc == true) && (suList_.size() > 0)) {
+  if ((rc == true) && (!suList_.empty())) {
     TRACE("%s: Use serialized for SUs", __FUNCTION__);
-    // Do only if nodes did not fail
+    // Do only if setting admin state for nodes did not fail
     rc = adminOperationSerialized(toState, suList_);
     if (rc == false) {
       LOG_NO("%s: setAdminStateSUs() Fail %s", __FUNCTION__,
@@ -537,8 +534,8 @@ bool SmfAdminStateHandler::changeAdminState(SaAmfAdminStateT fromState,
   return rc;
 }
 
-// Set given admin state in the m_nodeList using a node group
-// Return false if Fail. m_errno is set
+// Set given admin state in the nodeList_ using a node group
+// Return false if Fail. errno_ is set
 //
 bool SmfAdminStateHandler::adminOperationNodeGroup(
     SaAmfAdminStateT fromState, SaAmfAdminOperationIdT toState) {
@@ -567,7 +564,7 @@ bool SmfAdminStateHandler::adminOperationNodeGroup(
       }
     }
   } else {
-    TRACE("\t m_nodelist is empty!");
+    TRACE("\t nodeList_ is empty!");
   }
 
   errno_ = ais_errno;
@@ -577,7 +574,7 @@ bool SmfAdminStateHandler::adminOperationNodeGroup(
 }
 
 // Set given admin state to all units in the given unitList
-// Return false if Fail. m_ais_errno is set
+// Return false if Fail. errno_ is set
 //
 bool SmfAdminStateHandler::adminOperationSerialized(
     SaAmfAdminOperationIdT adminState,
@@ -602,10 +599,9 @@ bool SmfAdminStateHandler::adminOperationSerialized(
 }
 
 /// Read current state from the IMM object in the given object name (dn)
-/// If the unit is a node or an SU, admin state is fetched. If the unit is a
-/// component presence state is fetched
-/// m_ais_errno is set
-/// NOTE: The return value is undefined if m_ais_errno != SA_AIS_OK
+/// If the unit is a node or an SU, admin state is fetched.
+/// errno_ is set
+/// NOTE: The return value is undefined if errno_ != SA_AIS_OK
 ///
 SaAmfAdminStateT SmfAdminStateHandler::getAdminState(
     const std::string &i_objectName) {
@@ -677,7 +673,7 @@ SaAmfAdminStateT SmfAdminStateHandler::getAdminState(
 
 /// Set safAmfCluster to be parent DN for the Node group used for setting admin
 /// state. Fetched from the SaAmfCluster class
-/// Return false if Fail. m_ais_errno is set
+/// Return false if Fail. errno_ is set
 ///
 bool SmfAdminStateHandler::setNodeGroupParentDn() {
   bool rc = true;
@@ -724,23 +720,23 @@ bool SmfAdminStateHandler::setNodeGroupParentDn() {
     TRACE("\t Object name is '%s'", tmp_str);
   }
 
-  TRACE_LEAVE2("m_nodeGroupParentDn '%s', rc = %s",
+  TRACE_LEAVE2("nodeGroupParentDn_ '%s', rc = %s",
                nodeGroupParentDn_.c_str(), rc == true? "true": "false");
 done:
   return rc;
 }
 
-/// Create a SmfSetAdminState instance node group with the nodes in
-/// the m_nodeList.
+/// Create a SmfAdminStateHandler instance node group with the nodes in
+/// the nodeList.
 /// The saAmfNGAdminState attribute will be given fromState. The initState
 /// must be set to a state so that a state change to the wanted state for the
 /// nodes can be done.
-/// Return false if Fail. TODO(Lennart) Remove handling errno_. Not set
+/// Return false if Fail. Note: errno_ is not set
 ///
 bool SmfAdminStateHandler::createNodeGroup(SaAmfAdminStateT i_fromState) {
   TRACE_ENTER();
 
-  errno_ = SA_AIS_OK;  // Dummy; Not set. Handling to be removed
+  errno_ = SA_AIS_OK;  // Dummy; Not used
 
   TRACE("%s: unique Node name '%s'", __FUNCTION__,
         instanceNodeGroupName_.c_str());
@@ -830,8 +826,8 @@ bool SmfAdminStateHandler::createNodeGroup(SaAmfAdminStateT i_fromState) {
   return rc;
 }
 
-/// Delete the SmfSetAdminState instance specific node group
-/// Return false if Fail. m_errno is NOT set
+/// Delete the SmfAdminStateHandler instance specific node group
+/// Return false if Fail. errno_ is NOT set
 ///
 bool SmfAdminStateHandler::deleteNodeGroup() {
   TRACE_ENTER();
@@ -856,8 +852,8 @@ bool SmfAdminStateHandler::deleteNodeGroup() {
   return rc;
 }
 
-/// Request given admin operation to the SmfSetAdminState instance node group
-/// Return false if Fail. m_ais_errno is set
+/// Request given admin operation to the SmfAdminStateHandler instance node group
+/// Return false if Fail. errno_ is set
 ///
 bool SmfAdminStateHandler::nodeGroupAdminOperation(
     SaAmfAdminOperationIdT adminOp) {
@@ -952,7 +948,7 @@ bool SmfAdminStateHandler::nodeGroupAdminOperation(
 }
 
 /// Set given admin state to one unit
-/// Return false if Fail. m_ais_errno is set
+/// Return false if Fail. errno_ is set
 ///
 bool SmfAdminStateHandler::adminOperation(SaAmfAdminOperationIdT adminOperation,
                                        const std::string &unitName) {
@@ -976,6 +972,6 @@ bool SmfAdminStateHandler::adminOperation(SaAmfAdminOperationIdT adminOperation,
     rc = false;
   }
 
-  TRACE_LEAVE2("rc=%d", rc);
+  TRACE_LEAVE2("%s", rc ? "OK" : "FAIL");
   return rc;
 }

@@ -12,5 +12,7 @@ ControlGroup=cpu:/
 TimeoutStartSec=3hours
 KillMode=none
 @systemdtasksmax@
+Restart=on-failure
+
 [Install]
 WantedBy=multi-user.target

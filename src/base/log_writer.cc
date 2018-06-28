@@ -16,15 +16,15 @@
  *
  */
 
+#include "base/log_writer.h"
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cerrno>
 #include <cstdio>
+#include <cstring>
 #include "base/getenv.h"
 #include "osaf/configmake.h"
-#include "dtm/transport/log_writer.h"
-#include "dtm/transport/log_server.h"
 
 LogWriter::LogWriter(const std::string& log_name, size_t max_backups,
                                                   size_t max_file_size)
@@ -84,6 +84,23 @@ void LogWriter::RotateLog() {
     if (rename(previous_backup.c_str(), backup_name.c_str()) != 0) {
       unlink(previous_backup.c_str());
     }
+  }
+}
+
+void LogWriter::Write(const char* bytes, size_t size) {
+  size_t bytes_written = 0;
+  size_t bytes_chunk = 0;
+  while (bytes_written < size) {
+    if ((size - bytes_written) > (kBufferSize - current_buffer_size_)) {
+      bytes_chunk = kBufferSize - current_buffer_size_;
+    } else {
+      bytes_chunk = size - bytes_written;
+    }
+    memcpy(current_buffer_position(), bytes + bytes_written, bytes_chunk);
+    bytes_written += bytes_chunk;
+    current_buffer_size_ += bytes_chunk;
+    if (current_buffer_size_ >= kBufferSize ||
+        current_buffer_size_ >= max_file_size_) Flush();
   }
 }
 

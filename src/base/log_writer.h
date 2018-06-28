@@ -16,8 +16,8 @@
  *
  */
 
-#ifndef DTM_TRANSPORT_LOG_WRITER_H_
-#define DTM_TRANSPORT_LOG_WRITER_H_
+#ifndef BASE_LOG_WRITER_H_
+#define BASE_LOG_WRITER_H_
 
 #include <cstddef>
 #include <string>
@@ -27,6 +27,9 @@
 // the log file when it exceeds the maximum file size limit.
 class LogWriter {
  public:
+  // define common constants
+  // size in bytes that is used with LogWriter
+  static const size_t kMaxFileSize_10MB = 10485760; //10 * 1024 * 1024;
   constexpr static const size_t kMaxMessageSize = 2 * size_t{1024};
 
   LogWriter(const std::string& log_name, size_t max_backups,
@@ -40,6 +43,7 @@ class LogWriter {
   // buffer to the MDS log file. After the log message has been written, the
   // file will be rotated if necessary. This method performs blocking file I/O.
   void Write(size_t size);
+  void Write(const char* bytes, size_t size);
   void Flush();
 
  private:
@@ -61,4 +65,4 @@ class LogWriter {
   DELETE_COPY_AND_MOVE_OPERATORS(LogWriter);
 };
 
-#endif  // DTM_TRANSPORT_LOG_WRITER_H_
+#endif  // BASE_LOG_WRITER_H_

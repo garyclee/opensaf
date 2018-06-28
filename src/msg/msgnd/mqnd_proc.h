@@ -157,7 +157,13 @@ uint32_t mqnd_fill_queue_from_transfered_buffer(
     MQND_CB *cb, MQND_QUEUE_NODE *qnode, MQP_TRANSFERQ_RSP *transfer_rsp);
 
 void mqnd_clm_cluster_track_cbk(
-    const SaClmClusterNotificationBufferT *notificationBuffer,
-    SaUint32T numberOfMembers, SaAisErrorT error);
+	const SaClmClusterNotificationBufferT_4 *notificationBuffer,
+	SaUint32T numberOfMembers,
+	SaInvocationT invocation,
+	const SaNameT *rootCauseEntity,
+	const SaNtfCorrelationIdsT *correlationIds,
+	SaClmChangeStepT step,
+	SaTimeT timeSupervision,
+	SaAisErrorT error);
 
 #endif  // MSG_MSGND_MQND_PROC_H_

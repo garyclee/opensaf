@@ -38,10 +38,7 @@ SmfExecControlObjHandler::SmfExecControlObjHandler()
       m_numberOfSingleSteps(0),
       m_numberOfSingleSteps_valid(false),
       m_nodesForSingleStep_valid(false),
-      m_attributes(0),
-      m_omHandle(0),
-      m_ownerHandle(0),
-      m_ccbHandle(0) {
+      m_attributes(0) {
   p_immutil_object = new SmfImmUtils;  // Deleted by uninstall and in destructor
 }
 
@@ -362,82 +359,4 @@ bool SmfExecControlObjHandler::copyExecControlObject() {
 
   TRACE_LEAVE();
   return rc;
-}
-
-/**
- * Get all needed IMM handles and store them in member variables
- * NOTE: This is a copy of a method in the SmfAdminOperation class.
- *       This should be fixed
- *
- * @return false on Fail
- */
-bool SmfExecControlObjHandler::createImmOmHandles() {
-  SaAisErrorT ais_rc = SA_AIS_ERR_TRY_AGAIN;
-  SaVersionT local_version = m_immVersion;
-  int timeout_try_cnt = 6;
-  bool rc = true;
-
-  TRACE_ENTER();
-
-  finalizeImmOmHandles();
-
-  // OM handle
-  while (timeout_try_cnt > 0) {
-    ais_rc = immutil_saImmOmInitialize(&m_omHandle, NULL, &local_version);
-    if (ais_rc != SA_AIS_ERR_TIMEOUT) break;
-    timeout_try_cnt--;
-  }
-  if (ais_rc != SA_AIS_OK) {
-    LOG_NO("%s: saImmOmInitialize Fail %s", __FUNCTION__, saf_error(ais_rc));
-    rc = false;
-  }
-
-  // Admin owner handle
-  if (rc == true) {
-    timeout_try_cnt = 6;
-    while (timeout_try_cnt > 0) {
-      ais_rc = immutil_saImmOmAdminOwnerInitialize(
-          m_omHandle, const_cast<char *>("SmfExecControlObjHandlerOwner"),
-          SA_TRUE, &m_ownerHandle);
-      if (ais_rc != SA_AIS_ERR_TIMEOUT) break;
-      timeout_try_cnt--;
-    }
-    if (ais_rc != SA_AIS_OK) {
-      LOG_NO("%s: saImmOmAdminOwnerInitialize Fail %s", __FUNCTION__,
-             saf_error(ais_rc));
-      rc = false;
-    }
-  }
-
-  // CCB handle
-  if (rc == true) {
-    timeout_try_cnt = 6;
-    while (timeout_try_cnt > 0) {
-      ais_rc = immutil_saImmOmCcbInitialize(m_ownerHandle, 0, &m_ccbHandle);
-      if (ais_rc != SA_AIS_ERR_TIMEOUT) break;
-      timeout_try_cnt--;
-    }
-    if (ais_rc != SA_AIS_OK) {
-      LOG_NO("%s: saImmOmCcbInitialize Fail %s", __FUNCTION__,
-             saf_error(ais_rc));
-      rc = false;
-    }
-  }
-
-  TRACE_LEAVE();
-  return rc;
-}
-
-void SmfExecControlObjHandler::finalizeImmOmHandles() {
-  if (m_omHandle != 0) {
-    SaAisErrorT ais_rc = immutil_saImmOmFinalize(m_omHandle);
-    if (ais_rc != SA_AIS_OK) {
-      LOG_NO("%s: immutil_saImmOmFinalize Fail %s", __FUNCTION__,
-             saf_error(ais_rc));
-    }
-  }
-
-  m_omHandle = 0;
-  m_ownerHandle = 0;
-  m_ccbHandle = 0;
 }

@@ -409,25 +409,25 @@ SaAisErrorT SmfUpgradeCampaign::createCampRestartInfo() {
 
   SmfImmRTCreateOperation icoCampRestartInfo;
 
-  icoCampRestartInfo.setClassName("OpenSafSmfCampRestartInfo");
-  icoCampRestartInfo.setParentDn(
+  icoCampRestartInfo.SetClassName("OpenSafSmfCampRestartInfo");
+  icoCampRestartInfo.SetParentDn(
       SmfCampaignThread::instance()->campaign()->getDn());
-  icoCampRestartInfo.setImmHandle(
+  icoCampRestartInfo.SetImmHandle(
       SmfCampaignThread::instance()->getImmHandle());
 
   SmfImmAttribute attrsmfRestartInfo;
-  attrsmfRestartInfo.setName("smfRestartInfo");
-  attrsmfRestartInfo.setType("SA_IMM_ATTR_SASTRINGT");
-  attrsmfRestartInfo.addValue("smfRestartInfo=info");
-  icoCampRestartInfo.addValue(attrsmfRestartInfo);
+  attrsmfRestartInfo.SetAttributeName("smfRestartInfo");
+  attrsmfRestartInfo.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  attrsmfRestartInfo.AddAttributeValue("smfRestartInfo=info");
+  icoCampRestartInfo.AddValue(attrsmfRestartInfo);
 
   SmfImmAttribute attrsmfCampRestartCnt;
-  attrsmfCampRestartCnt.setName("smfCampRestartCnt");
-  attrsmfCampRestartCnt.setType("SA_IMM_ATTR_SAUINT32T");
-  attrsmfCampRestartCnt.addValue("0");
-  icoCampRestartInfo.addValue(attrsmfCampRestartCnt);
+  attrsmfCampRestartCnt.SetAttributeName("smfCampRestartCnt");
+  attrsmfCampRestartCnt.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
+  attrsmfCampRestartCnt.AddAttributeValue("0");
+  icoCampRestartInfo.AddValue(attrsmfCampRestartCnt);
 
-  SaAisErrorT rc = icoCampRestartInfo.execute();  // Create the object
+  SaAisErrorT rc = icoCampRestartInfo.Execute();  // Create the object
   if (rc != SA_AIS_OK) {
     LOG_NO("Fail to create smfRestartInfo object, rc=%s, dn=[%s]",
            saf_error(rc),
@@ -464,20 +464,20 @@ SaAisErrorT SmfUpgradeCampaign::tooManyRestarts(bool *o_result) {
     SmfImmRTUpdateOperation imoCampRestartInfo;
     std::string dn = "smfRestartInfo=info," +
                      SmfCampaignThread::instance()->campaign()->getDn();
-    imoCampRestartInfo.setDn(dn);
-    imoCampRestartInfo.setImmHandle(
+    imoCampRestartInfo.SetDn(dn);
+    imoCampRestartInfo.SetImmHandle(
         SmfCampaignThread::instance()->getImmHandle());
-    imoCampRestartInfo.setOp("SA_IMM_ATTR_VALUES_REPLACE");
+    imoCampRestartInfo.SetOp("SA_IMM_ATTR_VALUES_REPLACE");
 
     SmfImmAttribute attrsmfCampRestartCnt;
-    attrsmfCampRestartCnt.setName("smfCampRestartCnt");
-    attrsmfCampRestartCnt.setType("SA_IMM_ATTR_SAUINT32T");
+    attrsmfCampRestartCnt.SetAttributeName("smfCampRestartCnt");
+    attrsmfCampRestartCnt.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
     char buf[5];
     snprintf(buf, 4, "%d", curCnt);
-    attrsmfCampRestartCnt.addValue(buf);
-    imoCampRestartInfo.addValue(attrsmfCampRestartCnt);
+    attrsmfCampRestartCnt.AddAttributeValue(buf);
+    imoCampRestartInfo.AddValue(attrsmfCampRestartCnt);
 
-    rc = imoCampRestartInfo.execute();  // Modify the object
+    rc = imoCampRestartInfo.Execute();  // Modify the object
     if (rc != SA_AIS_OK) {
       LOG_NO("Fail to modify object, rc=%s, dn=[%s]", saf_error(rc),
              dn.c_str());
@@ -544,13 +544,13 @@ SaAisErrorT SmfUpgradeCampaign::disablePbe() {
   // Disable PBE, set immRepositoryInit=2
   std::list<SmfImmOperation *> operations;
   SmfImmModifyOperation modifyOper;
-  modifyOper.setDn("safRdn=immManagement,safApp=safImmService");
-  modifyOper.setOp("SA_IMM_ATTR_VALUES_REPLACE");
+  modifyOper.SetObjectDn("safRdn=immManagement,safApp=safImmService");
+  modifyOper.SetModificationType("SA_IMM_ATTR_VALUES_REPLACE");
   SmfImmAttribute saImmRepositoryInit;
-  saImmRepositoryInit.setName("saImmRepositoryInit");
-  saImmRepositoryInit.setType("SA_IMM_ATTR_SAUINT32T");
-  saImmRepositoryInit.addValue("2");  // PBE disabled
-  modifyOper.addValue(saImmRepositoryInit);
+  saImmRepositoryInit.SetAttributeName("saImmRepositoryInit");
+  saImmRepositoryInit.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
+  saImmRepositoryInit.AddAttributeValue("2");  // PBE disabled
+  modifyOper.AddAttributeObject(saImmRepositoryInit);
   operations.push_back(&modifyOper);
   if ((rc = immUtil.doImmOperations(operations)) != SA_AIS_OK) {
     LOG_NO("Can not disable IMM PBE, rc=%s", saf_error(rc));
@@ -561,18 +561,18 @@ SaAisErrorT SmfUpgradeCampaign::disablePbe() {
   // Create the OpenSafSmfPbeIndicator object
   SmfImmRTCreateOperation icoSmfPbeIndicator;
 
-  icoSmfPbeIndicator.setClassName("OpenSafSmfPbeIndicator");
-  icoSmfPbeIndicator.setParentDn(SMF_SAF_APP_DN);
-  icoSmfPbeIndicator.setImmHandle(
+  icoSmfPbeIndicator.SetClassName("OpenSafSmfPbeIndicator");
+  icoSmfPbeIndicator.SetParentDn(SMF_SAF_APP_DN);
+  icoSmfPbeIndicator.SetImmHandle(
       SmfCampaignThread::instance()->getImmHandle());
 
   SmfImmAttribute attrsafRdn;
-  attrsafRdn.setName("safRdn");
-  attrsafRdn.setType("SA_IMM_ATTR_SASTRINGT");
-  attrsafRdn.addValue("safRdn=smfPbeIndicator");
-  icoSmfPbeIndicator.addValue(attrsafRdn);
+  attrsafRdn.SetAttributeName("safRdn");
+  attrsafRdn.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  attrsafRdn.AddAttributeValue("safRdn=smfPbeIndicator");
+  icoSmfPbeIndicator.AddValue(attrsafRdn);
 
-  rc = icoSmfPbeIndicator.execute();  // Create the object
+  rc = icoSmfPbeIndicator.Execute();  // Create the object
   if (rc != SA_AIS_OK) {
     LOG_NO("Fail to create object OpenSafSmfPbeIndicator, rc=%s, dn=[%s,%s]",
            saf_error(rc), "safRdn=smfPbeIndicator", SMF_SAF_APP_DN);
@@ -628,13 +628,13 @@ SaAisErrorT SmfUpgradeCampaign::restorePbe() {
   // Enable PBE, set immRepositoryInit=1
   std::list<SmfImmOperation *> operations;
   SmfImmModifyOperation modifyOper;
-  modifyOper.setDn("safRdn=immManagement,safApp=safImmService");
-  modifyOper.setOp("SA_IMM_ATTR_VALUES_REPLACE");
+  modifyOper.SetObjectDn("safRdn=immManagement,safApp=safImmService");
+  modifyOper.SetModificationType("SA_IMM_ATTR_VALUES_REPLACE");
   SmfImmAttribute saImmRepositoryInit;
-  saImmRepositoryInit.setName("saImmRepositoryInit");
-  saImmRepositoryInit.setType("SA_IMM_ATTR_SAUINT32T");
-  saImmRepositoryInit.addValue("1");  // SA_IMM_KEP_RESPOSITORY (PBE active)
-  modifyOper.addValue(saImmRepositoryInit);
+  saImmRepositoryInit.SetAttributeName("saImmRepositoryInit");
+  saImmRepositoryInit.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
+  saImmRepositoryInit.AddAttributeValue("1");  // SA_IMM_KEP_RESPOSITORY (PBE active)
+  modifyOper.AddAttributeObject(saImmRepositoryInit);
   operations.push_back(&modifyOper);
   if ((rc = immUtil.doImmOperations(operations)) != SA_AIS_OK) {
     LOG_NO(
@@ -665,21 +665,21 @@ SaAisErrorT SmfUpgradeCampaign::disableCampRollback(std::string i_reason) {
 
   SmfImmCreateOperation icoOpenSafSmfMisc;
 
-  icoOpenSafSmfMisc.setClassName("OpenSafSmfMisc");
-  icoOpenSafSmfMisc.setParentDn(
+  icoOpenSafSmfMisc.SetClassName("OpenSafSmfMisc");
+  icoOpenSafSmfMisc.SetParentDn(
       SmfCampaignThread::instance()->campaign()->getDn());
 
   SmfImmAttribute attropenSafSmfMisc;
-  attropenSafSmfMisc.setName("openSafSmfMisc");
-  attropenSafSmfMisc.setType("SA_IMM_ATTR_SASTRINGT");
-  attropenSafSmfMisc.addValue("openSafSmfMisc=noRollback");
-  icoOpenSafSmfMisc.addValue(attropenSafSmfMisc);
+  attropenSafSmfMisc.SetAttributeName("openSafSmfMisc");
+  attropenSafSmfMisc.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  attropenSafSmfMisc.AddAttributeValue("openSafSmfMisc=noRollback");
+  icoOpenSafSmfMisc.AddAttributeObject(attropenSafSmfMisc);
 
   SmfImmAttribute attrreason;
-  attrreason.setName("reason");
-  attrreason.setType("SA_IMM_ATTR_SASTRINGT");
-  attrreason.addValue(i_reason);
-  icoOpenSafSmfMisc.addValue(attrreason);
+  attrreason.SetAttributeName("reason");
+  attrreason.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  attrreason.AddAttributeValue(i_reason);
+  icoOpenSafSmfMisc.AddAttributeObject(attrreason);
 
   std::list<SmfImmOperation *> immOperations;
   immOperations.push_back(&icoOpenSafSmfMisc);
@@ -799,7 +799,7 @@ void SmfUpgradeCampaign::verify() {
   TRACE_ENTER();
   std::string error = "Verify Passed";
 
-  if (m_state->prerequsitescheck(this, error) == SA_AIS_OK) {
+  if (m_state->prerequisitescheck(this, error) == SA_AIS_OK) {
     (void)m_state->verify(this, error);
   }
 
@@ -1018,13 +1018,13 @@ void SmfUpgradeCampaign::resetMaintenanceState() {
       if ((maintCamp != NULL) && !osaf_is_extended_name_empty(maintCamp)) {
         SmfImmModifyOperation *modop = new (std::nothrow) SmfImmModifyOperation;
         osafassert(modop != 0);
-        modop->setDn(*suit);
-        modop->setOp("SA_IMM_ATTR_VALUES_DELETE");
+        modop->SetObjectDn(*suit);
+        modop->SetModificationType("SA_IMM_ATTR_VALUES_DELETE");
         SmfImmAttribute saAmfSUMaintenanceCampaign;
-        saAmfSUMaintenanceCampaign.setName("saAmfSUMaintenanceCampaign");
-        saAmfSUMaintenanceCampaign.setType("SA_IMM_ATTR_SANAMET");
-        saAmfSUMaintenanceCampaign.addValue(campDn);
-        modop->addValue(saAmfSUMaintenanceCampaign);
+        saAmfSUMaintenanceCampaign.SetAttributeName("saAmfSUMaintenanceCampaign");
+        saAmfSUMaintenanceCampaign.SetAttributeType("SA_IMM_ATTR_SANAMET");
+        saAmfSUMaintenanceCampaign.AddAttributeValue(campDn);
+        modop->AddAttributeObject(saAmfSUMaintenanceCampaign);
         operations.push_back(modop);
       }
     }
@@ -1141,7 +1141,7 @@ void SmfUpgradeCampaign::removeConfigObjects() {
   SmfImmDeleteOperation doNoRollbackIndicator;
   std::string objectDn = "openSafSmfMisc=noRollback," +
                          SmfCampaignThread::instance()->campaign()->getDn();
-  doNoRollbackIndicator.setDn(objectDn);
+  doNoRollbackIndicator.SetDn(objectDn);
 
   std::list<SmfImmOperation *> immOperations;
   immOperations.push_back(&doNoRollbackIndicator);
@@ -1171,18 +1171,18 @@ SaAisErrorT SmfUpgradeCampaign::createSmfRestartIndicator() {
 
     SmfImmRTCreateOperation icoCampaignRestartInd;
 
-    icoCampaignRestartInd.setClassName("OpenSafSmfCampRestartIndicator");
-    icoCampaignRestartInd.setParentDn(parentDn);
-    icoCampaignRestartInd.setImmHandle(
+    icoCampaignRestartInd.SetClassName("OpenSafSmfCampRestartIndicator");
+    icoCampaignRestartInd.SetParentDn(parentDn);
+    icoCampaignRestartInd.SetImmHandle(
         SmfCampaignThread::instance()->getImmHandle());
 
     SmfImmAttribute attrRestInd;
-    attrRestInd.setName("smfCampaignRestartIndicator");
-    attrRestInd.setType("SA_IMM_ATTR_SASTRINGT");
-    attrRestInd.addValue(rdn);
-    icoCampaignRestartInd.addValue(attrRestInd);
+    attrRestInd.SetAttributeName("smfCampaignRestartIndicator");
+    attrRestInd.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+    attrRestInd.AddAttributeValue(rdn);
+    icoCampaignRestartInd.AddValue(attrRestInd);
 
-    rc = icoCampaignRestartInd.execute();  // Create the object
+    rc = icoCampaignRestartInd.Execute();  // Create the object
     if (rc != SA_AIS_OK) {
       LOG_NO(
           "Creation of OpenSafSmfCampRestartIndicator fails, rc= %s, dn=[%s]",

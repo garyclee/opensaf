@@ -186,6 +186,8 @@ reaches zero.
 *****************************************************************************/
 uint32_t glnd_set_orphan_state(GLND_CB *glnd_cb, GLND_RESOURCE_INFO *res_info)
 {
+	TRACE_ENTER();
+
 	GLND_RES_LOCK_LIST_INFO *grant_list = NULL;
 
 	if (res_info->lck_master_info.grant_list == NULL) {
@@ -195,6 +197,8 @@ uint32_t glnd_set_orphan_state(GLND_CB *glnd_cb, GLND_RESOURCE_INFO *res_info)
 
 	/* decrement the local reference */
 	while (grant_list != NULL) {
+		bool orphaned = false;
+
 		if ((grant_list->lock_info.lockFlags & SA_LCK_LOCK_ORPHAN) ==
 		    SA_LCK_LOCK_ORPHAN) {
 			if (grant_list->lock_info.lock_type ==
@@ -204,22 +208,28 @@ uint32_t glnd_set_orphan_state(GLND_CB *glnd_cb, GLND_RESOURCE_INFO *res_info)
 			    SA_LCK_PR_LOCK_MODE)
 				res_info->lck_master_info.pr_orphaned = true;
 
+			orphaned = res_info->lck_master_info.ex_orphaned ||
+					res_info->lck_master_info.pr_orphaned;
+
 			glnd_restart_resource_info_ckpt_overwrite(glnd_cb,
 								  res_info);
-			/* send notification to the GLD about the orphan locks
-			 */
-			GLSV_GLD_EVT gld_evt;
-
-			memset(&gld_evt, 0, sizeof(GLSV_GLD_EVT));
-			m_GLND_RESOURCE_LCK_FILL(
-			    gld_evt, GLSV_GLD_EVT_SET_ORPHAN,
-			    res_info->resource_id, true,
-			    grant_list->lock_info.lock_type);
-			glnd_mds_msg_send_gld(glnd_cb, &gld_evt,
-					      glnd_cb->gld_mdest_id);
 		}
+
+		/* send notification to the GLD about the orphan locks
+			 */
+		GLSV_GLD_EVT gld_evt;
+
+		memset(&gld_evt, 0, sizeof(GLSV_GLD_EVT));
+		m_GLND_RESOURCE_LCK_FILL(
+			    gld_evt, GLSV_GLD_EVT_SET_ORPHAN,
+			    res_info->resource_id, orphaned,
+			    grant_list->lock_info.lock_type);
+		glnd_mds_msg_send_gld(glnd_cb, &gld_evt,
+					      glnd_cb->gld_mdest_id);
 		grant_list = grant_list->next;
 	}
+
+	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
 

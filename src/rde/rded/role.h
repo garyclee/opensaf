@@ -41,6 +41,7 @@ class Role {
   static const char* to_string(PCS_RDA_ROLE role);
   static void MonitorCallback(const std::string& key,
                               const std::string& new_value, SYSF_MBX mbx);
+  void NodePromoted();
 
  private:
   static const uint64_t kDefaultDiscoverPeerTimeout = 2000;
@@ -48,6 +49,7 @@ class Role {
   void ExecutePreActiveScript();
   void ResetElectionTimer();
   uint32_t UpdateMdsRegistration(PCS_RDA_ROLE new_role, PCS_RDA_ROLE old_role);
+  void PromoteNode(const uint64_t cluster_size);
 
   std::set<NODE_ID> known_nodes_;
   PCS_RDA_ROLE role_;

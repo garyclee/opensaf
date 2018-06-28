@@ -4520,7 +4520,10 @@ static SaUint32T plms_ent_unlock(PLMS_ENTITY *ent, PLMS_TRACK_INFO *trk_info,
 
 			if ((PLMS_EE_ENTITY == head->plm_entity->entity_type) &&
 			    (!plms_rdness_flag_is_set(head->plm_entity,
-						      SA_PLM_RF_DEPENDENCY))) {
+						      SA_PLM_RF_DEPENDENCY)) &&
+			    /* child EEs have already been instantiated above */
+			    head->plm_entity->parent->entity_type !=
+				PLMS_EE_ENTITY) {
 				ret_err = plms_ee_instantiate(head->plm_entity,
 							      false, true);
 				if (NCSCC_RC_SUCCESS != ret_err) {

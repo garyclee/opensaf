@@ -144,7 +144,7 @@ static uint32_t gld_rsc_open(GLSV_GLD_EVT *evt)
 	NCSMDS_INFO snd_mds;
 	uint32_t res = NCSCC_RC_FAILURE;
 	;
-	SaAisErrorT error;
+	SaAisErrorT error = SA_AIS_OK;
 	uint32_t node_id;
 	bool node_first_rsc_open = false;
 	GLSV_GLD_GLND_RSC_REF *glnd_rsc = NULL;
@@ -347,14 +347,14 @@ static uint32_t gld_rsc_close(GLSV_GLD_EVT *evt)
 		glnd_rsc->rsc_info->saf_rsc_no_of_users =
 		    glnd_rsc->rsc_info->saf_rsc_no_of_users - 1;
 
+	if (evt->info.rsc_details.lcl_ref_cnt == 0)
+		gld_rsc_rmv_node_ref(gld_cb, glnd_rsc->rsc_info, glnd_rsc,
+				     node_details, orphan_flag);
+
 	/*Checkkpoint resource close event */
 	glsv_gld_a2s_ckpt_rsc_details(
 	    gld_cb, evt->evt_type, evt->info.rsc_details, node_details->dest_id,
 	    evt->info.rsc_details.lcl_ref_cnt);
-
-	if (evt->info.rsc_details.lcl_ref_cnt == 0)
-		gld_rsc_rmv_node_ref(gld_cb, glnd_rsc->rsc_info, glnd_rsc,
-				     node_details, orphan_flag);
 end:
 	TRACE_LEAVE2("Return value %u", rc);
 	return rc;
@@ -426,19 +426,24 @@ uint32_t gld_rsc_ref_set_orphan(GLSV_GLD_GLND_DETAILS *node_details,
 {
 	GLSV_GLD_GLND_RSC_REF *glnd_rsc_ref;
 
+	TRACE_ENTER2("rsc_id: %i orphan: %i lck_mode: %i", rsc_id, orphan,
+			lck_mode);
+
 	/* Find the rsc_info based on resource id */
 	glnd_rsc_ref = (GLSV_GLD_GLND_RSC_REF *)ncs_patricia_tree_get(
 	    &node_details->rsc_info_tree, (uint8_t *)&rsc_id);
 	if ((glnd_rsc_ref == NULL) || (glnd_rsc_ref->rsc_info == NULL)) {
 		LOG_ER("Patricia tree get failed");
+		TRACE_LEAVE();
 		return NCSCC_RC_FAILURE;
 	}
 
 	glnd_rsc_ref->rsc_info->can_orphan = orphan;
 	glnd_rsc_ref->rsc_info->orphan_lck_mode = lck_mode;
-	if (orphan == true)
+	if (orphan == false)
 		glnd_rsc_ref->rsc_info->saf_rsc_stripped_cnt++;
 
+	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
 

@@ -161,7 +161,7 @@ void mqd_qparam_upd(MQD_OBJ_NODE *pNode, ASAPi_QUEUE_PARAM *qparam)
 
    RETURNS        :  none
 \****************************************************************************/
-void mqd_qparam_fill(MQD_QUEUE_PARAM *pParam, ASAPi_QUEUE_PARAM *pQparam)
+void mqd_qparam_fill(const MQD_QUEUE_PARAM *pParam, ASAPi_QUEUE_PARAM *pQparam)
 {
 	/* Fill the Queue params */
 	pQparam->retentionTime = pParam->retentionTime;

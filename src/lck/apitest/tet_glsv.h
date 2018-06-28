@@ -16,8 +16,8 @@
 #ifndef LCK_APITEST_TET_GLSV_H_
 #define LCK_APITEST_TET_GLSV_H_
 
-#include "tet_startup.h"
-#include "ncs_lib.h"
+/*#include "tet_startup.h"*/
+#include "base/ncs_lib.h"
 #include "saLck.h"
 
 #define SMOKETEST_NODE1 12
@@ -385,6 +385,12 @@ typedef struct tet_glsv_inst {
   SaNameT res_name3;
 } TET_GLSV_INST;
 
+struct tet_testlist {
+  void (*testfunc)();
+  int icref;
+  int tpnum;
+};
+
 extern const char *saf_lck_status_string[];
 extern const char *saf_lck_mode_string[];
 extern const char *saf_lck_flags_string[];
@@ -523,23 +529,32 @@ void glsv_it_res_cr_del_02(void);
 void glsv_it_res_cr_del_03(void);
 void glsv_it_res_cr_del_04(void);
 void glsv_it_res_cr_del_05(void);
-void glsv_it_res_cr_del_06(int async);
-void glsv_it_lck_modes_wt_clbk_01(int async);
-void glsv_it_lck_modes_wt_clbk_02(int async);
-void glsv_it_lck_modes_wt_clbk_03(int async);
-void glsv_it_lck_modes_wt_clbk_04(int async);
+void glsv_it_res_cr_del_06(void);
+void glsv_it_res_cr_del_07(void);
+void glsv_it_lck_modes_wt_clbk_01(void);
+void glsv_it_lck_modes_wt_clbk_02(void);
+void glsv_it_lck_modes_wt_clbk_03(void);
+void glsv_it_lck_modes_wt_clbk_04(void);
 void glsv_it_lck_modes_wt_clbk_05(void);
 void glsv_it_lck_modes_wt_clbk_06(void);
 void glsv_it_lck_modes_wt_clbk_07(void);
 void glsv_it_lck_modes_wt_clbk_08(void);
 void glsv_it_lck_modes_wt_clbk_09(void);
+void glsv_it_lck_modes_wt_clbk_10(void);
+void glsv_it_lck_modes_wt_clbk_11(void);
+void glsv_it_lck_modes_wt_clbk_12(void);
+void glsv_it_lck_modes_wt_clbk_13(void);
 void glsv_it_ddlcks_orplks_01(void);
-void glsv_it_ddlcks_orplks_02(int async);
-void glsv_it_ddlcks_orplks_03(int async);
-void glsv_it_ddlcks_orplks_04(int async);
+void glsv_it_ddlcks_orplks_02(void);
+void glsv_it_ddlcks_orplks_03(void);
+void glsv_it_ddlcks_orplks_04(void);
 void glsv_it_ddlcks_orplks_05(void);
 void glsv_it_ddlcks_orplks_06(void);
-void glsv_it_ddlcks_orplks_07(int async);
+void glsv_it_ddlcks_orplks_07(void);
+void glsv_it_ddlcks_orplks_08(void);
+void glsv_it_ddlcks_orplks_09(void);
+void glsv_it_ddlcks_orplks_10(void);
+void glsv_it_ddlcks_orplks_11(void);
 void glsv_it_lck_strip_purge_01(void);
 void glsv_it_lck_strip_purge_02(void);
 void glsv_it_lck_strip_purge_03(void);
@@ -578,7 +593,7 @@ void tet_run_glsv_dist_cases(void);
 void print_res_info(SaNameT *res_name, SaLckResourceOpenFlagsT flgs);
 void print_lock_info(SaLckResourceHandleT *res_hdl, SaLckLockModeT lck_mode,
                      SaLckLockFlagsT lck_flags, SaLckWaiterSignalT waiter_sig);
-void glsv_selection_thread(NCSCONTEXT arg);
+void * glsv_selection_thread(void *arg);
 void glsv_selection_thread_one(NCSCONTEXT arg);
 void glsv_createthread_one(SaLckHandleT *lck_Handle);
 void glsv_selection_thread_all(NCSCONTEXT arg);

@@ -27,9 +27,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ais/include/saClm.h"
 #include "base/ncssysf_ipc.h"
 #include "base/ncsgl_defs.h"
-#include <saClm.h>
+#include "mds/mds_papi.h"
 
 #ifdef __cplusplus
 extern "C" {

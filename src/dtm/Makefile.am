@@ -31,7 +31,6 @@ noinst_HEADERS += \
 	src/dtm/dtmnd/dtm_node.h \
 	src/dtm/dtmnd/multicast.h \
 	src/dtm/transport/log_server.h \
-	src/dtm/transport/log_writer.h \
 	src/dtm/transport/tests/mock_logtrace.h \
 	src/dtm/transport/tests/mock_osaf_poll.h \
 	src/dtm/transport/transport_monitor.h
@@ -67,7 +66,6 @@ bin_osaftransportd_CPPFLAGS = \
 
 bin_osaftransportd_SOURCES = \
 	src/dtm/transport/log_server.cc \
-	src/dtm/transport/log_writer.cc \
 	src/dtm/transport/main.cc \
 	src/dtm/transport/transport_monitor.cc
 
@@ -107,7 +105,6 @@ bin_transport_test_CPPFLAGS = \
 bin_transport_test_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	src/base/lib_libopensaf_core_la-getenv.lo \
-	src/dtm/transport/bin_osaftransportd-log_writer.o \
 	src/dtm/transport/bin_osaftransportd-transport_monitor.o
 
 bin_transport_test_SOURCES = \

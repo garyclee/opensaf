@@ -31,7 +31,7 @@
 
 using namespace std;
 
-static bool ExecuteCommand(const char* command) {
+bool ExecuteCommand(const char* command) {
   bool function_rc = true;
 
   int rc = system(command);
@@ -41,7 +41,7 @@ static bool ExecuteCommand(const char* command) {
   } else {
     rc = WEXITSTATUS(rc);
     if (rc != 0) {
-      cout << "Command '%s', FAIL" << endl;
+      cout << "Command '" << command << "' ,FAIL" << endl;
       function_rc = false;
     }
   }

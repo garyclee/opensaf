@@ -53,7 +53,8 @@ with immlist and immfind to check the results
 
 Running the test program:
 -------------------------
-$ ccbhdl_test
+Test the immccb handler:
+$ test_ccbhdl
 
 The test program is interactive. It runs a sequence prints out what has been
 done and suggests what the user should verify and stops execution. Execution
@@ -66,3 +67,10 @@ The test program executes a number of CCB operations on order to test:
   different scopes e.g.
   - Create a modifier object and use it once and let it go out of scope
   - Create a modifier object that is reused to create and apply several CCBs
+
+Test SmfUtils_ObjExist:
+
+$ test_objexist
+
+This test is dependent on that democlass.xml is installed. This will be done
+if --enable-tests and --enable-immxml is used with the ./configure script

@@ -244,29 +244,15 @@ bool SmfCampaignWrapup::executeCampComplete() {
   if (rc == true)
   {
      for (auto& elem : m_campCompleteAction) {
-       doImmOpTimer.set_timeout_time(60000);
-       while (doImmOpTimer.is_timeout() == false) {
-          ais_rc = (*elem).execute(SmfCampaignThread::instance()->getImmHandle(),
+       ais_rc = (*elem).execute(SmfCampaignThread::instance()->getImmHandle(),
                                   &completeRollbackDn);
-          if (ais_rc == SA_AIS_ERR_TRY_AGAIN) {
-             base::Sleep(base::kFiveHundredMilliseconds);
-             continue;
-      	  } else if (ais_rc != SA_AIS_OK) {
-              LOG_WA("%s: SmfCampaignWrapup::executeCampComplete Fail '%s'",
+       if (ais_rc != SA_AIS_OK) {
+              LOG_NO("%s: SmfCampaignWrapup::executeCampComplete Fail '%s'",
 		 __FUNCTION__, saf_error(ais_rc));
               rc = false;
+              break;
 	  }
-          break;
        }
-       if (doImmOpTimer.is_timeout() == true && ais_rc != SA_AIS_OK) {
-          LOG_WA("%s: SmfCampaignWrapup::executeCampComplete(): "
-             " m_campCompleteAction timeout Fail '%s'",
-               __FUNCTION__, saf_error(ais_rc));
-          rc = false;
-       }
-       if (rc == false)
-	  break;
-     }
   }
 
   if (rc == true)

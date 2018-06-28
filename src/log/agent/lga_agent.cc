@@ -240,6 +240,7 @@ void LogAgent::RemoveLogClient(LogClient** client) {
     client_list_.erase(it, client_list_.end());
     delete *client;
     *client = nullptr;
+    lga_decrease_user_counter();
     return;
   }
   // We hope it will never come to this line
@@ -363,6 +364,9 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
     return ais_rc;
   }
 
+  // Increase client counter
+  lga_increase_user_counter();
+
   // Populate the message to be sent to the LGS
   memset(&i_msg, 0, sizeof(lgsv_msg_t));
   i_msg.type = LGSV_LGA_API_MSG;
@@ -375,7 +379,7 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
                              MDS_SEND_PRIORITY_HIGH);
   if (rc != NCSCC_RC_SUCCESS) {
     lga_msg_destroy(o_msg);
-    lga_shutdown_after_last_client();
+    lga_decrease_user_counter();
     ais_rc = SA_AIS_ERR_TRY_AGAIN;
     return ais_rc;
   }
@@ -396,7 +400,7 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
       version->minorVersion = LOG_RELEASE_CODE_1;
     }
     lga_msg_destroy(o_msg);
-    lga_shutdown_after_last_client();
+    lga_decrease_user_counter();
     return ais_rc;
   }
 
@@ -407,7 +411,7 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
   client = new LogClient(callbacks, client_id, client_ver);
   if (client == nullptr) {
     lga_msg_destroy(o_msg);
-    lga_shutdown_after_last_client();
+    lga_decrease_user_counter();
     ais_rc = SA_AIS_ERR_NO_MEMORY;
     return ais_rc;
   }
@@ -631,7 +635,9 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
       // to the server else the client is finalized in the agent only
       TRACE("%s lga_state = Recovery state (1)", __func__);
       if (client->is_client_initialized() == false) {
-        TRACE("\t Client is not initialized");
+        TRACE("\t Client is not initialized. Remove it from database");
+        ScopeLock critical_section(get_delete_obj_sync_mutex_);
+        RemoveLogClient(&client);
         return ais_rc;
       }
       TRACE("\t Client is initialized");
@@ -646,11 +652,6 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     if (true) {
       ScopeLock critical_section(get_delete_obj_sync_mutex_);
       RemoveLogClient(&client);
-    }
-    uint32_t rc;
-    rc = lga_shutdown_after_last_client();
-    if (rc != NCSCC_RC_SUCCESS) {
-      TRACE("lga_shutdown failed (%d)", rc);
     }
   }
 
@@ -891,12 +892,17 @@ SaAisErrorT LogAgent::saLogStreamOpen_2(
       client->RecoverMe();
     }
 
-    // This client is failed to do recover in Recovery thread.
-    // Remove this client from the database.
-    if (client->is_recovery_failed() == true) {
+    // Remove the client from the database if recovery failed
+    if (client->is_recovery_done() == false) {
       ScopeLock critical_section(get_delete_obj_sync_mutex_);
-      RemoveLogClient(&client);
-      ais_rc = SA_AIS_ERR_BAD_HANDLE;
+      // Make sure that client is just removed from the list
+      // if no other users use it
+      if (client->FetchRefCounter() == 1) {
+        RemoveLogClient(&client);
+        ais_rc = SA_AIS_ERR_BAD_HANDLE;
+      } else {
+        ais_rc = SA_AIS_ERR_TRY_AGAIN;
+      }
       return ais_rc;
     }
   }
@@ -1262,12 +1268,19 @@ SaAisErrorT LogAgent::saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
       client->RecoverMe();
     }
 
-    // This client is failed to do recover in Recovery thread.
-    // Remove this client from the database.
-    if (client->is_recovery_failed() == true) {
+    // Remove the client from the database if recovery failed
+    if (client->is_recovery_done() == false) {
       ScopeLock critical_section(get_delete_obj_sync_mutex_);
-      RemoveLogClient(&client);
-      ais_rc = SA_AIS_ERR_BAD_HANDLE;
+      // Make sure that client is just removed from the list
+      // if no other users use it
+      if (client->FetchRefCounter() == 1) {
+        RemoveLogClient(&client);
+        // To avoid ScopeData restore ref counter for already deleted stream
+        stream = nullptr;
+        ais_rc = SA_AIS_ERR_BAD_HANDLE;
+      } else {
+        ais_rc = SA_AIS_ERR_TRY_AGAIN;
+      }
       return ais_rc;
     }
   }
@@ -1383,12 +1396,19 @@ SaAisErrorT LogAgent::saLogStreamClose(SaLogStreamHandleT logStreamHandle) {
       client->RecoverMe();
     }
 
-    // This client is failed to do recover in Recovery thread.
-    // Remove this client from the database.
-    if (client->is_recovery_failed() == true) {
+    // Remove the client from the database if recovery failed
+    if (client->is_recovery_done() == false) {
       ScopeLock critical_section(get_delete_obj_sync_mutex_);
-      RemoveLogClient(&client);
-      ais_rc = SA_AIS_ERR_BAD_HANDLE;
+      // Make sure that client is just removed from the list
+      // if no other users use it
+      if (client->FetchRefCounter() == 1) {
+        RemoveLogClient(&client);
+        // To avoid ScopeData restore ref counter for already deleted stream
+        stream = nullptr;
+        ais_rc = SA_AIS_ERR_BAD_HANDLE;
+      } else {
+        ais_rc = SA_AIS_ERR_TRY_AGAIN;
+      }
       return ais_rc;
     }
   }

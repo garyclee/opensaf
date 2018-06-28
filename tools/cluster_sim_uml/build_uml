@@ -176,6 +176,7 @@ cmd_create_rootfs()
     test -e /usr/bin/lsof && install /usr/bin/lsof usr/bin
     test -e /bin/pidof && install /bin/pidof usr/bin
     test -e /usr/sbin/tcpdump && install /usr/sbin/tcpdump usr/sbin
+    test -e /usr/bin/addr2line && install /usr/bin/addr2line usr/bin
     if test -e /usr/bin/gdb; then
 	install /usr/bin/gdb usr/bin
 	if test -d /usr/share/gdb; then

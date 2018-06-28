@@ -332,10 +332,12 @@ static int fill_attribute_value(SaNtfNotificationHandleT notificationHandle,
 
 	case SA_IMM_ATTR_SANAMET: /* SaNameT */
 		name_value = *(SaNameT *)attrValues_in[attrValues_index_in];
+		str_len = strlen(osaf_extended_name_borrow(&name_value));
+		if (str_len == 0) ++str_len;
 		internal_rc = fill_value_array(
 		    notificationHandle,
 		    (SaUint8T *)osaf_extended_name_borrow(&name_value),
-		    strlen(osaf_extended_name_borrow(&name_value)), value_out);
+		    str_len, value_out);
 		if (internal_rc != 0) {
 			LOG_ER("%s: fill_value_array failed", __FUNCTION__);
 			goto done;

@@ -8,7 +8,6 @@
 
 #if FULL_LOG
 #define m_TEST_CPSV_PRINTF printf
-extern const char *saf_error_string[];
 #else
 #define m_TEST_CPSV_PRINTF(...)
 #endif
@@ -21,6 +20,7 @@ extern const char *saf_error_string[];
 	gl_try_again_cnt = 0;                                                  \
 	tmoutFlag = 0
 
+extern const char *saf_error_string[];
 int gl_try_again_cnt;
 int gl_tmout_cnt;
 int gl_sync_pointnum;
@@ -34,15 +34,13 @@ int cpsv_test_result(SaAisErrorT rc, SaAisErrorT exp_out, char *test_case,
 	if (rc == SA_AIS_ERR_TRY_AGAIN) {
 		result = TEST_FAIL;
 		if (gl_try_again_cnt++ == 0) {
-			m_TEST_CPSV_PRINTF("\n FAILED          : %s\n",
-					   test_case);
-			m_TEST_CPSV_PRINTF(" Return Value    : %s\n\n",
+			printf("\n FAILED          : %s\n", test_case);
+			printf(" Return Value    : %s\n\n",
 					   saf_error_string[rc]);
 		}
 
 		if (!(gl_try_again_cnt % 10))
-			m_TEST_CPSV_PRINTF(" Try again count : %d \n",
-					   gl_try_again_cnt);
+			printf(" Try again count : %d \n", gl_try_again_cnt);
 
 		usleep(500000); /* 500 ms */
 		return (result);
@@ -51,21 +49,20 @@ int cpsv_test_result(SaAisErrorT rc, SaAisErrorT exp_out, char *test_case,
 	if (rc == SA_AIS_ERR_TIMEOUT) {
 		result = TEST_FAIL;
 		if (gl_tmout_cnt++ == 0) {
-			m_TEST_CPSV_PRINTF("\n FAILED          : %s\n",
-					   test_case);
-			m_TEST_CPSV_PRINTF(" Return Value    : %s\n\n",
+			printf("\n FAILED          : %s\n", test_case);
+			printf(" Return Value    : %s\n\n",
 					   saf_error_string[rc]);
 		}
 
 		if (gl_try_again_cnt > 0) {
-			m_TEST_CPSV_PRINTF(
+			printf(
 			    "\n TIMEOUT AFTER TRY_AGAIN POSSIBLE ERROR  : %s\n",
 			    test_case);
 			tmoutFlag = 1;
 		}
 
 		if (gl_tmout_cnt == 10) {
-			m_TEST_CPSV_PRINTF(" Timeout count : %d \n",
+			printf(" Timeout count : %d \n",
 					   gl_tmout_cnt);
 			tmoutFlag = 1;
 		}
@@ -75,28 +72,31 @@ int cpsv_test_result(SaAisErrorT rc, SaAisErrorT exp_out, char *test_case,
 	}
 
 	if (gl_try_again_cnt) {
-		m_TEST_CPSV_PRINTF(" Try again count : %d \n",
+		printf(" Try again count : %d \n",
 				   gl_try_again_cnt);
 		gl_try_again_cnt = 0;
 	}
 
 	if (gl_tmout_cnt) {
-		m_TEST_CPSV_PRINTF(" Timeout count : %d \n", gl_tmout_cnt);
+		printf(" Timeout count : %d \n", gl_tmout_cnt);
 		gl_tmout_cnt = 0;
 		tmoutFlag = 0;
 	}
 
 	if (rc == exp_out) {
 		m_TEST_CPSV_PRINTF("\n SUCCESS       : %s  \n", test_case);
+		m_TEST_CPSV_PRINTF(" Return Value  : %s\n",
+				   saf_error_string[rc]);
 		result = TEST_PASS;
 	} else {
-		m_TEST_CPSV_PRINTF("\n FAILED        : %s  \n", test_case);
+		printf("\n FAILED        : %s  \n", test_case);
+		printf(" Test Cfg Mode : %d\n", flg);
+		printf(" Return Value  : %s\n", saf_error_string[rc]);
 		result = TEST_FAIL;
 		if (flg == TEST_CONFIG_MODE)
 			result = TEST_UNRESOLVED;
 	}
 
-	m_TEST_CPSV_PRINTF(" Return Value  : %s\n", saf_error_string[rc]);
 	return (result);
 }
 

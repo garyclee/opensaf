@@ -99,9 +99,9 @@ void CreateOneObject(void) {
   attribute.values_as_strings.clear();
   // Add two short names
   osaf_extended_name_lend("a_name1", &a_name);
-  attribute.AddValue(SaNametToString(&a_name));
+  attribute.AddValue(modelmodify::SaNametToString(&a_name));
   osaf_extended_name_lend("a_name2", &a_name);
-  attribute.AddValue(SaNametToString(&a_name));
+  attribute.AddValue(modelmodify::SaNametToString(&a_name));
   // Add a long name and a third short name
   char long_name[300];
   for (size_t i = 0; i < 299; i++) {
@@ -109,9 +109,9 @@ void CreateOneObject(void) {
   }
   long_name[299] = '\0';
   osaf_extended_name_lend(long_name, &a_name);
-  attribute.AddValue(SaNametToString(&a_name));
+  attribute.AddValue(modelmodify::SaNametToString(&a_name));
   osaf_extended_name_lend("a_name3", &a_name);
-  attribute.AddValue(SaNametToString(&a_name));
+  attribute.AddValue(modelmodify::SaNametToString(&a_name));
   imm_object.AddAttribute(attribute);
 
   // SA_UINT32_T single-value attribute
@@ -205,7 +205,7 @@ void WaitForUserAction(const std::string& message) {
 }
 
 int main() {
-  cout << "ccbhdl_test" << endl;
+  cout << "test_ccbhdl" << endl;
   cout << "IMM class used for test: ImmTestValuesConfig" << endl;
 
 #if 0 //  Enable trace
@@ -224,16 +224,19 @@ int main() {
   // An IMM demo class is used. Is installed here
   // --------------------------------------------
   if (InstallDemoClass() == false) return -1;
+#endif
 
+#if 1
   // Prepare/enable extended name
   // ----------------------------
-  if (EnableImmLongDn() == false) return -1;
-#endif
   setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1);
-  osaf_extended_name_init();
+  
+  if (EnableImmLongDn() == false) return -1;
+
   // Note: Long DN must be configured in IMM configuration object before
   // running ccbdemo_...
   // DN for that object is opensafImm=opensafImm,safApp=safImmService
+#endif
 
   // ==================== TEST START ===========================================
 
@@ -274,7 +277,7 @@ int main() {
   if (modifier.DoModelModification(ccb_descriptor) == false) {
     cout << "Create two more objects in the same CCB, FAIL" << endl;
   } else {
-    cout << "Create two more objects using one CCB, SUCCESS" << endl;
+    cout << "Create two more objects in the same CCB, SUCCESS" << endl;
   }
   cout << endl;
 
@@ -325,7 +328,7 @@ int main() {
   osaf_extended_name_lend("a_name1", &a_name);
   attribute_descriptor.attribute_name = "SaNameTValues";
   attribute_descriptor.value_type = SA_IMM_ATTR_SANAMET;
-  attribute_descriptor.AddValue(SaNametToString(&a_name));
+  attribute_descriptor.AddValue(modelmodify::SaNametToString(&a_name));
   attribute_modify_descriptor.modification_type = SA_IMM_ATTR_VALUES_DELETE;
   attribute_modify_descriptor.attribute_descriptor = attribute_descriptor;
   modify_descriptor.AddAttributeModification(attribute_modify_descriptor);
@@ -434,9 +437,9 @@ int main() {
   attribute_descriptor.values_as_strings.clear();
   // Add two short names
   osaf_extended_name_lend("a_name11", &a_name1);
-  attribute_descriptor.AddValue(SaNametToString(&a_name1));
+  attribute_descriptor.AddValue(modelmodify::SaNametToString(&a_name1));
   osaf_extended_name_lend("a_name12", &a_name1);
-  attribute_descriptor.AddValue(SaNametToString(&a_name1));
+  attribute_descriptor.AddValue(modelmodify::SaNametToString(&a_name1));
   // Add a long name and a third short name
   char long_name[300];
   for (size_t i = 0; i < 299; i++) {
@@ -444,9 +447,9 @@ int main() {
   }
   long_name[299] = '\0';
   osaf_extended_name_lend(long_name, &a_name1);
-  attribute_descriptor.AddValue(SaNametToString(&a_name1));
+  attribute_descriptor.AddValue(modelmodify::SaNametToString(&a_name1));
   osaf_extended_name_lend("a_name13", &a_name1);
-  attribute_descriptor.AddValue(SaNametToString(&a_name1));
+  attribute_descriptor.AddValue(modelmodify::SaNametToString(&a_name1));
   create_descriptor.AddAttribute(attribute_descriptor);
 
   // SA_UINT32_T single-value attribute_descriptor
@@ -470,9 +473,7 @@ int main() {
   create_descriptor.AddAttribute(attribute_descriptor);
 
   // Reuse the ccb_descriptor and add the object creation
-  ccb_descriptor.create_descriptors.clear();
-  ccb_descriptor.delete_descriptors.clear();
-  ccb_descriptor.modify_descriptors.clear();
+  CcbDescriptorCleaner(ccb_descriptor);
   ccb_descriptor.AddCreate(create_descriptor);
 
   // Do the modification
@@ -497,9 +498,10 @@ int main() {
     cout << "AIS error code: " << saf_error(error_info.ais_error) << endl;
     cout << "This is an internal error so there shall be no valid AIS error "
             "code or AIS API-name" << endl;
-
+    cout << "If 'Failng API:' is empty then test is SUCCESS" << endl;
   } else {
     cout << "Creation of '" << object_name << "' SUCCESS" << endl;
+    cout << "Test case FAIL" << endl;
   }
 
   // cout << endl;
@@ -537,9 +539,7 @@ int main() {
   create_descriptor.AddAttribute(attribute_descriptor);
 
   // Reuse the ccb_descriptor and add the object creation
-  ccb_descriptor.create_descriptors.clear();
-  ccb_descriptor.delete_descriptors.clear();
-  ccb_descriptor.modify_descriptors.clear();
+  CcbDescriptorCleaner(ccb_descriptor);
   ccb_descriptor.AddCreate(create_descriptor);
 
   // Do the modification
@@ -555,8 +555,7 @@ int main() {
     modifier.GetErrorInformation(error_info);
     cout << "Failing API: '" << error_info.api_name << "' " << endl;
     cout << "AIS error code: " << saf_error(error_info.ais_error) << endl;
-    cout << "This is an internal error so there shall be no valid AIS error "
-            "code or AIS API-name" << endl << endl;
+    cout << endl;
 
     cout << "First object shall be created with no FAIL" << endl;
     cout << "Test FAIL" << endl;
@@ -575,12 +574,10 @@ int main() {
     modifier.GetErrorInformation(error_info);
     cout << "Failing API: '" << error_info.api_name << "' " << endl;
     cout << "AIS error code: " << saf_error(error_info.ais_error) << endl;
-    cout << "This is not an internal error so there shall be a valid AIS error "
-            "code and AIS API-name" << endl;
 
-    cout << "Creation of second object shall FAIL. Test SUCCESS" << endl;
+    cout << "Second creation of same object shall FAIL. Test SUCCESS" << endl;
   } else {
-    cout << "Creation of object did not fail. Test FAIL" << endl;
+    cout << "Second creation of same object did not FAIL. Test FAIL" << endl;
   }
   cout << endl;
 
@@ -599,23 +596,57 @@ int main() {
     modifier.GetErrorInformation(error_info);
     cout << "Failing API: '" << error_info.api_name << "' " << endl;
     cout << "AIS error code: " << saf_error(error_info.ais_error) << endl;
-    cout << "This is not an internal error so there shall be a valid AIS error "
-            "code and AIS API-name" << endl;
 
-    cout << "Creation of third object failed. Test FAIL" << endl;
+    cout << "Third creation of same object failed. Test FAIL" << endl;
   } else {
-    cout << "Creation of object did not fail. Test SUCCESS" << endl;
+    cout << "Third creation of same object did not fail. Test SUCCESS" << endl;
   }
   cout << endl;
 
-  // Cleanup by deleting the test object
-  delete_descriptor.object_name = object_name + "," +
+  // Try deleting an object that does not exist;
+  // ignore_ais_err_not_exist = true
+  // Shall SUCCEED but no object is deleted
+  std::string object_name_not_exist = "Test12=100";
+  cout << "Deleting object that does not exist. Flag ignore_ais_err_not_exist "
+      "= true (default)" << endl;
+  delete_descriptor.object_name = object_name_not_exist + "," +
                                   create_descriptor.parent_name;
-  ccb_descriptor.create_descriptors.clear();
+  CcbDescriptorCleaner(ccb_descriptor);
   ccb_descriptor.AddDelete(delete_descriptor);
   if (modifier.DoModelModification(ccb_descriptor) == false) {
     cout << "Deleting object '" << delete_descriptor.object_name << "' FAIL"
          << endl;
+    cout << "Test FAIL" << endl;
+  } else {
+    cout << "Test SUCCESS" << endl;
+  }
+
+  // Cleanup by deleting the test object
+  delete_descriptor.object_name = object_name + "," +
+                                  create_descriptor.parent_name;
+  delete_descriptor.ignore_ais_err_not_exist = true;
+  CcbDescriptorCleaner(ccb_descriptor);
+  ccb_descriptor.AddDelete(delete_descriptor);
+  if (modifier.DoModelModification(ccb_descriptor) == false) {
+    cout << "Deleting object '" << delete_descriptor.object_name << "' FAIL"
+         << endl;
+  }
+
+  // Try deleting an object that does not exist;
+  // ignore_ais_err_not_exist = false
+  cout << "Deleting object that does not exist. Flag ignore_ais_err_not_exist "
+      "= false" << endl;
+  delete_descriptor.object_name = object_name_not_exist + "," +
+                                  create_descriptor.parent_name;
+  delete_descriptor.ignore_ais_err_not_exist = false;
+  CcbDescriptorCleaner(ccb_descriptor);
+  ccb_descriptor.AddDelete(delete_descriptor);
+  if (modifier.DoModelModification(ccb_descriptor) == false) {
+    cout << "Deleting object '" << delete_descriptor.object_name << "' FAIL"
+         << endl;
+    cout << "Test SUCCESS" << endl;
+  } else {
+    cout << "Test FAIL" << endl;
   }
 
   return 0;

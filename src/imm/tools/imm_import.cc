@@ -182,6 +182,7 @@ static SaImmValueTypeT getClassAttrValueType(ParserState *, const char *,
                                              const char *);
 static void saveRDNAttribute(ParserState *parserState);
 static void getDNForClass(ParserState *, const SaImmClassNameT,
+                          const std::string&,
                           SaImmAttrValuesT_2 *);
 static int charsToValueHelper(SaImmAttrValueT *, SaImmValueTypeT, const char *,
                               bool strictParse);
@@ -633,7 +634,8 @@ static void createImmObject(ParserState *state) {
   SaAisErrorT errorCode = SA_AIS_OK;
   int i = 0;
   size_t DNlen;
-  SaNameT objectName;
+  const char *parent = nullptr;
+  std::string rdn;
   std::list<SaImmAttrValuesT_2>::iterator it;
 
   TRACE_8("CREATE IMM OBJECT %s, %s", state->objectClass, state->objectName);
@@ -645,23 +647,21 @@ static void createImmObject(ParserState *state) {
 
   /* Set the parent name */
   osaf_extended_name_clear(&parentName);
-  if (state->objectName != NULL) {
-    char *parent;
-    osaf_extended_name_lend(state->objectName, &objectName);
-
+  if (state->objectName != nullptr) {
+    rdn = std::string{state->objectName};
     /* ',' is the delimeter */
     /* but '\' is the escape character, used for association objects */
-    parent = state->objectName;
+    parent = rdn.c_str();
     do {
       parent = strchr(parent, ',');
       TRACE_8("PARENT: %s", parent);
     } while (parent && (*((++parent) - 2)) == '\\');
 
     if (parent && strlen(parent) <= 1) {
-      parent = NULL;
+      parent = nullptr;
     }
 
-    if (parent != NULL) osaf_extended_name_lend(parent, &parentName);
+    if (parent != nullptr) osaf_extended_name_lend(parent, &parentName);
   } else {
     LOG_ER("Empty DN for object");
     stopParser(state);
@@ -675,18 +675,12 @@ static void createImmObject(ParserState *state) {
 
   if (state->ctxt->instate == XML_PARSER_EOF) return;
 
-#ifdef TRACE_8
   /* Get the length of the DN and truncate state->objectName */
   if (!osaf_is_extended_name_empty(&parentName)) {
     DNlen = strlen(state->objectName) -
             (strlen(osaf_extended_name_borrow(&parentName)) + 1);
-  } else {
-    DNlen = strlen(state->objectName);
+    rdn[DNlen] = '\0';
   }
-
-  state->objectName[DNlen] = '\0';
-  TRACE_8("OBJECT NAME: %s", state->objectName);
-#endif
 
   if (!state->validation) {
     /* Set the attribute values array, add space for the rdn attribute
@@ -717,17 +711,19 @@ static void createImmObject(ParserState *state) {
 
     /* Do the actual creation */
     attrValues[i] = (SaImmAttrValuesT_2 *)calloc(1, sizeof(SaImmAttrValuesT_2));
-    getDNForClass(state, className, attrValues[i]);
+    getDNForClass(state, className, rdn, attrValues[i]);
 
     if (state->ctxt->instate != XML_PARSER_EOF) {
       errorCode = immutil_saImmOmCcbObjectCreate_2(
-          state->ccbHandle, className, &parentName,
+          state->ccbHandle, className,
+          (parent == nullptr) ? nullptr : &parentName,
           (const SaImmAttrValuesT_2 **)attrValues);
     } else {
       goto done;
     }
-  } else
+  } else {
     attrValues = NULL;
+  }
 
   if (SA_AIS_OK != errorCode) {
     if ((errorCode == SA_AIS_ERR_NOT_EXIST) && imm_import_ccb_safe) {
@@ -746,6 +742,7 @@ static void createImmObject(ParserState *state) {
       SaImmAttrValuesT_2 **existing_attributes;
       SaImmAttrValuesT_2 *attr;
       const char *existing_className;
+      SaNameT dn;
 
       LOG_IN("OBJECT %s already exist, verifying...", state->objectName);
 
@@ -759,7 +756,8 @@ static void createImmObject(ParserState *state) {
         goto done;
       }
 
-      errorCode = immutil_saImmOmAccessorGet_2(accessorHandle, &objectName,
+      osaf_extended_name_lend(state->objectName, &dn);
+      errorCode = immutil_saImmOmAccessorGet_2(accessorHandle, &dn,
                                                NULL,  // get all attributes
                                                &existing_attributes);
       if (SA_AIS_OK != errorCode) {
@@ -1149,6 +1147,7 @@ static void createImmClass(ParserState *state) {
  * Returns an SaImmAttrValueT struct representing the DN for an object
  */
 static void getDNForClass(ParserState *state, const SaImmClassNameT className,
+                          const std::string& rdn,
                           SaImmAttrValuesT_2 *values) {
   std::string classNameString;
 
@@ -1176,7 +1175,7 @@ static void getDNForClass(ParserState *state, const SaImmClassNameT className,
   values->attrValuesNumber = 1;
 
   if (charsToValueHelper(values->attrValues, values->attrValueType,
-                         state->objectName, true)) {
+                         rdn.c_str(), true)) {
     free(values->attrValues);
     values->attrValues = NULL;
 

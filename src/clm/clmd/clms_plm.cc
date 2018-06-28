@@ -79,7 +79,7 @@ static void clms_plm_readiness_track_callback(
          step completed will come and we need to clear node
          list as we dont no the order of entity coming from
          plm, better to remove dependency list on each node */
-      clms_clear_node_dep_list(node);
+      clms_clear_node_dep_list(node, true);
 
       if (node->nodeup &&
           trackedEntities->entities[i].expectedReadinessStatus.readinessState ==
@@ -264,7 +264,8 @@ static void clms_plm_readiness_track_callback(
           clms_cluster_update_rattr(osaf_cluster);
         }
         clms_send_track(clms_cb, node, static_cast<SaClmChangeStepT>(step),
-                        SA_FALSE); /*dude you need to checkpoint
+                        SA_FALSE,
+                        rootCauseEntity); /*dude you need to checkpoint
                                    admin_op admin_state when track
                                    is complete or not decide */
       }
@@ -277,9 +278,8 @@ static void clms_plm_readiness_track_callback(
      * Don't checkpoint if this is COMPLETED and nodeup is 0. Node
      * has already been removed from standby.
      */
-    if (step != SA_PLM_CHANGE_COMPLETED || node->nodeup) {
-      clms_clear_node_dep_list(node);
-    }
+    clms_clear_node_dep_list(node,
+                             step != SA_PLM_CHANGE_COMPLETED || node->nodeup);
     if (step == SA_PLM_CHANGE_COMPLETED) {
       if (node->stat_change == SA_TRUE) {
         if ((node->disable_reboot == SA_FALSE) &&

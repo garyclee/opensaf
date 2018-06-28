@@ -30,8 +30,8 @@
 #include "log/agent/lga_common.h"
 
 // Variables used during startup/shutdown only
-static pthread_mutex_t lga_lock = PTHREAD_MUTEX_INITIALIZER;
-static unsigned int lga_use_count;
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
+static unsigned int client_counter = 0;
 
 /**
  * @return unsigned int
@@ -81,10 +81,10 @@ static unsigned int lga_create() {
  */
 unsigned int lga_startup() {
   unsigned int rc = NCSCC_RC_SUCCESS;
-  ScopeLock lock(lga_lock);
+  ScopeLock lock(init_lock);
   std::atomic<MDS_HDL>& mds_hdl = LogAgent::instance().atomic_get_mds_hdl();
 
-  TRACE_ENTER2("lga_use_count: %u", lga_use_count);
+  TRACE_ENTER();
 
   if (mds_hdl == 0) {
     if ((rc = ncs_agents_startup()) != NCSCC_RC_SUCCESS) {
@@ -99,41 +99,32 @@ unsigned int lga_startup() {
     }
   }
 
-  // Increase the use_count
-  lga_use_count++;
-
 done:
-  TRACE_LEAVE2("rc: %u, lga_use_count: %u", rc, lga_use_count);
+  TRACE_LEAVE2("rc: %u", rc);
   return rc;
 }
 
 /**
- * If called when only one (the last) client for this agent the client list a
- * complete 'shut down' of the agent is done.
- *  - Erase the clients list. Frees all memory including list of open
- *    streams.
- *  - Unregister with MDS
- *  - Shut down ncs agents
- *
- * Global lga_use_count Conatins number of registered clients
- *
- * @return unsigned int (always NCSCC_RC_SUCCESS)
+ * Increase user counter
+ * The function help to trace number of clients
  */
-unsigned int lga_shutdown_after_last_client(void) {
-  unsigned int rc = NCSCC_RC_SUCCESS;
+void lga_increase_user_counter(void) {
+  ScopeLock lock(init_lock);
 
-  TRACE_ENTER2("lga_use_count: %u", lga_use_count);
-  ScopeLock lock(lga_lock);
+    ++client_counter;
+    TRACE_2("client_counter: %u", client_counter);
+}
 
-  if (lga_use_count > 1) {
-    // Users still exist, just decrement the use count
-    lga_use_count--;
-  } else if (lga_use_count == 1) {
-    lga_use_count = 0;
-  }
+/**
+ * Decrease user counter
+ * The function help to trace number of clients
+ */
+void lga_decrease_user_counter(void) {
+  TRACE_ENTER2("client_counter: %u", client_counter);
+  ScopeLock lock(init_lock);
 
-  TRACE_LEAVE2("rc: %u, lga_use_count: %u", rc, lga_use_count);
-  return rc;
+  if (client_counter > 0)
+    --client_counter;
 }
 
 /**

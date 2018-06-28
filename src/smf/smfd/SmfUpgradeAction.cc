@@ -28,6 +28,7 @@
 #include "smf/smfd/SmfUtils.h"
 #include "smfd.h"
 #include "smf/smfd/SmfTargetTemplate.h"
+#include "base/time.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -473,8 +474,8 @@ SaAisErrorT SmfImmCcbAction::execute(SaImmOiHandleT i_oiHandle,
     immRollbackCcbDn += ",";
     immRollbackCcbDn += *i_rollbackDn;
 
-    if ((result = smfCreateRollbackElement(immRollbackCcbDn, i_oiHandle)) !=
-        SA_AIS_OK) {
+    result = smfCreateRollbackElement(immRollbackCcbDn, i_oiHandle);
+    if ((result != SA_AIS_OK) && (result != SA_AIS_ERR_EXIST)) {
       LOG_ER(
           "SmfImmCcbAction::execute failed to create rollback element %s, rc=%s",
           immRollbackCcbDn.c_str(), saf_error(result));
@@ -490,11 +491,11 @@ SaAisErrorT SmfImmCcbAction::execute(SaImmOiHandleT i_oiHandle,
   }
 
   if (m_operations.size() > 0) {
-    SmfImmUtils immUtil;
+      SmfImmUtils immUtil;
     if ((result = immUtil.doImmOperations(m_operations, rollbackCcb)) !=
         SA_AIS_OK) {
-      delete rollbackCcb;
-      rollbackCcb = NULL;
+         delete rollbackCcb;
+         rollbackCcb = NULL;
     }
   }
 

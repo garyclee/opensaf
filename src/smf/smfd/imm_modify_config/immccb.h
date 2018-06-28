@@ -22,10 +22,6 @@
 #include <memory>
 #include <algorithm>
 
-#if 1
-#include <iostream>
-#endif
-
 #include "ais/include/saImm.h"
 #include "ais/include/saAis.h"
 #include "base/osaf_extended_name.h"
@@ -56,8 +52,6 @@
  * 4. Request modifications to be done. The modification list is given as input
  *    This is the step where all IMM handling is done and where the result is
  *    reported (Success or Fail)
- *
- * TODO(Lennart). Is the possibility to configure any settings needed?
  *
  * MODIFICATIONs are done in three steps:
  * 1. Initialize the IMM OM API and become admin owner
@@ -93,6 +87,8 @@
  *    the CCB was applied successfully
  */
 
+namespace modelmodify {
+
 // Functions for converting some SAF sepcific types to string. For numeric
 // values the STL to_string can be used
 // -----------------------------------------------------------------------
@@ -108,7 +104,18 @@ static inline std::string SaNametToString(SaNameT* name_value);
 //       std::string will not be used as a "string"
 static inline std::string SaAnytToString(SaAnyT* anyt_value);
 
-namespace modelmodify {
+// Use if the attribute type is given as a string.
+// Note: The string shall correspond with the SaImmValueTypeT enum name
+// Example: SA_IMM_ATTR_SAINT32T corresponds with "SA_IMM_ATTR_SAINT32T"
+static inline SaImmValueTypeT StringToSaImmValueType(const std::string&
+                                                        type_string);
+// Use if the attribute modification type is given as a string.
+// Note: The string shall correspond with the SaImmAttrModificationTypeT
+// enum name.
+// Example: SA_IMM_ATTR_VALUES_ADD corresponds with "SA_IMM_ATTR_VALUES_ADD"
+
+static inline SaImmAttrModificationTypeT StringToImmAttrModType(const
+                                          std::string& modification_type);
 
 // AttributeDescriptor: Describes one attribute
 // Note: Several attributes can be added to one modification
@@ -126,12 +133,24 @@ namespace modelmodify {
 struct AttributeDescriptor {
   std::string attribute_name;
   SaImmValueTypeT value_type;
+  std::vector<std::string> values_as_strings;
 
   void AddValue(std::string value_as_string) {
     values_as_strings.push_back(value_as_string);
+    // To make it possible to compare
+    std::sort(values_as_strings.begin(), values_as_strings.end());
   }
 
-  std::vector<std::string> values_as_strings;
+  bool operator==(const AttributeDescriptor& as) const {
+    return ((as.attribute_name == attribute_name) &&
+            (as.value_type == value_type) &&
+            (as.values_as_strings == values_as_strings));
+  }
+
+  // Compares attribute name only
+  bool operator<(const AttributeDescriptor& as) const {
+    return attribute_name < as.attribute_name;
+  }
 };
 
 // AttributeModifyDescriptor: Describes one attribute to modify
@@ -200,12 +219,31 @@ struct CreateDescriptor {
   std::vector<AttributeDescriptor> attributes;
   void AddAttribute(AttributeDescriptor one_attribute) {
     attributes.push_back(one_attribute);
+    // To make it possible to compare (sorted on attribute name)
+    std::sort(attributes.begin(), attributes.end());
+  }
+
+  // Compare all variables. All equal is true.
+  // Note: The vectors are compared using vector operator ==. This means that
+  // not only the content must be the same but also the order.
+  // TBD() could be handled by sorting
+  bool operator==(const CreateDescriptor& cd) {
+    return ((cd.ignore_ais_err_exist == ignore_ais_err_exist) &&
+            (cd.class_name == class_name) &&
+            (cd.parent_name == parent_name) &&
+            (cd.attributes == attributes));
   }
 };
 
 // DeleteDescriptor: Delete one object
 //
 struct DeleteDescriptor {
+  DeleteDescriptor() : ignore_ais_err_not_exist(true) { }
+  // By default a SA_AIS_ERR_NOT_EXIST when trying to add a delete operation
+  // to a CCB is not considered to be an unrecoverable error and will be
+  // ignored If this flag is set to false this error will be considered an
+  // unrecoverable error. The default value for this flag is true.
+  bool ignore_ais_err_not_exist;
   // Full DN of the object to be deleted
   std::string object_name;
 };
@@ -235,14 +273,28 @@ struct CcbDescriptor {
   std::vector<ModifyDescriptor> modify_descriptors;
 
   // Use these methods to add the modifications
-  void AddCreate(CreateDescriptor one_create_descriptor) {
-    create_descriptors.push_back(one_create_descriptor);
+
+  // Duplicate descriptors cannot be added. If a duplicate
+  // create descriptor is given as input it will not be added.
+  // Returns false if duplicate
+  bool AddCreate(CreateDescriptor new_create_descriptor) {
+    bool is_added = true;
+    for (auto& stored_create_descriptor : create_descriptors) {
+      if (stored_create_descriptor == new_create_descriptor) {
+        is_added = false;
+        break;
+      }
+    }
+    if (is_added == true)
+      create_descriptors.push_back(new_create_descriptor);
+    return is_added;
   }
-  void AddDelete(DeleteDescriptor one_delete_descriptor) {
-    delete_descriptors.push_back(one_delete_descriptor);
+
+  void AddDelete(DeleteDescriptor new_delete_descriptor) {
+    delete_descriptors.push_back(new_delete_descriptor);
   }
-  void AddModify(ModifyDescriptor one_modify_descriptor) {
-    modify_descriptors.push_back(one_modify_descriptor);
+  void AddModify(ModifyDescriptor new_modify_descriptor) {
+    modify_descriptors.push_back(new_modify_descriptor);
   }
 };
 
@@ -424,8 +476,6 @@ class ModelModification {
   DELETE_COPY_AND_MOVE_OPERATORS(ModelModification);
 };
 
-}  // namespace modelmodify
-
 static inline std::string SaNametToString(SaNameT* name_value) {
   std::string out_string;
   if (osaf_is_extended_name_empty(name_value)) {
@@ -453,5 +503,60 @@ static inline std::string SaAnytToString(SaAnyT* anyt_value) {
 
   return out_string;
 }
+
+static inline SaImmValueTypeT StringToSaImmValueType(const std::string&
+                                                        value_type) {
+  if (value_type.compare("SA_IMM_ATTR_SAINT32T") == 0) {
+    return SA_IMM_ATTR_SAINT32T;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SAUINT32T") == 0) {
+    return SA_IMM_ATTR_SAUINT32T;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SAINT64T") == 0) {
+    return SA_IMM_ATTR_SAINT64T;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SAUINT64T") == 0) {
+    return SA_IMM_ATTR_SAUINT64T;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SATIMET") == 0) {
+    return SA_IMM_ATTR_SATIMET;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SANAMET") == 0) {
+    return SA_IMM_ATTR_SANAMET;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SAFLOATT") == 0) {
+    return SA_IMM_ATTR_SAFLOATT;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SADOUBLET") == 0) {
+    return SA_IMM_ATTR_SADOUBLET;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SASTRINGT") == 0) {
+    return SA_IMM_ATTR_SASTRINGT;
+
+  } else if (value_type.compare("SA_IMM_ATTR_SAANYT") == 0) {
+    return SA_IMM_ATTR_SAANYT;
+
+  } else {
+    LOG_ER("%s: Unknown value-type: '%s'", __FUNCTION__, value_type.c_str());
+    assert(0);
+  }
+}
+
+static inline SaImmAttrModificationTypeT StringToImmAttrModType(const
+                                          std::string& modification_type) {
+  if (modification_type.compare("SA_IMM_ATTR_VALUES_ADD") == 0)
+    return SA_IMM_ATTR_VALUES_ADD;
+  else if (modification_type.compare("SA_IMM_ATTR_VALUES_DELETE") == 0)
+    return SA_IMM_ATTR_VALUES_DELETE;
+  else if (modification_type.compare("SA_IMM_ATTR_VALUES_REPLACE") == 0)
+    return SA_IMM_ATTR_VALUES_REPLACE;
+  else {
+    LOG_ER("%s: Unknown modification-type: %s", __FUNCTION__,
+           modification_type.c_str());
+    assert(0);
+  }
+}
+
+}  // namespace modelmodify
 
 #endif  // SMF_SMFD_IMM_MODIFY_CONFIG_IMMCCB_H_

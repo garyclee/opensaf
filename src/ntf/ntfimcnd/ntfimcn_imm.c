@@ -163,23 +163,16 @@ static char *get_rdn_attr_name(const SaImmClassNameT className)
 	s_get_rdn_attr_name.saved_className =
 	    realloc(s_get_rdn_attr_name.saved_className, strlen(className) + 1);
 	if (s_get_rdn_attr_name.saved_className == NULL) {
-		LOG_ER("Failed to realloc memory");
-		goto error;
+		LOG_ER("%s: Failed to realloc memory",__FUNCTION__);
+		osaf_abort(0);
 	}
 	memcpy(s_get_rdn_attr_name.saved_className, className,
 	       strlen(className) + 1);
 
-	/* Get an IMM OM Handle */
-	SaImmHandleT immOmHandle = 0;
-	if (initializeImmOmHandle(&immOmHandle) == false) {
-		LOG_ER("getImmOmHandle() Fail");
-		goto error;
-	}
-
 	/* Get class description */
 	rc = getClassDescription(className, &attrDescr);
 	if (rc != SA_AIS_OK) {
-		LOG_ER("getClassDescription failed %s", saf_error(rc));
+		LOG_NO("getClassDescription failed %s", saf_error(rc));
 		goto error;
 	}
 
@@ -190,8 +183,8 @@ static char *get_rdn_attr_name(const SaImmClassNameT className)
 			    realloc(s_get_rdn_attr_name.attrName,
 				    strlen(attrDescr[i]->attrName) + 1);
 			if (s_get_rdn_attr_name.attrName == NULL) {
-				LOG_ER("Failed to realloc memory");
-				goto error;
+				LOG_ER("%s: Failed to realloc memory",__FUNCTION__);
+				osaf_abort(0);
 			}
 			memcpy(s_get_rdn_attr_name.attrName,
 			       attrDescr[i]->attrName,
@@ -201,16 +194,13 @@ static char *get_rdn_attr_name(const SaImmClassNameT className)
 	}
 
 	/* Free memory allocated for attribute descriptions */
-	rc = saImmOmClassDescriptionMemoryFree_2(immOmHandle,
+	rc = saImmOmClassDescriptionMemoryFree_2(ntfimcn_cb.immOmHandle,
 						 attrDescr);
 	if (rc != SA_AIS_OK) {
 		LOG_NO("saImmOmClassDescriptionMemoryFree_2() Fail %s",
 			saf_error(rc));
 		goto error;
 	}
-
-	/* Release the OM Handle */
-	finalizeImmOmHandle(immOmHandle);
 
 done:
 	TRACE_LEAVE();
@@ -219,20 +209,9 @@ error:
 	/* NOTE: Resources are allocated by this function
 	 *       saImmOmClassDescriptionMemoryFree_2() must be called before
 	 *       returning from this function. Not done here because of
-	 *       osafassert()
+	 *       imcn_exit()
 	 */
-	LOG_ER("%s Failed", __FUNCTION__);
-	if ( rc == SA_AIS_ERR_NOT_EXIST ) {
-		LOG_NO("osafntfimcnd restarting due to error %s.",
-			saf_error(rc));
-		_exit(EXIT_FAILURE);
-	}
-	else
-	{
-		// core dump will be generated for all other errors which will be used
-		// for further analysis of the error.
-		osafassert(0);
-	}
+	imcn_exit(EXIT_FAILURE);
 	return 0; /* Dummy */
 }
 
@@ -465,7 +444,7 @@ done:
 		/* If we fail to send a notification we exit. This will signal
 		 * that a notification is missing.
 		 */
-		LOG_ER("saImmOiCcbObjectCreateCallback Fail, internal_rc=%d",
+		LOG_ER("saImmOiCcbObjectDeleteCallback Fail, internal_rc=%d",
 		       internal_rc);
 		imcn_exit(EXIT_FAILURE);
 	}
@@ -608,7 +587,7 @@ done:
 		/* If we fail to send a notification we exit. This will signal
 		 * that a notification is missing.
 		 */
-		LOG_ER("saImmOiCcbObjectCreateCallback Fail, internal_rc=%d",
+		LOG_ER("saImmOiCcbObjectModifyCallback Fail, internal_rc=%d",
 		       internal_rc);
 		imcn_exit(EXIT_FAILURE);
 	}
@@ -710,6 +689,20 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 
 		case CCBUTIL_DELETE:
 			invoke_name_ptr = (SaNameT *)ccbUtilCcbData->userData;
+			if (invoke_name_ptr == NULL) {
+				/* Fix for ticket #2859.
+				 * If ntfimcnd was restarted during a CCB, it
+				 * might receive ObjectDelete operation as the
+				 * first event. The ccbUtilCcbData, which was
+				 * initialized in this case, does not contain
+				 * the operation invoker name.
+				 */
+				LOG_NO("%s send_object_delete_notification "
+						"fail, missing operation "
+						"invoker name",__FUNCTION__);
+				internal_rc = (-1);
+				goto done;
+			}
 			internal_rc = ntfimcn_send_object_delete_notification(
 			    ccbUtilOperationData, invoke_name_ptr, ccbLast);
 			if (internal_rc != 0) {
@@ -929,7 +922,7 @@ done:
 static bool initializeImmOmHandle(SaImmHandleT* immOmHandle) {
 	struct timespec timeout_ts;
 	struct timespec delay_ts;
-	SaAisErrorT ais_rc;
+	SaAisErrorT ais_rc = SA_AIS_OK;
 	bool internal_rc = true;
 	SaVersionT imm_version = kImmVersion;
 
@@ -939,7 +932,8 @@ static bool initializeImmOmHandle(SaImmHandleT* immOmHandle) {
 	while (osaf_is_timeout(&timeout_ts) == false) {
 		ais_rc = saImmOmInitialize(immOmHandle,
 			&omCallbacks, &imm_version);
-		if (ais_rc != SA_AIS_ERR_TRY_AGAIN) {
+		if (ais_rc != SA_AIS_ERR_TRY_AGAIN &&
+			ais_rc != SA_AIS_ERR_TIMEOUT) {
 			break;
 		}
 		osaf_nanosleep(&delay_ts);
@@ -947,8 +941,8 @@ static bool initializeImmOmHandle(SaImmHandleT* immOmHandle) {
 	}
 
 	if (ais_rc != SA_AIS_OK) {
-		LOG_NO("%s saImmOmInitialize failed %s", __FUNCTION__,
-		       saf_error(ais_rc));
+		LOG_NO("%s saImmOmInitialize failed %s",
+			__FUNCTION__, saf_error(ais_rc));
 		internal_rc = false;
 	}
 	return internal_rc;
@@ -971,7 +965,7 @@ static void finalizeImmOmHandle(SaImmHandleT immOmHandle) {
 	}
 
 	if (ais_rc != SA_AIS_OK) {
-		LOG_NO("%s saImmOmInitialize failed %s", __FUNCTION__,
+		LOG_NO("%s saImmOmFinalize failed %s", __FUNCTION__,
 		       saf_error(ais_rc));
 	}
 }

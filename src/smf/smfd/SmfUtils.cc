@@ -19,29 +19,31 @@
  *   INCLUDE FILES
  * ========================================================================
  */
+#include "smf/smfd/SmfUtils.h"
+
 #include <unistd.h>
-
-#include <saAis.h>
-#include <saAmf.h>
-#include <saSmf.h>
-#include <saAis.h>
-#include "base/saf_error.h"
-#include "base/osaf_time.h"
-
-#include "osaf/immutil/immutil.h"
+#include <string.h>
 #include <iostream>
 #include <sstream>
-#include <string.h>
 #include <algorithm>
 
+#include "ais/include/saAis.h"
+#include "ais/include/saAmf.h"
+#include "ais/include/saSmf.h"
+#include "ais/include/saImmOm.h"
+#include "base/saf_error.h"
 #include "base/osaf_extended_name.h"
-#include "smf/smfd/smfd_long_dn.h"
 #include "base/osaf_time.h"
-#include "base/logtrace.h"
-#include "smf/smfd/SmfUtils.h"
+#include "base/time.h"
+
+#include "osaf/immutil/immutil.h"
+
+#include "smf/smfd/imm_modify_config/immccb.h"
+#include "smf/smfd/smfd_long_dn.h"
 #include "smf/smfd/smfd_smfnd.h"
 #include "smf/smfd/SmfImmOperation.h"
 #include "smf/smfd/SmfRollback.h"
+#include "SmfUtils_ObjExist.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -627,117 +629,167 @@ SaAisErrorT SmfImmUtils::callAdminOperation(
   rc = returnValue;
 
 done:
-  rc = immutil_saImmOmAdminOwnerRelease(m_ownerHandle, objectNames, SA_IMM_ONE);
-  if (rc != SA_AIS_OK) {
+  SaAisErrorT release_rc = immutil_saImmOmAdminOwnerRelease(m_ownerHandle,
+                                                            objectNames,
+                                                            SA_IMM_ONE);
+  if (release_rc != SA_AIS_OK) {
     LOG_NO("%s saImmOmAdminOwnerRelease Fail, rc=%s, dn=[%s]", __FUNCTION__,
-           saf_error(rc), i_dn.c_str());
+           saf_error(release_rc), i_dn.c_str());
   }
   TRACE_LEAVE();
   return rc;
 }
 
-// ------------------------------------------------------------------------------
+// -----------------
 // doImmOperations()
-// ------------------------------------------------------------------------------
+// -----------------
+// Note: This method will use two IMM Om. The timeout time for each is set to
+// two minutes. This may seem as we may have to wait for up to 4 minutes or
+// longer in some situations but this is not the case.
+// The only reason for a long wait is when creating an OM handle when IMM
+// synchronization is going on. Once the synchronization is done the rest of
+// the OM handling is going fast. However, we don't know when a synchronization
+// is started so a long timeout is needed in all places where an OM handle is
+// requested.
+
+// Help functions for doImmOperations
+// ----------------------------------
+// Check if the class name begin with "SaAmf" and ends with "Type"
+static bool IsAmfTypeClass(const modelmodify::CreateDescriptor&
+                            object_to_check) {
+  std::string start_word = "SaAmf";
+  std::string end_word = "Type";
+  std::string class_name = object_to_check.class_name;
+  std::size_t start_pos = class_name.find(start_word);
+  std::size_t end_pos = class_name.rfind(end_word);
+  if (end_pos != std::string::npos)
+    end_pos += end_word.size();
+  std::size_t class_name_end = class_name.size();
+
+  if ((start_pos == 0) && (end_pos == class_name_end))
+    return true;
+  else
+    return false;
+}
+
 SaAisErrorT SmfImmUtils::doImmOperations(
     std::list<SmfImmOperation *> &i_immOperationList,
     SmfRollbackCcb *io_rollbackCcb) {
-  /* Initialize CCB and get the IMM CCB handle */
-  SaAisErrorT result;
-  SaImmCcbHandleT immCcbHandle;
 
-  SaImmCcbFlagsT ccbFlags = 0;
+  SaAisErrorT result = SA_AIS_OK;
+  modelmodify::CcbDescriptor imm_modifications;
+  modelmodify::ModelModification modifier;
+  // Note: ccb flags are default set to 0 (do not require OI)
 
-  result = immutil_saImmOmCcbInitialize(m_ownerHandle, ccbFlags, &immCcbHandle);
-  if (result != SA_AIS_OK) {
-    LOG_NO("Fail to initialize OM CCB, rc=%s", saf_error(result));
-    return result;
-  }
+  // Note: This object should be created once
+  CheckObjectExist object_exist_check;
+  CheckObjectExist::ReturnCode obj_exist_rc = CheckObjectExist::ReturnCode::kOk;
 
-  std::list<SmfImmOperation *>::iterator iter;
-
-  /* Do all operations within the CCB  */
-  for (iter = i_immOperationList.begin(); iter != i_immOperationList.end();
-       ++iter) {
+  for (auto& imm_operation : i_immOperationList) {
+    // Create rollback object for each operation in CCB there if requested
     SmfRollbackData *rollbackData = NULL;
-
-    (*iter)->setImmOwnerHandle(m_ownerHandle);
-    (*iter)->setCcbHandle(immCcbHandle);
-
     if (io_rollbackCcb != NULL) {
       rollbackData = new (std::nothrow) SmfRollbackData(io_rollbackCcb);
       if (rollbackData == NULL) {
-        LOG_NO("Failed to create SmfRollbackData C++ object, no memory");
-        return SA_AIS_ERR_NO_MEMORY;
+        LOG_WA("%s: Failed to create SmfRollbackData C++ object, no memory",
+               __FUNCTION__);
+        result = SA_AIS_ERR_NO_MEMORY;
+        break;
       }
     }
 
-    if ((result = (*iter)->execute(rollbackData)) != SA_AIS_OK) {
-      SmfImmCreateOperation *createOperation =
-          dynamic_cast<SmfImmCreateOperation *>(*iter);
-      TRACE("SmfImmUtils::doImmOperations: Check if create operation");
-      if (createOperation != NULL) {
-        // The base type or versioned type may already exist, this shall not be
-        // considered an error
-        std::string className = createOperation->getClassName();
-        std::size_t found = className.find("SaAmf");
-        if ((result == SA_AIS_ERR_EXIST) &&
-            (found == 0) &&  // Begins with "SaAmf"
-            (className.rfind("Type") + sizeof("Type") - 1 ==
-             className.size())) {  // Ends with "Type"
-          TRACE("Base/versioned type (%s) already exists, continue",
-                createOperation->getClassName().c_str());
-          /* We should not rollback this non creation */
-          delete rollbackData;
-          rollbackData = NULL;
-        } else {
-          LOG_NO("Creation of object failed, rc=%s, class=[%s], parent=[%s]",
-                 saf_error(result), createOperation->getClassName().c_str(),
-                 createOperation->getParentDn().c_str());
-          delete rollbackData;
-          return result;
+    // Verify the create descriptor for this operation and fill in the
+    // attributes
+    result = imm_operation->Execute(rollbackData);
+    if (result != SA_AIS_OK) {
+      LOG_WA("%s: imm_operation->Execute Fail, %s", __FUNCTION__,
+             saf_error(result));
+      break;
+    }
+
+    // Fill in a CCB descriptor
+    if (imm_operation->GetOperationType() == SmfImmOperation::Create) {
+      // If the name of the object starts with "SaAmf" and ends with "Type"
+      // then ignore if the object already exist
+      // (set ignore_ais_err_exist = true in imm_modifications)
+      // Note1: Is done here since the connection between SmfImmOperation and
+      // this util function is not strong enough (can be used separately) also
+      // the criteria for ignoring exist is defined here.
+      // Note2: We must still check if the object actually exist here since the
+      // rollback data that is always created must be deleted if the create
+      // is not done. Otherwise rollback will fail. The way of doing this is
+      // to use an IMM access operation. Handling the CCB is done as a
+      // transaction and it is not possible to see in this loop if an object
+      // creation will be ignored or not.
+      //
+
+      TRACE("%s: Create operation", __FUNCTION__);
+
+      modelmodify::CreateDescriptor create_descriptor =
+          imm_operation->GetCreateDescriptor();
+
+      // If the object to be created already exists:
+      // - Do not add the create descriptor to the CCB descriptor
+      // - Delete the rollbackData that was created by
+      //   imm_operation->Execute(rollbackData)
+      if (IsAmfTypeClass(create_descriptor)) {
+        TRACE("%s: IsAmfTypeClass() true, class = %s", __FUNCTION__,
+              create_descriptor.class_name.c_str());
+
+        obj_exist_rc = object_exist_check.IsExisting(create_descriptor);
+        if (obj_exist_rc == CheckObjectExist::ReturnCode::kOk) {
+          // The object in the create descriptor already exist in the IMM model
+          // The create descriptor shall not be added to the ccb descriptor and
+          // any corresponding rollback data shall be deleted
+          TRACE("%s Object already in IMM model", __FUNCTION__);
+          if (rollbackData != NULL) {
+            delete rollbackData;
+            rollbackData = NULL;
+          }
+        } else if (imm_modifications.AddCreate(create_descriptor) == false) {
+          // The create descriptor is a duplicate and is not added to the CCB
+          // Any corresponding rollbackData shall be deleted
+          TRACE("%s Duplicate Create operation found", __FUNCTION__);
+          if (rollbackData != NULL) {
+            delete rollbackData;
+            rollbackData = NULL;
+          }
         }
       } else {
-        LOG_NO("Execution of IMM operation failed, rc=%s", saf_error(result));
-        delete rollbackData;
-        return result;
+        // Is not an Amf type class so always add the create descriptor
+        imm_modifications.AddCreate(create_descriptor);
       }
+    } else if (imm_operation->GetOperationType() == SmfImmOperation::Delete) {
+      // Never Fail if an object to delete does not exist
+      imm_modifications.AddDelete(imm_operation->GetDeleteDescriptor());
+    } else if (imm_operation->GetOperationType() == SmfImmOperation::Modify) {
+      imm_modifications.AddModify(imm_operation->GetModifyDescriptor());
+    } else {
+      // Internal error. Should never happen
+      LOG_ER("%s: Fail, No operation type is set", __FUNCTION__);
+      assert(0);
     }
 
+    // Store rollback data for each operation in CCB
     if (rollbackData != NULL) {
       io_rollbackCcb->addCcbData(rollbackData);
     }
   }
-  const SaStringT *errStrings = NULL;
-  /* Apply the CCB */
-  result = immutil_saImmOmCcbApply(immCcbHandle);
-  if (result != SA_AIS_OK && result == SA_AIS_ERR_FAILED_OPERATION) {
-    SaAisErrorT result1 = SA_AIS_OK;
-    result1 = saImmOmCcbGetErrorStrings(immCcbHandle, &errStrings);
-    if (result1 == SA_AIS_OK && errStrings) {
-      TRACE("Received error string is %s", errStrings[0]);
-      char *type = NULL;
-      type = strstr(errStrings[0], "IMM: Resource abort: ");
-      if (type != NULL) {
-        TRACE(
-            "SA_AIS_ERR_FAILED_OPERATION is modified to SA_AIS_ERR_TRY_AGAIN because of "
-            "ccb resourse abort in saImmOmCcbApply");
-        result = SA_AIS_ERR_TRY_AGAIN;
-        return result;
+
+  if (result == SA_AIS_OK) {
+    // Request the modification
+    if (modifier.DoModelModification(imm_modifications) == false) {
+      modelmodify::ErrorInformation error_info;
+      modifier.GetErrorInformation(error_info);
+      if (!error_info.api_name.empty()) {
+        result = error_info.ais_error;
+      } else {
+        // Operation failed for other reason than AIS error return from IMM
+        result = SA_AIS_ERR_FAILED_OPERATION;
       }
+      LOG_NO("%s: DoModelModification() Fail, %s in '%s'", __FUNCTION__,
+             saf_error(result), error_info.api_name.c_str());
     }
-  }
-
-  if (result != SA_AIS_OK) {
-    LOG_NO("saImmOmCcbApply failed rc=%s", saf_error(result));
-    return result;
-  }
-
-  /* Finalize CCB and release the IMM CCB handle */
-  result = immutil_saImmOmCcbFinalize(immCcbHandle);
-  if (result != SA_AIS_OK) {
-    LOG_NO("saImmOmCcbFinalize failed rc=%s", saf_error(result));
-    return result;
   }
 
   return result;

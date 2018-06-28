@@ -278,10 +278,6 @@ bool SmfCampaignInit::rollback() {
     return false;
   }
 
-#if 0
-        std::list < SmfCallbackOptions * >m_callbackAtRollback;
-#endif
-
   LOG_NO("CAMP: Rollback of campaign init actions completed");
   return true;
 }

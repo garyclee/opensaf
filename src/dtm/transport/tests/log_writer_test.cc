@@ -17,7 +17,7 @@
 #include <cstring>
 #include <fstream>
 #include <string>
-#include "dtm/transport/log_writer.h"
+#include "base/log_writer.h"
 #include "gtest/gtest.h"
 
 class LogWriterTest : public ::testing::Test {

@@ -922,20 +922,8 @@ int PlmsVm::instantiate(virDomainPtr domain) {
 }
 
 int PlmsVm::restart(virDomainPtr domain) {
-  TRACE("calling virDomainDestroy and virDomainCreate to restart vm");
-  int rc(-1);
-
-  do {
-    rc = virDomainDestroy(domain);
-
-    if (rc < 0) break;
-
-    rc = virDomainCreate(domain);
-
-    if (rc < 0) break;
-  } while (false);
-
-  return rc;
+  TRACE("calling virDomainReset to restart vm");
+  return virDomainReset(domain, 0);
 }
 
 int PlmsVm::isolate(virDomainPtr domain) {

@@ -58,13 +58,6 @@ struct CppSaTimeT {
     return *this;
   }
 
-#if 0
-  CppSaTimeT& operator=(int t) {
-    time = static_cast<SaTimeT>(t);
-    return *this;
-  }
-#endif
-
   SaTimeT& operator()() {
     return time;
   }

@@ -274,6 +274,27 @@ static void clm_track_cb(
             TRACE_3("Already got callback for start of this change.");
             continue;
           }
+
+          if (strncmp(osaf_extended_name_borrow(rootCauseEntity),
+                      "safEE=",
+                      sizeof("safEE=") - 1) == 0 ||
+              strncmp(osaf_extended_name_borrow(rootCauseEntity),
+                      "safHE=",
+                      sizeof("safHE=") - 1) == 0) {
+            // PLM will take care of calling opensafd stop
+            TRACE("rootCause: %s from PLM operation so skipping %u",
+                  osaf_extended_name_borrow(rootCauseEntity),
+                  notifItem->clusterNode.nodeId);
+
+            SaAisErrorT rc{saClmResponse_4(avd_cb->clmHandle,
+                                           invocation,
+                                           SA_CLM_CALLBACK_RESPONSE_OK)};
+            if (rc != SA_AIS_OK)
+              LOG_ER("saClmResponse_4 failed: %i", rc);
+
+            continue;
+          }
+
           /* invocation to be used by pending clm response */
           node->clm_pend_inv = invocation;
           clm_node_exit_start(node, notifItem->clusterChange);
@@ -304,7 +325,11 @@ static void clm_track_cb(
                 osaf_extended_name_borrow(rootCauseEntity),
                 notifItem->clusterNode.nodeId);
           if (strncmp(osaf_extended_name_borrow(rootCauseEntity),
-                      "safEE=", 6) == 0) {
+                      "safEE=",
+		      sizeof("safEE") - 1) == 0 ||
+              strncmp(osaf_extended_name_borrow(rootCauseEntity),
+                      "safHE=",
+		      sizeof("safHE") - 1) == 0) {
             /* This callback is because of operation on PLM, so we need to mark
                the node absent, because PLCD will anyway call opensafd stop.*/
             AVD_AVND *node =

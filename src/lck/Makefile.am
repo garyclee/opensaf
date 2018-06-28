@@ -128,7 +128,6 @@ dist_pkgsysconf_DATA += \
 	src/lck/lcknd/lcknd.conf
 
 bin_osaflcknd_CPPFLAGS = \
-	-DSA_CLM_B01=1 \
 	-DNCS_GLND=1 \
 	$(AM_CPPFLAGS)
 
@@ -157,7 +156,6 @@ bin_osaflcknd_LDADD = \
 	lib/libopensaf_core.la
 
 bin_osaflckd_CPPFLAGS = \
-	-DSA_CLM_B01=1 \
 	-DNCS_GLD=1 \
 	$(AM_CPPFLAGS)
 
@@ -186,9 +184,32 @@ bin_osaflckd_LDADD = \
 
 if ENABLE_TESTS
 
+bin_lcktest_CPPFLAGS = \
+	$(AM_CPPFLAGS)
+
+bin_PROGRAMS += bin/lcktest
+
 noinst_HEADERS += \
+	src/lck/apitest/lcktest.h \
 	src/lck/apitest/tet_gla_conf.h \
 	src/lck/apitest/tet_glsv.h
+
+bin_lcktest_SOURCES = \
+	src/lck/apitest/lcktest.c \
+	src/lck/apitest/tet_glnd.c \
+	src/lck/apitest/tet_glsv_util.c \
+	src/lck/apitest/tet_gla.c \
+	src/lck/apitest/tet_gla_conf.c \
+	src/lck/apitest/tet_gld.c \
+	src/lck/apitest/test_ErrUnavailable.cc \
+	src/lck/apitest/test_saLckLimitGet.cc \
+	src/lck/apitest/test_saLckResourceClass.cc
+
+bin_lcktest_LDADD = \
+  lib/libSaLck.la \
+  lib/libSaImmOm.la \
+  lib/libopensaf_core.la \
+  lib/libapitest.la
 
 endif
 

@@ -575,6 +575,11 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 		status = mds_mdtm_init(node_id, &mds_tipc_ref);
 		if (status != NCSCC_RC_SUCCESS) {
 			/*  todo cleanup */
+			syslog(
+			    LOG_ERR,
+			    "MDS:LIB_CREATE: mds_mdtm_init failed\n");
+			mds_mcm_destroy();
+			osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 			return NCSCC_RC_FAILURE;
 		}
 		gl_mds_mcm_cb->adest =

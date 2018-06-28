@@ -1,7 +1,8 @@
-#if (TET_A == 1)
-
 #include "tet_glsv.h"
 #include "tet_gla_conf.h"
+#include "base/ncssysf_tsk.h"
+#include "lcktest.h"
+#include <pthread.h>
 
 #define END_OF_WHILE                                                           \
 	while ((rc == SA_AIS_ERR_TRY_AGAIN) ||                                 \
@@ -34,69 +35,26 @@ int glsv_test_result(SaAisErrorT rc, SaAisErrorT exp_out, char *test_case,
 		return (result);
 	}
 
+  aisrc_validate(rc, exp_out);
+
 	if (rc == exp_out) {
-		if (flg != TEST_CLEANUP_MODE)
-			m_TET_GLSV_PRINTF("\n SUCCESS         : %s\n",
-					  test_case);
 		result = TET_PASS;
 	} else {
-		m_TET_GLSV_PRINTF("\n FAILED          : %s\n", test_case);
-		if (flg == TEST_CLEANUP_MODE)
-			tet_printf("\n FAILED          : %s\n", test_case);
 		result = TET_FAIL;
 		if (flg == TEST_CONFIG_MODE)
 			result = TET_UNRESOLVED;
 	}
 
-	if (flg != TEST_CLEANUP_MODE ||
-	    (flg == TEST_CLEANUP_MODE && result != TET_PASS)) {
-		m_TET_GLSV_PRINTF(" Return Value    : %s\n",
-				  glsv_saf_error_string[rc]);
-		if (flg == TEST_CLEANUP_MODE)
-			tet_printf(" Return Value    : %s\n",
-				   glsv_saf_error_string[rc]);
-	}
 	return (result);
 }
 
 void print_res_info(SaNameT *res_name, SaLckResourceOpenFlagsT flgs)
 {
-	if (res_name)
-		m_TET_GLSV_PRINTF("\n Resource Name   : %s\n", res_name->value);
-	else
-		m_TET_GLSV_PRINTF("\n Resource Name   : NULL\n");
-
-	if (flgs >= 0 && flgs < 2) {
-		if (flgs == 0)
-			m_TET_GLSV_PRINTF(" open flags      : ZERO");
-		if (flgs == 1)
-			m_TET_GLSV_PRINTF(
-			    " open flags      : SA_LCK_RESOURCE_CREATE");
-	} else
-		m_TET_GLSV_PRINTF(" open flags      : %u", flgs);
 }
 
 void print_lock_info(SaLckResourceHandleT *res_hdl, SaLckLockModeT lck_mode,
 		     SaLckLockFlagsT lck_flags, SaLckWaiterSignalT waiter_sig)
 {
-	if (res_hdl)
-		m_TET_GLSV_PRINTF("\n Resource Handle : %llu\n", *res_hdl);
-	else
-		m_TET_GLSV_PRINTF("\n Resource Handle : NULL\n");
-
-	if (lck_mode < 3 && lck_mode >= 0)
-		m_TET_GLSV_PRINTF(" Lock Mode       : %s\n",
-				  saf_lck_mode_string[lck_mode]);
-	else
-		m_TET_GLSV_PRINTF(" Lock Mode       : %u\n", lck_mode);
-
-	if (lck_flags < 3)
-		m_TET_GLSV_PRINTF(" Lock Flags      : %s\n",
-				  saf_lck_flags_string[lck_flags]);
-	else
-		m_TET_GLSV_PRINTF(" Lock Flags      : %u\n", lck_flags);
-
-	m_TET_GLSV_PRINTF(" Waiter Signal   : %llu", waiter_sig);
 }
 
 /* ***************  Lock Initialization Test cases  ***************** */
@@ -172,12 +130,6 @@ int tet_test_lckInitialize(int i, GLSV_CONFIG_FLAG flg)
 	result = glsv_test_result(rc, API_Glsv_Initialize[i].exp_output,
 				  API_Glsv_Initialize_resultstring[i], flg);
 
-	if (rc == SA_AIS_OK && flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF(" LckHandle       : %llu\n",
-				  *API_Glsv_Initialize[i].lckHandle);
-
-	if (flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -256,7 +208,6 @@ int tet_test_lckSelectionObject(int i, GLSV_CONFIG_FLAG flg)
 	result = glsv_test_result(rc, API_Glsv_Selection[i].exp_output,
 				  API_Glsv_Selection_resultstring[i], flg);
 
-	m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -276,8 +227,6 @@ int tet_test_red_lckSelectionObject(int i, GLSV_CONFIG_FLAG flg)
 		result =
 		    glsv_test_result(rc, API_Glsv_Selection[i].exp_output,
 				     API_Glsv_Selection_resultstring[i], flg);
-
-		m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -321,7 +270,6 @@ int tet_test_lckOptionCheck(int i, GLSV_CONFIG_FLAG flg)
 	result = glsv_test_result(rc, API_Glsv_Options[i].exp_output,
 				  API_Glsv_Options_resultstring[i], flg);
 
-	m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -341,8 +289,6 @@ int tet_test_red_lckOptionCheck(int i, GLSV_CONFIG_FLAG flg)
 		result =
 		    glsv_test_result(rc, API_Glsv_Options[i].exp_output,
 				     API_Glsv_Options_resultstring[i], flg);
-
-		m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -426,7 +372,6 @@ int tet_test_lckDispatch(int i, GLSV_CONFIG_FLAG flg)
 	result = glsv_test_result(rc, API_Glsv_Dispatch[i].exp_output,
 				  API_Glsv_Dispatch_resultstring[i], flg);
 
-	m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -447,7 +392,6 @@ int tet_test_red_lckDispatch(int i, GLSV_CONFIG_FLAG flg)
 		    glsv_test_result(rc, API_Glsv_Dispatch[i].exp_output,
 				     API_Glsv_Dispatch_resultstring[i], flg);
 
-		m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -492,12 +436,6 @@ int tet_test_lckFinalize(int i, GLSV_CONFIG_FLAG flg)
 	result = glsv_test_result(rc, API_Glsv_Finalize[i].exp_output,
 				  API_Glsv_Finalize_resultstring[i], flg);
 
-	if (rc == SA_AIS_OK && flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF(" Finalized Lock Handle : %llu\n",
-				  *API_Glsv_Finalize[i].lckHandle);
-
-	if (flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF("\n");
 	return (result);
 };
 
@@ -516,13 +454,6 @@ int tet_test_red_lckFinalize(int i, GLSV_CONFIG_FLAG flg)
 		result =
 		    glsv_test_result(rc, API_Glsv_Finalize[i].exp_output,
 				     API_Glsv_Finalize_resultstring[i], flg);
-
-		if (rc == SA_AIS_OK && flg != TEST_CLEANUP_MODE)
-			m_TET_GLSV_PRINTF(" Finalized Lock Handle : %llu\n",
-					  *API_Glsv_Finalize[i].lckHandle);
-
-		if (flg != TEST_CLEANUP_MODE && rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -677,12 +608,6 @@ int tet_test_lckResourceOpen(int i, GLSV_CONFIG_FLAG flg)
 	result = glsv_test_result(rc, API_Glsv_ResourceOpen[i].exp_output,
 				  API_Glsv_ResourceOpen_resultstring[i], flg);
 
-	if (rc == SA_AIS_OK && flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF(" Resource Handle : %llu\n",
-				  *API_Glsv_ResourceOpen[i].lockResourceHandle);
-
-	if (flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -842,11 +767,6 @@ int tet_test_lckResourceOpenAsync(int i, GLSV_CONFIG_FLAG flg)
 	    glsv_test_result(rc, API_Glsv_ResourceOpenAsync[i].exp_output,
 			     API_Glsv_ResourceOpenAsync_resultstring[i], flg);
 
-	if (rc == SA_AIS_OK)
-		m_TET_GLSV_PRINTF(" Invocation      : %llu\n",
-				  API_Glsv_ResourceOpenAsync[i].Invocation);
-
-	m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -932,12 +852,6 @@ int tet_test_lckResourceClose(int i, GLSV_CONFIG_FLAG flg)
 	result = glsv_test_result(rc, API_Glsv_ResourceClose[i].exp_output,
 				  API_Glsv_ResourceClose_resultstring[i], flg);
 
-	if (rc == SA_AIS_OK)
-		m_TET_GLSV_PRINTF(
-		    " Closed Res Hdl  : %llu\n",
-		    *API_Glsv_ResourceClose[i].lockResourceHandle);
-
-	m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -957,14 +871,6 @@ int tet_test_red_lckResourceClose(int i, GLSV_CONFIG_FLAG flg)
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceClose[i].exp_output,
 		    API_Glsv_ResourceClose_resultstring[i], flg);
-
-		if (rc == SA_AIS_OK)
-			m_TET_GLSV_PRINTF(
-			    " Closed Res Hdl  : %llu\n",
-			    *API_Glsv_ResourceClose[i].lockResourceHandle);
-
-		if (rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -1231,15 +1137,6 @@ int tet_test_lckResourceLock(int i, GLSV_CONFIG_FLAG flg)
 	result = glsv_test_result(rc, API_Glsv_ResourceLock[i].exp_output,
 				  API_Glsv_ResourceLock_resultstring[i], flg);
 
-	if (rc == SA_AIS_OK) {
-		m_TET_GLSV_PRINTF(" LockId          : %llu\n",
-				  *API_Glsv_ResourceLock[i].lockId);
-		m_TET_GLSV_PRINTF(" Lock Status     : %s\n",
-				  saf_lck_status_string[*(
-				      API_Glsv_ResourceLock[i].lockStatus)]);
-	}
-
-	m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -1272,18 +1169,6 @@ int tet_test_red_lckResourceLock(int i, GLSV_CONFIG_FLAG flg)
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceLock[i].exp_output,
 		    API_Glsv_ResourceLock_resultstring[i], flg);
-
-		if (rc == SA_AIS_OK) {
-			m_TET_GLSV_PRINTF(" LockId          : %llu\n",
-					  *API_Glsv_ResourceLock[i].lockId);
-			m_TET_GLSV_PRINTF(
-			    " Lock Status     : %s\n",
-			    saf_lck_status_string[*(
-				API_Glsv_ResourceLock[i].lockStatus)]);
-		}
-
-		if (rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -1415,14 +1300,6 @@ int tet_test_lckResourceLockAsync(int i, GLSV_CONFIG_FLAG flg)
 	    glsv_test_result(rc, API_Glsv_ResourceLockAsync[i].exp_output,
 			     API_Glsv_ResourceLockAsync_resultstring[i], flg);
 
-	if (rc == SA_AIS_OK) {
-		m_TET_GLSV_PRINTF(" LockId          : %llu\n",
-				  *API_Glsv_ResourceLockAsync[i].lockId);
-		m_TET_GLSV_PRINTF(" Invocation      : %llu\n",
-				  API_Glsv_ResourceLockAsync[i].invocation);
-	}
-
-	m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -1454,18 +1331,6 @@ int tet_test_red_lckResourceLockAsync(int i, GLSV_CONFIG_FLAG flg)
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceLockAsync[i].exp_output,
 		    API_Glsv_ResourceLockAsync_resultstring[i], flg);
-
-		if (rc == SA_AIS_OK) {
-			m_TET_GLSV_PRINTF(
-			    " LockId          : %llu\n",
-			    *API_Glsv_ResourceLockAsync[i].lockId);
-			m_TET_GLSV_PRINTF(
-			    " Invocation      : %llu\n",
-			    API_Glsv_ResourceLockAsync[i].invocation);
-		}
-
-		if (rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -1528,11 +1393,6 @@ int tet_test_lckResourceUnlockAsync(int i, GLSV_CONFIG_FLAG flg)
 	    saLckResourceUnlockAsync(API_Glsv_ResourceUnlockAsync[i].invocation,
 				     *API_Glsv_ResourceUnlockAsync[i].lockId);
 
-	m_TET_GLSV_PRINTF("\n LockId          : %llu",
-			  *API_Glsv_ResourceUnlockAsync[i].lockId);
-	m_TET_GLSV_PRINTF("\n Invocation      : %llu",
-			  API_Glsv_ResourceUnlockAsync[i].invocation);
-
 	result =
 	    glsv_test_result(rc, API_Glsv_ResourceUnlockAsync[i].exp_output,
 			     API_Glsv_ResourceUnlockAsync_resultstring[i], flg);
@@ -1555,21 +1415,9 @@ int tet_test_red_lckResourceUnlockAsync(int i, GLSV_CONFIG_FLAG flg)
 		    API_Glsv_ResourceUnlockAsync[i].invocation,
 		    *API_Glsv_ResourceUnlockAsync[i].lockId);
 
-		if (rc != SA_AIS_ERR_TRY_AGAIN) {
-			m_TET_GLSV_PRINTF(
-			    "\n LockId          : %llu",
-			    *API_Glsv_ResourceUnlockAsync[i].lockId);
-			m_TET_GLSV_PRINTF(
-			    "\n Invocation      : %llu",
-			    API_Glsv_ResourceUnlockAsync[i].invocation);
-		}
-
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceUnlockAsync[i].exp_output,
 		    API_Glsv_ResourceUnlockAsync_resultstring[i], flg);
-
-		if (rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -1632,15 +1480,9 @@ int tet_test_lckResourceUnlock(int i, GLSV_CONFIG_FLAG flg)
 	rc = saLckResourceUnlock(*API_Glsv_ResourceUnlock[i].lockId,
 				 API_Glsv_ResourceUnlock[i].timeout);
 
-	if (flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF("\n LockId          : %llu",
-				  *API_Glsv_ResourceUnlock[i].lockId);
-
 	result = glsv_test_result(rc, API_Glsv_ResourceUnlock[i].exp_output,
 				  API_Glsv_ResourceUnlock_resultstring[i], flg);
 
-	if (flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -1657,16 +1499,10 @@ int tet_test_red_lckResourceUnlock(int i, GLSV_CONFIG_FLAG flg)
 		rc = saLckResourceUnlock(*API_Glsv_ResourceUnlock[i].lockId,
 					 API_Glsv_ResourceUnlock[i].timeout);
 
-		if (flg != TEST_CLEANUP_MODE && rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n LockId          : %llu",
-					  *API_Glsv_ResourceUnlock[i].lockId);
-
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceUnlock[i].exp_output,
 		    API_Glsv_ResourceUnlock_resultstring[i], flg);
 
-		if (flg != TEST_CLEANUP_MODE && rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -1713,15 +1549,9 @@ int tet_test_lckLockPurge(int i, GLSV_CONFIG_FLAG flg)
 
 	rc = saLckLockPurge(*API_Glsv_Purge[i].lockResourceHandle);
 
-	if (flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF("\n Resource Hdl    : %llu",
-				  *API_Glsv_Purge[i].lockResourceHandle);
-
 	result = glsv_test_result(rc, API_Glsv_Purge[i].exp_output,
 				  API_Glsv_Purge_resultstring[i], flg);
 
-	if (flg != TEST_CLEANUP_MODE)
-		m_TET_GLSV_PRINTF("\n");
 	return (result);
 }
 
@@ -1737,16 +1567,8 @@ int tet_test_red_lckLockPurge(int i, GLSV_CONFIG_FLAG flg)
 	do {
 		rc = saLckLockPurge(*API_Glsv_Purge[i].lockResourceHandle);
 
-		if (flg != TEST_CLEANUP_MODE && rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF(
-			    "\n Resource Hdl    : %llu",
-			    *API_Glsv_Purge[i].lockResourceHandle);
-
 		result = glsv_test_result(rc, API_Glsv_Purge[i].exp_output,
 					  API_Glsv_Purge_resultstring[i], flg);
-
-		if (flg != TEST_CLEANUP_MODE && rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -1761,7 +1583,7 @@ int tet_test_red_lckLockPurge(int i, GLSV_CONFIG_FLAG flg)
 
 /* Dispatch thread - DISPATCH_BLOCKING */
 
-void glsv_selection_thread(NCSCONTEXT arg)
+void * glsv_selection_thread(void * arg)
 {
 	SaLckHandleT *lck_Handle = (SaLckHandleT *)arg;
 	uint32_t rc;
@@ -1772,27 +1594,19 @@ void glsv_selection_thread(NCSCONTEXT arg)
 				  glsv_saf_error_string[rc]);
 		pthread_exit(0);
 	}
+
+  return 0;
 }
 
 void glsv_createthread(SaLckHandleT *lck_Handle)
 {
-	SaAisErrorT rc;
-	NCSCONTEXT thread_handle;
+	pthread_t thread;
 
 	if (gl_lck_thrd_cnt >= 2)
 		return;
 
-	rc = m_NCS_TASK_CREATE((NCS_OS_CB)glsv_selection_thread,
-			       (NCSCONTEXT)lck_Handle, "gla_asynctest_blocking",
-			       5, 8000, &thread_handle);
-	if (rc != NCSCC_RC_SUCCESS) {
+  if (pthread_create(&thread, NULL, glsv_selection_thread, lck_Handle)) {
 		m_TET_GLSV_PRINTF("failed to create thread\n");
-		return;
-	}
-
-	rc = m_NCS_TASK_START(thread_handle);
-	if (rc != NCSCC_RC_SUCCESS) {
-		m_TET_GLSV_PRINTF("failed to start thread\n");
 		return;
 	}
 }
@@ -1820,7 +1634,7 @@ void glsv_createthread_one(SaLckHandleT *lck_Handle)
 		return;
 
 	rc = m_NCS_TASK_CREATE((NCS_OS_CB)glsv_selection_thread_one,
-			       (NCSCONTEXT)lck_Handle, "gla_asynctest", 5, 8000,
+			       (NCSCONTEXT)lck_Handle, "gla_asynctest", 20, 5, 8000,
 			       &thread_handle);
 	if (rc != NCSCC_RC_SUCCESS) {
 		m_TET_GLSV_PRINTF("failed to create thread\n");
@@ -1857,7 +1671,7 @@ void glsv_createthread_all(SaLckHandleT *lck_Handle)
 		return;
 
 	rc = m_NCS_TASK_CREATE((NCS_OS_CB)glsv_selection_thread_all,
-			       (NCSCONTEXT)lck_Handle, "gla_asynctest", 5, 8000,
+			       (NCSCONTEXT)lck_Handle, "gla_asynctest", 20, 5, 8000,
 			       &thread_handle);
 	if (rc != NCSCC_RC_SUCCESS) {
 		m_TET_GLSV_PRINTF("failed to create thread\n");
@@ -1900,7 +1714,7 @@ void glsv_createthread_all_loop(int hdl)
 	if (hdl == 1) {
 		rc = m_NCS_TASK_CREATE(
 		    (NCS_OS_CB)glsv_selection_thread_all_loop, (NCSCONTEXT)NULL,
-		    "gla_asynctest", 5, 8000, &thread_handle);
+		    "gla_asynctest", 20, 5, 8000, &thread_handle);
 		if (rc != NCSCC_RC_SUCCESS) {
 			m_TET_GLSV_PRINTF("failed to create thread\n");
 			return;
@@ -1909,7 +1723,7 @@ void glsv_createthread_all_loop(int hdl)
 	if (hdl == 2) {
 		rc = m_NCS_TASK_CREATE(
 		    (NCS_OS_CB)glsv_selection_thread_all_loop_hdl2,
-		    (NCSCONTEXT)NULL, "gla_asynctest", 5, 8000, &thread_handle);
+		    (NCSCONTEXT)NULL, "gla_asynctest", 20, 5, 8000, &thread_handle);
 		if (rc != NCSCC_RC_SUCCESS) {
 			m_TET_GLSV_PRINTF("failed to create thread\n");
 			return;
@@ -1943,7 +1757,7 @@ void glsv_restore_params(GLSV_RESTORE_OPT opt)
 
 	case LCK_RESTORE_INIT_BAD_MAJOR_VER_T:
 		glsv_fill_lck_version(&gl_gla_env.inv_params.inv_ver_not_supp,
-				      'B', 3, 0);
+				      'B', 4, 0);
 		break;
 	}
 }
@@ -1989,7 +1803,7 @@ void glsv_clean_clbk_params()
 
 void glsv_init_cleanup(GLSV_INIT_CLEANUP_OPT opt)
 {
-	int result;
+	int result = TET_FAIL;
 
 	switch (opt) {
 	case LCK_CLEAN_INIT_NULL_CBK_PARAM_T:
@@ -2010,6 +1824,9 @@ void glsv_init_cleanup(GLSV_INIT_CLEANUP_OPT opt)
 		break;
 	}
 
+  /* give lckd time to remove resources */
+  sleep(1);
+
 	if (result != TET_PASS)
 		m_TET_GLSV_PRINTF(
 		    "\n+++++++++ FAILED - Cleaning up Initialization Handles +++++++\n\n");
@@ -2017,7 +1834,7 @@ void glsv_init_cleanup(GLSV_INIT_CLEANUP_OPT opt)
 
 void glsv_init_red_cleanup(GLSV_INIT_CLEANUP_OPT opt)
 {
-	int result;
+	int result = TET_FAIL;
 
 	switch (opt) {
 	case LCK_CLEAN_INIT_NULL_CBK_PARAM_T:
@@ -2047,7 +1864,7 @@ void glsv_init_red_cleanup(GLSV_INIT_CLEANUP_OPT opt)
 
 void glsv_orphan_cleanup(GLSV_ORPHAN_CLEANUP_OPT opt)
 {
-	int result;
+	int result = TET_FAIL;
 
 	switch (opt) {
 	case LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T:
@@ -2077,7 +1894,7 @@ void glsv_orphan_cleanup(GLSV_ORPHAN_CLEANUP_OPT opt)
 
 void glsv_orphan_red_cleanup(GLSV_ORPHAN_CLEANUP_OPT opt)
 {
-	int result;
+	int result = TET_FAIL;
 
 	switch (opt) {
 	case LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T:
@@ -2106,5 +1923,3 @@ void glsv_orphan_red_cleanup(GLSV_ORPHAN_CLEANUP_OPT opt)
 		m_TET_GLSV_PRINTF(
 		    "\n+++++++++ FAILED - Cleaning up Orphan Locks +++++++\n\n");
 }
-
-#endif

@@ -94,7 +94,7 @@ int AddCreateToCcb(const SaImmCcbHandleT& ccb_handle,
   if(attributes.AddAttributesForObjectCreate(create_descriptor) == false) {
     LOG_NO("%s: SetAttributeValues() Fail", __FUNCTION__);
     recovery_info = kFail;
-    api_name_ = "";
+    api_name_.clear();
     ais_error_ = SA_AIS_OK;
   }
 
@@ -124,9 +124,10 @@ int AddCreateToCcb(const SaImmCcbHandleT& ccb_handle,
           recovery_info = kContinue;
         } else {
           recovery_info = kFail;
-          api_name_ = "saImmOmCcbObjectCreate_2";
-          ais_error_ = ais_rc;
         }
+        // Note: This information is always needed also if we do not fail
+        api_name_ = "saImmOmCcbObjectCreate_2";
+        ais_error_ = ais_rc;
       } else {
         // Unrecoverable Fail
         LOG_NO("%s: ObjectCreateCcbAdd(), %s, kFail",
@@ -183,8 +184,20 @@ int AddDeleteToCcb(const SaImmCcbHandleT& ccb_handle,
           ais_error_ = ais_rc;
           break;
         }
-      } else {
-        // Unrecoverable Fail
+      } else if (ais_rc == SA_AIS_ERR_NOT_EXIST) {
+        if (delete_descriptor.ignore_ais_err_not_exist == true) {
+          recovery_info = kContinue;
+        } else {
+          LOG_NO("%s: AddObjectDeleteToCcb() Fail, %s", __FUNCTION__,
+                 saf_error(ais_rc));
+          recovery_info = kFail;
+          api_name_ = "saImmOmCcbObjectDelete";
+          ais_error_ = ais_rc;
+        }
+      }  else {
+        // Other unrecoverable Fail
+        LOG_NO("%s: AddObjectDeleteToCcb() Fail, %s", __FUNCTION__,
+               saf_error(ais_rc));
         recovery_info = kFail;
         api_name_ = "saImmOmCcbObjectDelete";
         ais_error_ = ais_rc;
@@ -271,12 +284,15 @@ int AddModifyToCcb(const SaImmCcbHandleT& ccb_handle,
             ais_error_ = ais_rc;
             break;
           }
+        } else {
+            // Unrecoverable Fail
+            LOG_NO("%s: AddObjectModifyToCcb() Fail, %s", __FUNCTION__,
+                   saf_error(ais_rc));
+            recovery_info = kFail;
+            api_name_ = "saImmOmCcbObjectModify_2";
+            ais_error_ = ais_rc;
+            break;
         }
-      } else {
-        // Unrecoverable Fail
-        recovery_info = kFail;
-        api_name_ = "saImmOmCcbObjectModify_2";
-        ais_error_ = ais_rc;
       }
 
       // Add Modify to CCB Success

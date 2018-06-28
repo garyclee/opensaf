@@ -144,6 +144,12 @@ class LogClient {
   // Most of LOG APIs will return SA_AIS_ERR_UNAVAILABLE if the flag is true.
   bool is_stale_client() const;
 
+  // Fetch reference counter
+  // Refer to `RefCounter` class for more info.
+  int32_t FetchRefCounter() const {
+    return ref_counter_object_.ref_counter();
+  }
+
   // Fetch and increase reference counter.
   // Refer to `RefCounter` class for more info.
   int32_t FetchAndIncreaseRefCounter(const char* caller, bool* updated) {
@@ -162,10 +168,6 @@ class LogClient {
                          bool updated) {
     return ref_counter_object_.RestoreRefCounter(caller, value, updated);
   }
-
-  // true if @this client does NOT recovery succcessfully.
-  // false, otherwise.
-  bool is_recovery_failed() const;
 
   // true if the client is successfully done recovery.
   // or the client has just borned.
@@ -286,15 +288,6 @@ inline bool LogClient::is_interested_in_clm() const {
   return (!((version_.releaseCode == LOG_RELEASE_CODE_0) &&
             (version_.majorVersion == LOG_MAJOR_VERSION_0) &&
             (version_.minorVersion == LOG_MINOR_VERSION_0)));
-}
-
-// There is no recovery process going at the moment, and the recovery flag
-// is false, it tells us that the recovery for this client failed.
-// The failed recovery client is going to be delete by LOG client
-// thread if any request to this @LogClient.
-inline bool LogClient::is_recovery_failed() const {
-  return ((atomic_data_.recovered_flag == false) &&
-          (is_lga_recovery_state(RecoveryState::kNormal)));
 }
 
 inline bool LogClient::is_recovery_done() const {

@@ -120,6 +120,8 @@ static void updateQueueGroup(MQD_CB *cb,
   typedef std::vector<SaNameT> GroupList;
   GroupList groupList;
 
+  m_NCS_LOCK(&cb->mqd_cb_lock, NCS_LOCK_WRITE);
+
   // maybe there is a better way to do this?
   for (MQD_OBJ_NODE *objNode(reinterpret_cast<MQD_OBJ_NODE *>
          (ncs_patricia_tree_getnext(&cb->qdb, 0)));
@@ -155,6 +157,8 @@ static void updateQueueGroup(MQD_CB *cb,
       }
     }
   }
+
+  m_NCS_UNLOCK(&cb->mqd_cb_lock, NCS_LOCK_WRITE);
 
   if (member && ((status == SA_MSG_QUEUE_CAPACITY_REACHED && allFull) ||
       (status == SA_MSG_QUEUE_CAPACITY_AVAILABLE && allFull))) {

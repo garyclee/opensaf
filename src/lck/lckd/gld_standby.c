@@ -102,7 +102,7 @@ static uint32_t glsv_gld_standby_rsc_open(GLSV_GLD_A2S_CKPT_EVT *async_evt)
 	GLSV_GLD_RSC_INFO *rsc_info;
 	GLSV_GLD_GLND_DETAILS *node_details;
 	GLSV_NODE_LIST *node_list, **tmp_node_list;
-	SaAisErrorT error;
+	SaAisErrorT error = SA_AIS_OK;
 	uint32_t node_id;
 	uint32_t rc = NCSCC_RC_FAILURE;
 	TRACE_ENTER();

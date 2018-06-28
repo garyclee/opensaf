@@ -113,17 +113,17 @@ static SaAisErrorT mqd_clm_init(MQD_CB *cb)
 
 	do {
 		SaVersionT clm_version;
-		SaClmCallbacksT mqd_clm_cbk;
+		SaClmCallbacksT_4 mqd_clm_cbk;
 
-		m_MQSV_GET_AMF_VER(clm_version);
+		m_MQSV_GET_CLM_VER(clm_version);
 		mqd_clm_cbk.saClmClusterNodeGetCallback = NULL;
 		mqd_clm_cbk.saClmClusterTrackCallback =
 		    mqd_clm_cluster_track_callback;
 
 		saErr =
-		    saClmInitialize(&cb->clm_hdl, &mqd_clm_cbk, &clm_version);
+		    saClmInitialize_4(&cb->clm_hdl, &mqd_clm_cbk, &clm_version);
 		if (saErr != SA_AIS_OK) {
-			LOG_ER("saClmInitialize failed with error %u",
+			LOG_ER("saClmInitialize_4 failed with error %u",
 			       (unsigned)saErr);
 			break;
 		}
@@ -137,10 +137,11 @@ static SaAisErrorT mqd_clm_init(MQD_CB *cb)
 		}
 		TRACE_1("saClmSelectionObjectGet success");
 
-		saErr =
-		    saClmClusterTrack(cb->clm_hdl, SA_TRACK_CHANGES_ONLY, NULL);
+		saErr = saClmClusterTrack_4(cb->clm_hdl,
+				SA_TRACK_CHANGES_ONLY,
+				NULL);
 		if (SA_AIS_OK != saErr) {
-			LOG_ER("saClmClusterTrack failed with error %u",
+			LOG_ER("saClmClusterTrack_4 failed with error %u",
 			       (unsigned)saErr);
 			break;
 		}

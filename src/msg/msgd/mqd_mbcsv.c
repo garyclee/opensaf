@@ -1249,20 +1249,22 @@ mqd_copy_data_to_cold_sync_structure(MQD_OBJ_INFO *obj_info,
 		       mbcsv_info->track_cnt * sizeof(MQD_A2S_TRACK_INFO));
 	}
 	itr.state = 0;
+	index = 0;
 
-	for (index = 0; index < mbcsv_info->ilist_cnt; index++) {
-
-		pOelm =
-		    (MQD_OBJECT_ELEM *)ncs_walk_items(&obj_info->ilist, &itr);
+	while ((pOelm = (MQD_OBJECT_ELEM *)ncs_walk_items(&obj_info->ilist,
+					&itr))) {
 		mbcsv_info->ilist_info[index] = pOelm->pObject->name;
+		index++;
 	}
-	itr.state = 0;
-	for (index = 0; index < mbcsv_info->track_cnt; index++) {
 
-		pTrkObj =
-		    (MQD_TRACK_OBJ *)ncs_walk_items(&obj_info->tlist, &itr);
+	itr.state = 0;
+	index = 0;
+
+	while ((pTrkObj = (MQD_TRACK_OBJ *)ncs_walk_items(&obj_info->tlist,
+					&itr))) {
 		mbcsv_info->track_info[index].dest = pTrkObj->dest;
 		mbcsv_info->track_info[index].to_svc = pTrkObj->to_svc;
+		index++;
 	}
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;

@@ -601,18 +601,18 @@ done:
 /**
  * Clear the node dependency list,made for multiple nodes in the plm callback
  */
-void clms_clear_node_dep_list(CLMS_CLUSTER_NODE *node) {
+void clms_clear_node_dep_list(CLMS_CLUSTER_NODE *node, bool checkpoint) {
   CLMS_CLUSTER_NODE *new_node = nullptr;
 
   node->admin_op = ADMIN_OP{};
   node->stat_change = SA_FALSE;
-  ckpt_node_rec(node);
+  if (checkpoint) ckpt_node_rec(node);
   while (node->dep_node_list != nullptr) {
     new_node = node->dep_node_list;
     new_node->stat_change = SA_FALSE;
     new_node->admin_op = ADMIN_OP{};
     new_node->change = SA_CLM_NODE_NO_CHANGE;
-    ckpt_node_rec(new_node);
+    if (checkpoint) ckpt_node_rec(new_node);
     node->dep_node_list = node->dep_node_list->next;
     new_node->next = nullptr;
   }
@@ -642,7 +642,7 @@ void clms_clmresp_error_timeout(CLMS_CB *cb, CLMS_CLUSTER_NODE *node) {
   clms_admin_state_update_rattr(node);
   clms_cluster_update_rattr(osaf_cluster);
 
-  clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED, false);
+  clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED, false, 0);
 
   node->stat_change = SA_FALSE;
   node->admin_op = ADMIN_OP{};
@@ -670,7 +670,7 @@ uint32_t clms_clmresp_rejected(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
       CLMS_CLIENT_INFO *client = nullptr;
       SaAisErrorT ais_er;
 
-      clms_clear_node_dep_list(node);
+      clms_clear_node_dep_list(node, true);
       client = clms_client_get_by_id(trk->client_id);
       if (client != nullptr) {
         if (client->track_flags & SA_TRACK_VALIDATE_STEP) {
@@ -775,7 +775,7 @@ uint32_t clms_clmresp_error(CLMS_CB *cb, CLMS_CLUSTER_NODE *node) {
 #ifdef ENABLE_AIS_PLM
       SaAisErrorT ais_er = SA_AIS_OK;
 
-      clms_clear_node_dep_list(node);
+      clms_clear_node_dep_list(node, true);
       ais_er = saPlmReadinessTrackResponse(cb->ent_group_hdl, node->plm_invid,
                                            SA_PLM_CALLBACK_RESPONSE_ERROR);
       if (ais_er != SA_AIS_OK) {
@@ -856,7 +856,7 @@ uint32_t clms_clmresp_ok(CLMS_CB *cb, CLMS_CLUSTER_NODE *op_node,
 
     if (ncs_patricia_tree_size(&op_node->trackresp) == 0) {
       /*Clear the node dependency list */
-      clms_clear_node_dep_list(op_node);
+      clms_clear_node_dep_list(op_node, true);
       ais_er = saPlmReadinessTrackResponse(
           cb->ent_group_hdl, op_node->plm_invid, SA_PLM_CALLBACK_RESPONSE_OK);
       if (ais_er != SA_AIS_OK) {
@@ -1052,7 +1052,7 @@ void clms_adminop_pending() {
     if ((node->admin_op != PLM) && (node->admin_op != 0)) {
       /* force set flag to true, the node might have rebooted
        * and come up again */
-      clms_send_track(clms_cb, node, SA_CLM_CHANGE_ABORTED, true);
+      clms_send_track(clms_cb, node, SA_CLM_CHANGE_ABORTED, true, 0);
       node->admin_op = ADMIN_OP{};
     }
   }
@@ -1091,12 +1091,12 @@ uint32_t clms_send_cbk_start_sub(CLMS_CB *cb, CLMS_CLUSTER_NODE *node) {
           if (node_id == node->node_id) {
             /*Implies the change is on this
              * local node */
-            rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_COMPLETED);
+            rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_COMPLETED, 0);
           }
         } else {
           if (notify_changes_only != nullptr) {
             rc = clms_prep_and_send_track(cb, node, rec, step,
-                                          notify_changes_only);
+                                          notify_changes_only, 0);
           } else {
             LOG_ER(
                 "Inconsistent node db,Unable to send track callback for SA_TRACK_CHANGES_ONLY clients");
@@ -1107,11 +1107,12 @@ uint32_t clms_send_cbk_start_sub(CLMS_CB *cb, CLMS_CLUSTER_NODE *node) {
           if (node_id == node->node_id) {
             /*Implies the change is on this
              * local node */
-            rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_COMPLETED);
+            rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_COMPLETED, 0);
           }
         } else {
           if (notify_changes != nullptr) {
-            rc = clms_prep_and_send_track(cb, node, rec, step, notify_changes);
+            rc = clms_prep_and_send_track(cb, node, rec, step, notify_changes,
+                                          0);
           } else {
             LOG_ER(
                 "Inconsistent node db,Unable to send track callback for SA_TRACK_CHANGES clients");

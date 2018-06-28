@@ -18,13 +18,8 @@
 
 // Note:
 // IMM C++ "wrappers" for CCB handling IMM AOIs are copied from
-// experimental/immcpp and used "as is" here. The "wrapper" copies can be found
-// in the smfd/imm_om_ccapi directory.
-// TODO(Lennart) This may affect this code if these wrappers are made "official"
-// in current or some modified way in the future
-// TODO(Lennart) Some modifications of the IMM wrappers is suggested. If these
-// modifications (mainly handling of data ownership) are implemented the
-// attribute handling code (see attribute.*) can be simplified.
+// experimental/immcpp and used slightly modified here. The "wrapper" copies
+// can be found in the smfd/imm_om_ccapi directory.
 
 #include "smf/smfd/imm_modify_config/immccb.h"
 
@@ -194,9 +189,9 @@ int ModelModification::CreateHandles() {
   if (recovery_info == kContinue) {
     recovery_info = CreateCcb();
     if (recovery_info == kFail) {
-      LOG_NO("%s: CreateAdminOwner() Fail", __FUNCTION__);
+      LOG_NO("%s: CreateCcb() Fail", __FUNCTION__);
     } else if (recovery_info == kRestartOm) {
-      TRACE("%s: CreateAdminOwner() Restart", __FUNCTION__);
+      TRACE("%s: CreateCcb() Restart", __FUNCTION__);
     }
   }
   TRACE_LEAVE();
@@ -519,8 +514,16 @@ int ModelModification::AddDeletes(const std::vector<DeleteDescriptor>&
       imm_objects.push_back(delete_descriptor.object_name);
       recovery_info = AdminOwnerSet(imm_objects, SA_IMM_SUBTREE);
       if (recovery_info == kFail) {
-        LOG_NO("%s: AdminOwnerSet() Fail", __FUNCTION__);
-        break;
+        if ((ais_error_ == SA_AIS_ERR_NOT_EXIST) &&
+            (delete_descriptor.ignore_ais_err_not_exist)) {
+          // Ignore this error if not exist and ignore_ais_err_not_exist = true
+          recovery_info = kContinue;
+          TRACE("%s: Ignoring '%s'", __FUNCTION__,
+                 saf_error(ais_error_));
+        } else {
+          LOG_NO("%s: AdminOwnerSet() Fail", __FUNCTION__);
+          break;
+        }
       } else if (recovery_info == kRestartOm) {
         TRACE("%s: AdminOwnerSet() Restart", __FUNCTION__);
         break;
@@ -529,6 +532,8 @@ int ModelModification::AddDeletes(const std::vector<DeleteDescriptor>&
       LOG_NO("%s: AddDeletes() Fail, Object name is missing",
              __FUNCTION__);
       recovery_info = kFail;
+      api_name_ = "";
+      ais_error_ = SA_AIS_OK;  // Not ais error
       break;
     }
 

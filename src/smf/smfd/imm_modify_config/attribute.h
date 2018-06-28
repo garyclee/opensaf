@@ -37,7 +37,7 @@
 // SaAnytToString has been used to convert the data to std::string
 // Note: There are no rules about what content these types may hold so there
 //       is no validation
-static inline void StringToSaNameT(std::string str_namet,
+static inline void StringToSaNameT(const std::string& str_namet,
                                    SaNameT* namet_value) {
   osaf_extended_name_lend(str_namet.c_str(), namet_value);
 }
@@ -46,7 +46,7 @@ static inline void StringToSaNameT(std::string str_namet,
 //       the string and writes the address in the SaAnyT buffer pointer.
 //       This means that this memory must be freed after usage using:
 //       free(<my_anyt>.bufferAddr);
-static inline void StringToSaAnyT(std::string str_anyt, SaAnyT* anyt_value) {
+static inline void StringToSaAnyT(const std::string& str_anyt, SaAnyT* anyt_value) {
   size_t anyt_size = str_anyt.size();
   SaUint8T* anyt_buffer = static_cast<SaUint8T*>(malloc(anyt_size));
   if (anyt_buffer == nullptr) {

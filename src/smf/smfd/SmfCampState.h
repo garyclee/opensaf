@@ -65,7 +65,7 @@ class SmfCampState {
 
   virtual SaAisErrorT verify(SmfUpgradeCampaign *i_camp, std::string &error);
 
-  virtual SaAisErrorT prerequsitescheck(SmfUpgradeCampaign *i_camp,
+  virtual SaAisErrorT prerequisitescheck(SmfUpgradeCampaign *i_camp,
                                         std::string &error);
 
   virtual SmfCampResultT suspend(SmfUpgradeCampaign *i_camp);
@@ -102,7 +102,7 @@ class SmfCampStateInitial : public SmfCampState {
 
   virtual SaAisErrorT verify(SmfUpgradeCampaign *i_camp, std::string &error);
 
-  virtual SaAisErrorT prerequsitescheck(SmfUpgradeCampaign *i_camp,
+  virtual SaAisErrorT prerequisitescheck(SmfUpgradeCampaign *i_camp,
                                         std::string &error);
 
   virtual SaSmfCmpgStateT getState() const { return SA_SMF_CMPG_INITIAL; }

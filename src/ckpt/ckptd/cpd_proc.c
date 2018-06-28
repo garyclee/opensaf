@@ -189,10 +189,13 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb, MDS_DEST *cpnd_dest,
 
 	/*   Processing for the Node name , with CLM  */
 
-	if (saClmClusterNodeGet(cb->clm_hdl, node_id, CPD_CLM_API_TIMEOUT,
-				&cluster_node) != SA_AIS_OK) {
+	SaAisErrorT rc = saClmClusterNodeGet(cb->clm_hdl, node_id,
+					     CPD_CLM_API_TIMEOUT,
+					     &cluster_node);
+	if (rc != SA_AIS_OK) {
 		proc_rc = NCSCC_RC_FAILURE;
-		LOG_ER("saClmClusterNodeGet failed for node_id %u", node_id);
+		LOG_ER("saClmClusterNodeGet failed for node_id = %u - rc = %d ",
+		       node_id, rc);
 		goto free_mem;
 	}
 
@@ -1528,10 +1531,11 @@ uint32_t cpd_ckpt_reploc_imm_object_delete(
 		    ckpt_reploc_node->rep_key.ckpt_name, "safReplica",
 		    &replica_dn);
 		osaf_extended_name_lend(replica_dn, &replica_sanamet);
-		if (immutil_saImmOiRtObjectDelete(
-			cb->immOiHandle, &replica_sanamet) != SA_AIS_OK) {
-			LOG_ER("Deleting run time object %s FAILED",
-			       replica_dn);
+		SaAisErrorT rc = immutil_saImmOiRtObjectDelete(
+				cb->immOiHandle, &replica_sanamet);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("Deleting run time object %s FAILED - rc = %d",
+			       replica_dn, rc);
 			free(replica_dn);
 			return NCSCC_RC_FAILURE;
 		} else {

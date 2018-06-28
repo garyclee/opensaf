@@ -212,7 +212,6 @@ class LogAgent {
   // Retrieve current time
   static SaTimeT SetLogTime();
 
- private:
   // Constant values used by @LogAgent only
   enum {
     kSafMinAcceptTime = 10,
@@ -252,7 +251,7 @@ class LogAgent {
   // Hold all atomic attributes
   AtomicData atomic_data_;
 
-  // Used to synchronize adding/removing @client to/from @stream_list_
+  // Used to synchronize adding/removing @client to/from @client_list_
   // MUST use this mutex whenever accessing to client from @client_list_
   // This mutex is RECURSIVE.
   pthread_mutex_t mutex_;

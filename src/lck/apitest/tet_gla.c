@@ -1,8 +1,7 @@
-#if (TET_A == 1)
-
+#include "lcktest.h"
 #include "tet_glsv.h"
 #include "tet_gla_conf.h"
-#include "ncs_main_papi.h"
+#include "base/ncs_main_papi.h"
 
 int gl_glsv_inst_num;
 unsigned gl_nodeId;
@@ -22,8 +21,6 @@ int TET_GLSV_NODE1;
 int TET_GLSV_NODE2;
 int TET_GLSV_NODE3;
 GLA_TEST_ENV gl_gla_env;
-
-extern int gl_sync_pointnum;
 
 const char *saf_lck_status_string[] = {
     "SA_LCK_INVALID_STATUS",   "SA_LCK_LOCK_GRANTED",  "SA_LCK_LOCK_DEADLOCK",
@@ -76,20 +73,9 @@ void App_ResourceOpenCallback(SaInvocationT invocation,
 	gl_gla_env.open_clbk_invo = invocation;
 	gl_gla_env.open_clbk_err = error;
 
-	m_TET_GLSV_PRINTF(
-	    "\n ----------- Resource Open Callback ---------------\n");
 	if (error == SA_AIS_OK) {
 		gl_gla_env.open_clbk_res_hdl = res_hdl;
-		m_TET_GLSV_PRINTF(
-		    " Resource Handle : %llu \n Invocation      : %llu\n",
-		    res_hdl, invocation);
-	} else {
-		m_TET_GLSV_PRINTF(
-		    " Error           : %s \n Invocaiton      : %llu\n",
-		    glsv_saf_error_string[error], invocation);
 	}
-	m_TET_GLSV_PRINTF(
-	    " --------------------------------------------------\n");
 }
 
 void App_LockGrantCallback(SaInvocationT invocation,
@@ -99,15 +85,6 @@ void App_LockGrantCallback(SaInvocationT invocation,
 	gl_gla_env.gr_clbk_invo = invocation;
 	gl_gla_env.gr_clbk_err = error;
 	gl_gla_env.gr_clbk_status = lockStatus;
-
-	m_TET_GLSV_PRINTF(
-	    "\n -------------- Lock Grant Callback ---------------\n");
-	m_TET_GLSV_PRINTF(
-	    " Invocation      : %llu  \n Error value     : %s  \n Status          : %s\n",
-	    invocation, glsv_saf_error_string[error],
-	    saf_lck_status_string[lockStatus]);
-	m_TET_GLSV_PRINTF(
-	    " ----------------------------------------------------\n");
 
 	if (lockStatus == SA_LCK_LOCK_DEADLOCK)
 		gl_ddlck_flag = 100;
@@ -121,15 +98,6 @@ void App_LockGrantCallback_withunlock_lock(SaInvocationT invocation,
 	gl_gla_env.gr_clbk_invo = invocation;
 	gl_gla_env.gr_clbk_err = error;
 	gl_gla_env.gr_clbk_status = lockStatus;
-
-	m_TET_GLSV_PRINTF(
-	    "\n -------------- Lock Grant Callback ---------------\n");
-	m_TET_GLSV_PRINTF(
-	    " Invocation      : %llu  \n Error value     : %s  \n Status          : %s\n",
-	    invocation, glsv_saf_error_string[error],
-	    saf_lck_status_string[lockStatus]);
-	m_TET_GLSV_PRINTF(
-	    " ----------------------------------------------------\n");
 
 	gl_unlck_res = tet_test_lckResourceUnlockAsync(
 	    LCK_RSC_UNLOCK_ASYNC_SUCCESS_T, TEST_CONFIG_MODE);
@@ -150,35 +118,12 @@ void App_LockWaiterCallback(SaLckWaiterSignalT waiterSignal,
 	gl_gla_env.waiter_clbk_lck_id = lockId;
 	gl_gla_env.waiter_clbk_mode_held = modeHeld;
 	gl_gla_env.waiter_clbk_mode_req = modeRequested;
-
-	m_TET_GLSV_PRINTF("\n ------------ Lock Waiter Callback -----------\n");
-
-	m_TET_GLSV_PRINTF(
-	    "\n Waiter Signal   : %llu - lockid          : %llu \n",
-	    waiterSignal, lockId);
-	if (modeHeld == SA_LCK_PR_LOCK_MODE)
-		m_TET_GLSV_PRINTF(" ModeHeld        : Shared\n");
-	else
-		m_TET_GLSV_PRINTF(" ModeHeld        : Write\n");
-
-	if (modeRequested == SA_LCK_PR_LOCK_MODE)
-		m_TET_GLSV_PRINTF(" ModeRequested   : Shared\n");
-	else
-		m_TET_GLSV_PRINTF(" ModeRequested   : Write\n");
-	m_TET_GLSV_PRINTF("\n ---------------------------------------------\n");
 }
 
 void App_ResourceUnlockCallback(SaInvocationT invocation, SaAisErrorT error)
 {
 	gl_gla_env.unlck_clbk_invo = invocation;
 	gl_gla_env.unlck_clbk_err = error;
-
-	m_TET_GLSV_PRINTF(
-	    "\n ---------- Resource Unlock Callback ----------\n");
-	m_TET_GLSV_PRINTF(" Invocation      : %llu  \n Error string    : %s\n",
-			  invocation, glsv_saf_error_string[error]);
-	m_TET_GLSV_PRINTF(
-	    "\n ----------------------------------------------\n");
 }
 
 /* *********** Environment Initialization ************* */
@@ -205,10 +150,10 @@ void glsv_fill_lck_clbks(SaLckCallbacksT *clbk,
 
 void glsv_fill_res_names(SaNameT *name, char *string, char *inst_num_char)
 {
-	strcpy(name->value, string);
+	memcpy(name->value, string, strlen(string));
 	if (inst_num_char)
-		strcat(name->value, inst_num_char);
-	name->length = strlen(name->value);
+		memcpy(name->value + strlen(string), inst_num_char, strlen(inst_num_char));
+	name->length = strlen(string) + (inst_num_char ? strlen(inst_num_char) : 0);
 }
 
 void init_glsv_test_env()
@@ -229,7 +174,7 @@ void init_glsv_test_env()
 	glsv_fill_lck_version(&gl_gla_env.inv_params.inv_version, 'C', 0, 1);
 	glsv_fill_lck_version(&gl_gla_env.inv_params.inv_ver_bad_rel_code, '\0',
 			      1, 0);
-	glsv_fill_lck_version(&gl_gla_env.inv_params.inv_ver_not_supp, 'B', 3,
+	glsv_fill_lck_version(&gl_gla_env.inv_params.inv_ver_not_supp, 'B', 4,
 			      0);
 	gl_gla_env.inv_params.inv_res_hdl = 54321;
 	gl_gla_env.inv_params.inv_lck_id = 22232;
@@ -257,25 +202,14 @@ void init_glsv_test_env()
 
 void glsv_print_testcase(char *string)
 {
-	m_TET_GLSV_PRINTF(string);
-	tet_printf(string);
+	m_TET_GLSV_PRINTF("%s", string);
+	tet_printf("%s", string);
 }
 
 void glsv_result(int result)
 {
 	glsv_clean_output_params();
 	glsv_clean_clbk_params();
-
-	tet_result(result);
-
-	if (result == TET_PASS)
-		glsv_print_testcase(
-		    "************* TEST CASE SUCCEEDED ************\n\n");
-	else
-		glsv_print_testcase(
-		    "************* TEST CASE FAILED ************\n\n");
-
-	gl_sync_pointnum = 1;
 }
 
 /************* saLckInitialize Api Tests *************/
@@ -283,9 +217,6 @@ void glsv_result(int result)
 void glsv_it_init_01()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize with valid parameters *****\n");
 
 	result =
 	    tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_NONCONFIG_MODE);
@@ -298,9 +229,6 @@ void glsv_it_init_02()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize with NULL callback structure *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_NULL_CBK_PARAM_T,
 					TEST_NONCONFIG_MODE);
 	glsv_init_cleanup(LCK_CLEAN_INIT_NULL_CBK_PARAM_T);
@@ -312,9 +240,6 @@ void glsv_it_init_03()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize with NULL version parameter *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_NULL_VERSION_T,
 					TEST_NONCONFIG_MODE);
 	glsv_result(result);
@@ -323,9 +248,6 @@ void glsv_it_init_03()
 void glsv_it_init_04()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize with NULL lock handle *****\n");
 
 	result =
 	    tet_test_lckInitialize(LCK_INIT_NULL_HANDLE_T, TEST_NONCONFIG_MODE);
@@ -336,9 +258,6 @@ void glsv_it_init_05()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize with NULL callback and version paramters *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_NULL_VERSION_CBKS_T,
 					TEST_NONCONFIG_MODE);
 	glsv_result(result);
@@ -347,9 +266,6 @@ void glsv_it_init_05()
 void glsv_it_init_06()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize with release code > supported release code *****\n");
 
 	result =
 	    tet_test_lckInitialize(LCK_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
@@ -361,9 +277,6 @@ void glsv_it_init_07()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize with invalid release code in version *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_BAD_REL_CODE_T,
 					TEST_NONCONFIG_MODE);
 	glsv_restore_params(LCK_RESTORE_INIT_BAD_REL_CODE_T);
@@ -374,9 +287,6 @@ void glsv_it_init_08()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize with major version > supported major version *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_BAD_MAJOR_VER_T,
 					TEST_NONCONFIG_MODE);
 	glsv_restore_params(LCK_RESTORE_INIT_BAD_MAJOR_VER_T);
@@ -386,9 +296,6 @@ void glsv_it_init_08()
 void glsv_it_init_09()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize returns supported version when called with invalid version *****\n");
 
 	result =
 	    tet_test_lckInitialize(LCK_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
@@ -409,9 +316,6 @@ void glsv_it_init_10()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckInitialize without registering any callback *****\n");
-
 	result =
 	    tet_test_lckInitialize(LCK_INIT_NULL_CBKS_T, TEST_NONCONFIG_MODE);
 	glsv_init_cleanup(LCK_CLEAN_INIT_NULL_CBKS_T);
@@ -423,9 +327,6 @@ void glsv_it_init_10()
 void glsv_it_selobj_01()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckSelectionObjectGet with valid parameters *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -444,9 +345,6 @@ void glsv_it_selobj_02()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckSelectionObjectGet with NULL selection object parameter *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -464,9 +362,6 @@ void glsv_it_selobj_03()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckSelectionObjectGet with uninitialized lock handle  *****\n");
-
 	result = tet_test_lckSelectionObject(LCK_SEL_OBJ_BAD_HANDLE_T,
 					     TEST_NONCONFIG_MODE);
 	glsv_result(result);
@@ -475,9 +370,6 @@ void glsv_it_selobj_03()
 void glsv_it_selobj_04()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckSelectionObjectGet with finalized lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -498,9 +390,6 @@ void glsv_it_selobj_05()
 {
 	int result;
 	SaSelectionObjectT sel_obj;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckSelectionObjectGet when called twice with same lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -536,15 +425,8 @@ void glsv_it_option_chk_01()
 {
 	int result, result1, result2;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckOptionCheck with invalid lock handle *****\n");
-
-	glsv_print_testcase(" \n ***** 1. Uninitialized lock handle *****\n");
-
 	result1 = tet_test_lckOptionCheck(LCK_OPT_CHCK_BAD_HDL_T,
 					  TEST_NONCONFIG_MODE);
-
-	glsv_print_testcase(" \n ***** 2. Finalized lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -572,9 +454,6 @@ void glsv_it_option_chk_02()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckOptionCheck with NULL pointer to lckOptions parameter *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -591,9 +470,6 @@ final:
 void glsv_it_option_chk_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckOptionCheck with valid parameters *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -613,9 +489,6 @@ final:
 void glsv_it_dispatch_01()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch invokes pending callbacks - SA_DISPATCH_ONE *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -646,9 +519,6 @@ final:
 void glsv_it_dispatch_02()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch invokes pending callbacks - SA_DISPATCH_ALL *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -691,9 +561,6 @@ final:
 void glsv_it_dispatch_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch invokes pending callbacks - SA_DISPATCH_BLOCKING *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -741,9 +608,6 @@ void glsv_it_dispatch_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch with invalid dispatch flags *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -761,15 +625,8 @@ void glsv_it_dispatch_05()
 {
 	int result, result1, result2;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch with invalid lock handle - SA_DISPATCH_ONE *****\n");
-
-	glsv_print_testcase(" \n 1. ***** Uninitialized lock handle *****\n");
-
 	result1 = tet_test_lckDispatch(LCK_DISPATCH_ONE_BAD_HANDLE_T,
 				       TEST_NONCONFIG_MODE);
-
-	glsv_print_testcase(" \n 2. ***** Finalized lock handle ***** \n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -797,15 +654,8 @@ void glsv_it_dispatch_06()
 {
 	int result, result1, result2;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch with invalid lock handle - SA_DISPATCH_ALL *****\n");
-
-	glsv_print_testcase(" \n 1. ***** Uninitialized lock handle ***** \n");
-
 	result1 = tet_test_lckDispatch(LCK_DISPATCH_ALL_BAD_HANDLE_T,
 				       TEST_NONCONFIG_MODE);
-
-	glsv_print_testcase(" \n 2. ***** Finalized lock handle ***** \n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -833,15 +683,8 @@ void glsv_it_dispatch_07()
 {
 	int result, result1, result2;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch with invalid lock handle - SA_DISPATCH_BLOCKING *****\n");
-
-	glsv_print_testcase(" \n 1. ***** Uninitialized lock handle ***** \n");
-
 	result1 = tet_test_lckDispatch(LCK_DISPATCH_BLOCKING_BAD_HANDLE_T,
 				       TEST_NONCONFIG_MODE);
-
-	glsv_print_testcase(" \n 2. ***** Finalized lock handle ***** \n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -869,9 +712,6 @@ void glsv_it_dispatch_08()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch in case of no pending callbacks - SA_DISPATCH_ONE *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -888,9 +728,6 @@ final:
 void glsv_it_dispatch_09()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckDispatch in case of no pending callbacks - SA_DISPATCH_ALL *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -910,9 +747,6 @@ final:
 void glsv_it_finalize_01()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckFinalize closes association between Message Service and app process *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -935,9 +769,6 @@ void glsv_it_finalize_02()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckFinalize with uninitialized lock handle *****\n");
-
 	result =
 	    tet_test_lckFinalize(LCK_FINALIZE_BAD_HDL_T, TEST_NONCONFIG_MODE);
 	glsv_result(result);
@@ -946,9 +777,6 @@ void glsv_it_finalize_02()
 void glsv_it_finalize_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckFinalize with finalized lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -972,9 +800,6 @@ void glsv_it_finalize_04()
 	int result;
 	fd_set read_fd;
 	struct timeval tv;
-
-	glsv_print_testcase(
-	    " \n\n ***** Selection object becomes invalid after finalizing the lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1012,9 +837,6 @@ void glsv_it_finalize_05()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Resources that are opened are closed after finalizing the lock handle *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1042,10 +864,6 @@ final:
 void glsv_it_finalize_06()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** All locks and lock requests with the resource hdls associated with the lock hdl "
-	    "are dropped after finalizing lck hdl *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1086,15 +904,8 @@ void glsv_it_res_open_01()
 {
 	int result, result1, result2;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpen with invalid lock handle *****\n");
-
-	glsv_print_testcase(" \n 1. ***** Uninitialized lock handle ***** \n");
-
 	result1 = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_BAD_HANDLE_T,
 					   TEST_NONCONFIG_MODE);
-
-	glsv_print_testcase(" \n 2. ***** Finalized lock handle ***** \n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1122,9 +933,6 @@ void glsv_it_res_open_02()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpen with NULL lock resource name *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1141,9 +949,6 @@ final:
 void glsv_it_res_open_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpen with NULL lock resource handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1162,9 +967,6 @@ void glsv_it_res_open_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpen with invalid resource flags *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1181,9 +983,6 @@ final:
 void glsv_it_res_open_05()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpen with small timeout value *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1202,9 +1001,6 @@ void glsv_it_res_open_06()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Open a resource that does not exist without SA_LCK_RESOURCE_CREATE flag *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1222,8 +1018,6 @@ void glsv_it_res_open_07()
 {
 	int result;
 
-	glsv_print_testcase(" \n\n ***** Create a lock resource *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1240,9 +1034,6 @@ final:
 void glsv_it_res_open_08()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Open a resource that already exists and open  *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1268,9 +1059,6 @@ void glsv_it_res_open_09()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Open a resource that already exists and open with SA_LCK_RESOURCE_CREATE flag *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1293,8 +1081,6 @@ final:
 void glsv_it_res_open_10()
 {
 	int result;
-
-	glsv_print_testcase(" \n\n ***** Open a closed resource *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1326,15 +1112,8 @@ void glsv_it_res_open_async_01()
 {
 	int result, result1, result2;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpenAsync with invalid lock handle *****\n");
-
-	glsv_print_testcase(" \n 1. ***** Uninitialized lock handle ***** \n");
-
 	result1 = tet_test_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_BAD_HANDLE_T, TEST_NONCONFIG_MODE);
-
-	glsv_print_testcase(" \n 2. ***** Finalized lock handle ***** \n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1362,9 +1141,6 @@ void glsv_it_res_open_async_02()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpenAsync with NULL lock resource name *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1382,9 +1158,6 @@ void glsv_it_res_open_async_03()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpenAsync with invalid resource flags *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1401,9 +1174,6 @@ final:
 void glsv_it_res_open_async_04()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Open a resource that does not exist without SA_LCK_RESOURCE_CREATE flag *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1435,8 +1205,6 @@ void glsv_it_res_open_async_05()
 {
 	int result;
 
-	glsv_print_testcase(" \n\n ***** Create a lock resource *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1466,9 +1234,6 @@ final:
 void glsv_it_res_open_async_06()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Invocation in open callback is same as that supplied in saLckResourceOpenAsync *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1500,9 +1265,6 @@ void glsv_it_res_open_async_07()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceOpenAsync without registering with resource open callback *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1519,9 +1281,6 @@ final:
 void glsv_it_res_open_async_08()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Open a resource that already exists and that is open *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1570,9 +1329,6 @@ void glsv_it_res_open_async_09()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Open a resource that already exists and that is open with create flag *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1619,8 +1375,6 @@ void glsv_it_res_open_async_10()
 {
 	int result;
 
-	glsv_print_testcase(" \n\n ***** Open a closed resource *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1664,8 +1418,6 @@ void glsv_it_res_close_01()
 {
 	int result;
 
-	glsv_print_testcase(" \n\n ***** Close a lock resource *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1689,9 +1441,6 @@ void glsv_it_res_close_02()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose with invalid resource handle *****\n");
-
 	result = tet_test_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_RSC_HDL_T,
 					   TEST_NONCONFIG_MODE);
 
@@ -1701,9 +1450,6 @@ void glsv_it_res_close_02()
 void glsv_it_res_close_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose with a resource handle associated with finalized lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1733,9 +1479,6 @@ void glsv_it_res_close_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose closes the reference to that resource *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1763,9 +1506,6 @@ final:
 void glsv_it_res_close_05()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose drops all the locks held on that resource handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1802,9 +1542,6 @@ final:
 void glsv_it_res_close_06()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose drops all the lock requests made on that resource handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1847,9 +1584,6 @@ void glsv_it_res_close_07()
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose does not effect the locks held on the resource by other appls *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1904,9 +1638,6 @@ void glsv_it_res_close_08()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose with a resource handle that is already closed *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1936,9 +1667,6 @@ void glsv_it_res_close_09()
 	int result;
 	SaLckResourceHandleT lcl_res_hdl;
 
-	glsv_print_testcase(
-	    " \n\n ***** The resource no longer exists once all references to it are closed *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -1948,6 +1676,12 @@ void glsv_it_res_close_09()
 	if (result != TET_PASS)
 		goto final1;
 
+   /*
+   [LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T] =
+      {&gl_gla_env.lck_hdl1, &gl_gla_env.res1, RES_OPEN_TIMEOUT,
+       &gl_gla_env.res_hdl1, SA_LCK_RESOURCE_CREATE, SA_AIS_OK},
+       */
+
 	result = tet_test_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -1955,10 +1689,23 @@ void glsv_it_res_close_09()
 
 	lcl_res_hdl = gl_gla_env.res_hdl1;
 
+  /*
+  [LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T] =
+      {&gl_gla_env.lck_hdl2, &gl_gla_env.res1, RES_OPEN_TIMEOUT,
+       &gl_gla_env.res_hdl1, SA_LCK_RESOURCE_CREATE, SA_AIS_OK},
+       */
+
 	result = tet_test_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
+
+  /*
+  [LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T] = {&gl_gla_env.res_hdl1,
+               SA_AIS_OK},
+  [LCK_RESOURCE_CLOSE_RSC_HDL2_SUCCESS_T] = {&gl_gla_env.res_hdl2,
+               SA_AIS_OK},
+               */
 
 	result = tet_test_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
@@ -1971,6 +1718,14 @@ void glsv_it_res_close_09()
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
+
+  /*
+  [LCK_RESOURCE_OPEN_RSC_NOT_EXIST_T] = {&gl_gla_env.lck_hdl1,
+                 &gl_gla_env.res1,
+                 RES_OPEN_TIMEOUT,
+                 &gl_gla_env.res_hdl1, 0,
+                 SA_AIS_ERR_NOT_EXIST},
+                 */
 
 	result = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_RSC_NOT_EXIST_T,
 					  TEST_NONCONFIG_MODE);
@@ -1988,10 +1743,6 @@ final:
 void glsv_it_res_close_10()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose cancels all the pending locks that "
-	    "refer to the resource handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2034,10 +1785,6 @@ void glsv_it_res_close_11()
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl1, lcl_res_hdl2;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceClose cancels all the pending callbacks that "
-	    "refer to the resource handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2114,9 +1861,6 @@ void glsv_it_res_lck_01()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceLock with invalid resource handle *****\n");
-
 	result = tet_test_lckResourceLock(LCK_RSC_LOCK_BAD_RSC_HDL_T,
 					  TEST_CONFIG_MODE);
 	glsv_result(result);
@@ -2125,9 +1869,6 @@ void glsv_it_res_lck_01()
 void glsv_it_res_lck_02()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceLock after finalizing the lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2149,9 +1890,6 @@ final:
 void glsv_it_res_lck_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceLock after closing the resource handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2181,9 +1919,6 @@ void glsv_it_res_lck_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceLock with NULL lock id parameter *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2206,9 +1941,6 @@ final:
 void glsv_it_res_lck_05()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceLock with NULL lock status parameter *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2233,9 +1965,6 @@ void glsv_it_res_lck_06()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceLock with invalid lock mode *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2258,9 +1987,6 @@ final:
 void glsv_it_res_lck_07()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceLock with invalid lock flag value *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2285,9 +2011,6 @@ void glsv_it_res_lck_08()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** saLckResourceLock with small timeout value *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2310,9 +2033,6 @@ final:
 void glsv_it_res_lck_09()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Request a PR lock on the resource *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2342,9 +2062,6 @@ void glsv_it_res_lck_10()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Request a PR lock on the resource with SA_LCK_LOCK_NO_QUEUE flag *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2372,9 +2089,6 @@ final:
 void glsv_it_res_lck_11()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Request a PR lock on the resource with SA_LCK_LOCK_ORPHAN flag *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2406,9 +2120,6 @@ void glsv_it_res_lck_12()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Request an EX lock on the resource *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2437,9 +2148,6 @@ void glsv_it_res_lck_13()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Request an EX lock on the resource with SA_LCK_LOCK_NO_QUEUE flag *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2467,9 +2175,6 @@ final:
 void glsv_it_res_lck_14()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Request an EX lock on the resource with SA_LCK_LOCK_ORPHAN flag *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2500,9 +2205,6 @@ final:
 void glsv_it_res_lck_15()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Request a PR lock on a resource on which an EX lock is held by another appl *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2548,9 +2250,6 @@ void glsv_it_res_lck_16()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Request a PR lock on a resource on which an EX lock is held using same res hdl *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2584,9 +2283,6 @@ final:
 void glsv_it_res_lck_17()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** Request an EX lock on a resource on which an EX lock is held using same res hdl *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2622,10 +2318,6 @@ final:
 void glsv_it_res_lck_18()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** Request a PR lock with SA_LCK_LOCK_NO_QUEUE on a resource on "
-	    "which an EX lock is held *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2677,9 +2369,6 @@ void glsv_it_res_lck_async_01()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceLockAsync with invalid resource handle *****\n");
-
 	result = tet_test_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_BAD_RSC_HDL_T,
 					       TEST_NONCONFIG_MODE);
 	glsv_result(result);
@@ -2688,9 +2377,6 @@ void glsv_it_res_lck_async_01()
 void glsv_it_res_lck_async_02()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceLockAsync with resource handle associated with finalized lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2720,9 +2406,6 @@ void glsv_it_res_lck_async_03()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceLockAsync with closed resource handle *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2751,9 +2434,6 @@ void glsv_it_res_lck_async_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceLockAsync with NULL lock id parameter *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2776,9 +2456,6 @@ final:
 void glsv_it_res_lck_async_05()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceLockAsync with invalid lock mode parameter *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2803,9 +2480,6 @@ void glsv_it_res_lck_async_06()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceLockAsync with invalid lock flag parameter *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2828,9 +2502,6 @@ final:
 void glsv_it_res_lck_async_07()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceLockAsync with lock hdl initialized with NULL grant callback *****\n");
 
 	result =
 	    tet_test_lckInitialize(LCK_INIT_NULL_CBKS2_T, TEST_CONFIG_MODE);
@@ -2855,9 +2526,6 @@ final:
 void glsv_it_res_lck_async_08()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** Request a PR lock on the resource *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -2896,9 +2564,6 @@ void glsv_it_res_lck_async_09()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** Invocation value in grant callback is same as that in the api call *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2936,9 +2601,6 @@ void glsv_it_res_lck_async_10()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** Request a PR lock on the resource with SA_LCK_LOCK_NO_QUEUE flag *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -2975,9 +2637,6 @@ final:
 void glsv_it_res_lck_async_11()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** Request a PR lock on the resource with SA_LCK_LOCK_ORPHAN flag *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3018,9 +2677,6 @@ void glsv_it_res_lck_async_12()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** Request an EX lock on the resource *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3058,9 +2714,6 @@ void glsv_it_res_lck_async_13()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** Request an EX lock on the resource with SA_LCK_LOCK_NO_QUEUE flag *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3097,9 +2750,6 @@ final:
 void glsv_it_res_lck_async_14()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** Request an EX lock on the resource with SA_LCK_LOCK_ORPHAN flag *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3139,9 +2789,6 @@ final:
 void glsv_it_res_lck_async_15()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Request a PR lock on a resource on which an EX lock is held by another appl *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3200,9 +2847,6 @@ void glsv_it_res_lck_async_16()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Request a PR lock on a resource on which an EX lock is held using same res hdl *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3253,9 +2897,6 @@ void glsv_it_res_lck_async_17()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Request an EX lock on a resource on which an EX lock is held using same res hdl *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3300,10 +2941,6 @@ final:
 void glsv_it_res_lck_async_18()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Request a PR lock with SA_LCK_LOCK_NO_QUEUE on a resource on "
-	    "which an EX lock is held *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3363,9 +3000,6 @@ void glsv_it_res_lck_async_19()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n ***** Lock id value obtained is valid before the invocation of grant clbk *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3395,9 +3029,6 @@ final:
 void glsv_it_res_lck_async_20()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Lock id value obtained is valid before the invocation of grant clbk *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3441,9 +3072,6 @@ void glsv_it_res_unlck_01()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlock with invalid lock id parameter *****\n");
-
 	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_BAD_LOCKID_T,
 					    TEST_NONCONFIG_MODE);
 	glsv_result(result);
@@ -3452,9 +3080,6 @@ void glsv_it_res_unlck_01()
 void glsv_it_res_unlck_02()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlock with lock id associated with resource hdl that is closed *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3488,9 +3113,6 @@ final:
 void glsv_it_res_unlck_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlock after finalizing the lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3528,9 +3150,6 @@ void glsv_it_res_unlck_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlock with small timeout value *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3559,8 +3178,6 @@ void glsv_it_res_unlck_05()
 {
 	int result;
 
-	glsv_print_testcase(" \n\n***** Unlock a lock *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3587,8 +3204,6 @@ final:
 void glsv_it_res_unlck_06()
 {
 	int result;
-
-	glsv_print_testcase(" \n\n***** Unlock a pending lock request *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3649,9 +3264,6 @@ void glsv_it_res_unlck_07()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlock with a lock id that is already unlocked *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3684,9 +3296,6 @@ final:
 void glsv_it_res_unlck_08()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Unlock the lock id before the invocation of grant clbk (sync case) *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3733,9 +3342,6 @@ void glsv_it_res_unlck_async_01()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlockAsync with invalid lock id *****\n");
-
 	result = tet_test_lckResourceUnlockAsync(
 	    LCK_RSC_UNLOCK_ASYNC_BAD_LOCKID_T, TEST_NONCONFIG_MODE);
 	glsv_result(result);
@@ -3744,9 +3350,6 @@ void glsv_it_res_unlck_async_01()
 void glsv_it_res_unlck_async_02()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlockAsync with lock id associated with rsc hdl that is closed *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3780,9 +3383,6 @@ final:
 void glsv_it_res_unlck_async_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlockAsync after finalizing the lock handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3820,9 +3420,6 @@ void glsv_it_res_unlck_async_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlockAsync without registering unlock callback *****\n");
-
 	result =
 	    tet_test_lckInitialize(LCK_INIT_NULL_CBKS2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3851,8 +3448,6 @@ final:
 void glsv_it_res_unlck_async_05()
 {
 	int result;
-
-	glsv_print_testcase(" \n\n***** Unlock a lock *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3894,8 +3489,6 @@ final:
 void glsv_it_res_unlck_async_06()
 {
 	int result;
-
-	glsv_print_testcase(" \n\n***** Unlock a pending lock request *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -3959,9 +3552,6 @@ void glsv_it_res_unlck_async_07()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceUnlockAsync with a lock id that is already unlocked *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -3994,9 +3584,6 @@ final:
 void glsv_it_res_unlck_async_08()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Unlock the lock id before the invocation of grant clbk (async case) *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -4041,9 +3628,6 @@ final:
 void glsv_it_res_unlck_async_09()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Unlocking the lock id before the invocation of unlock callback *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -4091,9 +3675,6 @@ final:
 void glsv_it_res_unlck_async_10()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Closing the lock resource before the invocation of unlock callback *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -4144,9 +3725,6 @@ void glsv_it_lck_purge_01()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckLockPurge with invalid lock resource handle *****\n");
-
 	result = tet_test_lckLockPurge(LCK_LOCK_PURGE_BAD_HDL_T,
 				       TEST_NONCONFIG_MODE);
 	glsv_result(result);
@@ -4155,9 +3733,6 @@ void glsv_it_lck_purge_01()
 void glsv_it_lck_purge_02()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckLockPurge with closed resource handle *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -4187,9 +3762,6 @@ void glsv_it_lck_purge_03()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckLockPurge with rsc hdl associated with lock handle that is finalized *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -4218,9 +3790,6 @@ void glsv_it_lck_purge_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** saLckLockPurge when there are no orphan locks on the resource *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -4243,9 +3812,6 @@ final:
 void glsv_it_lck_purge_05()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** Purge the orphan locks on the resource *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -4318,9 +3884,6 @@ void glsv_it_res_cr_del_01()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** Creation of multiple resources by same application *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -4343,9 +3906,6 @@ final:
 void glsv_it_res_cr_del_02()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** Creation of multiple resources by same application *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -4395,9 +3955,6 @@ void glsv_it_res_cr_del_03()
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl1;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckResourceClose will close all the resource handles given by Lock Service *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -4458,9 +4015,6 @@ void glsv_it_res_cr_del_04()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** Resource hdl obtained from the open clbk is valid only when error = SA_AIS_OK *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -4499,9 +4053,6 @@ void glsv_it_res_cr_del_05()
 
 	gl_open_clbk_iter = 0;
 
-	glsv_print_testcase(
-	    " \n\n***** Resource open clbk is inovoked when saLckResourceOpenAsync returns SA_AIS_OK *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -4533,14 +4084,10 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_res_cr_del_06(int async)
+static void glsv_it_res_cr_del_06_sync_async(int async)
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl1, lcl_res_hdl2;
-
-	glsv_print_testcase(
-	    " \n\n ***** Closing a res hdl does not effect locks on other res hdl of "
-	    "the same resource in same appl *****\n");
 
 	gl_glsv_async = async;
 
@@ -4620,14 +4167,21 @@ final:
 	glsv_result(result);
 }
 
+void glsv_it_res_cr_del_06(void)
+{
+  glsv_it_res_cr_del_06_sync_async(0);
+}
+
+void glsv_it_res_cr_del_07(void)
+{
+  glsv_it_res_cr_del_06_sync_async(1);
+}
+
 /* Lock Modes and Lock Waiter Callback */
 
-void glsv_it_lck_modes_wt_clbk_01(int async)
+static void glsv_it_lck_modes_wt_clbk_01_sync_async(int async)
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n ***** Acquire multiple PR locks on a resource *****\n");
 
 	gl_glsv_async = async;
 
@@ -4719,13 +4273,20 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_lck_modes_wt_clbk_02(int async)
+void glsv_it_lck_modes_wt_clbk_01(void)
+{
+  glsv_it_lck_modes_wt_clbk_01_sync_async(true);
+}
+
+void glsv_it_lck_modes_wt_clbk_02(void)
+{
+  glsv_it_lck_modes_wt_clbk_01_sync_async(false);
+}
+
+static void glsv_it_lck_modes_wt_clbk_03_sync_async(int async)
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl1, lcl_res_hdl2;
-
-	glsv_print_testcase(
-	    " \n\n ***** Request two EX locks on a resource from two different applications *****\n");
 
 	gl_glsv_async = async;
 
@@ -4816,13 +4377,20 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_lck_modes_wt_clbk_03(int async)
+void glsv_it_lck_modes_wt_clbk_03(void)
+{
+  glsv_it_lck_modes_wt_clbk_03_sync_async(true);
+}
+
+void glsv_it_lck_modes_wt_clbk_04(void)
+{
+  glsv_it_lck_modes_wt_clbk_03_sync_async(false);
+}
+
+static void glsv_it_lck_modes_wt_clbk_05_sync_async(int async)
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl1, lcl_res_hdl2;
-
-	glsv_print_testcase(
-	    " \n\n ***** Request two EX locks on a resource from same app but different res hdl *****\n");
 
 	gl_glsv_async = async;
 
@@ -4905,14 +4473,20 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_lck_modes_wt_clbk_04(int async)
+void glsv_it_lck_modes_wt_clbk_05(void)
+{
+  glsv_it_lck_modes_wt_clbk_05_sync_async(true);
+}
+
+void glsv_it_lck_modes_wt_clbk_06(void)
+{
+  glsv_it_lck_modes_wt_clbk_05_sync_async(false);
+}
+
+static void glsv_it_lck_modes_wt_clbk_07_sync_async(int async)
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl1, lcl_res_hdl2;
-
-	glsv_print_testcase(
-	    " \n\n ***** Waiter callback is invoked when a lock request is blocked by "
-	    "a lock held on that resource *****\n");
 
 	gl_glsv_async = async;
 
@@ -5010,13 +4584,20 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_lck_modes_wt_clbk_05()
+void glsv_it_lck_modes_wt_clbk_07(void)
+{
+  glsv_it_lck_modes_wt_clbk_07_sync_async(true);
+}
+
+void glsv_it_lck_modes_wt_clbk_08(void)
+{
+  glsv_it_lck_modes_wt_clbk_07_sync_async(false);
+}
+
+void glsv_it_lck_modes_wt_clbk_09()
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl;
-
-	glsv_print_testcase(
-	    " \n\n ***** Waiter signal in the waiter clbk is same as that in the blocked lock request *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -5072,14 +4653,11 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_lck_modes_wt_clbk_06()
+void glsv_it_lck_modes_wt_clbk_10()
 {
 	int result;
 	int i = 0;
 	SaLckResourceHandleT lcl_res_hdl;
-
-	glsv_print_testcase(
-	    " \n\n ***** No of waiter callback invoked = No of locks blocking the lock request *****\n");
 
 	gl_wt_clbk_iter = 0;
 
@@ -5141,14 +4719,11 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_lck_modes_wt_clbk_07()
+void glsv_it_lck_modes_wt_clbk_11()
 {
 	int result;
 	int i = 0;
 	SaLckResourceHandleT lcl_res_hdl;
-
-	glsv_print_testcase(
-	    " \n\n ***** No of waiter callback invoked = No of locks requests blocked *****\n");
 
 	gl_wt_clbk_iter = 0;
 
@@ -5212,15 +4787,12 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_lck_modes_wt_clbk_08()
+void glsv_it_lck_modes_wt_clbk_12()
 {
 	int result;
 	int i = 0;
 
 	gl_gr_clbk_iter = 0;
-
-	glsv_print_testcase(
-	    " \n\n***** Lock Grant clbk is inovoked when saLckResourceLockAsync returns SA_AIS_OK *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -5257,14 +4829,10 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_lck_modes_wt_clbk_09()
+void glsv_it_lck_modes_wt_clbk_13()
 {
 	int result;
 	SaLckResourceHandleT lcl_res_hdl;
-
-	glsv_print_testcase(
-	    " \n\n***** Request an EX lock on a resource on which an EX lock is held "
-	    "using diff res hdl and same application *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -5307,9 +4875,6 @@ final:
 void glsv_it_ddlcks_orplks_01()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** Finalizing the app does not delete the resource if there are orphan locks on it *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -5354,13 +4919,9 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_ddlcks_orplks_02(int async)
+static void glsv_it_ddlcks_orplks_02_sync_async(int async)
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** SA_LCK_LOCK_ORPHANED status is returned when a lock request "
-	    "is blocked by an orphan lock *****\n");
 
 	gl_glsv_async = async;
 
@@ -5434,13 +4995,19 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_ddlcks_orplks_03(int async)
+void glsv_it_ddlcks_orplks_02(void)
+{
+  glsv_it_ddlcks_orplks_02_sync_async(true);
+}
+
+void glsv_it_ddlcks_orplks_03(void)
+{
+  glsv_it_ddlcks_orplks_02_sync_async(false);
+}
+
+static void glsv_it_ddlcks_orplks_04_sync_async(int async)
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** SA_LCK_LOCK_ORPHANED status is not returned when a lock request "
-	    "requested without SA_LCK_LOCK_ORPHAN lock flag is blocked by an orphan lock *****\n");
 
 	gl_glsv_async = async;
 
@@ -5509,13 +5076,20 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_ddlcks_orplks_04(int async)
+void glsv_it_ddlcks_orplks_04(void)
+{
+  glsv_it_ddlcks_orplks_04_sync_async(true);
+}
+
+void glsv_it_ddlcks_orplks_05(void)
+{
+  glsv_it_ddlcks_orplks_04_sync_async(false);
+}
+
+static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 {
 	int result;
 	SaLckLockIdT pr_lck_id1, pr_lck_id2;
-
-	glsv_print_testcase(
-	    " \n\n***** Deadlock scenario with two resourcess and single process *****\n");
 
 	gl_glsv_async = async;
 
@@ -5722,13 +5296,19 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_ddlcks_orplks_05()
+void glsv_it_ddlcks_orplks_06(void)
+{
+  glsv_it_ddlcks_orplks_06_sync_async(true);
+}
+
+void glsv_it_ddlcks_orplks_07(void)
+{
+  glsv_it_ddlcks_orplks_06_sync_async(false);
+}
+
+void glsv_it_ddlcks_orplks_08()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** SA_LCK_LOCK_DEADLOCK is returned if a PR lock is requested on a "
-	    "resource on which EX lock is held with different res hdl *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -5779,11 +5359,9 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_ddlcks_orplks_06()
+void glsv_it_ddlcks_orplks_09()
 {
 	int result;
-
-	glsv_print_testcase(" \n\n***** Pending orphan lock scenario *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -5848,13 +5426,9 @@ final:
 	glsv_result(result);
 }
 
-void glsv_it_ddlcks_orplks_07(int async)
+static void glsv_it_ddlcks_orplks_10_sync_async(int async)
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** SA_LCK_LOCK_NOT_QUEUED status is returned when a lock request "
-	    "with SA_LCK_LOCK_NO_QUEUE flag is blocked by an orphan lock *****\n");
 
 	gl_glsv_async = async;
 
@@ -5928,14 +5502,21 @@ final:
 	glsv_result(result);
 }
 
+void glsv_it_ddlcks_orplks_10(void)
+{
+  glsv_it_ddlcks_orplks_10_sync_async(true);
+}
+
+void glsv_it_ddlcks_orplks_11(void)
+{
+  glsv_it_ddlcks_orplks_10_sync_async(false);
+}
+
 /* Lock Stripping and Purging */
 
-void glsv_it_lck_strip_purge_01()
+void glsv_it_lck_strip_purge_01(void)
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckLockPurge will purge all the orphan locks on a resource *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -6032,9 +5613,6 @@ void glsv_it_lck_strip_purge_02()
 {
 	int result;
 
-	glsv_print_testcase(
-	    " \n\n***** Orphan locks are not stripped by saLckResourceClose *****\n");
-
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
@@ -6101,9 +5679,6 @@ final:
 void glsv_it_lck_strip_purge_03()
 {
 	int result;
-
-	glsv_print_testcase(
-	    " \n\n***** saLckLockPurge does not effect the other shared locks on the same resource *****\n");
 
 	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -6367,22 +5942,22 @@ void tet_glsv_get_inputs(TET_GLSV_INST *inst)
 
 	tmp_ptr = (char *)getenv("TET_GLSV_RES_NAME1");
 	if (tmp_ptr) {
-		strcpy(inst->res_name1.value, tmp_ptr);
-		inst->res_name1.length = strlen(inst->res_name1.value);
+		memcpy(inst->res_name1.value, tmp_ptr, strlen(tmp_ptr));
+		inst->res_name1.length = strlen(tmp_ptr);
 		tmp_ptr = NULL;
 	}
 
 	tmp_ptr = (char *)getenv("TET_GLSV_RES_NAME2");
 	if (tmp_ptr) {
-		strcpy(inst->res_name2.value, tmp_ptr);
-		inst->res_name2.length = strlen(inst->res_name2.value);
+		memcpy(inst->res_name2.value, tmp_ptr, strlen(tmp_ptr));
+		inst->res_name2.length = strlen(tmp_ptr);
 		tmp_ptr = NULL;
 	}
 
 	tmp_ptr = (char *)getenv("TET_GLSV_RES_NAME3");
 	if (tmp_ptr) {
-		strcpy(inst->res_name3.value, tmp_ptr);
-		inst->res_name3.length = strlen(inst->res_name3.value);
+		memcpy(inst->res_name3.value, tmp_ptr, strlen(tmp_ptr));
+		inst->res_name3.length = strlen(tmp_ptr);
 		tmp_ptr = NULL;
 	}
 
@@ -6403,21 +5978,25 @@ void tet_glsv_fill_inputs(TET_GLSV_INST *inst)
 {
 	if (inst->res_name1.length) {
 		memset(&gl_gla_env.res1, '\0', sizeof(SaNameT));
-		strcpy(gl_gla_env.res1.value, inst->res_name1.value);
+		memcpy(gl_gla_env.res1.value,
+           inst->res_name1.value,
+           inst->res_name1.length);
 		gl_gla_env.res1.length = inst->res_name1.length;
 	}
 
 	if (inst->res_name2.length) {
 		memset(&gl_gla_env.res2, '\0', sizeof(SaNameT));
-		strcpy(gl_gla_env.res2.value, inst->res_name2.value);
+		memcpy(gl_gla_env.res2.value,
+           inst->res_name2.value,
+           inst->res_name2.length);
 		gl_gla_env.res2.length = inst->res_name2.length;
 	}
 
 	if (inst->res_name3.length) {
 		memset(&gl_gla_env.res3, '\0', sizeof(SaNameT));
-		strcpy(gl_gla_env.res3.value, inst->res_name3.value);
+		memcpy(gl_gla_env.res3.value,
+           inst->res_name3.value,
+           inst->res_name3.length);
 		gl_gla_env.res3.length = inst->res_name3.length;
 	}
 }
-
-#endif

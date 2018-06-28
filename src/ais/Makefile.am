@@ -72,6 +72,9 @@ pkgconfig_DATA += \
 pkginclude_HEADERS += \
 	src/ais/include/opensaf/cpsv_papi.h
 
+noinst_HEADERS += \
+	src/ais/include/saTmr.h
+
 noinst_LTLIBRARIES += lib/libais.la
 
 lib_libais_la_CFLAGS = $(OSAF_LIB_FLAGS) $(AM_CFLAGS)

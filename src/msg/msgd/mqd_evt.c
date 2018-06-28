@@ -282,6 +282,8 @@ uint32_t mqd_timer_expiry_evt_process(MQD_CB *pMqd, NODE_ID *nodeid)
 			pNdNode->info.timer.tmr_id = TMR_T_NULL;
 		}
 
+		m_NCS_LOCK(&pMqd->mqd_cb_lock, NCS_LOCK_WRITE);
+
 		pNode = (MQD_OBJ_NODE *)ncs_patricia_tree_getnext(&pMqd->qdb,
 								  (uint8_t *)0);
 		while (pNode) {
@@ -309,6 +311,9 @@ uint32_t mqd_timer_expiry_evt_process(MQD_CB *pMqd, NODE_ID *nodeid)
 			pNode = (MQD_OBJ_NODE *)ncs_patricia_tree_getnext(
 			    &pMqd->qdb, (uint8_t *)&name);
 		}
+
+		m_NCS_UNLOCK(&pMqd->mqd_cb_lock, NCS_LOCK_WRITE);
+
 		rc = immutil_saImmOiFinalize(immOiHandle);
 		if (rc != NCSCC_RC_SUCCESS)
 			LOG_ER("saImmOiFinalize failed with return value=%d",
@@ -381,6 +386,13 @@ static uint32_t mqd_nd_status_evt_process(MQD_CB *pMqd,
 			mqd_tmr_start(&pNdNode->info.timer, timeout);
 		} else {
 			TRACE_2("Deleting the nd node from MQD");
+			mqd_tmr_stop(&pNdNode->info.timer);
+
+			if (pMqd->ha_state == SA_AMF_HA_ACTIVE) {
+				/* if remote node is totally down then clean up */
+				if (pNdNode->info.is_clm_down)
+					mqd_del_node_down_info(pMqd, node_id);
+			}
 			mqd_red_db_node_del(pMqd, pNdNode);
 		}
 
@@ -397,8 +409,6 @@ static uint32_t mqd_nd_status_evt_process(MQD_CB *pMqd,
 			pNdNode->info.dest = nd_info->dest;
 			if (pMqd->ha_state == SA_AMF_HA_ACTIVE) {
 				mqd_red_db_node_del(pMqd, pNdNode);
-				mqd_nd_restart_update_dest_info(pMqd,
-								nd_info->dest);
 				/* Send an async update event to standby MQD */
 				memset(&msg, 0, sizeof(MQD_A2S_MSG));
 				msg.type = MQD_A2S_MSG_TYPE_MQND_STATEVT;
@@ -413,6 +423,9 @@ static uint32_t mqd_nd_status_evt_process(MQD_CB *pMqd,
 				    (void *)(&msg.info.nd_stat_evt));
 			}
 		}
+
+		if (pMqd->ha_state == SA_AMF_HA_ACTIVE)
+			mqd_nd_restart_update_dest_info(pMqd, nd_info->dest);
 		TRACE_1("MDS UP PROCESSED ON %d DONE", pMqd->ha_state);
 	}
 	TRACE_LEAVE();

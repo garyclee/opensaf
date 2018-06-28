@@ -37,6 +37,18 @@
 #include "saSmf.h"
 
 void* unused_functions[] = {
+  reintrepret_cast<void*>(osafTmrClockTickGet),
+  reintrepret_cast<void*>(osafTmrDispatch),
+  reintrepret_cast<void*>(osafTmrFinalize),
+  reintrepret_cast<void*>(osafTmrInitialize),
+  reintrepret_cast<void*>(osafTmrPeriodicTimerSkip),
+  reintrepret_cast<void*>(osafTmrSelectionObjectGet),
+  reintrepret_cast<void*>(osafTmrTimeGet),
+  reintrepret_cast<void*>(osafTmrTimerAttributesGet),
+  reintrepret_cast<void*>(osafTmrTimerCancel),
+  reintrepret_cast<void*>(osafTmrTimerRemainingTimeGet),
+  reintrepret_cast<void*>(osafTmrTimerReschedule),
+  reintrepret_cast<void*>(osafTmrTimerStart),
   reintrepret_cast<void*>(saAmfComponentErrorClear_4),
   reintrepret_cast<void*>(saAmfComponentErrorReport_4),
   reintrepret_cast<void*>(saAmfCorrelationIdsGet),

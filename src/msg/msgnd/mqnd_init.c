@@ -177,8 +177,8 @@ static uint32_t mqnd_lib_init(MQSV_CREATE_INFO *info)
 	SaAmfHealthcheckKeyT healthy;
 	char *health_key = NULL;
 	SaAisErrorT amf_error;
-	SaClmCallbacksT clm_cbk;
-	SaClmClusterNodeT cluster_node;
+	SaClmCallbacksT_4 clm_cbk;
+	SaClmClusterNodeT_4 cluster_node;
 	SaVersionT clm_version;
 	char str_vector[10] = "";
 	int fd;
@@ -310,20 +310,20 @@ static uint32_t mqnd_lib_init(MQSV_CREATE_INFO *info)
 
 	/* B301 changes */
 
-	m_MQSV_GET_AMF_VER(clm_version);
+	m_MQSV_GET_CLM_VER(clm_version);
 	clm_cbk.saClmClusterNodeGetCallback = NULL;
 	clm_cbk.saClmClusterTrackCallback = mqnd_clm_cluster_track_cbk;
 
-	rc = saClmInitialize(&cb->clm_hdl, &clm_cbk, &clm_version);
+	rc = saClmInitialize_4(&cb->clm_hdl, &clm_cbk, &clm_version);
 	if (rc != SA_AIS_OK) {
-		LOG_ER("saClmInitialize failed with return code %d", rc);
+		LOG_ER("saClmInitialize_4 failed with return code %d", rc);
 		goto mqnd_mds_fail;
 	}
 
-	rc = saClmClusterNodeGet(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID,
+	rc = saClmClusterNodeGet_4(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID,
 				 MQND_CLM_API_TIMEOUT, &cluster_node);
 	if (rc != SA_AIS_OK) {
-		LOG_ER("saClmClusterNodeGet failed with return code %d", rc);
+		LOG_ER("saClmClusterNodeGet_4 failed with return code %d", rc);
 		goto mqnd_clm_fail;
 	}
 
@@ -793,10 +793,10 @@ void mqnd_main_process(uint32_t hdl)
 	fds[FD_IMM].fd = cb->imm_sel_obj;
 	fds[FD_IMM].events = POLLIN;
 
-	if (saClmClusterTrack(cb->clm_hdl,
+	if (saClmClusterTrack_4(cb->clm_hdl,
 			      (SA_TRACK_CURRENT | SA_TRACK_CHANGES),
 			      NULL) != SA_AIS_OK) {
-		LOG_ER("saClmClusterTrack Failed");
+		LOG_ER("saClmClusterTrack_4 Failed");
 		return;
 	}
 

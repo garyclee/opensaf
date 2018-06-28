@@ -135,7 +135,6 @@ dist_pkgsysconf_DATA += \
 	src/msg/msgnd/msgnd.conf
 
 bin_osafmsgnd_CPPFLAGS = \
-	-DSA_CLM_B01=1 \
 	-DNCS_MQND=1 -DASAPi_DEBUG=1 \
 	$(AM_CPPFLAGS)
 
@@ -166,7 +165,6 @@ bin_osafmsgnd_LDADD = \
 	lib/libopensaf_core.la
 
 bin_osafmsgd_CPPFLAGS = \
-	-DSA_CLM_B01=1 \
 	-DNCS_MQD=1 -DASAPi_DEBUG=1 \
 	$(AM_CPPFLAGS)
 

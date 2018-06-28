@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2018 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -13,24 +14,25 @@
  *
  */
 
+#include <sched.h>
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
 #include <iostream>
+#include <random>
 #include <string>
 #include <thread>
-#include <chrono>
-#include <atomic>
-#include <random>
 
 #include "base/ncssysf_tmr.h"
+#include "base/time.h"
 #include "gtest/gtest.h"
-
-using namespace std::chrono;
 
 // The fixture for testing c-function sysf_tmr
 class SysfTmrTest : public ::testing::Test {
- public:
  protected:
   SysfTmrTest()
       : distribution_(1 * 60 * 60 * 100, 2 * 60 * 60 * 100 - 1), timers_{} {
+    enable_slow_tests_ = getenv("OSAF_SLOW_UNITTESTS") != nullptr;
     // Setup work can be done here for each test.
   }
 
@@ -41,22 +43,23 @@ class SysfTmrTest : public ::testing::Test {
   virtual void SetUp() {
     // Code here will be called immediately after the constructor (right
     // before each test).
-    bool rc = sysfTmrCreate();
-    ASSERT_EQ(rc, true);
+    expired_ = false;
+    sysfTmrCreate();
   }
 
   virtual void TearDown() {
     // Code here will be called immediately after each test (right
     // before the destructor).
     bool rc = sysfTmrDestroy();
+    // mock_clock_gettime.disable_mock = false;
     ASSERT_EQ(rc, true);
   }
 
   // Objects declared here can be used by all tests in the test case.
-  static const int max_counter = 100;
+  static constexpr int kMaxCounter = 100;
   static int counter;
-  static steady_clock::time_point last_time;
-  static steady_clock::duration times[max_counter];
+  static std::chrono::steady_clock::time_point last_time;
+  static std::chrono::steady_clock::duration times[kMaxCounter];
   static std::atomic<bool> finished;
   static std::atomic<bool> first_time_through;
   void createIntervalTimers(int64_t timeout_in_ms, int no_of_counters);
@@ -65,28 +68,34 @@ class SysfTmrTest : public ::testing::Test {
   std::mt19937 generator_;
   std::uniform_int_distribution<uint32_t> distribution_;
   tmr_t timers_[1000000];
+  static bool enable_slow_tests_;
   static bool expired_;
 };
 
 int SysfTmrTest::counter{0};
-steady_clock::time_point SysfTmrTest::last_time{};
-steady_clock::duration SysfTmrTest::times[max_counter]{};
+std::chrono::steady_clock::time_point SysfTmrTest::last_time{};
+std::chrono::steady_clock::duration SysfTmrTest::times[kMaxCounter]{};
 std::atomic<bool> SysfTmrTest::finished{false};
 std::atomic<bool> SysfTmrTest::first_time_through{true};
 
+bool SysfTmrTest::enable_slow_tests_{false};
 bool SysfTmrTest::expired_{false};
 
-//
 void SysfTmrTest::IntervalTimerCallback(void *) {
-  if (counter >= max_counter) {
-    for (int i = 0; i < max_counter; i++) {
-      std::cout << duration_cast<microseconds>(times[i]).count() << "\n";
+  if (counter >= kMaxCounter) {
+    for (int i = 0; i < kMaxCounter; i++) {
+      if (enable_slow_tests_) {
+        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(
+                         times[i])
+                         .count()
+                  << "\n";
+      }
     }
     finished = true;
     return;
   }
 
-  auto elapsed = steady_clock::now();
+  auto elapsed = std::chrono::steady_clock::now();
 
   if (!first_time_through) {
     times[counter] = elapsed - last_time;
@@ -99,36 +108,35 @@ void SysfTmrTest::IntervalTimerCallback(void *) {
 
 void SysfTmrTest::TimerCallback(void *) { expired_ = true; }
 
-//
 void SysfTmrTest::createIntervalTimers(int64_t timeout_in_ms,
                                        int no_of_counters) {
   for (int i = 1; i <= no_of_counters; i++) {
-    tmr_t tmr_id = ncs_tmr_alloc((char *)__FILE__, __LINE__);
+    tmr_t tmr_id = ncs_tmr_alloc(__FILE__, __LINE__);
     ASSERT_NE(tmr_id, nullptr);
     ncs_tmr_start(tmr_id, (timeout_in_ms * i) / 10, IntervalTimerCallback, 0,
-                  (char *)__FILE__, __LINE__);
+                  __FILE__, __LINE__);
   }
 }
 
 // Tests sysf_tmr as an interval timer and measure "jitter". Timeout values are
 // written to stdout and can be read by e.g. gnuplot
 TEST_F(SysfTmrTest, TestIntervalTimer) {
-  createIntervalTimers(100, max_counter + 2);
-
+  createIntervalTimers(enable_slow_tests_ ? 100 : 1, kMaxCounter + 2);
   while (!finished) {
     std::this_thread::yield();
   }
 }
 
 // Test creating a large number of sysf timers
-TEST_F(SysfTmrTest, CreateOneMillionTimers) {
+TEST_F(SysfTmrTest, CreateAndDeleteManyTimers) {
   expired_ = false;
-  for (uint32_t i = 0; i != 1000000; ++i) {
-    tmr_t tmr1 = ncs_tmr_alloc((char *)__FILE__, __LINE__);
+  uint32_t no_of_timers = enable_slow_tests_ ? 1000000 : 1000;
+  for (uint32_t i = 0; i != no_of_timers; ++i) {
+    tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
     ASSERT_NE(tmr1, TMR_T_NULL);
     int64_t timeout = distribution_(generator_);
-    tmr_t tmr2 = ncs_tmr_start(tmr1, timeout, TimerCallback, nullptr,
-                               (char *)__FILE__, __LINE__);
+    tmr_t tmr2 = ncs_tmr_start(tmr1, timeout, TimerCallback, nullptr, __FILE__,
+                               __LINE__);
     ASSERT_NE(tmr2, TMR_T_NULL);
     timers_[i] = tmr2;
   }
@@ -137,11 +145,148 @@ TEST_F(SysfTmrTest, CreateOneMillionTimers) {
     ncs_tmr_stop(timers_[i]);
     ncs_tmr_free(timers_[i]);
     timers_[i] = TMR_T_NULL;
-    i = (i + 197167) % 1000000;
+    i = (i + 197167) % no_of_timers;
     if (i == 0) break;
   }
-  for (uint32_t i = 0; i != 1000000; ++i) {
+  for (uint32_t i = 0; i != no_of_timers; ++i) {
     ASSERT_EQ(timers_[i], TMR_T_NULL);
   }
   EXPECT_EQ(expired_, false);
 }
+
+TEST_F(SysfTmrTest, ZeroTimeout) {
+  tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
+  ASSERT_NE(tmr1, TMR_T_NULL);
+  tmr_t tmr2 =
+      ncs_tmr_start(tmr1, 0, TimerCallback, nullptr, __FILE__, __LINE__);
+  ASSERT_NE(tmr2, TMR_T_NULL);
+  sched_yield();
+  int64_t remaining = -1;
+  uint32_t result = ncs_tmr_remaining(tmr2, &remaining);
+  if (result == NCSCC_RC_SUCCESS) {
+    ASSERT_LT(remaining, 1000);
+    ASSERT_GE(remaining, 0);
+  }
+  ncs_tmr_stop(tmr2);
+  ncs_tmr_free(tmr2);
+}
+
+TEST_F(SysfTmrTest, NegativeTimeout) {
+  tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
+  ASSERT_NE(tmr1, TMR_T_NULL);
+  int64_t current = base::TimespecToNanos(base::ReadMonotonicClock());
+  tmr_t tmr2 = ncs_tmr_start(tmr1, -current - 100000, TimerCallback, nullptr,
+                             __FILE__, __LINE__);
+  ASSERT_NE(tmr2, TMR_T_NULL);
+  int64_t remaining = -1;
+  uint32_t result = ncs_tmr_remaining(tmr2, &remaining);
+  if (result == NCSCC_RC_SUCCESS) {
+    ASSERT_LT(remaining, 1000);
+    ASSERT_GE(remaining, 0);
+  }
+  ncs_tmr_stop(tmr2);
+  ncs_tmr_free(tmr2);
+}
+
+TEST_F(SysfTmrTest, NullPtr) {
+  tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
+  ASSERT_NE(tmr1, TMR_T_NULL);
+  tmr_t tmr2 = ncs_tmr_start(TMR_T_NULL, 100000, TimerCallback, nullptr,
+                             __FILE__, __LINE__);
+  ASSERT_EQ(tmr2, TMR_T_NULL);
+  ncs_tmr_stop(TMR_T_NULL);
+  ncs_tmr_free(TMR_T_NULL);
+  int64_t remaining = -1;
+  uint32_t result = ncs_tmr_remaining(TMR_T_NULL, &remaining);
+  ASSERT_EQ(result, static_cast<uint32_t>(NCSCC_RC_FAILURE));
+  result = ncs_tmr_remaining(tmr1, nullptr);
+  ASSERT_EQ(result, static_cast<uint32_t>(NCSCC_RC_FAILURE));
+  ncs_tmr_free(tmr1);
+}
+
+TEST_F(SysfTmrTest, StopNonRunningTimer) {
+  tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
+  ASSERT_NE(tmr1, TMR_T_NULL);
+  ncs_tmr_stop(tmr1);
+  tmr_t tmr2 =
+      ncs_tmr_start(tmr1, 100000, TimerCallback, nullptr, __FILE__, __LINE__);
+  ASSERT_NE(tmr2, TMR_T_NULL);
+  ncs_tmr_stop(tmr2);
+  ncs_tmr_free(tmr2);
+}
+
+TEST_F(SysfTmrTest, StartRunningTimer) {
+  tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
+  ASSERT_NE(tmr1, TMR_T_NULL);
+  tmr_t tmr2 =
+      ncs_tmr_start(tmr1, 100000, TimerCallback, nullptr, __FILE__, __LINE__);
+  ASSERT_NE(tmr2, TMR_T_NULL);
+  tmr_t tmr3 =
+      ncs_tmr_start(tmr2, 100000, TimerCallback, nullptr, __FILE__, __LINE__);
+  ASSERT_NE(tmr3, TMR_T_NULL);
+  ncs_tmr_stop(tmr3);
+  ncs_tmr_free(tmr3);
+}
+
+TEST_F(SysfTmrTest, FreeRunningTimer) {
+  tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
+  ASSERT_NE(tmr1, TMR_T_NULL);
+  tmr_t tmr2 =
+      ncs_tmr_start(tmr1, 100000, TimerCallback, nullptr, __FILE__, __LINE__);
+  ASSERT_NE(tmr2, TMR_T_NULL);
+  ncs_tmr_free(tmr2);
+}
+
+TEST_F(SysfTmrTest, GetRemainingTimeOneHour) {
+  tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
+  ASSERT_NE(tmr1, TMR_T_NULL);
+  tmr_t tmr2 = ncs_tmr_start(tmr1, 60 * 60 * 100, TimerCallback, nullptr,
+                             __FILE__, __LINE__);
+  ASSERT_NE(tmr2, TMR_T_NULL);
+  int64_t remaining = -1;
+  uint32_t result = ncs_tmr_remaining(tmr2, &remaining);
+  ASSERT_EQ(result, static_cast<uint32_t>(NCSCC_RC_SUCCESS));
+  ASSERT_LT(remaining, 60 * 61 * 10000);
+  ASSERT_GE(remaining, 60 * 60 * 10000);
+  ncs_tmr_stop(tmr2);
+  ncs_tmr_free(tmr2);
+}
+
+TEST_F(SysfTmrTest, GetRemainingTimeStoppedTimer) {
+  tmr_t tmr1 = ncs_tmr_alloc(__FILE__, __LINE__);
+  ASSERT_NE(tmr1, TMR_T_NULL);
+  tmr_t tmr2 = ncs_tmr_start(tmr1, 60 * 60 * 100, TimerCallback, nullptr,
+                             __FILE__, __LINE__);
+  ASSERT_NE(tmr2, TMR_T_NULL);
+  ncs_tmr_stop(tmr2);
+  int64_t remaining = -1;
+  uint32_t result = ncs_tmr_remaining(tmr2, &remaining);
+  ASSERT_EQ(result, static_cast<uint32_t>(NCSCC_RC_FAILURE));
+  ncs_tmr_free(tmr2);
+}
+
+TEST_F(SysfTmrTest, RestartManyTimers) {
+  std::mt19937_64 generator(4711);
+  size_t no_of_timers = enable_slow_tests_ ? 10000 : 10;
+  size_t no_of_iterations = enable_slow_tests_ ? 10000000 : 10000;
+  for (size_t i = 0; i != no_of_timers; ++i) {
+    timers_[i] = ncs_tmr_alloc(__FILE__, __LINE__);
+    uint64_t timeout = (generator() % 1000) + 30000;
+    timers_[i] = ncs_tmr_start(timers_[i], timeout, TimerCallback, nullptr,
+                               __FILE__, __LINE__);
+  }
+  for (size_t i = 0; i != no_of_iterations; ++i) {
+    uint64_t timeout = (generator() % 1000) + 30000;
+    int j = i % no_of_timers;
+    ncs_tmr_stop(timers_[j]);
+    timers_[j] = ncs_tmr_start(timers_[j], timeout, TimerCallback, nullptr,
+                               __FILE__, __LINE__);
+  }
+  for (size_t i = 0; i != no_of_timers; ++i) {
+    ncs_tmr_free(timers_[i]);
+    timers_[i] = TMR_T_NULL;
+  }
+  EXPECT_FALSE(expired_);
+}
+
+TEST_F(SysfTmrTest, CreateAndImmediatelyDestroy) {}

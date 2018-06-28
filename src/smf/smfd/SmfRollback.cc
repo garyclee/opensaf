@@ -68,17 +68,17 @@ SaAisErrorT smfCreateRollbackElement(const std::string& i_dn,
   TRACE("Create rollback element, parent '%s', rdn '%s'", parentDn.c_str(),
         rdnStr.c_str());
 
-  icoRollbackCcb.setClassName("OpenSafSmfRollbackElement");
-  icoRollbackCcb.setParentDn(parentDn);
-  icoRollbackCcb.setImmHandle(i_oiHandle);
+  icoRollbackCcb.SetClassName("OpenSafSmfRollbackElement");
+  icoRollbackCcb.SetParentDn(parentDn);
+  icoRollbackCcb.SetImmHandle(i_oiHandle);
 
   SmfImmAttribute rdn;
-  rdn.setName("smfRollbackElement");
-  rdn.setType("SA_IMM_ATTR_SASTRINGT");
-  rdn.addValue(rdnStr);
-  icoRollbackCcb.addValue(rdn);
+  rdn.SetAttributeName("smfRollbackElement");
+  rdn.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  rdn.AddAttributeValue(rdnStr);
+  icoRollbackCcb.AddValue(rdn);
 
-  return icoRollbackCcb.execute();  // Create the object
+  return icoRollbackCcb.Execute();  // Create the object
 }
 
 //================================================================================
@@ -134,9 +134,9 @@ SaAisErrorT SmfRollbackData::execute(SaImmOiHandleT i_oiHandle) {
 
   SmfImmRTCreateOperation icoRollbackData;
 
-  icoRollbackData.setClassName("OpenSafSmfRollbackData");
-  icoRollbackData.setParentDn(m_ccb->getDn());
-  icoRollbackData.setImmHandle(i_oiHandle);
+  icoRollbackData.SetClassName("OpenSafSmfRollbackData");
+  icoRollbackData.SetParentDn(m_ccb->getDn());
+  icoRollbackData.SetImmHandle(i_oiHandle);
 
   char idStr[16];
   snprintf(idStr, sizeof(idStr), "%08u", m_id);
@@ -144,44 +144,44 @@ SaAisErrorT SmfRollbackData::execute(SaImmOiHandleT i_oiHandle) {
   rdnValue += idStr;
 
   SmfImmAttribute rdn;
-  rdn.setName("smfRollbackData");
-  rdn.setType("SA_IMM_ATTR_SASTRINGT");
-  rdn.addValue(rdnValue);
-  icoRollbackData.addValue(rdn);
+  rdn.SetAttributeName("smfRollbackData");
+  rdn.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  rdn.AddAttributeValue(rdnValue);
+  icoRollbackData.AddValue(rdn);
 
   SmfImmAttribute typeAttr;
-  typeAttr.setName("smfRollbackType");
-  typeAttr.setType("SA_IMM_ATTR_SASTRINGT");
-  typeAttr.addValue(m_type);
-  icoRollbackData.addValue(typeAttr);
+  typeAttr.SetAttributeName("smfRollbackType");
+  typeAttr.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  typeAttr.AddAttributeValue(m_type);
+  icoRollbackData.AddValue(typeAttr);
 
   SmfImmAttribute dnAttr;
-  dnAttr.setName("smfRollbackDn");
-  dnAttr.setType("SA_IMM_ATTR_SANAMET");
-  dnAttr.addValue(m_dn);
-  icoRollbackData.addValue(dnAttr);
+  dnAttr.SetAttributeName("smfRollbackDn");
+  dnAttr.SetAttributeType("SA_IMM_ATTR_SANAMET");
+  dnAttr.AddAttributeValue(m_dn);
+  icoRollbackData.AddValue(dnAttr);
 
   SmfImmAttribute classAttr;
-  classAttr.setName("smfRollbackClass");
-  classAttr.setType("SA_IMM_ATTR_SASTRINGT");
-  classAttr.addValue(m_class);
-  icoRollbackData.addValue(classAttr);
+  classAttr.SetAttributeName("smfRollbackClass");
+  classAttr.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
+  classAttr.AddAttributeValue(m_class);
+  icoRollbackData.AddValue(classAttr);
 
   SmfImmAttribute attrValueAttr;
-  attrValueAttr.setName("smfRollbackAttrValue");
-  attrValueAttr.setType("SA_IMM_ATTR_SASTRINGT");
+  attrValueAttr.SetAttributeName("smfRollbackAttrValue");
+  attrValueAttr.SetAttributeType("SA_IMM_ATTR_SASTRINGT");
 
   if (m_attrValues.size() == 0) {
-    attrValueAttr.addValue("");
+    attrValueAttr.AddAttributeValue("");
   } else {
     for (auto& elem : m_attrValues) {
-      attrValueAttr.addValue((elem));
+      attrValueAttr.AddAttributeValue((elem));
     }
   }
 
-  icoRollbackData.addValue(attrValueAttr);
+  icoRollbackData.AddValue(attrValueAttr);
 
-  result = icoRollbackData.execute();  // Create the object
+  result = icoRollbackData.Execute();  // Create the object
   if (result != SA_AIS_OK) {
     LOG_ER(
         "SmfRollbackData::execute, Failed to create IMM rollback data object, %s",
@@ -298,8 +298,8 @@ SaAisErrorT SmfRollbackData::rollbackCreateOperation(
     return SA_AIS_ERR_FAILED_OPERATION;
   }
 
-  immOp->setParentDn(osaf_extended_name_borrow(dnAttr));
-  immOp->setClassName(classAttr);
+  immOp->SetParentDn(osaf_extended_name_borrow(dnAttr));
+  immOp->SetClassName(classAttr);
 
   for (unsigned int index = 0; index < noOfAttrValues; index++) {
     const char* attrValueString =
@@ -322,7 +322,7 @@ SaAisErrorT SmfRollbackData::rollbackCreateOperation(
 
     TRACE("Rollback create object attribute name %s, type %s, value '%s'",
           attrName.c_str(), attrType.c_str(), attrValue.c_str());
-    immOp->addAttrValue(attrName, attrType, attrValue);
+    immOp->AddOrUpdateAttribute(attrName, attrType, attrValue);
   }
 
   io_operationList.push_back(immOp);
@@ -359,7 +359,7 @@ SaAisErrorT SmfRollbackData::rollbackDeleteOperation(
 
   TRACE("Rollback delete object %s", osaf_extended_name_borrow(dnAttr));
 
-  immOp->setDn(osaf_extended_name_borrow(dnAttr));
+  immOp->SetDn(osaf_extended_name_borrow(dnAttr));
 
   io_operationList.push_back(immOp);
 
@@ -408,15 +408,15 @@ SaAisErrorT SmfRollbackData::rollbackModifyOperation(
   SmfImmModifyOperation* immOp = new (std::nothrow) SmfImmModifyOperation();
   if (immOp == NULL) {
     LOG_ER(
-        "SmfRollbackData::rollbackModifyOperation, could not create SmfImmCreateOperation");
+        "SmfRollbackData::rollbackModifyOperation, could not create SmfImmModifyOperation");
     return SA_AIS_ERR_FAILED_OPERATION;
   }
 
   TRACE("Rollback modify object %s, no of attributes %d",
         osaf_extended_name_borrow(dnAttr), noOfAttrValues);
 
-  immOp->setDn(osaf_extended_name_borrow(dnAttr));
-  immOp->setOp("SA_IMM_ATTR_VALUES_REPLACE");
+  immOp->SetObjectDn(osaf_extended_name_borrow(dnAttr));
+  immOp->SetModificationType("SA_IMM_ATTR_VALUES_REPLACE");
 
   for (unsigned int index = 0; index < noOfAttrValues; index++) {
     const char* attrValueString =
@@ -440,7 +440,7 @@ SaAisErrorT SmfRollbackData::rollbackModifyOperation(
     TRACE("Rollback modify object attribute name %s, type %s, value '%s'",
           attrName.c_str(), attrType.c_str(), attrValue.c_str());
 
-    immOp->addAttrValue(attrName, attrType, attrValue);
+    immOp->AddOrUpdateAttribute(attrName, attrType, attrValue);
   }
 
   io_operationList.push_back(immOp);

@@ -297,12 +297,16 @@ void gld_free_rsc_info(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info)
 	SaNameT lck_name;
 	SaNameT immObj_name;
 
+	TRACE_ENTER();
+
 	memset(&lck_name, '\0', sizeof(SaNameT));
 	memset(&immObj_name, '\0', sizeof(SaNameT));
 
 	/* Some node is still referring to this resource, so backout */
-	if (rsc_info->node_list != NULL)
+	if (rsc_info->node_list != NULL) {
+		TRACE_LEAVE();
 		return;
+	}
 
 	/* Free the node from the resource linked list */
 	if (rsc_info->prev != NULL)
@@ -322,6 +326,7 @@ void gld_free_rsc_info(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info)
 						  &immObj_name) != SA_AIS_OK) {
 			LOG_ER("Deleting run time object %s FAILED",
 			       lck_name.value);
+			TRACE_LEAVE();
 			return;
 		}
 	}
@@ -332,6 +337,7 @@ void gld_free_rsc_info(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info)
 					  (NCS_PATRICIA_NODE *)rsc_map_info) !=
 		    NCSCC_RC_SUCCESS) {
 			LOG_ER("Patricia tree del failed");
+			TRACE_LEAVE();
 			return;
 		}
 		m_MMGR_FREE_GLSV_GLD_RSC_MAP_INFO(rsc_map_info);
@@ -347,6 +353,8 @@ void gld_free_rsc_info(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info)
 	}
 
 	m_MMGR_FREE_GLSV_GLD_RSC_INFO(rsc_info);
+
+	TRACE_LEAVE();
 	return;
 }
 
@@ -431,7 +439,10 @@ void gld_rsc_rmv_node_ref(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info,
 	GLSV_NODE_LIST **node_list, *free_node_list = NULL;
 	bool chg_master = false;
 
+	TRACE_ENTER();
+
 	if (glnd_rsc == NULL || rsc_info == NULL) {
+		TRACE_LEAVE();
 		return;
 	}
 	if (rsc_info->node_list->node_id == node_details->node_id)
@@ -455,23 +466,13 @@ void gld_rsc_rmv_node_ref(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info,
 		m_MMGR_FREE_GLSV_NODE_LIST(free_node_list);
 	}
 
-	if (orphan_flag) {
-		rsc_info->can_orphan = false;
-	}
+	rsc_info->can_orphan = orphan_flag;
 
 	if (ncs_patricia_tree_del(&node_details->rsc_info_tree,
 				  (NCS_PATRICIA_NODE *)glnd_rsc) !=
 	    NCSCC_RC_SUCCESS) {
 		LOG_ER("Patricia tree del failed");
 	}
-
-	if (rsc_info->node_list != NULL && rsc_info->can_orphan == false)
-		glnd_rsc->rsc_info->saf_rsc_no_of_users =
-		    glnd_rsc->rsc_info->saf_rsc_no_of_users +
-		    1; /* In the purge flow we need to increment the number of
-			  users beacuse we have already decremented it in
-			  finalize flow and again decremented in purge flow
-			  which amounts to double decrement */
 
 	m_MMGR_FREE_GLSV_GLD_GLND_RSC_REF(glnd_rsc);
 
@@ -488,6 +489,7 @@ void gld_rsc_rmv_node_ref(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info,
 		gld_snd_master_status(gld_cb, rsc_info,
 				      GLND_RESOURCE_ELECTION_IN_PROGESS);
 	}
+	TRACE_LEAVE();
 	return;
 }
 

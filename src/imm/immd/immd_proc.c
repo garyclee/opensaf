@@ -331,23 +331,33 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		 */
 	} else {
 		/* Try to elect a new coord. */
+		IMMD_IMMND_INFO_NODE *candidate_coord_node = NULL;
 		cb->payload_coord_dest = 0LL;
 		memset(&key, 0, sizeof(MDS_DEST));
 		immd_immnd_info_node_getnext(&cb->immnd_tree, &key,
 					     &immnd_info_node);
+
+		// Election priority:
+		// 1) Coordinator on active node
+		// 2) Coordinator on standby node
+		// 3) Coordinator on PL node if SC absence is allowed.
 		while (immnd_info_node) {
 			key = immnd_info_node->immnd_dest;
 			if ((immnd_info_node->isOnController) &&
 			    (immnd_info_node->epoch == cb->mRulingEpoch)) {
-				/*We found a new candidate for cordinator */
+				candidate_coord_node = immnd_info_node;
 				immnd_info_node->isCoord = true;
-				break;
+				if (immnd_info_node->immnd_key == cb->node_id) {
+					/* Found a new candidate on active SC */
+					break;
+				}
 			}
 
 			immd_immnd_info_node_getnext(&cb->immnd_tree, &key,
 						     &immnd_info_node);
 		}
 
+		immnd_info_node = candidate_coord_node;
 		if (!immnd_info_node && cb->mScAbsenceAllowed) {
 			/* If SC absence is allowed and no SC based IMMND is
 			   available then elect an IMMND coord at a payload.

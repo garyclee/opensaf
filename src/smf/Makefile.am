@@ -106,6 +106,7 @@ noinst_HEADERS += \
 	src/smf/smfd/SmfUpgradeProcedure.h \
 	src/smf/smfd/SmfUpgradeStep.h \
 	src/smf/smfd/SmfUtils.h \
+	src/smf/smfd/SmfUtils_ObjExist.h \
 	src/smf/smfd/smfd.h \
 	src/smf/smfd/smfd_cb.h \
 	src/smf/smfd/smfd_evt.h \
@@ -198,6 +199,7 @@ bin_osafsmfd_SOURCES = \
 	src/smf/smfd/SmfUpgradeProcedure.cc \
 	src/smf/smfd/SmfUpgradeStep.cc \
 	src/smf/smfd/SmfUtils.cc \
+	src/smf/smfd/SmfUtils_ObjExist.cc \
 	src/smf/smfd/smfd_amf.cc \
 	src/smf/smfd/smfd_campaign_oi.cc \
 	src/smf/smfd/smfd_evt.c \
@@ -261,7 +263,12 @@ endif
 # Demos and test
 if ENABLE_TESTS
 
-bin_PROGRAMS += bin/ccbdemo_create bin/ccbdemo_delete bin/ccbdemo_modify bin/ccbhdl_test
+bin_PROGRAMS += \
+	bin/ccbdemo_create \
+	bin/ccbdemo_delete \
+	bin/ccbdemo_modify \
+	bin/test_ccbhdl \
+	bin/test_objexist
 
 dist_pkgimmxml_svc_DATA += \
 	src/smf/smfd/imm_modify_demo/democlass.xml
@@ -377,26 +384,26 @@ bin_ccbdemo_modify_LDADD = \
 	lib/libSaImmOm.la \
 	lib/libopensaf_core.la
 
-# CCBHDL Test
+# Test CCBHDL
 # -----------
-bin_ccbhdl_test_CFLAGS = $(AM_CFLAGS) -Wformat=1
+bin_test_ccbhdl_CFLAGS = $(AM_CFLAGS) -Wformat=1
 
-bin_ccbhdl_test_CPPFLAGS = \
+bin_test_ccbhdl_CPPFLAGS = \
 	-DSA_EXTENDED_NAME_SOURCE \
 	$(AM_CPPFLAGS)
 
-bin_ccbhdl_test_SOURCES = \
+bin_test_ccbhdl_SOURCES = \
 	src/smf/smfd/imm_modify_demo/common.cc \
-	src/smf/smfd/imm_modify_demo/ccbhdl_test.cc
+	src/smf/smfd/imm_modify_demo/test_ccbhdl.cc
 
 # IMM configuration modifier
-bin_ccbhdl_test_SOURCES += \
+bin_test_ccbhdl_SOURCES += \
 	src/smf/smfd/imm_modify_config/attribute.cc \
 	src/smf/smfd/imm_modify_config/add_operation_to_ccb.cc \
 	src/smf/smfd/imm_modify_config/immccb.cc
 
 # IMM OM C++ APIs
-bin_ccbhdl_test_SOURCES += \
+bin_test_ccbhdl_SOURCES += \
 	src/smf/smfd/imm_om_ccapi/common/common.cc \
 	src/smf/smfd/imm_om_ccapi/common/imm_attribute.cc \
 	src/smf/smfd/imm_om_ccapi/om_admin_owner_clear.cc \
@@ -408,7 +415,24 @@ bin_ccbhdl_test_SOURCES += \
 	src/smf/smfd/imm_om_ccapi/om_ccb_object_modify.cc \
 	src/smf/smfd/imm_om_ccapi/om_handle.cc
 
-bin_ccbhdl_test_LDADD = \
+bin_test_ccbhdl_LDADD = \
+	lib/libosaf_common.la \
+	lib/libSaImmOm.la \
+	lib/libopensaf_core.la
+
+# Test OBJEXIST
+# -------------
+bin_test_objexist_CFLAGS = $(AM_CFLAGS) -Wformat=1
+
+bin_test_objexist_CPPFLAGS = \
+	-DSA_EXTENDED_NAME_SOURCE \
+	$(AM_CPPFLAGS)
+
+bin_test_objexist_SOURCES = \
+	src/smf/smfd/SmfUtils_ObjExist.cc \
+	src/smf/smfd/imm_modify_demo/test_objexist.cc
+
+bin_test_objexist_LDADD = \
 	lib/libosaf_common.la \
 	lib/libSaImmOm.la \
 	lib/libopensaf_core.la

@@ -37,6 +37,7 @@
 #include <syslog.h>
 #include <stdarg.h>
 #include "base/ncsgl_defs.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -95,6 +96,12 @@ extern int logtrace_init(const char *ident, const char *pathname,
 extern int logtrace_init_daemon(const char *ident, const char *pathname,
                                 unsigned tracemask, int logmask);
 
+/*
+ * logtrace_exit_daemon
+ * This should be called when a daemon exit
+ */
+extern int logtrace_exit_daemon();
+
 /**
  * trace_category_set - Set the mask used for trace filtering.
  *
@@ -129,7 +136,9 @@ extern void logtrace_trace(const char *file, unsigned line, unsigned category,
     __attribute__((format(printf, 4, 5)));
 
 extern bool is_logtrace_enabled(unsigned category);
-extern void logtrace_output(const char *file, unsigned line, unsigned priority,
+extern void trace_output(const char *file, unsigned line, unsigned priority,
+                            unsigned category, const char *format, va_list ap);
+extern void log_output(const char *file, unsigned line, unsigned priority,
                             unsigned category, const char *format, va_list ap);
 
 /* LOG API. Use same levels as syslog */
@@ -169,13 +178,18 @@ extern void logtrace_output(const char *file, unsigned line, unsigned priority,
   logtrace_trace(__FILE__, __LINE__, CAT_TRACE8, (format), ##args)
 
 #ifdef __cplusplus
+
 class Trace {
  public:
-  Trace() {}
+  Trace() = delete;
+  Trace(const char *file, const char *function) {
+    file_ = file;
+    function_ = function;
+  }
   ~Trace() {
     if (!trace_leave_called && is_logtrace_enabled(CAT_TRACE_LEAVE)) {
       va_list ap{};
-      logtrace_output(file_, 0, LOG_DEBUG, CAT_TRACE_LEAVE, function_, ap);
+      trace_output(file_, 0, LOG_DEBUG, CAT_TRACE_LEAVE, function_, ap);
     }
   }
   void trace(const char *file, const char *function, unsigned line,
@@ -185,7 +199,7 @@ class Trace {
       file_ = file;
       function_ = function;
       va_start(ap, format);
-      logtrace_output(file, line, LOG_DEBUG, category, format, ap);
+      trace_output(file, line, LOG_DEBUG, category, format, ap);
       va_end(ap);
     }
   }
@@ -196,7 +210,7 @@ class Trace {
     if (is_logtrace_enabled(category)) {
       va_start(ap, format);
       trace_leave_called = true;
-      logtrace_output(file, line, LOG_DEBUG, category, format, ap);
+      trace_output(file, line, LOG_DEBUG, category, format, ap);
       va_end(ap);
     }
   }
@@ -208,11 +222,11 @@ class Trace {
 };
 
 #define TRACE_ENTER()                                                \
-  Trace t_;                                                          \
+  Trace t_(__FILE__, __FUNCTION__); \
   t_.trace(__FILE__, __FUNCTION__, __LINE__, CAT_TRACE_ENTER, "%s ", \
            __FUNCTION__)
 #define TRACE_ENTER2(format, args...)                                        \
-  Trace t_;                                                                  \
+  Trace t_(__FILE__, __FUNCTION__); \
   t_.trace(__FILE__, __FUNCTION__, __LINE__, CAT_TRACE_ENTER, "%s: " format, \
            __FUNCTION__, ##args)
 

@@ -460,6 +460,7 @@ static void ccb_apply_modify_hdlr(const CcbUtilOperationData_t *opdata) {
   const SaImmAttrModificationT_2 *attr_mod;
   AVD_COMP_TYPE *comp_type;
   SaNameT comp_type_name;
+  bool is_changed;
 
   TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId,
                osaf_extended_name_borrow(&opdata->objectName));
@@ -488,97 +489,116 @@ static void ccb_apply_modify_hdlr(const CcbUtilOperationData_t *opdata) {
     comp = comp->comp_type_list_comp_next;
   }
 
-  std::set<AVD_AVND *>::iterator it;
-  for (it = node_set.begin(); it != node_set.end(); ++it) {
-    int i = 0;
-    while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
-      AVSV_PARAM_INFO param;
-      memset(&param, 0, sizeof(param));
-      param.class_id = AVSV_SA_AMF_COMP_TYPE;
-      param.act = AVSV_OBJ_OPR_MOD;
-      param.name = opdata->objectName;
-      const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
+  int i = 0;
+  while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
+    AVSV_PARAM_INFO param;
+    memset(&param, 0, sizeof(param));
+    param.class_id = AVSV_SA_AMF_COMP_TYPE;
+    param.act = AVSV_OBJ_OPR_MOD;
+    param.name = opdata->objectName;
+    const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
+    is_changed = false;
 
-      if (!strcmp(attribute->attrName, "saAmfCtDefCallbackTimeout")) {
-        SaTimeT *param_val = (SaTimeT *)attribute->attrValues[0];
-        TRACE(
-            "saAmfCtDefCallbackTimeout to '%llu' for compType '%s' on node '%s'",
-            *param_val, osaf_extended_name_borrow(&opdata->objectName),
-            (*it)->name.c_str());
-        param.value_len = sizeof(*param_val);
-        memcpy(param.value, param_val, param.value_len);
-        param.attr_id = saAmfCtDefCallbackTimeout_ID;
-        avd_snd_op_req_msg(avd_cb, *it, &param);
-      } else if (!strcmp(attribute->attrName, "saAmfCtDefClcCliTimeout")) {
-        SaTimeT *param_val = (SaTimeT *)attribute->attrValues[0];
-        TRACE(
-            "saAmfCtDefClcCliTimeout to '%llu' for compType '%s' on node '%s'",
-            *param_val, osaf_extended_name_borrow(&opdata->objectName),
-            (*it)->name.c_str());
-        param.value_len = sizeof(*param_val);
-        memcpy(param.value, param_val, param.value_len);
-        param.attr_id = saAmfCtDefClcCliTimeout_ID;
-        avd_snd_op_req_msg(avd_cb, *it, &param);
-      } else if (!strcmp(attribute->attrName,
-                         "saAmfCtDefQuiescingCompleteTimeout")) {
-        SaTimeT *param_val = (SaTimeT *)attribute->attrValues[0];
-        TRACE(
-            "saAmfCtDefQuiescingCompleteTimeout to '%llu' for compType '%s' on node '%s'",
-            *param_val, osaf_extended_name_borrow(&opdata->objectName),
-            (*it)->name.c_str());
-        param.value_len = sizeof(*param_val);
-        memcpy(param.value, param_val, param.value_len);
-        param.attr_id = saAmfCtDefQuiescingCompleteTimeout_ID;
-        avd_snd_op_req_msg(avd_cb, *it, &param);
-      } else if (!strcmp(attribute->attrName, "saAmfCtDefInstantiationLevel")) {
-        SaUint32T param_val;
-        SaUint32T old_value = comp_type->saAmfCtDefInstantiationLevel;
-        if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
-            (attribute->attrValues == nullptr)) {
-          param_val = 0;  // Default value as per Section 8.13.1 (B0401)
-        } else {
-          param_val = *(SaUint32T *)attribute->attrValues[0];
-        }
-        TRACE(
-            "saAmfCtDefInstantiationLevel to '%u' for compType '%s' on node '%s'",
-            param_val, osaf_extended_name_borrow(&opdata->objectName),
-            (*it)->name.c_str());
-        param.value_len = sizeof(param_val);
-        memcpy(param.value, &param_val, param.value_len);
-        param.attr_id = saAmfCtDefInstantiationLevel_ID;
+    if (!strcmp(attribute->attrName, "saAmfCtDefCallbackTimeout")) {
+      SaTimeT *param_val = (SaTimeT *)attribute->attrValues[0];
+      SaTimeT old_value = comp_type->saAmfCtDefCallbackTimeout;
+      TRACE(
+          "saAmfCtDefCallbackTimeout to '%llu' for compType '%s'",
+          *param_val, osaf_extended_name_borrow(&opdata->objectName));
+      param.value_len = sizeof(*param_val);
+      memcpy(param.value, param_val, param.value_len);
+      param.attr_id = saAmfCtDefCallbackTimeout_ID;
+      if (old_value != *param_val) {
+        comp_type->saAmfCtDefCallbackTimeout = *param_val;
+        is_changed = true;
+      }
+    } else if (!strcmp(attribute->attrName, "saAmfCtDefClcCliTimeout")) {
+      SaTimeT *param_val = (SaTimeT *)attribute->attrValues[0];
+      SaTimeT old_value = comp_type->saAmfCtDefClcCliTimeout;
+      TRACE(
+          "saAmfCtDefClcCliTimeout to '%llu' for compType '%s'",
+          *param_val, osaf_extended_name_borrow(&opdata->objectName));
+      param.value_len = sizeof(*param_val);
+      memcpy(param.value, param_val, param.value_len);
+      param.attr_id = saAmfCtDefClcCliTimeout_ID;
+      if (old_value != *param_val) {
+        comp_type->saAmfCtDefClcCliTimeout = *param_val;
+        is_changed = true;
+      }
+    } else if (!strcmp(attribute->attrName,
+                       "saAmfCtDefQuiescingCompleteTimeout")) {
+      SaTimeT *param_val = (SaTimeT *)attribute->attrValues[0];
+      SaTimeT old_value = comp_type->saAmfCtDefQuiescingCompleteTimeout;
+      TRACE(
+          "saAmfCtDefQuiescingCompleteTimeout to '%llu' for compType '%s'",
+          *param_val, osaf_extended_name_borrow(&opdata->objectName));
+      param.value_len = sizeof(*param_val);
+      memcpy(param.value, param_val, param.value_len);
+      param.attr_id = saAmfCtDefQuiescingCompleteTimeout_ID;
+      if (old_value != *param_val) {
+        comp_type->saAmfCtDefQuiescingCompleteTimeout = *param_val;
+        is_changed = true;
+      }
+    } else if (!strcmp(attribute->attrName, "saAmfCtDefInstantiationLevel")) {
+      SaUint32T param_val;
+      SaUint32T old_value = comp_type->saAmfCtDefInstantiationLevel;
+      if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
+          (attribute->attrValues == nullptr)) {
+        param_val = 0;  // Default value as per Section 8.13.1 (B0401)
+      } else {
+        param_val = *(SaUint32T *)attribute->attrValues[0];
+      }
+      TRACE(
+          "saAmfCtDefInstantiationLevel to '%u' for compType '%s'",
+          param_val, osaf_extended_name_borrow(&opdata->objectName));
+      param.value_len = sizeof(param_val);
+      memcpy(param.value, &param_val, param.value_len);
+      param.attr_id = saAmfCtDefInstantiationLevel_ID;
+      if (old_value != param_val) {
         comp_type->saAmfCtDefInstantiationLevel = param_val;
-        if (old_value != param_val) avd_snd_op_req_msg(avd_cb, *it, &param);
-      } else if (!strcmp(attribute->attrName, "saAmfCtDefRecoveryOnError")) {
-        SaAmfRecommendedRecoveryT *param_val =
-            (SaAmfRecommendedRecoveryT *)attribute->attrValues[0];
-        TRACE(
-            "saAmfCtDefRecoveryOnError to '%u' for compType '%s' on node '%s'",
-            *param_val, osaf_extended_name_borrow(&opdata->objectName),
-            (*it)->name.c_str());
-        param.value_len = sizeof(*param_val);
-        memcpy(param.value, param_val, param.value_len);
-        param.attr_id = saAmfCtDefRecoveryOnError_ID;
-        avd_snd_op_req_msg(avd_cb, *it, &param);
-      } else if (!strcmp(attribute->attrName, "saAmfCtDefDisableRestart")) {
-        SaBoolT param_val;
-        SaUint32T old_value = comp_type->saAmfCtDefDisableRestart;
-        if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
-            (attribute->attrValues == nullptr)) {
-          param_val = static_cast<SaBoolT>(
-              0);  // Default value as per Section 8.13.1 (B0401)
-        } else {
-          param_val = *(SaBoolT *)attribute->attrValues[0];
-        }
-        TRACE("saAmfCtDefDisableRestart to '%u' for compType '%s' on node '%s'",
-              param_val, osaf_extended_name_borrow(&opdata->objectName),
-              (*it)->name.c_str());
-        param.value_len = sizeof(param_val);
-        memcpy(param.value, &param_val, param.value_len);
-        param.attr_id = saAmfCtDefDisableRestart_ID;
+        is_changed = true;
+      }
+    } else if (!strcmp(attribute->attrName, "saAmfCtDefRecoveryOnError")) {
+      SaUint32T old_value = comp_type->saAmfCtDefRecoveryOnError;
+      SaAmfRecommendedRecoveryT *param_val =
+          (SaAmfRecommendedRecoveryT *)attribute->attrValues[0];
+      TRACE(
+          "saAmfCtDefRecoveryOnError to '%u' for compType '%s'",
+          *param_val, osaf_extended_name_borrow(&opdata->objectName));
+      param.value_len = sizeof(*param_val);
+      memcpy(param.value, param_val, param.value_len);
+      param.attr_id = saAmfCtDefRecoveryOnError_ID;
+      if (old_value != *param_val) {
+        comp_type->saAmfCtDefRecoveryOnError = *param_val;
+        is_changed = true;
+      }
+    } else if (!strcmp(attribute->attrName, "saAmfCtDefDisableRestart")) {
+      SaBoolT param_val;
+      SaUint32T old_value = comp_type->saAmfCtDefDisableRestart;
+      if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
+          (attribute->attrValues == nullptr)) {
+        param_val = static_cast<SaBoolT>(
+            0);  // Default value as per Section 8.13.1 (B0401)
+      } else {
+        param_val = *(SaBoolT *)attribute->attrValues[0];
+      }
+      TRACE("saAmfCtDefDisableRestart to '%u' for compType '%s'",
+            param_val, osaf_extended_name_borrow(&opdata->objectName));
+      param.value_len = sizeof(param_val);
+      memcpy(param.value, &param_val, param.value_len);
+      param.attr_id = saAmfCtDefDisableRestart_ID;
+      if (old_value != param_val) {
         comp_type->saAmfCtDefDisableRestart = param_val;
-        if (old_value != param_val) avd_snd_op_req_msg(avd_cb, *it, &param);
-      } else
-        LOG_WA("Unexpected attribute name: %s", attribute->attrName);
+        is_changed = true;
+      }
+    } else
+      LOG_WA("Unexpected attribute name: %s", attribute->attrName);
+
+    if (is_changed == true) {
+      std::set<AVD_AVND *>::iterator it;
+      for (it = node_set.begin(); it != node_set.end(); ++it) {
+        avd_snd_op_req_msg(avd_cb, *it, &param);
+      }
     }
   }
 }

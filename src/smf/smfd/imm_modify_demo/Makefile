@@ -15,5 +15,6 @@
 #
 
 all:
-	$(MAKE) -C ../../../.. bin/ccbdemo_create bin/ccbdemo_delete bin/ccbdemo_modify bin/ccbhdl_test
+	$(MAKE) -C ../../../.. bin/ccbdemo_create bin/ccbdemo_delete \
+	bin/ccbdemo_modify bin/test_ccbhdl bin/test_objexist
 

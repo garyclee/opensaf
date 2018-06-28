@@ -20,7 +20,7 @@
 #include "smf/smfd/SmfImmApplierHdl.h"
 #include <string>
 #include <atomic>
-// TODO(Lennart): Replace with base::mutex when available
+// Note: Replace <mutex> with base::mutex when available
 #include <mutex>
 
 #include "smf/smfd/smfd.h"

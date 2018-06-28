@@ -515,11 +515,8 @@ uint32_t gld_mds_vdest_create(GLSV_GLD_CB *cb)
 {
 	NCSVDA_INFO arg;
 	uint32_t rc;
-	SaClmClusterNodeT cluster_node;
 	uint32_t seed;
 	TRACE_ENTER();
-
-	memset(&cluster_node, 0, sizeof(SaClmClusterNodeT));
 
 	memset(&arg, 0, sizeof(NCSVDA_INFO));
 	arg.req = NCSVDA_VDEST_CREATE;

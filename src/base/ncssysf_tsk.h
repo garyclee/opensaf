@@ -35,11 +35,11 @@
 #include "base/ncsgl_defs.h"
 #include "base/ncs_osprm.h"
 
-extern uint32_t ncs_task_join(void *task_handle);
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern uint32_t ncs_task_join(void *task_handle);
 
 /** This typedef is being maintained for backward compatibility
  ** with ech.

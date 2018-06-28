@@ -549,6 +549,9 @@ void daemon_exit(void)
 	unlink(fifo_file);
 	unlink(__pidfile);
 
+	/* flush the logtrace */
+	logtrace_exit_daemon();
+
 	_Exit(0);
 }
 
@@ -608,14 +611,18 @@ static void fatal_signal_handler(int sig, siginfo_t *siginfo, void *ctx)
 	const int BT_ARRAY_SIZE = 20;
 	void *bt_array[BT_ARRAY_SIZE];
 	size_t bt_size;
-	int fd;
 	char bt_header[40];
+	char cmd_buf[200];
+	char addr2line_buf[120];
+	Dl_info dl_info;
+	FILE *fp;
 
-	if ((fd = open(bt_filename, O_RDWR | O_CREAT, 0644)) < 0) {
+	int fd = open(bt_filename, O_RDWR | O_CREAT, 0644);
+
+	if (fd < 0)
 		goto done;
-	}
 
-	snprintf(bt_header, sizeof(bt_header), "signal: %d pid: %u uid: %u\n",
+	snprintf(bt_header, sizeof(bt_header), "signal: %d pid: %u uid: %u\n\n",
 		 sig, siginfo->si_pid, siginfo->si_uid);
 
 	if (write(fd, bt_header, strlen(bt_header)) < 0) {
@@ -624,6 +631,48 @@ static void fatal_signal_handler(int sig, siginfo_t *siginfo, void *ctx)
 	}
 
 	bt_size = plibc_backtrace(bt_array, BT_ARRAY_SIZE);
+
+	// Note: system(), syslog() and fgets() are not "async signal safe".
+	// If any of these functions experience to "hang", an alarm can be added
+	// so an coredump can be produced anyway.
+	if (system("which addr2line") == 0) {
+		for (int i = 0; i < bt_size; ++i) {
+			memset(&dl_info, 0, sizeof(dl_info));
+			dladdr(bt_array[i], &dl_info);
+			ptrdiff_t offset = bt_array[i] - dl_info.dli_fbase;
+
+			snprintf(cmd_buf, sizeof(cmd_buf),
+				 "addr2line %tx -p -f -e %s",
+				 offset, dl_info.dli_fname);
+
+			fp = popen(cmd_buf, "r");
+			if (fp == NULL) {
+				syslog(LOG_ERR,
+				       "popen failed: %s", strerror(errno));
+			} else {
+				if (fgets(addr2line_buf,
+					  sizeof(addr2line_buf),
+					  fp) != NULL) {
+					snprintf(cmd_buf, sizeof(cmd_buf),
+						 "# %d %s",
+						 i, addr2line_buf);
+					if (write(fd, cmd_buf,
+						  strlen(cmd_buf)) < 0) {
+						syslog(LOG_ERR,
+						       "write failed: %s",
+						       strerror(errno));
+					}
+				}
+				pclose(fp);
+			}
+		}
+	}
+
+	if (write(fd, "\n", 1) < 0) {
+		syslog(LOG_ERR,
+		       "write failed: %s", strerror(errno));
+	}
+
 	plibc_backtrace_symbols_fd(bt_array, bt_size, fd);
 
 	close(fd);
@@ -677,6 +726,7 @@ static void install_fatal_signal_handlers(void)
 			 time_string, getpid());
 
 		struct sigaction action;
+
 		memset(&action, 0, sizeof(action));
 		action.sa_sigaction = fatal_signal_handler;
 		sigfillset(&action.sa_mask);

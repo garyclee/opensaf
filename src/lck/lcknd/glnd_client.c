@@ -32,6 +32,12 @@
 
 #include "lck/lcknd/glnd.h"
 #include <string.h>
+
+static uint32_t glnd_client_node_resource_del(GLND_CB * glnd_cb,
+		GLND_CLIENT_INFO * client_info,
+		GLND_RESOURCE_INFO * res_info,
+		bool *orphan);
+
 /*****************************************************************************
   PROCEDURE NAME : glnd_client_node_find
 
@@ -278,7 +284,6 @@ uint32_t glnd_client_node_del(GLND_CB *glnd_cb, GLND_CLIENT_INFO *client_info)
 	GLND_CLIENT_LIST_RESOURCE *res_list, *tmp_res_list;
 	GLND_RESOURCE_INFO *res_info;
 	SaLckLockModeT mode;
-	GLSV_GLD_EVT gld_evt;
 	bool orphan = false;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
@@ -292,48 +297,34 @@ uint32_t glnd_client_node_del(GLND_CB *glnd_cb, GLND_CLIENT_INFO *client_info)
 		goto end;
 	}
 	/* free up all the resource requests */
-	for (res_list = client_info->res_list; res_list != NULL;) {
+	for (res_list = client_info->res_list;
+		res_list != NULL;
+		res_list = tmp_res_list) {
 		res_info = res_list->rsc_info;
-		tmp_res_list = res_list;
-		res_list = res_list->next;
+		tmp_res_list = res_list->next;
+
 		if (res_info) {
+			uint32_t open_ref_cnt = res_list->open_ref_cnt;
+
 			glnd_set_orphan_state(glnd_cb, res_info);
-			glnd_client_node_resource_del(glnd_cb, client_info,
-						      res_info);
+			rc = glnd_client_node_resource_del(glnd_cb, client_info,
+						      res_info, &orphan);
+
+			if (rc == NCSCC_RC_SUCCESS) {
+				/* client had this resource open "open_ref_cnt"
+				 * times */
+				res_info->lcl_ref_cnt -= open_ref_cnt;
+			}
+
 			if (!res_info->lck_master_info.grant_list) {
 				/* do the re sync of the grant list */
 				glnd_resource_master_lock_resync_grant_list(
 				    glnd_cb, res_info);
 			}
-			if (res_info->lcl_ref_cnt > 0) {
-
-				memset(&gld_evt, 0, sizeof(GLSV_GLD_EVT));
-
-				gld_evt.evt_type = GLSV_GLD_EVT_RSC_CLOSE;
-				gld_evt.info.rsc_details.rsc_id =
-				    res_info->resource_id;
-				gld_evt.info.rsc_details.lcl_ref_cnt =
-				    res_info->lcl_ref_cnt;
-				glnd_mds_msg_send_gld(glnd_cb, &gld_evt,
-						      glnd_cb->gld_mdest_id);
-
-				res_info->lcl_ref_cnt--;
-			}
 
 			glnd_restart_resource_info_ckpt_overwrite(glnd_cb,
 								  res_info);
 
-			if (tmp_res_list->open_ref_cnt > 1) {
-				memset(&gld_evt, 0, sizeof(GLSV_GLD_EVT));
-
-				gld_evt.evt_type = GLSV_GLD_EVT_RSC_CLOSE;
-				gld_evt.info.rsc_details.rsc_id =
-				    res_info->resource_id;
-				gld_evt.info.rsc_details.lcl_ref_cnt =
-				    tmp_res_list->open_ref_cnt;
-				glnd_mds_msg_send_gld(glnd_cb, &gld_evt,
-						      glnd_cb->gld_mdest_id);
-			}
 			if (res_info->lcl_ref_cnt == 0 &&
 			    glnd_resource_grant_list_orphan_locks(
 				res_info, &mode) == false) {
@@ -375,13 +366,15 @@ uint32_t glnd_client_node_resource_add(GLND_CLIENT_INFO *client_info,
 				       GLND_RESOURCE_INFO *res_info)
 {
 	GLND_CLIENT_LIST_RESOURCE *resource_list;
-	uint32_t rc = NCSCC_RC_FAILURE;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER2("client_info->agent_mds_dest %" PRIx64,
 		     client_info->agent_mds_dest);
 
-	if (!client_info)
+	if (!client_info) {
+		rc = NCSCC_RC_FAILURE;
 		goto done;
+	}
 
 	for (resource_list = client_info->res_list;
 	     resource_list != NULL && resource_list->rsc_info != res_info;
@@ -427,18 +420,20 @@ done:
 
   NOTES         : None
 *****************************************************************************/
-uint32_t glnd_client_node_resource_del(GLND_CB *glnd_cb,
+static uint32_t glnd_client_node_resource_del(GLND_CB *glnd_cb,
 				       GLND_CLIENT_INFO *client_info,
-				       GLND_RESOURCE_INFO *res_info)
+				       GLND_RESOURCE_INFO *res_info,
+					bool *orphan)
 {
 	GLND_CLIENT_LIST_RESOURCE *resource_list;
 	GLND_CLIENT_LIST_RESOURCE_LOCK_REQ *lock_req_list, *del_req_list;
 	GLSV_GLND_EVT glnd_evt;
 	SaLckLockModeT lock_type = SA_LCK_PR_LOCK_MODE;
 	bool local_orphan_lock = false;
+	uint32_t rc = NCSCC_RC_FAILURE;
 
 	if (!client_info) {
-		return NCSCC_RC_FAILURE;
+		return rc;
 	}
 
 	for (resource_list = client_info->res_list;
@@ -483,6 +478,7 @@ uint32_t glnd_client_node_resource_del(GLND_CB *glnd_cb,
 					glnd_mds_msg_send_glnd(
 					    glnd_cb, &glnd_evt,
 					    res_info->master_mds_dest);
+					*orphan = true;
 				} else {
 					TRACE(
 					    "lock still outstanding: sending cancel request");
@@ -553,9 +549,11 @@ uint32_t glnd_client_node_resource_del(GLND_CB *glnd_cb,
 			resource_list->prev->next = resource_list->next;
 
 		m_MMGR_FREE_GLND_CLIENT_RES_LIST(resource_list);
+
+		rc = NCSCC_RC_SUCCESS;
 	}
 
-	return NCSCC_RC_SUCCESS;
+	return rc;
 }
 
 /*****************************************************************************
@@ -674,8 +672,10 @@ uint32_t glnd_client_node_lcl_resource_del(GLND_CB *glnd_cb,
 			*resource_del_flag = resource_del;
 
 			m_MMGR_FREE_GLND_CLIENT_RES_LIST(resource_list);
-		} else
+		} else {
 			*resource_del_flag = resource_del;
+			resource_list->open_ref_cnt--;
+		}
 	}
 	*resource_del_flag = resource_del;
 

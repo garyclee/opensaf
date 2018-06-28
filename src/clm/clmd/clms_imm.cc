@@ -1221,7 +1221,8 @@ static void clms_create_track_resp_list(CLMS_CLUSTER_NODE *node,
  * @param[in] step    CLM step for which to send the callback
  */
 void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
-                     SaClmChangeStepT step, bool node_reboot) {
+                     SaClmChangeStepT step, bool node_reboot,
+                     const SaNameT *rootCauseEntity) {
   CLMS_CLIENT_INFO *rec;
   uint32_t client_id = 0;
   SaClmClusterNotificationT_4 *notify_changes = nullptr;
@@ -1259,24 +1260,27 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
             if (node_id == node->node_id) {
               /*Implies the change is
                * on this local node */
-              rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_START);
+              rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_START,
+                                         rootCauseEntity);
             }
 
           } else
             rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_START,
-                                          notify_changes_only);
+                                          notify_changes_only,
+                                          rootCauseEntity);
 
         } else if (rec->track_flags & SA_TRACK_CHANGES) {
           if (rec->track_flags & SA_TRACK_LOCAL) {
             if (node_id == node->node_id) {
               /*Implies the change is
                * on this local node */
-              rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_START);
+              rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_START,
+                                         rootCauseEntity);
             }
 
           } else
             rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_START,
-                                          notify_changes);
+                                          notify_changes, rootCauseEntity);
         }
 
         if (rc != NCSCC_RC_SUCCESS) {
@@ -1300,24 +1304,26 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
             if (node_id == node->node_id) {
               /*Implies the change is
                * on this local node */
-              rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_VALIDATE);
+              rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_VALIDATE,
+                                         rootCauseEntity);
             }
 
           } else
             rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_VALIDATE,
-                                          notify_changes_only);
+                                          notify_changes_only, rootCauseEntity);
 
         } else if (rec->track_flags & SA_TRACK_CHANGES) {
           if (rec->track_flags & SA_TRACK_LOCAL) {
             if (node_id == node->node_id) {
               /*Implies the change is
                * on this local node */
-              rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_VALIDATE);
+              rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_VALIDATE,
+                                         rootCauseEntity);
             }
 
           } else
             rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_VALIDATE,
-                                          notify_changes);
+                                          notify_changes, rootCauseEntity);
         }
 
         if (rc != NCSCC_RC_SUCCESS) {
@@ -1339,7 +1345,8 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
           if (node_id == node->node_id) {
             /*Implies the change is on this
              * local node */
-            rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_COMPLETED);
+            rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_COMPLETED,
+                                       rootCauseEntity);
           }
         } else {
           /* In the COMPLETED step and when the
@@ -1353,7 +1360,8 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
                 node_id);
           } else {
             rc = clms_prep_and_send_track(
-                cb, node, rec, SA_CLM_CHANGE_COMPLETED, notify_changes_only);
+                cb, node, rec, SA_CLM_CHANGE_COMPLETED, notify_changes_only,
+                rootCauseEntity);
           }
         }
       } else if (rec->track_flags & SA_TRACK_CHANGES) {
@@ -1361,7 +1369,8 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
           if (node_id == node->node_id) {
             /*Implies the change is on this
              * local node */
-            rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_COMPLETED);
+            rc = clms_send_track_local(node, rec, SA_CLM_CHANGE_COMPLETED,
+                                       rootCauseEntity);
           }
         } else {
           /* In the COMPLETED step and when there
@@ -1375,7 +1384,8 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
                 node_id);
           } else {
             rc = clms_prep_and_send_track(
-                cb, node, rec, SA_CLM_CHANGE_COMPLETED, notify_changes);
+                cb, node, rec, SA_CLM_CHANGE_COMPLETED, notify_changes,
+                rootCauseEntity);
           }
         }
       }
@@ -1393,10 +1403,10 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
 
         if (rec->track_flags & SA_TRACK_CHANGES_ONLY)
           rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_ABORTED,
-                                        notify_changes_only);
+                                        notify_changes_only, rootCauseEntity);
         else if (rec->track_flags & SA_TRACK_CHANGES)
           rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_ABORTED,
-                                        notify_changes);
+                                        notify_changes, rootCauseEntity);
 
         if (rc != NCSCC_RC_SUCCESS) {
           TRACE("Sending track callback failed for SA_CLM_CHANGE_ABORTED");
@@ -1408,10 +1418,10 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
 
         if (rec->track_flags & SA_TRACK_CHANGES_ONLY)
           rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_ABORTED,
-                                        notify_changes_only);
+                                        notify_changes_only, rootCauseEntity);
         else if (rec->track_flags & SA_TRACK_CHANGES)
           rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_ABORTED,
-                                        notify_changes);
+                                        notify_changes, rootCauseEntity);
 
         if (rc != NCSCC_RC_SUCCESS) {
           TRACE("Sending track callback failed for SA_CLM_CHANGE_ABORTED");
@@ -1432,7 +1442,8 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
  */
 uint32_t clms_send_track_local(CLMS_CLUSTER_NODE *node,
                                CLMS_CLIENT_INFO *client,
-                               SaClmChangeStepT step) {
+                               SaClmChangeStepT step,
+                               const SaNameT *rootCauseEntity) {
   CLMSV_MSG msg;
   uint32_t rc = NCSCC_RC_SUCCESS;
 
@@ -1452,7 +1463,13 @@ uint32_t clms_send_track_local(CLMS_CLUSTER_NODE *node,
   msg.info.cbk_info.param.track.root_cause_ent =
       (SaNameT *)malloc(sizeof(SaNameT));
 
-  if (node->admin_op != PLM) {
+  if (rootCauseEntity) {
+    msg.info.cbk_info.param.track.root_cause_ent->length =
+        rootCauseEntity->length;
+    memcpy(msg.info.cbk_info.param.track.root_cause_ent->value,
+           rootCauseEntity->value,
+           rootCauseEntity->length);
+  } else if (node->admin_op != PLM) {
     msg.info.cbk_info.param.track.root_cause_ent->length =
         node->node_name.length;
     memcpy(msg.info.cbk_info.param.track.root_cause_ent->value,
@@ -1567,7 +1584,8 @@ uint32_t clms_send_track_local(CLMS_CLUSTER_NODE *node,
 uint32_t clms_prep_and_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
                                   CLMS_CLIENT_INFO *client,
                                   SaClmChangeStepT step,
-                                  SaClmClusterNotificationT_4 *notify) {
+                                  SaClmClusterNotificationT_4 *notify,
+                                  const SaNameT *rootCauseEntity) {
   CLMSV_MSG msg;
   uint32_t rc = NCSCC_RC_SUCCESS;
 
@@ -1587,7 +1605,13 @@ uint32_t clms_prep_and_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
   msg.info.cbk_info.param.track.root_cause_ent =
       (SaNameT *)malloc(sizeof(SaNameT));
 
-  if (node->admin_op != PLM) {
+  if (rootCauseEntity) {
+    msg.info.cbk_info.param.track.root_cause_ent->length =
+        rootCauseEntity->length;
+    memcpy(msg.info.cbk_info.param.track.root_cause_ent->value,
+           rootCauseEntity->value,
+           rootCauseEntity->length);
+  } else if (node->admin_op != PLM) {
     msg.info.cbk_info.param.track.root_cause_ent->length =
         node->node_name.length;
     memcpy(msg.info.cbk_info.param.track.root_cause_ent->value,
@@ -1993,7 +2017,7 @@ SaAisErrorT clms_node_ccb_apply_modify(CcbUtilOperationData_t *opdata) {
   ++(clms_cb->cluster_view_num);
   /*Send track callback with saClmClusterChangesT=
    * SA_CLM_NODE_RECONFIGURED */
-  clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED, false);
+  clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED, false, 0);
   /*Clear admin_op and stat_change */
   node->admin_op = ADMIN_OP{};
   node->stat_change = SA_FALSE;
@@ -2318,7 +2342,7 @@ static uint32_t clms_lock_send_no_start_cbk(CLMS_CLUSTER_NODE *nodeop) {
   clms_node_update_rattr(nodeop);
   clms_cluster_update_rattr(osaf_cluster);
 
-  clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false);
+  clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false, 0);
 
   /*Clear admin_op and stat_change */
   nodeop->admin_op = ADMIN_OP{};
@@ -2453,7 +2477,7 @@ uint32_t clms_imm_node_unlock(CLMS_CLUSTER_NODE *nodeop) {
         clms_cluster_update_rattr(osaf_cluster);
 
         /*Send Callback to its clienst */
-        clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false);
+        clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false, 0);
 
         /*Send node join notification */
         clms_node_join_ntf(clms_cb, nodeop);
@@ -2487,7 +2511,7 @@ uint32_t clms_imm_node_unlock(CLMS_CLUSTER_NODE *nodeop) {
         clms_cluster_update_rattr(osaf_cluster);
 
         /*Send Callback to its clients */
-        clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false);
+        clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false, 0);
 
         /*Send node join notification */
         clms_node_join_ntf(clms_cb, nodeop);
@@ -2573,7 +2597,7 @@ uint32_t clms_imm_node_shutdown(CLMS_CLUSTER_NODE *nodeop) {
       nodeop->admin_state = SA_CLM_ADMIN_SHUTTING_DOWN;
       nodeop->stat_change = SA_TRUE;
       nodeop->change = SA_CLM_NODE_SHUTDOWN;
-      clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START, false);
+      clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START, false, 0);
 
       clms_node_admin_state_change_ntf(clms_cb, nodeop,
                                        SA_CLM_ADMIN_SHUTTING_DOWN);
@@ -2598,7 +2622,7 @@ uint32_t clms_imm_node_shutdown(CLMS_CLUSTER_NODE *nodeop) {
       clms_node_update_rattr(nodeop);
       clms_cluster_update_rattr(osaf_cluster);
 
-      clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false);
+      clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false, 0);
 
       /*Clear Admin_op and stat_change */
       nodeop->admin_op = ADMIN_OP{};
@@ -2654,7 +2678,7 @@ static void clms_lock_send_start_cbk(CLMS_CLUSTER_NODE *nodeop) {
   nodeop->change = SA_CLM_NODE_LEFT;
   nodeop->stat_change = SA_TRUE;
 
-  clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START, false);
+  clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START, false, 0);
   if (sigaction(SIGALRM, &act, nullptr) != 0) {
     TRACE("Sigaction failed");
     osafassert(0);

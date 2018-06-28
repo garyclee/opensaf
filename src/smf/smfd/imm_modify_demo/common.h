@@ -22,6 +22,9 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+// Execute a shell command using system
+bool ExecuteCommand(const char* command);
+
 // Enable long DN handling in IMM by setting longDnsAllowed=1 in IMM
 // configuration object
 bool EnableImmLongDn(void);
