@@ -26,7 +26,8 @@ extern "C" {
 #endif
 
 /**
- * Log to SAF LOG system stream with priority and usr name
+ * Log to SAF LOG system stream with priority and usr name. The logging could
+ * fail and the failure information is logged in syslog.
  * @param priority
  * @param logSvcUsrName
  * @param format

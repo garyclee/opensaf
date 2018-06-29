@@ -15,53 +15,50 @@
  * Author(s): Ericsson
  *
  */
+#include "osaf/saflog/saflog.h"
 
 #include <stdio.h>
-#include <syslog.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <unistd.h>
-#include "osaf/saflog/saflog.h"
 #include <saAis.h>
+#include "base/logtrace.h"
+#include "base/saf_error.h"
 
-static int initialized;
+static bool log_client_initialized = false;
 static SaLogStreamHandleT logStreamHandle;
 static SaLogHandleT logHandle;
 
 void saflog_init(void)
 {
-	SaAisErrorT error;
-
-	if (!initialized) {
+	if (log_client_initialized == false) {
 		SaVersionT logVersion = {'A', 2, 3};
 		SaNameT stream_name;
 		saAisNameLend(SA_LOG_STREAM_SYSTEM, &stream_name);
 
-		error = saLogInitialize(&logHandle, NULL, &logVersion);
-		if (error != SA_AIS_OK) {
-			syslog(LOG_INFO,
-			       "saflogInit: saLogInitialize FAILED: %u", error);
+		SaAisErrorT rc = saLogInitialize(&logHandle, NULL, &logVersion);
+		if (rc != SA_AIS_OK) {
+			LOG_NO("saflogInit: saLogInitialize FAILED: %s",
+			       saf_error(rc));
 			return;
 		}
 
-		error = saLogStreamOpen_2(logHandle, &stream_name, NULL, 0,
+		rc = saLogStreamOpen_2(logHandle, &stream_name, NULL, 0,
 					  SA_TIME_ONE_SECOND, &logStreamHandle);
-		if (error != SA_AIS_OK) {
-			syslog(LOG_INFO,
-			       "saflogInit: saLogStreamOpen_2 FAILED: %u",
-			       error);
+		if (rc != SA_AIS_OK) {
+			LOG_NO("saflogInit: saLogStreamOpen_2 FAILED: %s",
+			       saf_error(rc));
 			if (saLogFinalize(logHandle) != SA_AIS_OK)
-				syslog(LOG_INFO,
-				       "saflogInit: saLogFinalize FAILED: %u",
-				       error);
+				LOG_NO("saflogInit: saLogFinalize FAILED");
 			return;
 		}
-		initialized = 1;
+		log_client_initialized = true;
 	}
 }
 
 void saflog(int priority, const SaNameT *logSvcUsrName, const char *format, ...)
 {
-	SaAisErrorT error;
+	SaAisErrorT rc;
 	SaLogRecordT logRecord;
 	SaLogBufferT logBuffer;
 	va_list ap;
@@ -74,33 +71,16 @@ void saflog(int priority, const SaNameT *logSvcUsrName, const char *format, ...)
 	va_end(ap);
 
 	if (logBuffer.logBufSize > SA_LOG_MAX_RECORD_SIZE) {
-		syslog(LOG_INFO,
-		       "saflog write FAILED: log record size > %u max limit",
+		LOG_NO("saflog write FAILED: log record size > %u max limit",
 		       SA_LOG_MAX_RECORD_SIZE);
 		return;
 	}
 
-	if (!initialized) {
-		SaVersionT logVersion = {'A', 2, 3};
-		SaNameT stream_name;
-		saAisNameLend(SA_LOG_STREAM_SYSTEM, &stream_name);
-
-		error = saLogInitialize(&logHandle, NULL, &logVersion);
-		if (error != SA_AIS_OK) {
-			syslog(LOG_INFO, "saLogInitialize FAILED: %u", error);
-			goto done;
-		}
-
-		error = saLogStreamOpen_2(logHandle, &stream_name, NULL, 0,
-					  SA_TIME_ONE_SECOND, &logStreamHandle);
-		if (error != SA_AIS_OK) {
-			syslog(LOG_INFO, "saLogStreamOpen_2 FAILED: %u", error);
-			if (saLogFinalize(logHandle) != SA_AIS_OK)
-				syslog(LOG_INFO, "saLogFinalize FAILED: %u",
-				       error);
-			goto done;
-		}
-		initialized = 1;
+	// Initialize log client and open system stream if they are NOT
+	saflog_init();
+	if (log_client_initialized == false) {
+		LOG_NO("saflog write \"%s\" FAILED", str);
+		return;
 	}
 
 	logRecord.logTimeStamp = SA_TIME_UNKNOWN;
@@ -111,11 +91,13 @@ void saflog(int priority, const SaNameT *logSvcUsrName, const char *format, ...)
 	logRecord.logBuffer = &logBuffer;
 	logBuffer.logBuf = (SaUint8T *)str;
 
-	error = saLogWriteLogAsync(logStreamHandle, 0, 0, &logRecord);
+	rc = saLogWriteLogAsync(logStreamHandle, 0, 0, &logRecord);
 
-done:
-	/* fallback to syslog at ANY error, syslog prio same as saflog severity
-	 */
-	if (error != SA_AIS_OK)
-		syslog(priority, "%s", str);
+	if (rc != SA_AIS_OK) {
+		LOG_NO("saflog write \"%s\" FAILED: %s", str, saf_error(rc));
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			log_client_initialized = false;
+			saLogFinalize(logHandle);
+		}
+	}
 }
