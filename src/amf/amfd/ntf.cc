@@ -797,7 +797,7 @@ SaAisErrorT avd_start_ntf_init_bg(void) {
   return SA_AIS_OK;
 }
 
-AvdJobDequeueResultT NtfSend::exec(const AVD_CL_CB* cb) {
+AvdJobDequeueResultT NtfSend::exec(AVD_CL_CB* cb) {
   AvdJobDequeueResultT res;
   TRACE_ENTER2("Ntf Type:%x, sent status:%u", myntf.notificationType,
                already_sent);

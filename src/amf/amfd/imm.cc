@@ -133,7 +133,7 @@ Job::~Job() {}
 
 // TODO: Make isImmServiceReady as static to limit its scope
 // This function should belong to AVD_CB class as a method
-static bool isImmServiceReady(const AVD_CL_CB *cb) {
+static bool isImmServiceReady(const AVD_CL_CB *cb, bool ignore_busy = false) {
   TRACE_ENTER();
   bool rc = true;
 
@@ -149,16 +149,21 @@ static bool isImmServiceReady(const AVD_CL_CB *cb) {
     TRACE("Already IMM init is going, try again after sometime");
     rc = false;
   }
+  if (avd_cb->avd_imm_status == AVD_IMM_BUSY &&
+    ignore_busy == false) {
+    TRACE("IMM returned TRY_AGAIN. Postponing synchronous calls");
+    rc = false;
+  }
   TRACE_LEAVE2("%u:", rc);
   return rc;
 }
 
 //
 bool ImmJob::isRunnable(const AVD_CL_CB *cb) {
-  return isImmServiceReady(cb);
+  return isImmServiceReady(cb, true);
 }
 //
-AvdJobDequeueResultT ImmObjCreate::exec(const AVD_CL_CB *cb) {
+AvdJobDequeueResultT ImmObjCreate::exec(AVD_CL_CB *cb) {
   SaAisErrorT rc;
   AvdJobDequeueResultT res;
   const SaImmOiHandleT immOiHandle = cb->immOiHandle;
@@ -173,6 +178,7 @@ AvdJobDequeueResultT ImmObjCreate::exec(const AVD_CL_CB *cb) {
   }
   rc = saImmOiRtObjectCreate_2(immOiHandle, className_, parent_name,
                                attrValues_);
+  cb->avd_imm_status = AVD_IMM_INIT_DONE;
 
   if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_EXIST)) {
     delete Fifo::dequeue();
@@ -180,6 +186,7 @@ AvdJobDequeueResultT ImmObjCreate::exec(const AVD_CL_CB *cb) {
   } else if (rc == SA_AIS_ERR_TRY_AGAIN) {
     TRACE("TRY-AGAIN");
     res = JOB_ETRYAGAIN;
+    cb->avd_imm_status = AVD_IMM_BUSY;
   } else if (rc == SA_AIS_ERR_TIMEOUT) {
     TRACE("TIMEOUT");
     res = JOB_ETRYAGAIN;
@@ -228,7 +235,7 @@ ImmObjCreate::~ImmObjCreate() {
 }
 
 //
-AvdJobDequeueResultT ImmObjUpdate::exec(const AVD_CL_CB *cb) {
+AvdJobDequeueResultT ImmObjUpdate::exec(AVD_CL_CB *cb) {
   SaAisErrorT rc;
   AvdJobDequeueResultT res;
   const SaImmOiHandleT immOiHandle = cb->immOiHandle;
@@ -252,6 +259,7 @@ AvdJobDequeueResultT ImmObjUpdate::exec(const AVD_CL_CB *cb) {
   attrMod.modAttr.attrValues = attrValues;
 
   rc = saImmOiRtObjectUpdate_o3(immOiHandle, dn.c_str(), attrMods);
+  cb->avd_imm_status = AVD_IMM_INIT_DONE;
 
   if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_NOT_EXIST)) {
     delete Fifo::dequeue();
@@ -259,6 +267,7 @@ AvdJobDequeueResultT ImmObjUpdate::exec(const AVD_CL_CB *cb) {
   } else if (rc == SA_AIS_ERR_TRY_AGAIN) {
     TRACE("TRY-AGAIN");
     res = JOB_ETRYAGAIN;
+    cb->avd_imm_status = AVD_IMM_BUSY;
   } else if (rc == SA_AIS_ERR_TIMEOUT) {
     TRACE("TIMEOUT");
     res = JOB_ETRYAGAIN;
@@ -286,7 +295,7 @@ ImmObjUpdate::~ImmObjUpdate() {
 }
 
 //
-AvdJobDequeueResultT ImmObjDelete::exec(const AVD_CL_CB *cb) {
+AvdJobDequeueResultT ImmObjDelete::exec(AVD_CL_CB *cb) {
   SaAisErrorT rc;
   AvdJobDequeueResultT res;
   const SaImmOiHandleT immOiHandle = cb->immOiHandle;
@@ -300,6 +309,7 @@ AvdJobDequeueResultT ImmObjDelete::exec(const AVD_CL_CB *cb) {
     goto done;
   }
   rc = saImmOiRtObjectDelete_o3(immOiHandle, dn.c_str());
+  cb->avd_imm_status = AVD_IMM_INIT_DONE;
 
   if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_NOT_EXIST)) {
     delete Fifo::dequeue();
@@ -307,6 +317,7 @@ AvdJobDequeueResultT ImmObjDelete::exec(const AVD_CL_CB *cb) {
   } else if (rc == SA_AIS_ERR_TRY_AGAIN) {
     TRACE("TRY-AGAIN");
     res = JOB_ETRYAGAIN;
+    cb->avd_imm_status = AVD_IMM_BUSY;
   } else if (rc == SA_AIS_ERR_TIMEOUT) {
     TRACE("TIMEOUT");
     res = JOB_ETRYAGAIN;
@@ -327,7 +338,7 @@ done:
 ImmObjDelete::~ImmObjDelete() {}
 
 //
-AvdJobDequeueResultT ImmAdminResponse::exec(const AVD_CL_CB *cb) {
+AvdJobDequeueResultT ImmAdminResponse::exec(AVD_CL_CB *cb) {
   SaAisErrorT rc;
   AvdJobDequeueResultT res;
   const SaImmOiHandleT handle = cb->immOiHandle;
@@ -335,6 +346,7 @@ AvdJobDequeueResultT ImmAdminResponse::exec(const AVD_CL_CB *cb) {
   TRACE_ENTER2("Admin resp inv:%llu res:%u", invocation_, result_);
 
   rc = saImmOiAdminOperationResult(handle, invocation_, result_);
+  cb->avd_imm_status = AVD_IMM_INIT_DONE;
 
   switch (rc) {
     case SA_AIS_OK:
@@ -347,6 +359,7 @@ AvdJobDequeueResultT ImmAdminResponse::exec(const AVD_CL_CB *cb) {
     case SA_AIS_ERR_TRY_AGAIN:
       TRACE("TRY-AGAIN");
       res = JOB_ETRYAGAIN;
+      cb->avd_imm_status = AVD_IMM_BUSY;
       break;
     case SA_AIS_ERR_BAD_HANDLE:
       // there is no need to reattempt reply,
@@ -404,7 +417,7 @@ void ckpt_job_queue_size() {
 }
 
 //
-AvdJobDequeueResultT Fifo::execute(const AVD_CL_CB *cb) {
+AvdJobDequeueResultT Fifo::execute(AVD_CL_CB *cb) {
   Job *ajob;
   AvdJobDequeueResultT ret;
 
@@ -428,7 +441,7 @@ AvdJobDequeueResultT Fifo::execute(const AVD_CL_CB *cb) {
   return ret;
 }
 
-AvdJobDequeueResultT Fifo::executeAll(const AVD_CL_CB *cb, AvdJobTypeT job_type) {
+AvdJobDequeueResultT Fifo::executeAll(AVD_CL_CB *cb, AvdJobTypeT job_type) {
 
   Job *ajob, *firstjob;
   AvdJobDequeueResultT ret = JOB_EXECUTED;
@@ -489,7 +502,7 @@ void Fifo::remove(const AVD_CL_CB *cb, AvdJobTypeT job_type) {
   TRACE_LEAVE();
 }
 
-AvdJobDequeueResultT Fifo::executeAdminResp(const AVD_CL_CB *cb) {
+AvdJobDequeueResultT Fifo::executeAdminResp(AVD_CL_CB *cb) {
   Job *ajob;
   AvdJobDequeueResultT ret = JOB_EXECUTED;
 

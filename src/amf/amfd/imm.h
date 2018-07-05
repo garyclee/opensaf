@@ -64,7 +64,7 @@ typedef enum {
 // @todo move this into job.h
 class Job {
  public:
-  virtual AvdJobDequeueResultT exec(const AVD_CL_CB *cb) = 0;
+  virtual AvdJobDequeueResultT exec(AVD_CL_CB *cb) = 0;
   virtual ~Job() = 0;
   virtual AvdJobTypeT getJobType() = 0;
   virtual bool isRunnable(const AVD_CL_CB *cb) = 0;
@@ -87,7 +87,7 @@ class ImmObjCreate : public ImmJob {
 
   ImmObjCreate() : ImmJob(){};
   bool immobj_update_required();
-  AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
+  AvdJobDequeueResultT exec(AVD_CL_CB *cb);
 
   ~ImmObjCreate();
 };
@@ -102,7 +102,7 @@ class ImmObjUpdate : public ImmJob {
 
   ImmObjUpdate() : ImmJob(){};
   bool immobj_update_required();
-  AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
+  AvdJobDequeueResultT exec(AVD_CL_CB *cb);
   bool si_get_attr_value();
   bool siass_get_attr_value();
   bool csiass_get_attr_value();
@@ -122,7 +122,7 @@ class ImmObjDelete : public ImmJob {
   bool immobj_update_required();
   bool is_csiass_exist();
   bool is_siass_exist();
-  AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
+  AvdJobDequeueResultT exec(AVD_CL_CB *cb);
 
   ~ImmObjDelete();
 };
@@ -133,7 +133,7 @@ class ImmAdminResponse : public ImmJob {
     this->invocation_ = invocation;
     this->result_ = result;
   }
-  AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
+  AvdJobDequeueResultT exec(AVD_CL_CB *cb);
 
   ~ImmAdminResponse() {}
 
@@ -146,7 +146,7 @@ class ImmAdminResponse : public ImmJob {
 class NtfSend : public Job {
  public:
   NtfSend() : already_sent(false) {}
-  AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
+  AvdJobDequeueResultT exec(AVD_CL_CB *cb);
   AvdJobTypeT getJobType() { return JOB_TYPE_NTF; }
   bool isRunnable(const AVD_CL_CB *cb) { return true;}
   SaNtfNotificationsT myntf;
@@ -164,12 +164,12 @@ class Fifo {
 
   static Job *dequeue();
 
-  static AvdJobDequeueResultT execute(const AVD_CL_CB *cb);
-  static AvdJobDequeueResultT executeAll(const AVD_CL_CB *cb,
+  static AvdJobDequeueResultT execute(AVD_CL_CB *cb);
+  static AvdJobDequeueResultT executeAll(AVD_CL_CB *cb,
       AvdJobTypeT job_type = JOB_TYPE_ANY);
   static void remove(const AVD_CL_CB *cb,
       AvdJobTypeT job_type = JOB_TYPE_ANY);
-  static AvdJobDequeueResultT executeAdminResp(const AVD_CL_CB *cb);
+  static AvdJobDequeueResultT executeAdminResp(AVD_CL_CB *cb);
 
   static void empty();
 

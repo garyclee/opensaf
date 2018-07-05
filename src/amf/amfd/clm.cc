@@ -627,7 +627,7 @@ SaAisErrorT avd_start_clm_init_bg(void) {
   return SA_AIS_OK;
 }
 
-AvdJobDequeueResultT ClmTrackStart::exec(const AVD_CL_CB* cb) {
+AvdJobDequeueResultT ClmTrackStart::exec(AVD_CL_CB* cb) {
   AvdJobDequeueResultT res;
   TRACE_ENTER();
 
@@ -648,7 +648,7 @@ AvdJobDequeueResultT ClmTrackStart::exec(const AVD_CL_CB* cb) {
   return res;
 }
 
-AvdJobDequeueResultT ClmTrackStop::exec(const AVD_CL_CB* cb) {
+AvdJobDequeueResultT ClmTrackStop::exec(AVD_CL_CB* cb) {
   AvdJobDequeueResultT res;
   TRACE_ENTER();
 

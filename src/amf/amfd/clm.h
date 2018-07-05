@@ -40,14 +40,14 @@ public:
 class ClmTrackStart : public ClmJob {
  public:
   ClmTrackStart() : ClmJob(){};
-  AvdJobDequeueResultT exec(const struct cl_cb_tag *cb);
+  AvdJobDequeueResultT exec(struct cl_cb_tag *cb);
   ~ClmTrackStart() {}
 };
 
 class ClmTrackStop : public ClmJob {
  public:
   ClmTrackStop() : ClmJob(){};
-  AvdJobDequeueResultT exec(const struct cl_cb_tag *cb);
+  AvdJobDequeueResultT exec(struct cl_cb_tag *cb);
   ~ClmTrackStop() {}
 };
 
