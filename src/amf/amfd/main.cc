@@ -707,7 +707,8 @@ static void main_loop(void) {
       avd_d2n_msg_dequeue(cb);
     }
 
-    if (cb->immOiHandle && fds[FD_IMM].revents & POLLIN) {
+    if (cb->avd_imm_status == AVD_IMM_INIT_DONE &&
+        cb->immOiHandle && fds[FD_IMM].revents & POLLIN) {
       TRACE("IMM event rec");
       error = saImmOiDispatch(cb->immOiHandle, SA_DISPATCH_ALL);
 
