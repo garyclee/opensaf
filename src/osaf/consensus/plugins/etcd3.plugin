@@ -19,7 +19,7 @@
 readonly keyname="opensaf_consensus_lock"
 readonly directory="/opensaf/"
 readonly etcd_options=""
-readonly etcd_timeout="5s"
+readonly etcd_timeout="10s"
 
 export ETCDCTL_API=3
 

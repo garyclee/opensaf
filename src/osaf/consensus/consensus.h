@@ -76,14 +76,15 @@ class Consensus {
   const std::string TakeoverStateStr[4] = {"UNDEFINED", "NEW", "ACCEPTED",
                                            "REJECTED"};
 
-  TakeoverState HandleTakeoverRequest(const uint64_t cluster_size);
+  TakeoverState HandleTakeoverRequest(const uint64_t cluster_size,
+                                      const std::string& request);
 
  private:
   bool use_consensus_ = false;
   bool use_remote_fencing_ = false;
   const std::string kTestKeyname = "opensaf_write_test";
   const std::chrono::milliseconds kSleepInterval =
-      std::chrono::milliseconds(500);  // in ms
+      std::chrono::milliseconds(1000);  // in ms
   static constexpr uint32_t kLockTimeout = 0;  // lock is persistent by default
   static constexpr uint32_t kMaxTakeoverRetry = 20;
   static constexpr uint32_t kMaxRetry = 30;
@@ -95,6 +96,8 @@ class Consensus {
                                     const std::string& proposed_owner,
                                     const uint64_t cluster_size);
 
+  SaAisErrorT ParseTakeoverRequest(const std::string& request,
+                                   std::vector<std::string>& tokens);
   SaAisErrorT ReadTakeoverRequest(std::vector<std::string>& tokens);
 
   SaAisErrorT WriteTakeoverResult(const std::string& current_owner,

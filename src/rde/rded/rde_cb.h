@@ -68,6 +68,7 @@ struct rde_msg {
   NODE_ID fr_node_id;
   union {
     rde_peer_info peer_info;
+    char* takeover_request = nullptr;
   } info;
 };
 

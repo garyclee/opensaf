@@ -54,6 +54,11 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
     // don't send this to the main thread straight away, as it will
     // need some time to process topology changes.
     msg->type = RDE_MSG_TAKEOVER_REQUEST_CALLBACK;
+    size_t len = new_value.length() + 1;
+    msg->info.takeover_request = new char[len];
+    strncpy(msg->info.takeover_request, new_value.c_str(), len);
+    LOG_NO("Sending takeover request '%s' to main thread",
+          msg->info.takeover_request);
     std::this_thread::sleep_for(std::chrono::seconds(4));
   } else {
     msg->type = RDE_MSG_NEW_ACTIVE_CALLBACK;
