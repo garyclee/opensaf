@@ -432,6 +432,27 @@ SaAisErrorT Consensus::WriteTakeoverResult(
   return rc;
 }
 
+SaAisErrorT Consensus::ParseTakeoverRequest(const std::string& request,
+                                            std::vector<std::string>& tokens) {
+  TRACE_ENTER();
+
+  if (request.empty() == true) {
+    // on node shutdown, this could be empty
+    return SA_AIS_ERR_UNAVAILABLE;
+  }
+
+  TRACE("Found '%s'", request.c_str());
+
+  tokens.clear();
+  Split(request, tokens);
+  if (tokens.size() != 4) {
+    LOG_ER("Invalid takeover request: '%s'", request.c_str());
+    return SA_AIS_ERR_LIBRARY;
+  }
+
+  return SA_AIS_OK;
+}
+
 SaAisErrorT Consensus::ReadTakeoverRequest(std::vector<std::string>& tokens) {
   TRACE_ENTER();
 
@@ -445,24 +466,12 @@ SaAisErrorT Consensus::ReadTakeoverRequest(std::vector<std::string>& tokens) {
     return SA_AIS_ERR_FAILED_OPERATION;
   }
 
-  if (request.empty() == true) {
-    // on node shutdown, this could be empty
-    return SA_AIS_ERR_UNAVAILABLE;
-  }
-
-  tokens.clear();
-  Split(request, tokens);
-  if (tokens.size() != 4) {
-    LOG_ER("Invalid takeover request: '%s'", request.c_str());
-    return SA_AIS_ERR_LIBRARY;
-  }
-
-  TRACE("Found '%s'", request.c_str());
-  return SA_AIS_OK;
+  return ParseTakeoverRequest(request, tokens);
 }
 
 Consensus::TakeoverState Consensus::HandleTakeoverRequest(
-    const uint64_t cluster_size) {
+    const uint64_t cluster_size,
+    const std::string& request) {
   TRACE_ENTER();
 
   if (use_consensus_ == false) {
@@ -470,15 +479,21 @@ Consensus::TakeoverState Consensus::HandleTakeoverRequest(
   }
 
   SaAisErrorT rc;
-  uint32_t retries = 0;
   std::vector<std::string> tokens;
 
-  // get request from KV store
-  rc = ReadTakeoverRequest(tokens);
-  while (rc == SA_AIS_ERR_FAILED_OPERATION && retries < kMaxRetry) {
-    ++retries;
-    std::this_thread::sleep_for(kSleepInterval);
+  if (request.empty() == true) {
+    LOG_NO("Empty takeover request from watch command. Read it again.");
+    // if the plugin did not return a value with 'watch',
+    // read request from KV store
+    uint32_t retries = 0;
     rc = ReadTakeoverRequest(tokens);
+    while (rc == SA_AIS_ERR_FAILED_OPERATION && retries < kMaxRetry) {
+      ++retries;
+      std::this_thread::sleep_for(kSleepInterval);
+      rc = ReadTakeoverRequest(tokens);
+    }
+  } else {
+    rc = ParseTakeoverRequest(request, tokens);
   }
 
   if (rc != SA_AIS_OK) {

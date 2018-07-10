@@ -161,13 +161,16 @@ static void handle_mbx_event() {
       rde_cb->monitor_takeover_req_thread_running = false;
 
       if (role->role() == PCS_RDA_ACTIVE) {
-        LOG_NO("Received takeover request. Our network size is %zu",
+        LOG_NO("Received takeover request '%s'. Our network size is %zu",
+                msg->info.takeover_request,
                rde_cb->cluster_members.size());
 
         Consensus consensus_service;
         Consensus::TakeoverState state =
             consensus_service.HandleTakeoverRequest(
-                rde_cb->cluster_members.size());
+                rde_cb->cluster_members.size(),
+                msg->info.takeover_request);
+        delete[] msg->info.takeover_request;
 
         if (state == Consensus::TakeoverState::ACCEPTED) {
           LOG_NO("Accepted takeover request");
