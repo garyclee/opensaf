@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <cstring>
 #include <sys/stat.h>
+#include <typeinfo>
 #include <unistd.h>
 
 #include <saImmOm.h>
@@ -380,7 +381,7 @@ Job *Fifo::peek() {
 }
 
 //
-void Fifo::queue(Job *job) { job_.push(job); }
+void Fifo::queue(Job *job) { job_.push_back(job); }
 
 //
 Job *Fifo::dequeue() {
@@ -390,7 +391,7 @@ Job *Fifo::dequeue() {
     tmp = 0;
   } else {
     tmp = job_.front();
-    job_.pop();
+    job_.pop_front();
   }
 
   return tmp;
@@ -537,8 +538,27 @@ void Fifo::trim_to_size(const uint32_t size) {
   TRACE_LEAVE();
 }
 
+bool Fifo::pendingImmUpdateOp(const std::string& dn,
+                              const std::string& attribute) {
+  TRACE_ENTER();
+
+  for (auto job : job_) {
+    if (job->getJobType() == JOB_TYPE_IMM &&
+        typeid(*job) == typeid(ImmObjUpdate)) {
+      ImmObjUpdate *update_job = dynamic_cast<ImmObjUpdate*>(job);
+      if (update_job->dn == dn &&
+          update_job->attributeName_ == attribute) {
+        TRACE("Found an existing update on '%s'", dn.c_str());
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 //
-std::queue<Job *> Fifo::job_;
+std::deque<Job *> Fifo::job_;
 //
 
 extern struct ImmutilWrapperProfile immutilWrapperProfile;
@@ -1743,7 +1763,7 @@ SaAisErrorT avd_saImmOiRtObjectUpdate_sync(
     const std::string &dn, SaImmAttrNameT attributeName,
     SaImmValueTypeT attrValueType, void *value,
     SaImmAttrModificationTypeT modifyType) {
-  SaAisErrorT rc = SA_AIS_OK;
+  SaAisErrorT rc = SA_AIS_ERR_TRY_AGAIN;
   SaImmAttrModificationT_2 attrMod;
   const SaImmAttrModificationT_2 *attrMods[] = {&attrMod, nullptr};
   SaImmAttrValueT attrValues[] = {value};
@@ -1751,7 +1771,10 @@ SaAisErrorT avd_saImmOiRtObjectUpdate_sync(
   bool isImmReady = isImmServiceReady(avd_cb);
 
   TRACE_ENTER2("'%s' %s", dn.c_str(), attributeName);
-  if (isImmReady == true) {
+  // Only perform the update if there isn't a pending IMM update involving
+  // the attribute. Else queue it so the attribute's value remains consistent.
+  if (isImmReady == true &&
+      Fifo::pendingImmUpdateOp(dn, attribute_name) == false) {
     attrMod.modType = modifyType;
     attrMod.modAttr.attrName = attributeName;
     attrMod.modAttr.attrValuesNumber = 1;
@@ -1764,7 +1787,7 @@ SaAisErrorT avd_saImmOiRtObjectUpdate_sync(
              attributeName, rc);
   }
 
-  if (rc != SA_AIS_OK || isImmReady == false) {
+  if (rc != SA_AIS_OK) {
     // Now it will be updated through job queue.
     avd_saImmOiRtObjectUpdate(dn, attribute_name, attrValueType, value);
   }

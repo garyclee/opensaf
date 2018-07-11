@@ -26,10 +26,10 @@
 #ifndef AMF_AMFD_IMM_H_
 #define AMF_AMFD_IMM_H_
 
+#include <deque>
+#include <string>
 #include "amf/amfd/cb.h"
 #include "osaf/immutil/immutil.h"
-#include <queue>
-#include <string>
 
 typedef void (*AvdImmOiCcbApplyCallbackT)(CcbUtilOperationData_t *opdata);
 typedef SaAisErrorT (*AvdImmOiCcbCompletedCallbackT)(
@@ -177,8 +177,11 @@ class Fifo {
 
   static void trim_to_size(const uint32_t size);
 
+  static bool pendingImmUpdateOp(const std::string& dn,
+                                 const std::string& attribute);
+
  private:
-  static std::queue<Job *> job_;
+  static std::deque<Job *> job_;
 };
 //
 
