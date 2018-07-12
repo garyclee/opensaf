@@ -243,10 +243,7 @@ uint32_t smfa_mds_rcv_cbk(MDS_CALLBACK_RECEIVE_INFO *rcv_evt)
 		return NCSCC_RC_SUCCESS;
 	}
 
-	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
-		LOG_ER("SMFA: Cb lock acquire FAILED.");
-		return NCSCC_RC_FAILURE;
-	}
+	/* TODO: I need to take READ LOCK here. But in MDS thread ???*/
 	client_info = cb->smfa_client_info_list;
 	while (NULL != client_info) {
 		/* If filter matches, post the evt to the corresponding MBX.*/
@@ -255,7 +252,6 @@ uint32_t smfa_mds_rcv_cbk(MDS_CALLBACK_RECEIVE_INFO *rcv_evt)
 			filter_match = true;
 		client_info = client_info->next_client;
 	}
-	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
 	/* If filters dont match, respond to ND as SA_AIS_OK*/
 	if (false == filter_match) {
