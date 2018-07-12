@@ -6744,8 +6744,8 @@ SaAisErrorT ImmModel::ccbTerminate(SaUint32T ccbId) {
         errStr->next = NULL;
         free(errStr);
       }
-      free(ccb->mAugCcbParent);
-      ccb->mAugCcbParent = NULL;
+      delete ccb->mAugCcbParent;
+      ccb->mAugCcbParent = nullptr;
     }
     // TODO(?) Would be neat to store ccb outcomes in the OpenSafImm object.
   }
@@ -8532,7 +8532,8 @@ SaAisErrorT ImmModel::ccbObjectCreate(
             continue;
           }
 
-          p = new immsv_attr_values_list;
+          p = static_cast<immsv_attr_values_list* >(
+              calloc(1, sizeof(immsv_attr_values_list)));
           (*trailing_p) = p;
           p->n.attrName.size = (SaUint32T)attrName.size() + 1;
           p->n.attrName.buf = strdup(attrName.c_str());
@@ -11275,8 +11276,8 @@ void ImmModel::ccbObjDelContinuation(immsv_oi_ccb_upcall_rsp* rsp,
 
     ccb->mAugCcbParent->mErrorStrings = NULL;
     ccb->mAugCcbParent->mContinuationId = 0;
-    free(ccb->mAugCcbParent);
-    ccb->mAugCcbParent = NULL;
+    delete ccb->mAugCcbParent;
+    ccb->mAugCcbParent = nullptr;
   }
 
   ObjectMutationMap::iterator omuti = ccb->mMutations.find(objectName);
@@ -11360,8 +11361,8 @@ void ImmModel::ccbCompletedContinuation(immsv_oi_ccb_upcall_rsp* rsp,
 
     ccb->mAugCcbParent->mErrorStrings = NULL;
     ccb->mAugCcbParent->mContinuationId = 0;
-    free(ccb->mAugCcbParent);
-    ccb->mAugCcbParent = NULL;
+    delete ccb->mAugCcbParent;
+    ccb->mAugCcbParent = nullptr;
   }
 
   if (ccb->mState == IMM_CCB_VALIDATED) {
@@ -11545,8 +11546,8 @@ void ImmModel::ccbObjCreateContinuation(SaUint32T ccbId, SaUint32T invocation,
 
     ccb->mAugCcbParent->mErrorStrings = NULL;
     ccb->mAugCcbParent->mContinuationId = 0;
-    free(ccb->mAugCcbParent);
-    ccb->mAugCcbParent = NULL;
+    delete ccb->mAugCcbParent;
+    ccb->mAugCcbParent = nullptr;
   }
 
   /* Only send response when ccb continuation is not purged */
@@ -11650,8 +11651,8 @@ void ImmModel::ccbObjModifyContinuation(SaUint32T ccbId, SaUint32T invocation,
 
     ccb->mAugCcbParent->mErrorStrings = NULL;
     ccb->mAugCcbParent->mContinuationId = 0;
-    free(ccb->mAugCcbParent);
-    ccb->mAugCcbParent = NULL;
+    delete ccb->mAugCcbParent;
+    ccb->mAugCcbParent = nullptr;
   }
 
   /* Only send response when ccb continuation is not purged */
@@ -16751,7 +16752,8 @@ SaAisErrorT ImmModel::rtObjectCreate(
           */
           attrValue->setValueC_str(
               object->mImplementer->mImplementerName.c_str());
-          p = new immsv_attr_values_list;
+          p = static_cast<immsv_attr_values_list* >(
+              calloc(1, sizeof(immsv_attr_values_list)));
           p->n.attrName.size = (SaUint32T)attrName.size() + 1;
           p->n.attrName.buf = strdup(attrName.c_str());
           p->n.attrValueType = SA_IMM_ATTR_SASTRINGT;
@@ -16771,7 +16773,8 @@ SaAisErrorT ImmModel::rtObjectCreate(
           Class-name is needed by special aplier, will be ignored by
           PBE if not persistent.
         */
-        p = new immsv_attr_values_list;
+        p = static_cast<immsv_attr_values_list* >(
+            calloc(1, sizeof(immsv_attr_values_list)));
         p->n.attrName.size = (SaUint32T)attrName.size() + 1;
         p->n.attrName.buf = strdup(attrName.c_str());
         p->n.attrValueType = SA_IMM_ATTR_SASTRINGT;
@@ -16842,7 +16845,8 @@ SaAisErrorT ImmModel::rtObjectCreate(
           attrValues = attrValues->next;
         }
         if (!attrValues) {
-          p = new immsv_attr_values_list;
+          p = static_cast<immsv_attr_values_list* >(
+              calloc(1, sizeof(immsv_attr_values_list)));
           p->n.attrName.size = (SaUint32T)attrName.size() + 1;
           p->n.attrName.buf = strdup(attrName.c_str());
           p->n.attrValueType = (SaImmValueTypeT)attr->mValueType;
