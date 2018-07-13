@@ -37,12 +37,15 @@ class LogTraceBuffer {
   // Identified string, added at beginning of logtrace. This string
   // can be used as searching key for the log trace records in coredump file
   constexpr static const char* kLogTraceString = "1qaz2wsx";
+  // Maximum characters per trace string
+  static const uint32_t kMaxTraceString = 256 - strlen(kLogTraceString);
   LogTraceBuffer(LogTraceClient* owner, size_t buffer_size);
   ~LogTraceBuffer();
   void WriteToBuffer(std::string trace);
   bool FlushBuffer();
   void RequestFlush();
   void SetFlush(const bool flush) { flush_required_ = flush; }
+
  private:
   LogTraceClient* owner_;
   const size_t buffer_size_;

@@ -28,18 +28,23 @@ LogTraceBuffer::LogTraceBuffer(LogTraceClient* owner, size_t buffer_size) :
   owner_(owner),
   buffer_size_(buffer_size),
   index_(0),
+  log_writer_(nullptr),
   flush_required_(false) {
-  std::string log_file_name;
-  tid_ = syscall(SYS_gettid);
-  vector_.resize(buffer_size_);
-  if (owner_) {
-    owner_->AddExternalBuffer(tid_, this);
-    log_file_name = std::string(owner_->app_name()) + "_" + owner_->proc_id()
-        + "_" + std::to_string(tid_);
-  } else {
-    log_file_name = std::string(getpid() + "_" + std::to_string(tid_));
+  // ensure we don't allocate any memory when THREAD_TRACE_BUFFER is disabled
+  if (buffer_size_ > 0) {
+    std::string log_file_name;
+    tid_ = syscall(SYS_gettid);
+    vector_.resize(buffer_size_);
+    if (owner_) {
+      owner_->AddExternalBuffer(tid_, this);
+      log_file_name = std::string(owner_->app_name()) + "_" + owner_->proc_id()
+          + "_" + std::to_string(tid_);
+    } else {
+      log_file_name = std::string(getpid() + "_" + std::to_string(tid_));
+    }
+    log_writer_ = new LogWriter{log_file_name, 10,
+      LogWriter::kMaxFileSize_10MB};
   }
-  log_writer_ = new LogWriter{log_file_name, 10, LogWriter::kMaxFileSize_10MB};
 }
 
 LogTraceBuffer::~LogTraceBuffer() {
@@ -50,12 +55,15 @@ LogTraceBuffer::~LogTraceBuffer() {
 }
 
 void LogTraceBuffer::WriteToBuffer(std::string trace) {
-  vector_[index_] = kLogTraceString + trace;
-  // add break line char
-  if (trace.at(trace.length() - 1) != '\n')
-    vector_[index_] += "\n";
-
-  if (index_++ == buffer_size_) index_ = 0;
+  size_t length = trace.length();
+  if (length > kMaxTraceString) length = kMaxTraceString;
+  vector_[index_] = std::string(kLogTraceString) +
+      std::string(trace.c_str(), length);
+  length = vector_[index_].length();
+  if (trace.at(trace.length() - 1) != '\n') {
+    vector_[index_].replace(length - 1, 1, "\n");
+  }
+  if (++index_ == buffer_size_) index_ = 0;
   if (flush_required_) FlushBuffer();
 }
 void LogTraceBuffer::RequestFlush() {
