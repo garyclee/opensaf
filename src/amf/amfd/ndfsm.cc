@@ -775,6 +775,16 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
   nds_mds_ver_db.erase(evt->info.node_id);
   amfnd_svc_db->erase(evt->info.node_id);
 
+  if (node == nullptr) {
+    for (const auto &value : *node_name_db) {
+      AVD_AVND *avnd = value.second;
+      if (avnd->node_info.nodeId == evt->info.node_id) {
+        node = avnd;
+        break;
+      }
+    }
+  }
+
   if (node != nullptr) {
     // Do nothing if the local node goes down. Most likely due to system
     // shutdown. If node director goes down due to a bug, the AMF watchdog will
