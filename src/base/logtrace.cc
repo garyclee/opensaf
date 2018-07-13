@@ -42,7 +42,7 @@ char *msg_id;
 int logmask;
 const char* osaf_log_file = "osaf.log";
 bool enable_osaf_log = false;
-bool enable_thread_trace_buffer = false;
+size_t thread_trace_buffer_size = 0;
 
 }  // namespace global
 
@@ -56,7 +56,7 @@ LogTraceClient* gl_local_thread_trace = nullptr;
 std::once_flag init_flag;
 
 thread_local LogTraceBuffer gl_thread_buffer{gl_local_thread_trace,
-  LogTraceBuffer::kBufferSize_10K};
+  global::thread_trace_buffer_size};
 
 static pid_t gettid() { return syscall(SYS_gettid); }
 
@@ -107,7 +107,7 @@ void trace_output(const char *file, unsigned line, unsigned priority,
         static_cast<base::LogMessage::Severity>(priority), preamble, ap);
   }
   // thread trace
-  if (global::enable_thread_trace_buffer == true &&
+  if (global::thread_trace_buffer_size > 0 &&
       (category == CAT_TRACE_ENTER || category == CAT_TRACE_LEAVE)) {
     // reuse @entry if legacy trace is enabled
     if (!entry) {
@@ -131,7 +131,7 @@ void log_output(const char *file, unsigned line, unsigned priority,
   LogTraceClient::Log(gl_remote_osaflog,
       static_cast<base::LogMessage::Severity>(priority), preamble, ap);
   // Flush the thread buffer for logging error or lower
-  if (global::enable_thread_trace_buffer == true && gl_local_thread_trace &&
+  if (global::thread_trace_buffer_size > 0 && gl_local_thread_trace &&
       static_cast<base::LogMessage::Severity>(priority) <=
       base::LogMessage::Severity::kErr) {
     gl_thread_buffer.RequestFlush();
@@ -187,7 +187,7 @@ void logtrace_trace(const char *file, unsigned line, unsigned category,
   va_list ap;
 
   if (is_logtrace_enabled(category) == false &&
-      global::enable_thread_trace_buffer == false) return;
+      global::thread_trace_buffer_size == 0) return;
 
   va_start(ap, format);
   trace_output(file, line, LOG_DEBUG, category, format, ap);
@@ -198,6 +198,7 @@ static void logtrace_init_interal(const char *pathname, unsigned mask,
     int* result_init) {
   bool result = false;
   char *tmp = nullptr;
+  uint16_t th_buffer_size;
   if (global::msg_id != nullptr) goto done;
   tmp = strdup(pathname);
   if (tmp != nullptr) {
@@ -218,8 +219,9 @@ static void logtrace_init_interal(const char *pathname, unsigned mask,
           LogTraceClient::kRemoteBlocking);
     }
   }
-  if (base::GetEnv("THREAD_TRACE_BUFFER", uint32_t{0}) == 1) {
-    global::enable_thread_trace_buffer = true;
+  th_buffer_size = base::GetEnv("THREAD_TRACE_BUFFER", uint16_t{0});
+  if (th_buffer_size > 0) {
+    global::thread_trace_buffer_size = th_buffer_size;
     if (!gl_local_thread_trace) {
       gl_local_thread_trace = new LogTraceClient(global::msg_id,
           LogTraceClient::kLocalBuffer);
