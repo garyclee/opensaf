@@ -10461,6 +10461,11 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 	TRACE_ENTER2("evt->info.ctrl.nodeId(%x) != cb->node_id:(%x) ?%u",
 		     evt->info.ctrl.nodeId, cb->node_id,
 		     evt->info.ctrl.nodeId != cb->node_id);
+	if (!immnd_is_immd_up(cb)) {
+	  LOG_WA("IMMD has not been UP yet. Drop INTRO_RSP message.");
+	  return NCSCC_RC_SUCCESS;
+	}
+
 	cb->mNumNodes++;
 	TRACE("immnd_evt_proc_intro_rsp cb->mNumNodes: %u", cb->mNumNodes);
 	LOG_IN("immnd_evt_proc_intro_rsp: epoch:%i rulingEpoch:%u",
