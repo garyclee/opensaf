@@ -190,6 +190,18 @@ int main(int argc, char *argv[]) {
     syslog(LOG_WARNING, "failed to unset SA_ENABLE_EXTENDED_NAMES");
   }
 
+  if (logtrace_is_local_node_log_enabled()) {
+    if (unsetenv("OSAF_LOCAL_NODE_LOG") != 0) {
+      syslog(LOG_WARNING, "failed to unset OSAF_LOCAL_NODE_LOG");
+    }
+  }
+
+  if (logtrace_is_thread_trace_buffer_enabled()) {
+    if (unsetenv("THREAD_TRACE_BUFFER") != 0) {
+      syslog(LOG_WARNING, "failed to unset THREAD_TRACE_BUFFER");
+    }
+  }
+
   if (__init_avnd() != NCSCC_RC_SUCCESS) {
     syslog(LOG_ERR, "__init_avd() failed");
     goto done;
