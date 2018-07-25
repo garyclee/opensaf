@@ -45,6 +45,7 @@ class LogWriter {
   void Write(size_t size);
   void Write(const char* bytes, size_t size);
   void Flush();
+  void SetLogFile(const std::string& log_file) { log_file_ = log_file; }
 
  private:
   constexpr static const size_t kBufferSize = 128 * size_t{1024};
@@ -54,7 +55,7 @@ class LogWriter {
 
   std::string log_file(size_t backup) const;
 
-  const std::string log_file_;
+  std::string log_file_;
   int fd_;
   size_t current_file_size_;
   size_t current_buffer_size_;
