@@ -27,10 +27,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
+#include <fstream>
 #include <list>
 #include <memory>
 #include <random>
 #include <string>
+#include <vector>
+#include "base/logtrace_buffer.h"
+#include "base/log_writer.h"
 #include "base/string_parse.h"
 #include "base/time.h"
 #include "base/unix_server_socket.h"
@@ -53,7 +58,7 @@ std::string PathName(const std::string& log_stream, int suffix);
 uint64_t GetInode(int fd);
 bool PrettyPrint(FILE* stream);
 bool PrettyPrint(const char* line, size_t size);
-
+int ExtractTrace(const std::string& core_file, const std::string& trace_file);
 char buf[65 * 1024];
 
 }  // namespace
@@ -64,6 +69,7 @@ int main(int argc, char** argv) {
                                   {"flush", no_argument, 0, 'f'},
                                   {"print", no_argument, nullptr, 'p'},
                                   {"delete", no_argument, nullptr, 'd'},
+                                  {"extract-trace", required_argument, 0, 'e'},
                                   {0, 0, 0, 0}};
 
   uint64_t max_file_size = 0;
@@ -81,13 +87,16 @@ int main(int argc, char** argv) {
   bool delete_set = false;
   bool max_file_size_set = false;
   bool max_backups_set = false;
+  bool thread_trace = false;
+  std::string input_core = "";
+  std::string output_trace = "";
 
   if (argc == 1) {
      PrintUsage(argv[0]);
      exit(EXIT_FAILURE);
   }
 
-  while ((option = getopt_long(argc, argv, "m:b:p:f",
+  while ((option = getopt_long(argc, argv, "m:b:p:f:e:",
                    long_options, &long_index)) != -1) {
         switch (option) {
              case 'p':
@@ -115,10 +124,32 @@ int main(int argc, char** argv) {
                      exit(EXIT_FAILURE);
                    }
                  break;
+             case 'e':
+                   if (argv[optind] == nullptr || optarg == nullptr) {
+                     fprintf(stderr, "Coredump file or output trace file is "
+                         "not specified in arguments\n");
+                     exit(EXIT_FAILURE);
+                   }
+                   input_core = std::string(optarg);
+                   output_trace = std::string(argv[optind]);
+                   struct stat statbuf;
+                   if (stat(input_core.c_str(), &statbuf) != 0) {
+                    fprintf(stderr, "Core dump file does not exist\n");
+                    exit(EXIT_FAILURE);
+                   }
+
+                   if (stat(output_trace.c_str(), &statbuf) == 0) {
+                     fprintf(stderr, "Output trace file already exists\n");
+                     exit(EXIT_FAILURE);
+                   }
+                   thread_trace = true;
+                   break;
              default: PrintUsage(argv[0]);
                  exit(EXIT_FAILURE);
         }
   }
+
+  if (thread_trace) exit(ExtractTrace(input_core, output_trace));
 
   if (argc > optind && !pretty_print_set && !delete_set) {
     pretty_print_set = true;
@@ -183,7 +214,13 @@ void PrintUsage(const char* program_name) {
           "                      G can be used for kilo-, mega- and\n"
           "                      gigabytes.\n"
           "--max-backups=NUM     Set the maximum number of backup files to\n"
-          "                      retain during log rotation to NUM.\n",
+          "                      retain during log rotation to NUM.\n"
+          "--extract-trace <corefile> <tracefile>\n"
+          "                      If a process produces a core dump file has\n"
+          "                      THREAD_TRACE_BUFFER enabled, this option\n"
+          "                      reads the <corefile> to extract the trace\n"
+          "                      strings in all threads and writes them to\n"
+          "                      the <tracefile> file.\n",
           program_name);
 }
 
@@ -386,4 +423,60 @@ bool PrettyPrint(const char* line, size_t size) {
   return true;
 }
 
+int SearchStringInFile(std::ifstream& stream, const char* str) {
+  int rc = 0;
+  int len = strlen(str);
+  int i;
+  while (!stream.eof() && rc == 0) {
+    for (i = 0; i < len; i++) {
+      char c;
+      if (!stream.get(c) || str[i] != c) break;
+    }
+    if (i == len) rc = 1;
+  }
+  return rc;
+}
+
+int ExtractTrace(const std::string& core_file,
+    const std::string& trace_file) {
+  std::vector<std::string> v_str{};
+  std::ifstream corefile_stream {core_file, std::ifstream::binary};
+  // extract
+  if (!corefile_stream.fail()) {
+    while (!corefile_stream.eof()) {
+      int s = SearchStringInFile(corefile_stream,
+          LogTraceBuffer::kLogTraceString);
+      if (s == 1) {
+        std::string str;
+        std::getline(corefile_stream, str, '\n');
+        str += "\n";
+        v_str.push_back(std::string(str));
+      }
+    }
+    corefile_stream.close();
+  } else {
+    fprintf(stderr, "Failed to open coredump file\n");
+    return EXIT_FAILURE;
+  }
+  if (v_str.size() == 0) {
+    fprintf(stderr, "No trace string is found in coredump file\n");
+    return EXIT_FAILURE;
+  }
+  // sort by sequenceId
+  std::sort(v_str.begin(), v_str.end(),
+            [](const std::string a, const std::string b) -> bool {
+            int seqa, seqb;
+            std::sscanf(a.c_str(),"%*s %*s %*s %*s %*s %*s %*s "
+                "sequenceId=\"%d\"]", &seqa);
+            std::sscanf(b.c_str(),"%*s %*s %*s %*s %*s %*s %*s "
+                "sequenceId=\"%d\"]", &seqb);
+            return a < b;
+            });
+  // write
+  LogWriter log_writer{"", 1, LogWriter::kMaxFileSize_10MB};
+  log_writer.SetLogFile(trace_file);
+  for (auto str : v_str) log_writer.Write(str.c_str(), str.length());
+  log_writer.Flush();
+  return EXIT_SUCCESS;
+}
 }  // namespace
