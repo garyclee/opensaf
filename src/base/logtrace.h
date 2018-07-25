@@ -102,6 +102,17 @@ extern int logtrace_init_daemon(const char *ident, const char *pathname,
  */
 extern int logtrace_exit_daemon();
 
+/*
+ * logtrace_is_local_node_log_enabled
+ *
+ */
+extern bool logtrace_is_local_node_log_enabled();
+
+/*
+ * logtrace_is_thread_trace_buffer_enabled
+ */
+extern bool logtrace_is_thread_trace_buffer_enabled();
+
 /**
  * trace_category_set - Set the mask used for trace filtering.
  *

@@ -130,13 +130,6 @@ void log_output(const char *file, unsigned line, unsigned priority,
            global::prefix_name[priority + category], format);
   LogTraceClient::Log(gl_remote_osaflog,
       static_cast<base::LogMessage::Severity>(priority), preamble, ap);
-  // Flush the thread buffer for logging error or lower
-  if (global::thread_trace_buffer_size > 0 && gl_local_thread_trace &&
-      static_cast<base::LogMessage::Severity>(priority) <=
-      base::LogMessage::Severity::kErr) {
-    gl_thread_buffer.RequestFlush();
-    gl_thread_buffer.FlushBuffer();
-  }
 }
 
 void logtrace_log(const char *file, unsigned line, int priority,
@@ -167,6 +160,13 @@ void logtrace_log(const char *file, unsigned line, int priority,
   /* Log to osaf_local_node_log file */
   if (global::enable_osaf_log == true) {
     log_output(file, line, priority, CAT_LOG, format, ap2);
+  }
+  // Flush the thread buffer for logging error or lower
+  if (global::thread_trace_buffer_size > 0 && gl_local_thread_trace &&
+      static_cast<base::LogMessage::Severity>(priority) <=
+      base::LogMessage::Severity::kErr) {
+    gl_thread_buffer.RequestFlush();
+    gl_thread_buffer.FlushBuffer();
   }
   /* Only output to file if configured to */
   if (global::category_mask & (1 << CAT_LOG)) {
@@ -255,6 +255,14 @@ int logtrace_init(const char *, const char *pathname, unsigned mask) {
 int logtrace_exit_daemon() {
   if (gl_local_thread_trace) gl_local_thread_trace->FlushExternalBuffer();
   return 0;
+}
+
+bool logtrace_is_local_node_log_enabled() {
+  return global::enable_osaf_log;
+}
+
+bool logtrace_is_thread_trace_buffer_enabled() {
+  return global::thread_trace_buffer_size > 0;
 }
 
 int logtrace_init_daemon(const char *ident, const char *pathname,
