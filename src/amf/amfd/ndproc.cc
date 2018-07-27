@@ -73,6 +73,22 @@ AVD_AVND *avd_msg_sanity_chk(AVD_EVT *evt, SaClmNodeIdT node_id,
     LOG_WA("%s: invalid msg id %u, msg type %u, from %x should be %u",
            __FUNCTION__, msg_id, evt->info.avnd_msg->msg_type, node_id,
            node->rcv_msg_id + 1);
+    if (node->rcv_msg_id == 0) {
+      /* Active AMFD see node left but node still see active AMFD
+      and keep sending messages with msg_id increment */
+      LOG_WA("%s: reboot node %x to recover it", __FUNCTION__, node_id);
+      Consensus consensus_service;
+      if (consensus_service.IsRemoteFencingEnabled() == true) {
+        std::string host_name =
+          osaf_extended_name_borrow(&node->node_info.nodeName);
+        int first = host_name.find_first_of("=") + 1;
+        int end = host_name.find_first_of(",");
+        host_name = host_name.substr(first, end-first);
+        opensaf_reboot(node_id, host_name.c_str(), "Fencing remote node");
+      } else {
+        avd_send_reboot_msg_directly(node);
+      }
+    }
     return nullptr;
   }
 

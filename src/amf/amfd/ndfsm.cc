@@ -806,7 +806,6 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
        */
       node->node_state = AVD_AVND_STATE_ABSENT;
       node->saAmfNodeOperState = SA_AMF_OPERATIONAL_DISABLED;
-      node->adest = 0;
       node->rcv_msg_id = 0;
       node->snd_msg_id = 0;
       node->recvr_fail_sw = false;
@@ -1125,7 +1124,6 @@ void avd_node_mark_absent(AVD_AVND *node) {
 
   LOG_NO("Node '%s' left the cluster", node->node_name.c_str());
 
-  node->adest = 0;
   node->rcv_msg_id = 0;
   node->snd_msg_id = 0;
   node->recvr_fail_sw = false;
