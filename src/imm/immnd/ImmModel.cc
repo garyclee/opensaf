@@ -6065,7 +6065,7 @@ bool ImmModel::commitModify(const std::string& dn, ObjectInfo* afterImage) {
     /* Empty Admin Owner can imply (hard) release during apply/commit.
        This can happen if client invokes apply and then disconnects
        without waiting for reply. Typically because of timeout on
-       the syncronous ccbApply. This can happen for large CCBs
+       the synchronous ccbApply. This can happen for large CCBs
        and/or with a sluggish PBE. The releaseOn finalize will
        have auto-released the adminOwner on the before-image but
        not on the after image of modify. Corrected here.
@@ -14393,7 +14393,7 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
       SaInt32T subinv = m_IMMSV_UNPACK_HANDLE_LOW(inv);
       if (subinv < 0) {
         LOG_IN(
-            "Attempt to purge syncronous request for client connection,"
+            "Attempt to purge synchronous request for client connection,"
             "and found an asyncronous admin op request %d for that connection,"
             "ignoring the asyncronous continuation",
             subinv);
@@ -14416,7 +14416,7 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
   if (ciFound != sAdmReqContinuationMap.end()) {
     sAdmReqContinuationMap.erase(ciFound);
     purged = true;
-    TRACE_5("Purged syncronous Admin-op continuation");
+    TRACE_5("Purged synchronous Admin-op continuation");
   }
 
   ciFound = sSearchReqContinuationMap.end();
@@ -14425,7 +14425,7 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
     if (ci2->second.mConn == clientId) {
       if (purged || (ciFound != sSearchReqContinuationMap.end())) {
         LOG_WA(
-            "Attempt to purge syncronous search request for client connection,"
+            "Attempt to purge synchronous search request for client connection,"
             "but found multiple requests for that connection, "
             "incorrect use of imm handle");
         return false;
@@ -14446,7 +14446,7 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
     if (ci2->second.mConn == clientId) {
       if (purged || (ciFound != sPbeRtReqContinuationMap.end())) {
         LOG_WA(
-            "Attempt to purge syncronous PRTA request for client connection,"
+            "Attempt to purge synchronous PRTA request for client connection,"
             "but found multiple requests for that connection, "
             "incorrect use of imm handle");
         return false;
@@ -14466,17 +14466,17 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
         osaf_timespec_compare(&(*i3)->mWaitStartTime, &kZeroSeconds) == 1) {
       SaUint32T ccbId = (*i3)->mId;
 
-      if ((*i3)->mState > IMM_CCB_CRITICAL) {
+      if ((*i3)->mState >= IMM_CCB_CRITICAL) {
         LOG_IN(
-            "Attempt to purge syncronous request for client connection,"
-            "ignoring CCB %u with state > IMM_CCB_CRITICAL",
+            "Attempt to purge synchronous request for client connection,"
+            "ignoring CCB %u with state >= IMM_CCB_CRITICAL",
             ccbId);
         continue;
       }
 
       if (purged || (ccbFound != sCcbVector.end())) {
         LOG_WA(
-            "Attempt to purge syncronous CCB request for client connection,"
+            "Attempt to purge synchronous CCB request for client connection,"
             "but found multiple requests for that connection, "
             "incorrect use of imm handle");
         return false;

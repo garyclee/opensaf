@@ -160,6 +160,7 @@ extern void saImmOmCcbObjectDelete_11(void);
 extern void saImmOmCcbObjectDelete_12(void);
 extern void saImmOmCcbObjectDelete_13(void);
 extern void saImmOmCcbObjectDelete_14(void);
+extern void saImmOmCcbObjectDelete_15(void);
 extern void saImmOmCcbObjectModify_2_01(void);
 extern void saImmOmCcbObjectModify_2_02(void);
 extern void saImmOmCcbObjectModify_2_03(void);
@@ -299,6 +300,9 @@ __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 	test_case_add(
 	    6, saImmOmCcbObjectDelete_14,
 	    "saImmOmCcbObjectDelete - SA_AIS_ERR_FAILED_OPERATION, set NO_DANGLING reference to an object created in the same CCB and then delete reffered object");
+	test_case_add(
+		6, saImmOmCcbObjectDelete_15,
+		"saImmOmCcbObjectDelete - SA_AIS_OK, operate on CCB handle which had been previously applied but got TIMEOUT");
 
 	test_case_add(6, saImmOmCcbObjectModify_2_01,
 		      "saImmOmCcbObjectModify_2 - SA_AIS_OK");
