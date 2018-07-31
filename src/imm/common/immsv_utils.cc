@@ -37,3 +37,17 @@ std::string ReverseDn(const std::string& input) {
 
   return result;
 }
+
+// true if @name is one of system attributes.
+bool is_system_attribute(const std::string& name) {
+  const char* system_attributes[] = {
+    "SaImmAttrClassName",
+    "SaImmAttrAdminOwnerName",
+    "SaImmAttrImplementerName"
+  };
+
+  for (const auto& s : system_attributes) {
+    if (std::string {s} == name) return true;
+  }
+  return false;
+}

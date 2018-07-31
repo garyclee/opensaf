@@ -225,6 +225,7 @@ bin_immcfg_CPPFLAGS = \
 	@XML2_CFLAGS@
 
 bin_immcfg_SOURCES = \
+	src/imm/common/immsv_utils.cc \
 	src/imm/tools/imm_import.cc \
 	src/imm/tools/imm_cfg.c
 
@@ -312,6 +313,7 @@ bin_osafimmd_LDADD = \
 bin_osafimmloadd_CXXFLAGS = $(AM_CXXFLAGS)
 
 bin_osafimmloadd_SOURCES = \
+	src/imm/common/immsv_utils.cc \
 	src/imm/immloadd/imm_loader.cc \
 	src/imm/immloadd/imm_pbe_load.cc
 

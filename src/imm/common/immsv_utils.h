@@ -16,3 +16,4 @@
 #include <string>
 
 std::string ReverseDn(const std::string& input);
+bool is_system_attribute(const std::string& name);

@@ -38,6 +38,7 @@
 #include "osaf/immutil/immutil.h"
 #include "base/saf_error.h"
 #include "base/osaf_extended_name.h"
+#include "imm/common/immsv_utils.h"
 
 #define MAX_DEPTH 10
 #define MAX_CHAR_BUFFER_SIZE 8192  // 8k
@@ -2143,6 +2144,11 @@ static void addObjectAttributeDefinition(ParserState *state) {
   int i;
   size_t len;
 
+  // Ignore processing system attributes if any.
+  if (is_system_attribute(state->attrName)) {
+    return;
+  }
+
   /* The attrName must be set */
   if (!state->attrName) {
     LOG_ER("The attrName must be set");
@@ -2354,9 +2360,9 @@ static SaImmValueTypeT getClassAttrValueType(ParserState *state,
 
   if (state->classAttrTypeMap[classNameString].find(attrNameString) ==
       state->classAttrTypeMap[classNameString].end()) {
+    LOG_ER("NO CORRESPONDING ATTRIBUTE %s in class %s", attrName, className);
     stopParser(state);
     state->parsingStatus = 1;
-    LOG_ER("NO CORRESPONDING ATTRIBUTE %s in class %s", attrName, className);
     return (SaImmValueTypeT)-1;
   }
 
