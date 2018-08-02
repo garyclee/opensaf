@@ -166,7 +166,8 @@ noinst_HEADERS += \
 	src/imm/immnd/immnd_cb.h \
 	src/imm/immnd/immnd_init.h \
 	src/imm/immpbed/immpbe.h \
-	src/imm/tools/imm_dumper.h
+	src/imm/tools/imm_dumper.h \
+	src/imm/immnd/immnd_utils.h
 
 bin_PROGRAMS += bin/immadm bin/immcfg bin/immdump bin/immfind bin/immlist
 osaf_execbin_PROGRAMS += bin/osafimmd bin/osafimmloadd bin/osafimmnd bin/osafimmpbed
@@ -344,6 +345,7 @@ bin_osafimmnd_SOURCES = \
 	src/imm/immnd/immnd_mds.c \
 	src/imm/immnd/immnd_proc.c \
 	src/imm/immnd/immnd_clm.c \
+	src/imm/immnd/immnd_utils.cc \
 	src/imm/immnd/ImmAttrValue.cc \
 	src/imm/immnd/ImmSearchOp.cc \
 	src/imm/immnd/ImmModel.cc

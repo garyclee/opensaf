@@ -676,6 +676,7 @@ void immsv_evt_free_att_val(IMMSV_EDU_ATTR_VAL *v, SaImmValueTypeT t);
 void immsv_evt_free_att_val_raw(IMMSV_EDU_ATTR_VAL *v, long t);
 void immsv_free_attr_list_raw(IMMSV_EDU_ATTR_VAL_LIST *al, const long avt);
 
+const char *immsv_get_immnd_evt_name(unsigned int id);
 void immsv_msg_trace_send(MDS_DEST to, IMMSV_EVT *evt);
 void immsv_msg_trace_rec(MDS_DEST from, IMMSV_EVT *evt);
 

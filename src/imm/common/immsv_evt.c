@@ -189,7 +189,7 @@ static const char *immnd_evt_names[] = {
     "IMMND_EVT_D2ND_IMPLDELETE",
     "undefined (high)"};
 
-static const char *immsv_get_immnd_evt_name(unsigned int id)
+const char *immsv_get_immnd_evt_name(unsigned int id)
 {
 	if (id < IMMND_EVT_MAX)
 		return immnd_evt_names[id];
