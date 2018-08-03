@@ -704,6 +704,8 @@ SaAisErrorT SmfImmUtils::doImmOperations(
     if (result != SA_AIS_OK) {
       LOG_WA("%s: imm_operation->Execute Fail, %s", __FUNCTION__,
              saf_error(result));
+      delete rollbackData;
+      rollbackData = nullptr;
       break;
     }
 
