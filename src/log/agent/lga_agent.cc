@@ -647,7 +647,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
   // Populate & send the finalize message and make sure the finalize
   // from the server end returned before deleting the local records.
   ais_rc = SendFinalizeMsg(client->GetClientId());
-  if (ais_rc == SA_AIS_OK) {
+  if (ais_rc == SA_AIS_OK || ais_rc == SA_AIS_ERR_BAD_HANDLE) {
     TRACE("%s delete_one_client", __func__);
     if (true) {
       ScopeLock critical_section(get_delete_obj_sync_mutex_);
