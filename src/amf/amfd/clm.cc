@@ -631,7 +631,7 @@ AvdJobDequeueResultT ClmTrackStart::exec(AVD_CL_CB* cb) {
   AvdJobDequeueResultT res;
   TRACE_ENTER();
 
-  SaAisErrorT rc = avd_clm_track_start(const_cast<AVD_CL_CB*>(cb));
+  SaAisErrorT rc = avd_clm_track_start(cb);
   if (rc == SA_AIS_OK) {
     delete Fifo::dequeue();
     res = JOB_EXECUTED;
@@ -652,7 +652,7 @@ AvdJobDequeueResultT ClmTrackStop::exec(AVD_CL_CB* cb) {
   AvdJobDequeueResultT res;
   TRACE_ENTER();
 
-  SaAisErrorT rc = avd_clm_track_stop(const_cast<AVD_CL_CB*>(cb));
+  SaAisErrorT rc = avd_clm_track_stop(cb);
   if (rc == SA_AIS_OK) {
     delete Fifo::dequeue();
     res = JOB_EXECUTED;
