@@ -51,12 +51,34 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
 
   rde_msg* msg = static_cast<rde_msg*>(malloc(sizeof(rde_msg)));
   if (key == Consensus::kTakeoverRequestKeyname) {
+    std::string request;
+
+    if (new_value.empty() == true) {
+      // sometimes the KV store plugin doesn't return the new value,
+      // let's try to read it in this thread to avoid stalling
+      // the main thread
+      TRACE("Empty takeover request from callback. Try reading it");
+
+      SaAisErrorT rc = SA_AIS_ERR_TRY_AGAIN;
+      constexpr uint8_t max_retry = 5;
+      uint8_t retries = 0;
+      Consensus consensus_service;
+
+      while (retries < max_retry && rc != SA_AIS_OK) {
+        rc = consensus_service.ReadTakeoverRequest(request);
+        ++retries;
+      }
+    } else {
+      // use the value received in callback
+      request = new_value;
+    }
+
     // don't send this to the main thread straight away, as it will
     // need some time to process topology changes.
     msg->type = RDE_MSG_TAKEOVER_REQUEST_CALLBACK;
-    size_t len = new_value.length() + 1;
+    size_t len = request.length() + 1;
     msg->info.takeover_request = new char[len];
-    strncpy(msg->info.takeover_request, new_value.c_str(), len);
+    strncpy(msg->info.takeover_request, request.c_str(), len);
     LOG_NO("Sending takeover request '%s' to main thread",
           msg->info.takeover_request);
     std::this_thread::sleep_for(std::chrono::seconds(4));
