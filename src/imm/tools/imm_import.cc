@@ -2451,7 +2451,7 @@ static void addClassAttributeDefinition(ParserState *state) {
 
   /* Set the default value */
   if (state->attrDefaultValueSet &&
-      (strlen(reinterpret_cast<char*>(state->attrDefaultValueBuffer)) > 0)) {
+      (strlen(state->attrDefaultValueBuffer) > 0)) {
     if (charsToValueHelper(&attrDefinition.attrDefaultValue,
                            state->attrValueType, state->attrDefaultValueBuffer,
                            state->strictParse)) {

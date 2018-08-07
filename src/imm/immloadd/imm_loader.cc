@@ -1916,7 +1916,7 @@ void addClassAttributeDefinition(
 
   /* Set the default value */
   if (attrDefaultValueBuffer &&
-      (strlen(reinterpret_cast<char*>(attrDefaultValueBuffer)) > 0)) {
+      (strlen(static_cast<const char*>(attrDefaultValueBuffer)) > 0)) {
     charsToValueHelper(&attrDefinition.attrDefaultValue, attrValueType,
                        (const char *)attrDefaultValueBuffer);
   } else {
