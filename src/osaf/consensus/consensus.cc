@@ -453,6 +453,23 @@ SaAisErrorT Consensus::ParseTakeoverRequest(const std::string& request,
   return SA_AIS_OK;
 }
 
+SaAisErrorT Consensus::ReadTakeoverRequest(std::string& request) {
+  TRACE_ENTER();
+
+  std::string value;
+  SaAisErrorT rc;
+
+  rc = KeyValue::Get(kTakeoverRequestKeyname, value);
+  if (rc != SA_AIS_OK) {
+    // it doesn't always exist, don't log an error
+    TRACE("Could not read takeover request (%d)", rc);
+    return SA_AIS_ERR_FAILED_OPERATION;
+  }
+
+  request = value;
+  return SA_AIS_OK;
+}
+
 SaAisErrorT Consensus::ReadTakeoverRequest(std::vector<std::string>& tokens) {
   TRACE_ENTER();
 

@@ -45,6 +45,9 @@ class Consensus {
   void MonitorTakeoverRequest(ConsensusCallback callback,
                               const uint32_t user_defined);
 
+  // Retrieve takeover request (if any)
+  SaAisErrorT ReadTakeoverRequest(std::string& request);
+
   // Is consensus service enabled?
   bool IsEnabled() const;
 
