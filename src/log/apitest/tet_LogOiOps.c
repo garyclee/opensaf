@@ -1515,15 +1515,16 @@ done:
 	logFinalize();
 }
 
+// Verify that log records aren't written to log file because severity filter
+// is out of setting
 void verFilterOut(void)
 {
 	int ret;
 	SaAisErrorT rc;
 	char command[MAX_DATA];
 	const unsigned int serverity_filter = 31;
-	FILE *fp = NULL;
-	char fileSize_c[10];
-	int fileSize = 0;
+	const char *log_record =
+		  "Test filter out, log records are not writen to log file";
 
 	rc = logInitialize();
 	if (rc != SA_AIS_OK) {
@@ -1545,48 +1546,33 @@ void verFilterOut(void)
 		serverity_filter, SA_LOG_STREAM_APPLICATION1);
 	ret = systemCall(command);
 	if (ret != 0) {
-		test_validate(ret, 0);
+		rc_validate(ret, 0);
 		goto done;
 	}
 
 	/* saflogtest sends messages */
-	sprintf(
-	    command,
-	    "saflogtest -a saLogApplication1 --count=2 --interval=20 --severity=notice"
-	    " \"Test filter out, log records are not writen to log file\"");
-	rc = system(command);
-	if (rc == -1) {
-		test_validate(rc, 0);
+	sprintf(command, "saflogtest --count=2 --interval=20 --severity=notice "
+	    "-a saLogApplication1  \"%s\"", log_record);
+	ret = systemCall(command);
+	if (ret == -1) {
+		rc_validate(ret, 0);
 		goto done;
 	}
 
-	/* Check if log file is empty or not*/
+	// Find the log file then check (grep) if the log record is in
+	// log file or not
 	sprintf(command,
 		"find %s/saflogtest -type f -mmin -1 "
 		"| egrep \"%s_([0-9]{8}_[0-9]{6}\\.log$)\" "
-		"| xargs wc -c | awk '{printf $1}'",
-		log_root_path, DEFAULT_APP_FILE_NAME);
+		"| xargs grep \"%s\" > /dev/null",
+		log_root_path, DEFAULT_APP_FILE_NAME, log_record);
 
-	fp = popen(command, "r");
-
-	if (fp == NULL) {
-		/* Fail to read size of log file. Report test failed. */
-		fprintf(stderr, "Failed to run command = %s\n", command);
-		test_validate(1, 0);
-		goto done;
-	}
-	/* Get file size in chars */
-	while (fgets(fileSize_c, sizeof(fileSize_c) - 1, fp) != NULL) {
-	};
-	pclose(fp);
-
-	/* Convert chars to number */
-	fileSize = atoi(fileSize_c);
-
-	if (fileSize != 0) {
-		fprintf(stderr, "Log file has log records\n");
-	}
-	rc_validate(fileSize, 0);
+	ret = system(command);
+	// Expect the log record is not found, ret != 0
+	if (ret != 0)
+		rc_validate(1, 1);
+	else
+		rc_validate(1, 0);
 
 done:
 	logFinalize();
