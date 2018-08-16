@@ -142,7 +142,7 @@ SaAisErrorT Consensus::Demote(const std::string& node) {
   }
 
   if (rc != SA_AIS_OK) {
-    LOG_ER("Unlock failed (%u)", rc);
+    LOG_WA("Unlock failed (%u)", rc);
     return rc;
   }
 
