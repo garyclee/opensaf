@@ -748,6 +748,16 @@ void cpsv_it_init_10()
 	test_validate(result, TEST_PASS);
 }
 
+void cpsv_it_init_11()
+{
+	int result;
+	printHead("To verify saCkptInitialize with one sync clbk");
+	result = test_ckptInitialize(CKPT_INIT_SYNC_NULL_CBK_T, TEST_NONCONFIG_MODE);
+	test_cpsv_cleanup(CPSV_CLEAN_INIT_SYNC_NULL_CBK_T);
+	printResult(result);
+	test_validate(result, TEST_PASS);
+}
+
 /****** saCkptSelectionObjectGet *****/
 
 void cpsv_it_sel_01()
@@ -7941,6 +7951,8 @@ __attribute__((constructor)) static void ckpt_cpa_test_constructor(void)
 		      "To verify saCkptInitialize with NULL handle");
 	test_case_add(1, cpsv_it_init_10,
 		      "To verify saCkptInitialize with one NULL clbk");
+	test_case_add(1, cpsv_it_init_11,
+		"To verify saCkptInitialize with one SYNC clbk and NULL clbk");
 
 	test_suite_add(2, "CKPT API saCkptSelectObjectGet()");
 	test_case_add(
