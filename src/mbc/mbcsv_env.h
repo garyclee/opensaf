@@ -519,8 +519,6 @@ uint32_t mbcsv_hdl_dispatch_block(uint32_t mbcsv_hdl, SYSF_MBX mbx);
 /*
  * Peer discovery function prototypes.
  */
-PEER_INST *mbcsv_search_and_return_peer(PEER_INST *peer_list,
-                                        MBCSV_ANCHOR anchor);
 PEER_INST *mbcsv_add_new_peer(CKPT_INST *ckpt, MBCSV_ANCHOR anchor);
 uint32_t mbcsv_shutdown_peer(PEER_INST *peer_ptr);
 uint32_t mbcsv_rmv_peer(CKPT_INST *ckpt, MBCSV_ANCHOR anchor);

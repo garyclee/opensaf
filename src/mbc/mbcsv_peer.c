@@ -56,6 +56,73 @@ static const char *disc_trace[] = {"Peer UP msg", "Peer DOWN msg",
 				   "Peer INFO msg", "Peer INFO resp msg",
 				   "Peer Role change msg"
 				   "Invalid peer discovery msg"};
+typedef enum {ANCHOR_SEARCH, NODE_ID_SEARCH} SearchMode;
+
+
+/**************************************************************************\
+* PROCEDURE: search_peer_list
+*
+* Purpose:  This function search MBCA peer list for a match of complete
+*           anchor value (all 64 bits) or Node Id (most significant 32 bits of
+*           anchor value)
+*
+* Input:    peer_list - MBCSv peer list.
+*           anchor - Anchor value of the peer to be searched in the list.
+*           search_mode - See enum SearchMode for search alternatives
+*
+* Returns:  Pointer to found peer instance or NULL if no instance found
+*
+* Notes:
+*
+\**************************************************************************/
+static PEER_INST *search_peer_list(PEER_INST *peer_list,
+				   MBCSV_ANCHOR anchor,
+				   SearchMode search_mode)
+{
+	PEER_INST *peer = NULL, *found_peer = NULL;
+	uint32_t node_id;
+	uint32_t peer_node_id = m_NCS_NODE_ID_FROM_MDS_DEST(anchor);
+
+	for (peer = peer_list; peer != NULL; peer = peer->next) {
+		if (search_mode == ANCHOR_SEARCH) {
+			if (peer->peer_anchor == anchor) {
+				found_peer = peer;
+				break;
+			}
+		} else if (search_mode == NODE_ID_SEARCH) {
+			node_id =
+				m_NCS_NODE_ID_FROM_MDS_DEST(peer->peer_anchor);
+			if (node_id == peer_node_id) {
+				found_peer = peer;
+				break;
+			}
+		} else {
+			TRACE("Unsupported search mode");
+		}
+	}
+	return found_peer;
+}
+
+/**************************************************************************\
+* PROCEDURE: mbcsv_check_if_peer_node_id_exist
+*
+* Purpose:  This function searches entire MBCA peer list for the peer entity
+*           and checking if the peer nodeId is exist in peer entity
+*
+* Input:    peer_list - MBCSv peer list.
+*           anchor - Anchor value of the peer to be searched in the list.
+*
+* Returns:  True/False
+*
+* Notes:
+*
+\**************************************************************************/
+static bool check_if_peer_node_id_exist(PEER_INST *peer_list,
+					MBCSV_ANCHOR anchor)
+{
+	PEER_INST *peer = search_peer_list(peer_list, anchor, NODE_ID_SEARCH);
+	return (peer != NULL);
+}
 
 /**************************************************************************\
 * PROCEDURE: mbcsv_search_and_return_peer
@@ -64,23 +131,17 @@ static const char *disc_trace[] = {"Peer UP msg", "Peer DOWN msg",
 *           peer entity and returns peer pointer.
 *
 * Input:    peer_list - MBCSv peer list.
-*           anchor - Anchor value of the peer to be serched in the list.
+*           anchor - Anchor value of the peer to be searched in the list.
 *
 * Returns:  Peer instance pointer.
 *
 * Notes:
 *
 \**************************************************************************/
-PEER_INST *mbcsv_search_and_return_peer(PEER_INST *peer_list,
-					MBCSV_ANCHOR anchor)
+static PEER_INST *mbcsv_search_and_return_peer(PEER_INST *peer_list,
+					       MBCSV_ANCHOR anchor)
 {
-	PEER_INST *peer;
-
-	for (peer = peer_list; peer != NULL; peer = peer->next)
-		if (peer->peer_anchor == anchor)
-			return peer;
-
-	return NULL;
+	return search_peer_list(peer_list, anchor, ANCHOR_SEARCH);
 }
 
 /**************************************************************************\
@@ -731,6 +792,15 @@ uint32_t mbcsv_process_peer_up_info(MBCSV_EVT *msg, CKPT_INST *ckpt,
 			TRACE_LEAVE();
 			return NCSCC_RC_SUCCESS;
 		}
+	}
+
+	// If the node id exist in any peer entity of the peer list, we already
+	// got peer up message for that peer node. So This peer up message
+	// is invalid and just ignore it. Fixed bug #2899
+	if (check_if_peer_node_id_exist(
+		   ckpt->peer_list, msg->rcvr_peer_key.peer_anchor) == true) {
+		TRACE_LEAVE2("Peer up message is too old. Just ignore this");
+		return NCSCC_RC_SUCCESS;
 	}
 
 	if (0 != (mbx = mbcsv_get_mbx(msg->rcvr_peer_key.pwe_hdl,
