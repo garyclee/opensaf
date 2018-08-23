@@ -85,6 +85,19 @@ void avd_cluster_tmr_init_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
         node->node_info.nodeId != cb->node_id_avd_other)
       avd_snd_set_leds_msg(cb, node);
   }
+  /* If the SU is qualified to be IN_SERVICE but its readiness state
+   * is still OUT_OF_SERVICE, set it to be IN_SERVICE.
+   * This scenario happens if the UNLOCK-in/UNLOCK admin op is issued
+   * to a SU hosted on non-active node while cluster startup timer is
+   * active and not all ncs SU on that node are fully assigned
+   */
+  for (const auto &value : *su_db) {
+    AVD_SU *i_su = value.second;
+    if (i_su->is_in_service() && i_su->sg_of_su->sg_ncs_spec == false &&
+        i_su->saAmfSuReadinessState == SA_AMF_READINESS_OUT_OF_SERVICE) {
+      i_su->set_readiness_state(SA_AMF_READINESS_IN_SERVICE);
+    }
+  }
 
   /* call the realignment routine for each of the SGs in the
    * system that are not NCS specific.
