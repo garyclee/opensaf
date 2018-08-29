@@ -879,6 +879,12 @@ void plms_process_trk_start_evt(PLMS_EVT *plm_evt)
 		no_of_ent_recd = no_of_ent_in_grp;
 	}
 
+	if (no_of_ent_in_grp != no_of_ent_recd) {
+		LOG_ER("PLMS: no of entities sent is != entities in grp");
+		rc = SA_AIS_ERR_NO_SPACE;
+		goto send_resp;
+	}
+
 	plm_resp.res_evt.entities = (SaPlmReadinessTrackedEntitiesT *)malloc(
 	    sizeof(SaPlmReadinessTrackedEntitiesT));
 
@@ -887,12 +893,6 @@ void plms_process_trk_start_evt(PLMS_EVT *plm_evt)
 		LOG_CR(
 		    "PLMS :  memory alloc for tracked_entity structure failed, error val:%s",
 		    strerror(errno));
-		goto send_resp;
-	}
-	if (no_of_ent_in_grp != no_of_ent_recd) {
-		LOG_ER("PLMS: no of entities sent is != entities in grp");
-		plm_resp.res_evt.entities->numberOfEntities = no_of_ent_in_grp;
-		rc = SA_AIS_ERR_NO_SPACE;
 		goto send_resp;
 	}
 
