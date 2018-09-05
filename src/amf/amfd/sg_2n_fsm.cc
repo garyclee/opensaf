@@ -593,8 +593,39 @@ static AVD_SU_SI_REL *avd_sg_2n_act_susi(AVD_CL_CB *cb, AVD_SG *sg,
       osafassert(a_susi_1->su == s_susi_2->su);
       osafassert(a_susi_2->su == s_susi_1->su);
     } else {
-      osafassert(a_susi_1->su == a_susi_2->su);
-      osafassert(s_susi_1->su == s_susi_2->su);
+      if (a_susi_1->su != a_susi_2->su) {
+        // Duplicate 2N active assignments found, probably after split brain
+        // Reboot both nodes hosting the SUs to recover
+
+        LOG_EM("Duplicate 2N active assignments in '%s' and '%s'",
+          a_susi_1->su->name.c_str(), a_susi_2->su->name.c_str());
+
+        LOG_EM("Sending node reboot order to '%s'",
+          a_susi_1->su->su_on_node->name.c_str());
+        avd_d2n_reboot_snd(a_susi_1->su->su_on_node);
+
+        if (a_susi_1->su->su_on_node != a_susi_2->su->su_on_node) {
+          LOG_EM("Sending node reboot order to '%s'",
+            a_susi_2->su->su_on_node->name.c_str());
+          avd_d2n_reboot_snd(a_susi_2->su->su_on_node);
+        }
+      } else if (s_susi_1->su != s_susi_2->su) {
+        // Duplicate 2N standby assignments found
+        // Reboot both nodes hosting the SUs to recover
+
+        LOG_EM("Duplicate 2N standby assignments in '%s' and '%s'",
+          s_susi_1->su->name.c_str(), s_susi_2->su->name.c_str());
+
+        LOG_EM("Sending node reboot order to '%s'",
+          s_susi_1->su->su_on_node->name.c_str());
+        avd_d2n_reboot_snd(s_susi_1->su->su_on_node);
+
+        if (s_susi_1->su->su_on_node != s_susi_2->su->su_on_node) {
+          LOG_EM("Sending node reboot order to '%s'",
+            s_susi_2->su->su_on_node->name.c_str());
+          avd_d2n_reboot_snd(s_susi_2->su->su_on_node);
+        }
+      }
     }
     a_susi = a_susi_1;
     s_susi = s_susi_1;
