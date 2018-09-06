@@ -105,8 +105,9 @@ saPlmEntityGroupCreate_constructor(void)
 	test_case_add(
 	    2, saPlmEntityGroupAdd_04,
 	    "saPlmEntityGroupAdd_04 with SA_PLM_GROUP_SUBTREE_EES_ONLY option - SA_AIS_OK");
-	//   test_case_add(2,saPlmEntityGroupAdd_05 , "saPlmEntityGroupAdd_05
-	//   with bad plmhandle SA_AIS_ERR_BAD_HANDLE");
+	test_case_add(
+	    2,saPlmEntityGroupAdd_05,
+	    "saPlmEntityGroupAdd_05 with bad plmhandle SA_AIS_ERR_BAD_HANDLE");
 	test_case_add(
 	    2, saPlmEntityGroupAdd_06,
 	    "saPlmEntityGroupAdd_06 with invalid DN SA_AIS_ERR_INVALID_PARAM ");
