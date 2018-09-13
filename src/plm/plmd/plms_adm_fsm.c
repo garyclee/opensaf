@@ -4771,22 +4771,27 @@ SaUint32T plms_cbk_response_process(PLMS_EVT *evt)
 	PLMS_TRACK_INFO *trk_info;
 	PLMS_ENTITY_GROUP_INFO_LIST *head;
 	PLMS_AGENT_TRACK_OP *res = &evt->req_evt.agent_track;
+	PLMS_EVT evt_resp = { 0, PLMS_RES };
 
 	TRACE_ENTER2("Grp_hdl: %llu,resp: %d, inv_id: %llu", res->grp_handle,
 		     res->track_cbk_res.response,
 		     res->track_cbk_res.invocation_id);
 
+	evt_resp.res_evt.res_type = PLMS_AGENT_TRACK_RESP_RES;
+	evt_resp.res_evt.ntf_id   = SA_NTF_IDENTIFIER_UNUSED;
+	evt_resp.res_evt.error    = SA_AIS_OK;
+
 	/* Get to the group */
 	grp = (PLMS_ENTITY_GROUP_INFO *)ncs_patricia_tree_get(
 	    &(cb->entity_group_info), (SaUint8T *)&(res->grp_handle));
 	if (NULL == grp) {
-		LOG_ER("Response can not be processed as the group\
-		corresponding to grp_handle %llu not found in plms\
-		datebase.",
+		LOG_ER("Response can not be processed as the group"
+		"corresponding to grp_handle %llu not found in plms"
+		"datebase.",
 		       res->grp_handle);
 
-		TRACE_LEAVE2("ret_err: %d", NCSCC_RC_FAILURE);
-		return NCSCC_RC_FAILURE;
+		evt_resp.res_evt.error = SA_AIS_ERR_BAD_HANDLE;
+		goto end;
 	}
 	/* If inv is not part of grp->invocation_list, then
 		-- PLMS receives RESPONSE_REJECT from one of the
@@ -4798,12 +4803,12 @@ SaUint32T plms_cbk_response_process(PLMS_EVT *evt)
 	inv_trk = plms_inv_to_cbk_in_grp_find(grp->invocation_list,
 					      res->track_cbk_res.invocation_id);
 	if (NULL == inv_trk) {
-		LOG_ER("Invocation id mentioned in the resp, is not\
-		found in the grp->inocation_list. inv_id: %llu",
+		LOG_ER("Invocation id mentioned in the resp, is not"
+		"found in the grp->inocation_list. inv_id: %llu",
 		       res->track_cbk_res.invocation_id);
 
-		TRACE_LEAVE2("ret_err: %d", NCSCC_RC_FAILURE);
-		return NCSCC_RC_FAILURE;
+		evt_resp.res_evt.error = SA_AIS_ERR_INVALID_PARAM;
+		goto end;
 	}
 	switch (res->track_cbk_res.response) {
 
@@ -4825,8 +4830,7 @@ SaUint32T plms_cbk_response_process(PLMS_EVT *evt)
 			response. trk_cnt: %d",
 			      trk_info->track_count);
 
-			TRACE_LEAVE2("ret_err: %d", NCSCC_RC_SUCCESS);
-			return NCSCC_RC_SUCCESS;
+			goto end;
 		}
 		/* Oh.. Got the all the responses. Send next cbk. */
 		if (SA_PLM_CHANGE_VALIDATE == trk_info->change_step) {
@@ -4836,11 +4840,12 @@ SaUint32T plms_cbk_response_process(PLMS_EVT *evt)
 			ret_err = plms_cbk_start_resp_ok_err_proc(trk_info);
 
 		} else {
-			LOG_ER("Change step can not be anything otherthan\
-			START/VALIDATE. change_step: %d",
+			LOG_ER("Change step can not be anything other than"
+			"START/VALIDATE. change_step: %d",
 			       trk_info->change_step);
-			TRACE_LEAVE2("ret_err: %d", NCSCC_RC_FAILURE);
-			return NCSCC_RC_FAILURE;
+
+			evt_resp.res_evt.error = SA_AIS_ERR_INVALID_PARAM;
+			goto end;
 		}
 		break;
 
@@ -4851,11 +4856,11 @@ SaUint32T plms_cbk_response_process(PLMS_EVT *evt)
 		/* Hold on. Application can not reject if the cbk is not
 		a validate cbk. */
 		if (SA_PLM_CHANGE_VALIDATE != trk_info->change_step) {
-			LOG_ER("Response can not be rejected for callback\
-			other than VALIDATE.");
+			LOG_ER("Response can not be rejected for callback"
+			"other than VALIDATE.");
 
-			TRACE_LEAVE2("ret_err: %d", NCSCC_RC_FAILURE);
-			return NCSCC_RC_FAILURE;
+			evt_resp.res_evt.error = SA_AIS_ERR_INVALID_PARAM;
+			goto end;
 		}
 		/* Clean up the inv_to_cbk nodes belongs to this trk_info.*/
 		head = trk_info->group_info_list;
@@ -4934,6 +4939,15 @@ SaUint32T plms_cbk_response_process(PLMS_EVT *evt)
 	default:
 		LOG_ER("Invalid response: %d", res->track_cbk_res.response);
 		break;
+	}
+
+end:
+	ret_err = plm_send_mds_rsp(cb->mds_hdl, NCSMDS_SVC_ID_PLMS, &evt->sinfo,
+					&evt_resp);
+
+	if (NCSCC_RC_SUCCESS != ret_err) {
+		LOG_ER("Sync resp to PLMA for track response FAILED. ret_val "
+				"= %d", ret_err);
 	}
 
 	TRACE_LEAVE2("ret_err: %d", ret_err);

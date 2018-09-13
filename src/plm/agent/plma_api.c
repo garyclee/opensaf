@@ -2974,6 +2974,7 @@ SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
 {
 	PLMA_CB *plma_cb = plma_ctrlblk;
 	PLMS_EVT plm_in_evt;
+	PLMS_EVT *plm_out_res = NULL;
 	SaAisErrorT rc = SA_AIS_OK;
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	PLMA_ENTITY_GROUP_INFO *group_info;
@@ -2991,6 +2992,12 @@ SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
 	}
 	if (!invocation) {
 		LOG_ER("INVALID INVOCATION ID");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto end;
+	}
+	if (response < SA_PLM_CALLBACK_RESPONSE_OK ||
+            response > SA_PLM_CALLBACK_RESPONSE_ERROR) {
+		TRACE("response parameter is invalid");
 		rc = SA_AIS_ERR_INVALID_PARAM;
 		goto end;
 	}
@@ -3027,10 +3034,10 @@ SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
 	plm_in_evt.req_evt.agent_track.track_cbk_res.invocation_id = invocation;
 	plm_in_evt.req_evt.agent_track.track_cbk_res.response = response;
 
-	/* Send a mds async msg to PLMS to obtain group handle for this */
-	proc_rc = plms_mds_normal_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA,
-				       &plm_in_evt, plma_cb->plms_mdest_id,
-				       NCSMDS_SVC_ID_PLMS);
+	proc_rc = plm_mds_msg_sync_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA,
+					NCSMDS_SVC_ID_PLMS,
+					plma_cb->plms_mdest_id, &plm_in_evt,
+					&plm_out_res, PLMS_MDS_SYNC_TIME);
 
 	if (NCSCC_RC_SUCCESS != proc_rc) {
 		LOG_ER(
@@ -3038,7 +3045,21 @@ SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
 		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto end;
 	}
+
+	/* Verify if the response if ok */
+	if (!plm_out_res) {
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		goto end;
+	}
+	if (plm_out_res->res_evt.error != SA_AIS_OK) {
+		rc = plm_out_res->res_evt.error;
+		goto end;
+	}
+
 end:
+	if (plm_out_res)
+		plms_free_evt(plm_out_res);
+
 	TRACE_LEAVE();
 	return rc;
 }
