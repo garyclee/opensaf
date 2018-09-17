@@ -12,30 +12,14 @@
  * licensing terms.
  *
  * Author(s): Emerson
- *
+ *            High Availability Solutions Pvt. Ltd.
  */
 
-/*************************************************************************/ /**
-									     * @file
-									     *plma_mds.c
-									     * @brief
-									     *This
-									     *file
-									     *contains
-									     *routines
-									     *used
-									     *by
-									     *PLMA
-									     *library
-									     *for
-									     *MDS
-									     *		Interface.
-									     *
-									     * @author
-									     *Emerson
-									     *Network
-									     *Power
-									     *****************************************************************************/
+/*************************************************************************
+* @file  : plma_mds.c
+* @brief : This file contains routines used by PLMA library for MDS Interface.
+* @author: Emerson Network Power
+*****************************************************************************/
 
 #include "plma.h"
 #include "base/osaf_poll.h"
@@ -47,19 +31,10 @@ uint32_t plma_mds_callback(struct ncsmds_callback_info *info);
 static uint32_t plma_mds_rcv(MDS_CALLBACK_RECEIVE_INFO *rcv_info);
 static uint32_t plma_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *svc_evt);
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *routine
-									   *gets
-									   *MDS
-									   *handle
-									   *for
-									   *PLMA.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief : This routine gets MDS handle for PLMA.
+* @return: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 uint32_t plma_mds_get_handle()
 {
 	NCSADA_INFO arg;
@@ -81,24 +56,15 @@ uint32_t plma_mds_get_handle()
 	TRACE_5("PLM agent handle got : %d", plma_cb->mds_hdl);
 	TRACE_5("PLM agent mdest ID got : %" PRIu64, plma_cb->mdest_id);
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *routine
-									   *registers
-									   *the
-									   *PLMA
-									   *with
-									   *MDS.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief : This routine registers the PLMA with MDS.
+* @return: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 uint32_t plma_mds_register()
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -148,7 +114,7 @@ uint32_t plma_mds_register()
 		plma_mds_unregister();
 		return NCSCC_RC_FAILURE;
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
@@ -217,32 +183,15 @@ uint32_t plma_mds_callback(struct ncsmds_callback_info *info)
 		rc = NCSCC_RC_FAILURE;
 		break;
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *MDS
-									   *will
-									   *call
-									   *this
-									   *function
-									   *on
-									   *receiving
-									   *PLMA
-									   *messages.
-									   *
-									   * @param[in]
-									   *rcv_info
-									   *-
-									   *MDS
-									   *Receive
-									   *information.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief    : MDS will call this function on receiving PLMA messages.
+* @param[in]: rcv_info - MDS Receive information.
+* @return   : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 static uint32_t plma_mds_rcv(MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -289,37 +238,16 @@ static uint32_t plma_mds_rcv(MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 			}
 		}
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *PLMA
-									   *is
-									   *informed
-									   *when
-									   *MDS
-									   *events
-									   *occur
-									   *that
-									   *he
-									   *has
-									   *		subscribed
-									   *to
-									   *
-									   * @param[in]
-									   *svc_evt
-									   *-
-									   *MDS
-									   *Svc
-									   *evt
-									   *info.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief    : PLMA is informed when MDS events occur that he has subscribed to.
+* @param[in]: svc_evt - MDS Svc evt info.
+* @return   : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 static uint32_t plma_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -357,25 +285,15 @@ static uint32_t plma_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 		break;
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *un-registers
-									   *the
-									   *PLMA
-									   *Service
-									   *with
-									   *MDS.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief : This function un-registers the PLMA Service with MDS.
+* @return: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 void plma_mds_unregister()
 {
 	NCSMDS_INFO arg;
@@ -403,27 +321,11 @@ done:
 	return;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *is
-									   *for
-									   *PLMA
-									   *to
-									   *sync
-									   *with
-									   *PLMS
-									   *when
-									   *it
-									   *gets
-									   *		MDS
-									   *callback.
-									   *
-									   * @return
-									   *Returns
-									   *nothing.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief : This function is for PLMA to sync with PLMS when it gets
+*	   MDS callback.
+* @return: Returns nothing.
+***************************************************************************/
 void plma_sync_with_plms()
 {
 	PLMA_CB *cb = plma_ctrlblk;
