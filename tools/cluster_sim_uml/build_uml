@@ -121,6 +121,29 @@ cmd_install_testprog() {
     cmd_mkcpio
 }
 
+##   install_plmtests
+##     Install the PLM tests
+##
+cmd_install_plm_tests() {
+    src=$opensaf_home/src/plm/config
+    immxml=$root/etc/opensaf/imm.xml
+    plmXml=$src/plm-sim-imm.xml
+
+    test -r $immxml.orig || cp $immxml $immxml.orig
+    $opensaf_home/src/imm/tools/immxml-merge \
+       $immxml.orig $plmXml > $immxml
+    $opensaf_home/src/imm/tools/immxml-validate $immxml
+    mkdir -p $root/etc/openhpi
+    cp $src/openhpi.conf $root/etc/openhpi
+    #chmod 0600 $root/etc/openhpi
+    cp $src/opensaf-plm-sim.txt $root/etc/openhpi
+
+    # enable HPI in the configuration
+    sed -i '/isHpiSupported.*/ {N; s/isHpiSupported.*<value>0<\/value>/isHpiSupported<\/name>\n\t\t\t<value>1<\/value>/g}' $immxml
+    echo "Creating [$root/root.cpio] ..."
+    cmd_mkcpio
+}
+
 ##   create_rootfs
 ##     Create a (shadow) rootfs with OpenSAF and other required programs.
 ##
@@ -175,6 +198,7 @@ cmd_create_rootfs()
     test -e /usr/bin/strace && install /usr/bin/strace usr/bin
     test -e /usr/bin/lsof && install /usr/bin/lsof usr/bin
     test -e /bin/pidof && install /bin/pidof usr/bin
+    test -e /bin/prlimit && install /bin/prlimit usr/bin
     test -e /usr/sbin/tcpdump && install /usr/sbin/tcpdump usr/sbin
     test -e /usr/bin/addr2line && install /usr/bin/addr2line usr/bin
     if test -e /usr/bin/gdb; then
@@ -288,11 +312,22 @@ EOF
         cmd_mkcpio
     fi
 
-    # Remove line for starting plms
-    sed '/PLMD/d' < $root/etc/opensaf/nodeinit.conf.controller > \
-        $root/etc/opensaf/nodeinit.conf.controller.tmp
-    mv $root/etc/opensaf/nodeinit.conf.controller.tmp \
-        $root/etc/opensaf/nodeinit.conf.controller
+    if test -n "$ENABLE_PLM"; then
+        # install OpenHPI
+        if test -e /usr/sbin/openhpid; then
+          cp -a /usr/sbin/openhpid $root/usr/sbin
+          cp -a /usr/bin/hpiinv $root/usr/bin
+          cp -a /usr/bin/hpi_shell $root/usr/bin
+	  mkdir -p $root/usr/lib64/openhpi
+	  cp -a /usr/lib64/openhpi/libdyn_simulator.so* $root/usr/lib64/openhpi
+        fi
+    else
+        # Remove line for starting plms
+        sed '/PLMD/d' < $root/etc/opensaf/nodeinit.conf.controller > \
+            $root/etc/opensaf/nodeinit.conf.controller.tmp
+        mv $root/etc/opensaf/nodeinit.conf.controller.tmp \
+            $root/etc/opensaf/nodeinit.conf.controller
+    fi
 }
 
 ##   installibs
@@ -321,6 +356,12 @@ cmd_installibs() {
 	    echo /usr$d/libffi.so.? >> $deplib
 	fi
     done
+
+    if test -n "$ENABLE_PLM"; then
+        cmd_getlibs $(find . -name osafplmd -or -name libplms_hpi.so) /usr/sbin/openhpid |\
+            grep -v -e 'libSa\|libimmsv\|libsaf' \
+	    -e "^/$lib_dir/ld-\|^/$lib_dir/libc.so" >> $deplib
+    fi
 
     for n in $(cat $deplib | sort | uniq); do
         # Skip OpenSAF libraries installed on the host
