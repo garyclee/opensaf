@@ -1516,21 +1516,22 @@ void plms_inv_to_trk_grp_add(PLMS_INVOCATION_TO_TRACK_INFO **list,
 void plms_inv_to_cbk_in_grp_trk_rmv(PLMS_ENTITY_GROUP_INFO *grp,
 				    PLMS_TRACK_INFO *trk_info)
 {
-	PLMS_INVOCATION_TO_TRACK_INFO **inv_list, **prev;
+	PLMS_INVOCATION_TO_TRACK_INFO *inv_list, *prev;
 
-	inv_list = &(grp->invocation_list);
-	prev = &(grp->invocation_list);
-	while (*inv_list) {
-		if (trk_info == (*inv_list)->track_info) {
-			(*prev)->next = (*inv_list)->next;
-			(*inv_list)->track_info = NULL;
-			(*inv_list)->next = NULL;
-			free(*inv_list);
-			*inv_list = NULL;
+	inv_list = grp->invocation_list;
+	prev = grp->invocation_list;
+	while (inv_list) {
+		if (trk_info == inv_list->track_info) {
+			if (prev == inv_list) {
+				/* this is the first entry */
+				grp->invocation_list = inv_list->next;
+			}
+			prev->next = inv_list->next;
+			free(inv_list);
 			return;
 		}
-		*prev = *inv_list;
-		*inv_list = (*inv_list)->next;
+		prev = inv_list;
+		inv_list = inv_list->next;
 	}
 
 	return;
@@ -1545,21 +1546,22 @@ void plms_inv_to_cbk_in_grp_trk_rmv(PLMS_ENTITY_GROUP_INFO *grp,
 void plms_inv_to_cbk_in_grp_inv_rmv(PLMS_ENTITY_GROUP_INFO *grp,
 				    SaInvocationT inv_id)
 {
-	PLMS_INVOCATION_TO_TRACK_INFO **inv_list, **prev;
+	PLMS_INVOCATION_TO_TRACK_INFO *inv_list, *prev;
 
-	inv_list = &(grp->invocation_list);
-	prev = &(grp->invocation_list);
-	while (*inv_list) {
-		if (inv_id == (*inv_list)->invocation) {
-			(*prev)->next = (*inv_list)->next;
-			(*inv_list)->track_info = NULL;
-			(*inv_list)->next = NULL;
-			free(*inv_list);
-			*inv_list = NULL;
+	inv_list = grp->invocation_list;
+	prev = grp->invocation_list;
+	while (inv_list) {
+		if (inv_id == inv_list->invocation) {
+			if (prev == inv_list) {
+				/* this is the first entry */
+				grp->invocation_list = inv_list->next;
+			}
+			prev->next = inv_list->next;
+			free(inv_list);
 			return;
 		}
-		*prev = *inv_list;
-		*inv_list = (*inv_list)->next;
+		prev = inv_list;
+		inv_list = inv_list->next;
 	}
 
 	return;
