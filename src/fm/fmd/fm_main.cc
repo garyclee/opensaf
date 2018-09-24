@@ -25,6 +25,7 @@ This file contains the main() routine for FM.
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include "base/config_file_reader.h"
 #include "base/daemon.h"
 #include "base/logtrace.h"
 #include "base/osaf_extended_name.h"
@@ -40,7 +41,7 @@ This file contains the main() routine for FM.
 static SaVersionT clm_version = {'B', 4, 1};
 static const SaClmCallbacksT_4 clm_callbacks = {0, 0};
 
-enum { FD_TERM = 0, FD_AMF = 1, FD_MBX };
+enum { FD_TERM = 0, FD_AMF = 1, FD_MBX = 2, FD_SIGHUP = 3};
 
 FM_CB *fm_cb = NULL;
 const char *role_string[] = {"UNDEFINED", "ACTIVE", "STANDBY", "QUIESCED",
@@ -53,6 +54,7 @@ const char *role_string[] = {"UNDEFINED", "ACTIVE", "STANDBY", "QUIESCED",
  *****************************************************************/
 
 static uint32_t fm_agents_startup(void);
+static void reload_configuration(FM_CB *fm_cb);
 static uint32_t fm_get_args(FM_CB *);
 static uint32_t fms_fms_exchange_node_info(FM_CB *);
 static uint32_t fms_fms_inform_terminating(FM_CB *fm_cb);
@@ -69,6 +71,7 @@ void rda_cb(uint32_t cb_hdl, PCS_RDA_CB_INFO *cb_info,
             PCSRDA_RETURN_CODE error_code);
 uint32_t gl_fm_hdl;
 static NCS_SEL_OBJ usr1_sel_obj;
+static NCS_SEL_OBJ sighup_sel_obj;
 
 /**
  * USR1 signal is used when AMF wants instantiate us as a
@@ -81,6 +84,10 @@ static void sigusr1_handler(int sig) {
   (void)sig;
   signal(SIGUSR1, SIG_IGN);
   ncs_sel_obj_ind(&usr1_sel_obj);
+}
+
+static void sighup_handler(int signum, siginfo_t *info, void *ptr) {
+  ncs_sel_obj_ind(&sighup_sel_obj);
 }
 
 /**
@@ -124,7 +131,7 @@ DESCRIPTION:          Main routine for FM
 *****************************************************************************/
 int main(int argc, char *argv[]) {
   NCS_SEL_OBJ mbx_sel_obj;
-  nfds_t nfds = 3;
+  nfds_t nfds = 4;
   struct pollfd fds[nfds];
   int ret = 0;
   int rc = NCSCC_RC_FAILURE;
@@ -215,6 +222,22 @@ int main(int argc, char *argv[]) {
     goto fm_init_failed;
   }
 
+  rc = ncs_sel_obj_create(&sighup_sel_obj);
+  if (rc != NCSCC_RC_SUCCESS) {
+    LOG_ER("ncs_sel_obj_create FAILED");
+    goto fm_init_failed;
+  }
+
+  struct sigaction sighup;
+  sigemptyset(&sighup.sa_mask);
+  sighup.sa_sigaction = sighup_handler;
+  sighup.sa_flags = SA_SIGINFO;
+
+  if (sigaction(SIGHUP, &sighup, NULL) != 0) {
+    LOG_ER("registering SIGHUP FAILED: %s", strerror(errno));
+    goto fm_init_failed;
+  }
+
   if (!nid_started && fm_amf_init(&fm_cb->fm_amf_cb) != NCSCC_RC_SUCCESS)
     goto fm_init_failed;
 
@@ -242,6 +265,9 @@ int main(int argc, char *argv[]) {
   /* Mailbox */
   fds[FD_MBX].fd = mbx_sel_obj.rmv_obj;
   fds[FD_MBX].events = POLLIN;
+
+  fds[FD_SIGHUP].fd = sighup_sel_obj.rmv_obj;
+  fds[FD_SIGHUP].events = POLLIN;
 
   /* notify the NID */
   if (nid_started) fm_nid_notify((uint32_t)NCSCC_RC_SUCCESS);
@@ -275,6 +301,11 @@ int main(int argc, char *argv[]) {
         if (fm_amf_init(&fm_cb->fm_amf_cb) != NCSCC_RC_SUCCESS) goto done;
         fds[FD_AMF].fd = fm_cb->fm_amf_cb.amf_fd;
       }
+    }
+
+    if (fds[FD_SIGHUP].revents & POLLIN) {
+      ncs_sel_obj_rmv_ind(&sighup_sel_obj, true, true);
+      reload_configuration(fm_cb);
     }
 
     if (fds[FD_MBX].revents & POLLIN) handle_mbx_event();
@@ -350,6 +381,37 @@ static uint32_t fm_agents_startup(void) {
   return rc;
 }
 
+// only timer related values are reloaded
+static void reload_configuration(FM_CB *fm_cb) {
+  ConfigFileReader reader;
+  ConfigFileReader::SettingsMap map;
+
+  LOG_NO("reload configuration");
+
+  if (fm_cb->config_file.empty() == false) {
+    map = reader.ParseFile(fm_cb->config_file);
+    for (const auto& kv : map) {
+      if (kv.first == "FMS_PROMOTE_ACTIVE_TIMER") {
+        fm_cb->active_promote_tmr_val =
+          std::stoi(kv.second);
+        TRACE("FMS_PROMOTE_ACTIVE_TIMER = %d",
+          fm_cb->active_promote_tmr_val);
+      } else if (kv.first == "FMS_NODE_ISOLATION_TIMEOUT") {
+        osaf_millis_to_timespec(std::stoi(kv.second),
+                                &fm_cb->node_isolation_timeout);
+        TRACE("NODE_ISOLATION_TIMEOUT = %" PRId64 ".%09ld",
+          (int64_t)fm_cb->node_isolation_timeout.tv_sec,
+          fm_cb->node_isolation_timeout.tv_nsec);
+      } else if (kv.first == "FMS_ACTIVATION_SUPERVISION_TIMER") {
+        fm_cb->activation_supervision_tmr_val =
+          std::stoi(kv.second);
+        TRACE("FMS_ACTIVATION_SUPERVISION_TIMER = %d",
+          fm_cb->activation_supervision_tmr_val);
+      }
+    }
+  }
+}
+
 /****************************************************************************
  * Name          : fm_get_args
  *
@@ -416,6 +478,11 @@ static uint32_t fm_get_args(FM_CB *fm_cb) {
         (int64_t)fm_cb->node_isolation_timeout.tv_sec,
         fm_cb->node_isolation_timeout.tv_nsec);
 
+  value = getenv("FMS_CONF_FILE");
+  if (value != nullptr) {
+    fm_cb->config_file = value;
+    LOG_NO("Configuration file located at %s", fm_cb->config_file.c_str());
+  }
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
 }
