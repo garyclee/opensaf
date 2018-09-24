@@ -75,22 +75,6 @@ static void sigusr2_handler(int sig) {
   trace_category_set(trace_mask);
 }
 
-/**
- * HUP signal handler to toggle info log level on/off
- * @param sig
- */
-static void sighup_handler(int sig) {
-  if ((global::logmask & LOG_MASK(LOG_INFO)) & LOG_MASK(LOG_INFO)) {
-    global::logmask = LOG_UPTO(LOG_NOTICE);
-    syslog(LOG_NOTICE, "logtrace: info level disabled");
-  } else {
-    global::logmask = LOG_UPTO(LOG_INFO);
-    syslog(LOG_NOTICE, "logtrace: info level enabled");
-  }
-
-  setlogmask(global::logmask);
-}
-
 void trace_output(const char *file, unsigned line, unsigned priority,
                      unsigned category, const char *format, va_list ap) {
   char preamble[288];
@@ -274,12 +258,6 @@ int logtrace_init_daemon(const char *ident, const char *pathname,
   }
 
   setlogmask(logmask);
-
-  if (signal(SIGHUP, sighup_handler) == SIG_ERR) {
-    syslog(LOG_ERR, "logtrace: registering SIGHUP failed, (%s)",
-           strerror(errno));
-    return -1;
-  }
 
   global::logmask = logmask;
 

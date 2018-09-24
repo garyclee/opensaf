@@ -416,6 +416,7 @@ void daemonize(int argc, char *argv[])
 	signal(SIGTTOU, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
 	signal(SIGTERM, SIG_DFL); /* Die on SIGTERM */
+	signal(SIGHUP, SIG_IGN);
 
 /* RUNASROOT gives the OpenSAF user a possibility to maintain the 4.1 behaviour
  * should eventually be removed.
@@ -686,8 +687,8 @@ done:
  */
 static void install_fatal_signal_handlers(void)
 {
-	const int HANDLED_SIGNALS_MAX = 7;
-	static const int handled_signals[] = {SIGHUP,  SIGILL,  SIGABRT, SIGFPE,
+	const int HANDLED_SIGNALS_MAX = 6;
+	static const int handled_signals[] = {SIGILL,  SIGABRT, SIGFPE,
 					      SIGSEGV, SIGPIPE, SIGBUS};
 
 	// to circumvent lsb use dlsym to retrieve backtrace in runtime
