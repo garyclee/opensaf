@@ -13,6 +13,7 @@
  *
  */
 
+#include <algorithm>
 #include <fstream>
 #include <string>
 #include "base/config_file_reader.h"
