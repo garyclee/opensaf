@@ -14,7 +14,6 @@
  */
 
 #include <fstream>
-#include <regex>
 #include <string>
 #include "base/config_file_reader.h"
 
