@@ -2399,6 +2399,7 @@ bool SmfUpgradeStep::nodeReboot() {
       "SmfUpgradeStep::nodeReboot: Waiting to get node destination with increased UP counter");
 
   while (true) {
+    elapsedTime = 0;
     for (nodeIt = rebootedNodeList.begin(); nodeIt != rebootedNodeList.end();) {
       if (getNodeDestination((*nodeIt).node_name, &nodeDest, &elapsedTime,
                              -1)) {
