@@ -734,7 +734,7 @@ void *plmc_udp_listener(void *arguments)
 			   NULL, PLMC_NOOP_CMD);
 		pthread_exit((void *)NULL);
 	}
-	inet_aton(match_ip, &inp);
+	inet_pton(AF_INET, match_ip, &inp);
 
 	bzero(&servaddr, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
@@ -1012,7 +1012,7 @@ void *plmc_tcp_listener(void *arguments)
 			   NULL, PLMC_NOOP_CMD);
 		pthread_exit((void *)NULL);
 	}
-	inet_aton(match_ip, &inp);
+	inet_pton(AF_INET, match_ip, &inp);
 
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(atoi(config.tcp_plms_listening_port));

@@ -565,7 +565,8 @@ static int plmc_send_udp_msg(char *msg)
 	/* server address */
 	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
-	if (!(inet_aton(config.controller_1_ip, &sin.sin_addr))) {
+	if (!(inet_pton(AF_INET,config.controller_1_ip,
+					&sin.sin_addr))) {
 		syslog(LOG_ERR, "Invalid Controller 1 Address:  %s",
 		       config.controller_1_ip);
 		return -2;
@@ -581,8 +582,8 @@ static int plmc_send_udp_msg(char *msg)
 	       (struct sockaddr *)&sin, sizeof(sin));
 
 	/* Now send same UDP datagram to controller_2_ip. */
-	sin.sin_addr.s_addr = inet_addr(config.controller_2_ip);
-	if (!(inet_aton(config.controller_2_ip, &sin.sin_addr))) {
+	if (!(inet_pton(AF_INET,config.controller_2_ip,
+					&sin.sin_addr))) {
 		syslog(LOG_ERR, "Invalid Controller 2 Address:  %s",
 		       config.controller_2_ip);
 		return -2;
@@ -913,7 +914,7 @@ int main(int argc, char **argv)
 		if (controller % 2) {
 			syslog(LOG_INFO,
 			       "Attempting to connect to controller 1");
-			if (!(inet_aton(config.controller_1_ip,
+			if (!(inet_pton(AF_INET, config.controller_1_ip,
 					&sin.sin_addr))) {
 				syslog(LOG_ERR,
 				       "Invalid Controller 1 Address:  %s",
@@ -923,7 +924,7 @@ int main(int argc, char **argv)
 		} else {
 			syslog(LOG_INFO,
 			       "Attempting to connect to controller 2");
-			if (!(inet_aton(config.controller_2_ip,
+			if (!(inet_pton(AF_INET, config.controller_2_ip,
 					&sin.sin_addr))) {
 				syslog(LOG_ERR,
 				       "Invalid Controller 2 Address:  %s",
