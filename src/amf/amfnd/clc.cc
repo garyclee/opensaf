@@ -2217,6 +2217,15 @@ uint32_t avnd_comp_clc_inst_restart_hdler(AVND_CB *cb, AVND_COMP *comp) {
         /* invoke terminate callback */
         rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_COMP_TERM, 0, 0);
     else {
+      if (m_AVND_COMP_IS_RESTART_DIS(comp) && (comp->csi_list.n_nodes > 0)) {
+        /* A NPI component with DisableRestart=1. Restart admin op on su or this
+        comp itself, first perform reassignment for this component to other SU
+        then term it. At present assignment of whole SU will be gracefully
+        reassigned instead of only this comp.
+        */
+        /*Send amfd to gracefully remove assignments for this SU.*/
+        su_send_suRestart_recovery_msg(comp->su);
+      }
       rc =
           avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_TERMINATE);
       m_AVND_COMP_REG_PARAM_RESET(cb, comp);

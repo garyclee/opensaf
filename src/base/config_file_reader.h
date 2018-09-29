@@ -13,7 +13,18 @@
  *
  */
 
+#ifndef BASE_CONFIG_FILE_READER_H_
+#define BASE_CONFIG_FILE_READER_H_
+
+#include <map>
 #include <string>
 
-std::string ReverseDn(const std::string& input);
-bool is_system_attribute(const std::string& name);
+class ConfigFileReader {
+ public:
+  using SettingsMap = std::map<std::string, std::string>;
+
+  // parses OpenSAF 'config' files and return key-value pairs in a map
+  SettingsMap ParseFile(const std::string& filename);
+};
+
+#endif /* BASE_CONFIG_FILE_READER_H_ */

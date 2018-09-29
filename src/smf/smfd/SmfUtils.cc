@@ -95,9 +95,6 @@ bool getNodeDestination(const std::string &i_node, SmfndNodeDest *o_nodeDest,
 
   TRACE("Find destination for node '%s'", i_node.c_str());
 
-  if (elapsedTime)  // Initialize elapsedTime to zero.
-    *elapsedTime = 0;
-
   /* It seems SaAmfNode objects can be stored, but the code
    * indicates that SaClmNode's are expected. Anyway an attempt
    * to go for it is probably faster that examining IMM classes
@@ -131,12 +128,14 @@ bool getNodeDestination(const std::string &i_node, SmfndNodeDest *o_nodeDest,
         LOG_NO("Failed to get node dest for clm node %s", i_node.c_str());
         return false;
       }
-      struct timespec time = {2 * ONE_SECOND, 0};
-      osaf_nanosleep(&time);
-      timeout--;
-      if (elapsedTime) *elapsedTime = *elapsedTime + 2 * ONE_SECOND;
+      struct timespec two_seconds = {TWO_SECONDS, 0};
+      osaf_nanosleep(&two_seconds);
+      timeout -= TWO_SECONDS;
+      if (elapsedTime != nullptr) {
+        *elapsedTime = *elapsedTime + TWO_SECONDS;
+      }
       if (maxWaitTime != -1) {
-        if (*elapsedTime >= maxWaitTime) {
+        if ((elapsedTime != nullptr) && (*elapsedTime >= maxWaitTime)) {
           LOG_NO("Failed to get node dest for clm node %s", i_node.c_str());
           return false;
         }
@@ -163,13 +162,14 @@ bool getNodeDestination(const std::string &i_node, SmfndNodeDest *o_nodeDest,
         free(nodeName);
         return false;
       }
-      struct timespec time = {2 * ONE_SECOND, 0};
-      osaf_nanosleep(&time);
-      timeout--;
-      if (elapsedTime) *elapsedTime = *elapsedTime + 2 * ONE_SECOND;
-
+      struct timespec two_seconds = {TWO_SECONDS, 0};
+      osaf_nanosleep(&two_seconds);
+      timeout -= TWO_SECONDS;
+      if (elapsedTime != nullptr) {
+        *elapsedTime = *elapsedTime + TWO_SECONDS;
+      }
       if (maxWaitTime != -1) {
-        if (*elapsedTime >= maxWaitTime) {
+        if ((elapsedTime != nullptr) && (*elapsedTime >= maxWaitTime)) {
           LOG_NO("Failed to get node dest for clm node %s", i_node.c_str());
           free(nodeName);
           return false;
@@ -704,6 +704,8 @@ SaAisErrorT SmfImmUtils::doImmOperations(
     if (result != SA_AIS_OK) {
       LOG_WA("%s: imm_operation->Execute Fail, %s", __FUNCTION__,
              saf_error(result));
+      delete rollbackData;
+      rollbackData = nullptr;
       break;
     }
 

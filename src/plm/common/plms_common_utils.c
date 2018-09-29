@@ -148,6 +148,7 @@ SaUint32T plms_free_evt(PLMS_EVT *evt)
 		case PLMS_AGENT_GRP_DEL_RES:
 		case PLMS_AGENT_TRACK_START_RES:
 		case PLMS_AGENT_TRACK_STOP_RES:
+		case PLMS_AGENT_TRACK_RESP_RES:
 			free(evt);
 			break;
 		case PLMS_AGENT_TRACK_READINESS_IMPACT_RES:

@@ -63,7 +63,8 @@ typedef enum {
   AVD_IMM_INIT_BASE = 1,
   AVD_IMM_INIT_ONGOING = 2,
   AVD_IMM_INIT_DONE = 3,
-  AVD_IMM_TERMINATING = 4,
+  AVD_IMM_BUSY = 4,
+  AVD_IMM_TERMINATING = 5,
 } AVD_IMM_INIT_STATUS;
 /*
  * Sync state of the Standby.

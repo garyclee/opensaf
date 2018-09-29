@@ -88,7 +88,6 @@ PLMS_HSM_CB *hsm_cb = &_hsm_cb;
  *   FUNCTION PROTOTYPES
  ***********************************************************************/
 SaUint32T plms_hsm_initialize(PLMS_HPI_CONFIG *hpi_cfg);
-SaUint32T plms_hsm_finalize(void);
 SaUint32T plms_get_hotswap_model(const SaHpiEntityPathT *,
 				 PLMS_HPI_STATE_MODEL *);
 static SaUint32T hsm_get_hotswap_model(SaHpiRptEntryT *rpt_entry,
@@ -264,32 +263,6 @@ SaUint32T plms_hsm_initialize(PLMS_HPI_CONFIG *hpi_cfg)
 	pthread_setschedparam(thread_id, policy, &thread_priority);
 
 	TRACE_LEAVE();
-	return NCSCC_RC_SUCCESS;
-}
-/***************************************************************************
- * @brief	Closes HPI session and terminates HSM thread
- *
- * @param[in]
- *
- * @return	NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- ***************************************************************************/
-SaUint32T plms_hsm_finalize(void)
-{
-	PLMS_HSM_CB *cb = hsm_cb;
-	SaErrorT rc;
-
-	/* Close the HPI session */
-	rc = saHpiSessionClose(cb->session_id);
-	if (SA_OK != rc)
-		LOG_ER("HSM:Close session return error: %d:\n", rc);
-	/* Close connection to NTF */
-	rc = saNtfFinalize(cb->plm_ntf_hdl);
-	if (SA_OK != rc)
-		LOG_ER("HSM: saNtfFinalize return error: %d:\n", rc);
-
-	/* Kill the HSM thread */
-	pthread_cancel(cb->threadid);
-
 	return NCSCC_RC_SUCCESS;
 }
 

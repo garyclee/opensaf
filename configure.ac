@@ -16,7 +16,7 @@
 #
 
 AC_PREREQ([2.64])
-AC_INIT([opensaf], [5.18.06], [opensaf-users@lists.sourceforge.net], [opensaf], [http://opensaf.sourceforge.net/])
+AC_INIT([opensaf], [5.18.09], [opensaf-users@lists.sourceforge.net], [opensaf], [http://opensaf.sourceforge.net/])
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_SYSTEM
 AC_CONFIG_SRCDIR([opensaf.spec.in])
@@ -533,6 +533,7 @@ PKG_CHECK_MODULES([XML2], [libxml-2.0])
 if test "$enable_ais_plm" = yes; then
     PKG_CHECK_MODULES([HPI], [openhpi])
     PKG_CHECK_MODULES([LIBVIRT], [libvirt])
+    PKG_CHECK_MODULES([LIBSYSTEMD], [libsystemd])
 
     if test "$with_hpi_interface" = check; then
        if test "$cross_compiling" = no; then
@@ -697,6 +698,8 @@ if test "$enable_ais_plm" = yes; then
         echo "${ECHO_T}  HPI_LIBS: ${HPI_LIBS}"
         echo "${ECHO_T}  LIBVIRT_CFLAGS: ${LIBVIRT_CFLAGS}"
         echo "${ECHO_T}  LIBVIRT_LIBS: ${LIBVIRT_LIBS}"
+        echo "${ECHO_T}  SYSTEMD_CFLAGS: ${LIBSYSTEMD_CFLAGS}"
+        echo "${ECHO_T}  SYSTEMD_LIBS: ${LIBSYSTEMD_LIBS}"
 fi
 
 if test "$enable_imm_pbe" = yes; then

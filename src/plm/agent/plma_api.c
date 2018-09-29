@@ -12,55 +12,16 @@
  * licensing terms.
  *
  * Author(s): Emerson Network Power
- *
+ *            High Availability Solutions Pvt. Ltd.
  */
-/*************************************************************************/ /**
-									     * @file
-									     *plma_api.c
-									     * @brief
-									     *This
-									     *file
-									     *contains
-									     *the
-									     *APIs
-									     *which
-									     *are
-									     *needed
-									     *to
-									     *be
-									     *supported
-									     *by
-									     *		agent
-									     *in
-									     *order
-									     *for
-									     *the
-									     *client
-									     *to
-									     *communicate
-									     *with
-									     *PLM
-									     *service.
-									     *		All
-									     *the
-									     *below
-									     *calls
-									     *will
-									     *be
-									     *implemented
-									     *as
-									     *sync
-									     *calls
-									     *from
-									     *Agent
-									     *		to
-									     *Server.
-									     *
-									     * @author
-									     *Emerson
-									     *Network
-									     *Power
-									     *****************************************************************************/
+/*************************************************************************
+* @file  : plma_api.c
+* @brief : This file contains the APIs which are needed to be supported by
+* 	   agent in order for the client to communicate with PLM service.All
+*	   the below calls will be implemented as sync calls from Agent
+*	   to Server.
+* @author: Emerson Network Power
+*****************************************************************************/
 
 #include "plma.h"
 
@@ -93,63 +54,16 @@
 uint32_t plm_process_dispatch_cbk(PLMA_CLIENT_INFO *client_info,
 				  SaDispatchFlagsT flags);
 
-/***********************************************************************/ /**
-									   * @brief
-									   *Routine
-									   *for
-									   *freeing
-									   *entities
-									   *allocated
-									   *in a
-									   *previous
-									   *call
-									   *to
-									   *		the
-									   *saPlmReadinessTrack()
-									   *
-									   * @param[in,out]
-									   *listHead
-									   *pointer
-									   *to
-									   *the
-									   *head
-									   *of
-									   *the
-									   *list
-									   *of
-									   *array
-									   *of
-									   *				entities
-									   *added
-									   *by
-									   *using
-									   *SaPlmReadinessTrack()
-									   *				function.
-									   * @param[in]
-									   *entities
-									   *A
-									   *pointer
-									   *to
-									   *the
-									   *array
-									   *of
-									   *entities
-									   *that
-									   *was
-									   *				allocated
-									   *by
-									   *the
-									   *PLM
-									   *Service
-									   *library
-									   *in
-									   *the
-									   *				SaPlmReadinessTrack()
-									   *function.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief	: Routine for freeing entities allocated in a previous call to
+*                 the saPlmReadinessTrack()
+* @param[in,out]: listHead pointer to the head of the list of array of
+*                 entities added by using SaPlmReadinessTrack() function.
+* @param[in]    : entities: A pointer to the array of entities that was
+*                 allocated by the PLM Service library in the
+*                 SaPlmReadinessTrack() function.
+* @return       : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 SaAisErrorT plm_add_entity_addr_to_list(PLMA_RDNS_TRK_MEM_LIST **listHead,
 					SaPlmReadinessTrackedEntityT *entities)
 {
@@ -181,40 +95,12 @@ SaAisErrorT plm_add_entity_addr_to_list(PLMA_RDNS_TRK_MEM_LIST **listHead,
 	return NCSCC_RC_SUCCESS;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *routine
-									   *invokes
-									   *a
-									   *single
-									   *pending
-									   *callback
-									   *in
-									   *the
-									   *context
-									   *		calling
-									   *thread,
-									   *and
-									   *then
-									   *return
-									   *from
-									   *the
-									   *dispatch.
-									   *
-									   * @param[in]
-									   *client_info
-									   *-
-									   *A
-									   *pointer
-									   *to
-									   *the
-									   *PLMA_CLIENT_INFO
-									   *structure.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/***************************************************************************
+* @brief    : This routine invokes a single pending callback in the context
+*	      calling thread, and then return from the dispatch.
+* @param[in]: client_info - A pointer to the PLMA_CLIENT_INFO structure.
+* @return   : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 uint32_t plm_process_single_dispatch(PLMA_CLIENT_INFO *client_info)
 {
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
@@ -295,49 +181,17 @@ end:
 	if (msg) {
 		plms_free_evt(msg);
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", proc_rc);
 	return proc_rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *routine
-									   *invokes
-									   *all
-									   *of
-									   *the
-									   *pending
-									   *callbacks
-									   *in
-									   *the
-									   *		context
-									   *of
-									   *the
-									   *calling
-									   *thread
-									   *if
-									   *callbacks
-									   *are
-									   *pending
-									   *before
-									   *		returning
-									   *from
-									   *dispatch.
-									   *
-									   * @param[in]
-									   *client_info
-									   *-
-									   *A
-									   *pointer
-									   *to
-									   *the
-									   *PLMA_CLIENT_INFO
-									   *structure.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/*****************************************************************************
+* @brief    : This routine invokes all of the pending callbacks in the context
+*	      of the calling thread if callbacks are pending before returning
+*	      from dispatch.
+* @param[in]: client_info - A pointer to the PLMA_CLIENT_INFO structure.
+* @return   : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 uint32_t plm_process_dispatch_all(PLMA_CLIENT_INFO *client_info)
 {
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
@@ -417,65 +271,19 @@ uint32_t plm_process_dispatch_all(PLMA_CLIENT_INFO *client_info)
 		plms_free_evt(msg);
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", proc_rc);
 
 	return proc_rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *One
-									   *or
-									   *more
-									   *threads
-									   *calling
-									   *dispatch
-									   *remain
-									   *within
-									   *dispatch
-									   *		and
-									   *execute
-									   *callbacks
-									   *as
-									   *they
-									   *become
-									   *pending.
-									   *The
-									   *thread
-									   *or
-									   *		threads
-									   *do
-									   *not
-									   *return
-									   *from
-									   *dispatch
-									   *until
-									   *the
-									   *corresponding
-									   *		finalize
-									   *function
-									   *is
-									   *executed
-									   *by
-									   *one
-									   *thread
-									   *of
-									   *the
-									   *process.
-									   *
-									   * @param[in]
-									   *client_info
-									   *-
-									   *A
-									   *pointer
-									   *to
-									   *the
-									   *PLMA_CLIENT_INFO
-									   *structure
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/******************************************************************************
+* @brief    : One or more threads calling dispatch remain within dispatch and
+*	      execute callbacks as they become pending.The thread or threads do
+*	      not return from dispatch until the corresponding finalize function
+*	      is executed by one thread of the process.
+* @param[in]: client_info - A pointer to the PLMA_CLIENT_INFO structure
+* @return   : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+*******************************************************************************/
 uint32_t plm_process_blocking_dispatch(PLMA_CLIENT_INFO *client_info)
 {
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
@@ -552,47 +360,16 @@ uint32_t plm_process_blocking_dispatch(PLMA_CLIENT_INFO *client_info)
 		plms_free_evt(msg);
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", proc_rc);
 	return proc_rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *Routine
-									   *to
-									   *despatch
-									   *the
-									   *call
-									   *back
-									   *based
-									   *on
-									   *the
-									   *flags.
-									   *
-									   * @param[in]
-									   *client_info
-									   *-
-									   *A
-									   *pointer
-									   *to
-									   *the
-									   *PLMA_CLIENT_INFO
-									   *structure.
-									   * @param[in]
-									   *flags
-									   *-
-									   *Flags
-									   *to
-									   *specify
-									   *the
-									   *call
-									   *back
-									   *execution
-									   *				behavior.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/**************************************************************************
+* @brief    : Routine to dispatch the call back based on the flags.
+* @param[in]: client_info - A pointer to the PLMA_CLIENT_INFO structure.
+* @param[in]: flags - Flags to specify the call back execution behavior.
+* @return   : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 uint32_t plm_process_dispatch_cbk(PLMA_CLIENT_INFO *client_info,
 				  SaDispatchFlagsT flags)
 {
@@ -613,120 +390,25 @@ uint32_t plm_process_dispatch_cbk(PLMA_CLIENT_INFO *client_info,
 		proc_rc = NCSCC_RC_FAILURE;
 		break;
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", proc_rc);
 	return proc_rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *initializes
-									   *the
-									   *PLM
-									   *Service
-									   *for
-									   *the
-									   *			invoking
-									   *process
-									   *and
-									   *registers
-									   *the
-									   *various
-									   *callback
-									   *			functions.
-									   *The
-									   *handle
-									   *'plmHandle'
-									   *is
-									   *returned
-									   *as
-									   *the
-									   *			reference
-									   *to
-									   *this
-									   *association
-									   *between
-									   *the
-									   *process
-									   *and
-									   *			the
-									   *PLM
-									   *Service.
-									   *
-									   * @param[out]
-									   *plmHandle
-									   *-
-									   *A
-									   *pointer
-									   *to
-									   *the
-									   *handle
-									   *designating
-									   *this
-									   *					particular
-									   *initialization
-									   *of
-									   *the
-									   *PLM
-									   *					service,
-									   *that
-									   *is
-									   *to
-									   *be
-									   *returned
-									   *by
-									   *the
-									   *					PLM
-									   *service.
-									   * @param[in]
-									   *plmCallbacks
-									   *-
-									   *Pointer
-									   *to a
-									   *SaPlmCallbacksT
-									   *structure,
-									   *					containing
-									   *the
-									   *callback
-									   *functions
-									   *of
-									   *					the
-									   *process
-									   *that
-									   *the
-									   *PLM
-									   *Service
-									   *may
-									   *					invoke.
-									   * @param[in,out]
-									   *version
-									   *-  A
-									   *pointer
-									   *to
-									   *the
-									   *version
-									   *of
-									   *the
-									   *PLM
-									   *					service
-									   *that
-									   *the
-									   *invoking
-									   *process
-									   *					is
-									   *using.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *			values.
-									   ***************************************************************************/
+/***************************************************************************
+* @brief        : This function initializes the PLM Service for the invoking
+*	          process and registers the various callback functions.
+*		  The handle 'plmHandle' is returned as the reference to this
+*		  association between the process and the PLM Service.
+* @param[out]   : plmHandle - A pointer to the handle designating this
+*		  particular initialization of the PLM service,that is to be
+*		  returned by the PLM service.
+* @param[in]    : plmCallbacks - Pointer to a SaPlmCallbacksT structure,
+*		  containing the callback functions of the process that the
+*		  PLM Service may invoke.
+* @param[in,out]: version -  A pointer to the version of the PLM service that
+*		  the invoking process is using.
+* @return       : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaUint32T saPlmInitialize(SaPlmHandleT *plmHandle,
 			  const SaPlmCallbacksT *plmCallbacks,
 			  SaVersionT *version)
@@ -912,79 +594,20 @@ end:
 		plms_free_evt(plm_init_resp);
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *returns
-									   *the
-									   *operating
-									   *system
-									   *handle
-									   *associated
-									   *		with
-									   *the
-									   *handle
-									   *plmHandle.
-									   *
-									   * @param[out]
-									   *plmHandle
-									   *-  A
-									   *pointer
-									   *to
-									   *the
-									   *handle
-									   *designating
-									   *this
-									   *				   particular
-									   *initialization
-									   *of
-									   *the
-									   *PLM
-									   *service
-									   *				   that
-									   *is
-									   *to
-									   *be
-									   *returned
-									   *by
-									   *the
-									   *PLM
-									   *service.
-									   * @param[out]
-									   *selectionObject
-									   *-  A
-									   *pointer
-									   *to
-									   *the
-									   *Operating
-									   *system
-									   *handle
-									   *				   that
-									   *the
-									   *process
-									   *can
-									   *use
-									   *to
-									   *detect
-									   *the
-									   *				   pending
-									   *callbacks.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ***************************************************************************/
+/*************************************************************************
+* @brief     : This function returns the operating system handle associated with
+*              the handle plmHandle.
+* @param[out]: plmHandle -  A pointer to the handle designating this particular
+*              initialization of the PLM service that is to be returned by the
+*	       PLM service.
+* @param[out]: selectionObject -  A pointer to the Operating system handle that
+*	       the process can use to detect the pending callbacks.
+* @return    : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaUint32T saPlmSelectionObjectGet(SaPlmHandleT plmHandle,
 				  SaSelectionObjectT *selectionObject)
 {
@@ -1043,94 +666,22 @@ SaUint32T saPlmSelectionObjectGet(SaPlmHandleT plmHandle,
 	TRACE_5("selection object got : %Lu", *selectionObject);
 
 end:
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *In
-									   *the
-									   *context
-									   *of
-									   *the
-									   *calling
-									   *thread,
-									   *this
-									   *function
-									   *invokes
-									   *		pending
-									   *callbacks
-									   *for
-									   *the
-									   *handle
-									   *plmHandle
-									   *in a
-									   *way
-									   *that
-									   *is
-									   *		specified
-									   *by
-									   *the
-									   *dispatchFlags
-									   *parameter.
-									   *
-									   * @param[in]
-									   *plmHandle
-									   *-  A
-									   *pointer
-									   *to
-									   *the
-									   *handle
-									   *designating
-									   *this
-									   *				particular
-									   *initialization
-									   *of
-									   *the
-									   *PLM
-									   *service
-									   *				 that
-									   *is
-									   *to
-									   *be
-									   *returned
-									   *by
-									   *the
-									   *PLM
-									   *service.
-									   * @param[in]
-									   *flags
-									   *-
-									   *Flags
-									   *that
-									   *specify
-									   *the
-									   *callback
-									   *execution
-									   *				behavior
-									   *of
-									   *the
-									   *saPlmDispatch()
-									   *function,
-									   *which
-									   *				have
-									   *thevalues
-									   *SA_DISPATCH_ONE,
-									   *SA_DISPATCH_ALL
-									   *				or
-									   *SA_DISPATCH_BLOCKING.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ***************************************************************************/
+/************************************************************************
+* @brief    : In the context of the calling thread, this function invokes
+*	      pending callbacks for the handle plmHandle in a way that is
+*	      specified by the dispatchFlags parameter.
+* @param[in]: plmHandle -  A pointer to the handle designating this particular
+*	      initialization of the PLM service that is to be returned by the
+*	      PLM service.
+* @param[in]: flags - Flags that specify the callback execution behavior of the
+*	      saPlmDispatch() function,which have the values SA_DISPATCH_ONE,
+*	      SA_DISPATCH_ALL or SA_DISPATCH_BLOCKING.
+* @return   : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaAisErrorT saPlmDispatch(SaPlmHandleT plmHandle, SaDispatchFlagsT flags)
 {
 	PLMA_CB *plma_cb = plma_ctrlblk;
@@ -1177,45 +728,16 @@ SaAisErrorT saPlmDispatch(SaPlmHandleT plmHandle, SaDispatchFlagsT flags)
 	}
 
 end:
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *Cleans
-									   *up
-									   *the
-									   *client
-									   *info
-									   *node
-									   *when
-									   *the
-									   *service
-									   *is
-									   *finalized.
-									   *
-									   * @param[in]
-									   *client_node
-									   *-  A
-									   *pointer
-									   *to
-									   *the
-									   *PLMA_CLIENT_INFO
-									   *structure
-									   *				which
-									   *needs
-									   *to
-									   *be
-									   *cleaned
-									   *before
-									   *freeing
-									   *it.
-									   *
-									   * @return
-									   *Returns
-									   *nothing.
-									   ***************************************************************************/
+/***************************************************************************
+* @brief    : Cleans up the client info node when the service is finalized.
+* @param[in]: client_node -  A pointer to the PLMA_CLIENT_INFO structure which
+*	      needs to be cleaned before freeing it.
+* @return   : Returns nothing.
+***************************************************************************/
 void clean_client_info_node(PLMA_CLIENT_INFO *client_node)
 {
 	PLMA_CB *plma_cb = plma_ctrlblk;
@@ -1253,63 +775,14 @@ void clean_client_info_node(PLMA_CLIENT_INFO *client_node)
 	return;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *closes
-									   *the
-									   *association
-									   *represented
-									   *by
-									   *the
-									   *		plmHandle
-									   *parameter
-									   *between
-									   *the
-									   *invoking
-									   *process
-									   *and
-									   *the
-									   *		PLM
-									   *Service.
-									   *
-									   * @param[in]
-									   *plmHandle
-									   *-
-									   *A
-									   *pointer
-									   *to
-									   *the
-									   *handle
-									   *designating
-									   *this
-									   *				particular
-									   *initialization
-									   *of
-									   *the
-									   *PLM
-									   *service,
-									   *				that
-									   *is
-									   *to
-									   *be
-									   *returned
-									   *by
-									   *the
-									   *PLM
-									   *service.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief    : This function closes the association represented by the plmHandle
+*	      parameter between the invoking process and  PLM Service.
+* @param[in]: plmHandle - A pointer to the handle designating this particular
+*	      initialization of the PLM service,that is to be returned by the
+*	      PLM service.
+* @return   : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaAisErrorT saPlmFinalize(SaPlmHandleT plmHandle)
 {
 	PLMA_CB *plma_cb = plma_ctrlblk;
@@ -1415,72 +888,19 @@ end:
 		plms_free_evt(plm_fin_resp);
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *adds
-									   *the
-									   *new
-									   *entity
-									   *group
-									   *info
-									   *created
-									   *			to
-									   *the
-									   *Entity
-									   *group
-									   *info
-									   *list
-									   *of
-									   *client
-									   *info.
-									   *
-									   * @param[in,out]
-									   *listHead
-									   *- A
-									   *pointer
-									   *to
-									   *the
-									   *head
-									   *of
-									   *the
-									   *list
-									   *of
-									   *				    entity
-									   *group
-									   *info.
-									   *			entityNew
-									   *- A
-									   *pointer
-									   *to
-									   *the
-									   *new
-									   *entity
-									   *group
-									   *info
-									   *				    structure
-									   *which
-									   *is
-									   *to
-									   *be
-									   *added
-									   *to
-									   *the
-									   *the
-									   *				    entity
-									   *group
-									   *info
-									   *list.
-									   *
-									   * @return
-									   *Returns
-									   *nothing.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief        : This function adds the new entity group info created	to the
+*		  Entity group info list of client info.
+* @param[in,out]: listHead - A pointer to the head of the list of entity
+*	          group info.
+*	          entityNew - A pointer to the new entity group info structure
+*		  which is to be added to the the entity group info list.
+* @return       : Returns nothing.
+***************************************************************************/
 void add_entity_grp_to_list(PLMA_ENTITY_GROUP_INFO_LIST **listHead,
 			    PLMA_ENTITY_GROUP_INFO *entityNew)
 {
@@ -1515,72 +935,16 @@ void add_entity_grp_to_list(PLMA_ENTITY_GROUP_INFO_LIST **listHead,
 	return;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *creates
-									   *an
-									   *entity
-									   *group
-									   *that
-									   *may
-									   *be
-									   *used
-									   *			later
-									   *by
-									   *the
-									   *invoking
-									   *process
-									   *to
-									   *track
-									   *readiness
-									   *status
-									   *			changes
-									   *of
-									   *entities
-									   *in
-									   *the
-									   *group.
-									   *
-									   * @param[in]
-									   *plmHandle
-									   *-
-									   *The
-									   *handle
-									   *which
-									   *was
-									   *obtained
-									   *by a
-									   *				      previous
-									   *invocation
-									   *of
-									   *the
-									   *				      saPlmInitialize().
-									   * @param[in,out]
-									   *groupHandle
-									   *- A
-									   *pointer
-									   *to a
-									   *memory
-									   *area
-									   *to
-									   *hold
-									   *the
-									   *				      entity
-									   *group
-									   *handle.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *			values.
-									   ***************************************************************************/
+/************************************************************************
+* @brief        : This function creates an entity group that may be used later
+*		  by the invoking process to track readiness status changes of
+*                 entities in the group.
+* @param[in]    : plmHandle - The handle which was obtained by a previous
+*                 invocation of the saPlmInitialize().
+* @param[in,out]: groupHandle - A pointer to a memory area to hold the entity
+*		  group handle.
+* @return       : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaAisErrorT saPlmEntityGroupCreate(SaPlmHandleT plmHandle,
 				   SaPlmEntityGroupHandleT *groupHandle)
 {
@@ -1718,111 +1082,25 @@ end:
 	if (plm_out_res) {
 		plms_free_evt(plm_out_res);
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 	/*return err code */
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *creates
-									   *an
-									   *entity
-									   *group
-									   *that
-									   *may
-									   *be
-									   *used
-									   *		later
-									   *by
-									   *the
-									   *invoking
-									   *process
-									   *to
-									   *track
-									   *readiness
-									   *status
-									   *		changes
-									   *of
-									   *entities
-									   *in
-									   *the
-									   *group.
-									   *
-									   * @param[in]
-									   *entityGroupHandle
-									   *-
-									   *The
-									   *handle
-									   *for
-									   *an
-									   *entity
-									   *group
-									   *which
-									   *				     was
-									   *obtained
-									   *by a
-									   *previous
-									   *invocation
-									   *				     of
-									   *the
-									   *saPlmEntityGroupCreate()
-									   *function.
-									   * @param[in]
-									   *entityNames
-									   *-
-									   *Pointer
-									   *to
-									   *an
-									   *array
-									   *of
-									   *entity
-									   *names.
-									   * @param[in]
-									   *entityNamesNumber
-									   *-
-									   *Number
-									   *of
-									   *names
-									   *contained
-									   *in
-									   *the
-									   *array
-									   *				     referred
-									   *to
-									   *by
-									   *entityNames.
-									   * @param[in]
-									   *options
-									   *-
-									   *Indicates
-									   *how
-									   *entity
-									   *names
-									   *provided
-									   *in
-									   *the
-									   *				     array
-									   *referred
-									   *to
-									   *by
-									   *entityNames
-									   *must
-									   *be
-									   *				     interpreted.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief    : This function creates an entity group that may be used later by
+*	      the invoking process to track readiness status changes of
+*	      entities in the group.
+* @param[in]: entityGroupHandle - The handle for an entity group which was
+*	      obtained by a previous invocation of the saPlmEntityGroupCreate()
+*	      function.
+* @param[in]: entityNames - Pointer to an array of entity names.
+* @param[in]: entityNamesNumber - Number of names contained in the array
+*	      referred to by entityNames.
+* @param[in]: options - Indicates how entity names provided in the array
+*	      referred to by entityNames must be interpreted.
+* @return   : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaAisErrorT saPlmEntityGroupAdd(SaPlmEntityGroupHandleT entityGroupHandle,
 				const SaNameT *entityNames,
 				SaUint32T entityNamesNumber,
@@ -1836,7 +1114,7 @@ SaAisErrorT saPlmEntityGroupAdd(SaPlmEntityGroupHandleT entityGroupHandle,
 	PLMA_ENTITY_GROUP_INFO *group_info;
 	uint32_t ii, i;
 
-	TRACE_ENTER();
+	TRACE_ENTER2("%d", options);
 	if (!plma_cb) {
 		LOG_ER("PLMA : PLMA INITIALIZE IS NOT DONE");
 		rc = SA_AIS_ERR_BAD_HANDLE;
@@ -1970,96 +1248,23 @@ end:
 	if (plm_out_res) {
 		plms_free_evt(plm_out_res);
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *removes
-									   *entities
-									   *from
-									   *the
-									   *entity
-									   *group
-									   *designated
-									   *		by
-									   *entityGroupHandle.
-									   *
-									   * @param[in]
-									   *entityGroupHandle
-									   *-
-									   *The
-									   *handle
-									   *for
-									   *an
-									   *entity
-									   *group
-									   *which
-									   *				     was
-									   *obtained
-									   *by a
-									   *previous
-									   *invocation
-									   *				     of
-									   *the
-									   *saPlmEntityGroupCreate()
-									   *function.
-									   * @param[in]
-									   *entityNames
-									   *-
-									   *Pointer
-									   *to
-									   *an
-									   *array
-									   *of
-									   *entity
-									   *names.
-									   * @param[in]
-									   *entityNamesNumber
-									   *-
-									   *Number
-									   *of
-									   *names
-									   *contained
-									   *in
-									   *the
-									   *array
-									   *				     referred
-									   *to
-									   *by
-									   *entityNames.
-									   * @param[in]
-									   *options
-									   *-
-									   *Indicates
-									   *how
-									   *entity
-									   *names
-									   *provided
-									   *in
-									   *the
-									   *				     array
-									   *referred
-									   *to
-									   *by
-									   *entityNames
-									   *must
-									   *be
-									   *				     interpreted.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ***************************************************************************/
+/************************************************************************
+* @brief    : This function removes entities from the entity group designated by
+*	      entityGroupHandle.
+* @param[in]: entityGroupHandle - The handle for an entity group which was
+*	      obtained by a previous invocation of the saPlmEntityGroupCreate()
+*	      function.
+* @param[in]: entityNames - Pointer to an array of entity names.
+* @param[in]: entityNamesNumber - Number of names contained in the array
+*	      referred to by entityNames.
+* @param[in]: options - Indicates how entity names provided in the array
+*	      referred to by entityNames must be interpreted.
+* @return   : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaAisErrorT saPlmEntityGroupRemove(SaPlmEntityGroupHandleT entityGroupHandle,
 				   const SaNameT *entityNames,
 				   SaUint32T entityNamesNumber)
@@ -2195,48 +1400,18 @@ end:
 	if (plm_out_res) {
 		plms_free_evt(plm_out_res);
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	/* return error */
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *cleans
-									   *the
-									   *group_info
-									   *stucture
-									   *before
-									   *it
-									   *is
-									   *		deleted
-									   *fron
-									   *the
-									   *patricia
-									   *tree.
-									   *
-									   * @param[in]
-									   *group_info
-									   *-
-									   *A
-									   *pointer
-									   *to
-									   *the
-									   *PLMA_ENTITY_GROUP_INFO
-									   *				     structure
-									   *which
-									   *has
-									   *to
-									   *be
-									   *cleaned
-									   *up.
-									   *
-									   * @return
-									   *Returns
-									   *nothing.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief    : This function cleans the group_info stucture before it is deleted
+*	      from the patricia tree.
+* @param[in]: group_info - A pointer to the PLMA_ENTITY_GROUP_INFO structure
+*	      which has to be cleaned up.
+* @return   : Returns nothing.
+***************************************************************************/
 void clean_group_info_node(PLMA_ENTITY_GROUP_INFO *group_info)
 {
 	PLMA_RDNS_TRK_MEM_LIST *rdns_trk_list = group_info->rdns_trk_mem_list;
@@ -2277,50 +1452,14 @@ void clean_group_info_node(PLMA_ENTITY_GROUP_INFO *group_info)
 	return;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *deletes
-									   *the
-									   *entity
-									   *group
-									   *designated
-									   *by
-									   *its
-									   *		handle
-									   *entityGroupHandle.
-									   *
-									   * @param[in]
-									   *entityGroupHandle
-									   *-
-									   *The
-									   *handle
-									   *for
-									   *an
-									   *entity
-									   *group
-									   *which
-									   *was
-									   *				    obtained
-									   *by a
-									   *previous
-									   *invocation
-									   *of
-									   *the
-									   *				    saPlmEntityGroupCreate()
-									   *function.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief    : This function deletes the entity group designated by its handle
+*	      entityGroupHandle.
+* @param[in]: entityGroupHandle - The handle for an entity group which was
+*	      obtained by a previous invocation of the saPlmEntityGroupCreate()
+*	      function.
+* @return   : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaAisErrorT saPlmEntityGroupDelete(SaPlmEntityGroupHandleT entityGroupHandle)
 {
 
@@ -2428,80 +1567,21 @@ end:
 	if (plm_out_res) {
 		plms_free_evt(plm_out_res);
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	/* return error */
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *adds
-									   *the
-									   *pointer
-									   *to
-									   *the
-									   *entity
-									   *array,
-									   *			which
-									   *has
-									   *to
-									   *be
-									   *freed
-									   *in
-									   *the
-									   *			saPlmReadinessNotificationFree
-									   *function,
-									   *to
-									   *the
-									   *list.
-									   *
-									   * @param[in,out]
-									   *entity_list
-									   *- A
-									   *pointer
-									   *to
-									   *the
-									   *head
-									   *of
-									   *the
-									   *list
-									   *of
-									   *				      entitiy
-									   *pointers
-									   *to
-									   *which
-									   *the
-									   *entity
-									   *				      pointer
-									   *has
-									   *to
-									   *be
-									   *added.
-									   *			entity
-									   *-
-									   *Pointer
-									   *to
-									   *the
-									   *array
-									   *of
-									   *entities
-									   *which
-									   *				      has
-									   *to
-									   *be
-									   *freed
-									   *by
-									   *using
-									   *the
-									   *function
-									   *				      saPlmReadinessNotificationFree.
-									   *
-									   * @return
-									   *Returns
-									   *nothing.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief        : This function adds the pointer to the entity array,which has
+*		  to be freed in the saPlmReadinessNotificationFree function,to
+*                  the list.
+* @param[in,out]: entity_list - A pointer to the head of the list of entitiy
+*		  pointers to which the entity pointer has to be added.
+*	          entity - Pointer to the array of entities which has to be
+*		  freed by using the function saPlmReadinessNotificationFree
+* @return       : Returns nothing.
+***************************************************************************/
 void add_entities_to_track_list(PLMA_RDNS_TRK_MEM_LIST **entity_list,
 				SaPlmReadinessTrackedEntityT *entity)
 {
@@ -2532,121 +1612,23 @@ void add_entities_to_track_list(PLMA_RDNS_TRK_MEM_LIST **entity_list,
 	return;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *can
-									   *be
-									   *used
-									   *to
-									   *retrieve
-									   *the
-									   *current
-									   *			readiness
-									   *status
-									   *of
-									   *all
-									   *PLM
-									   *entities
-									   *that
-									   *are
-									   *contained
-									   *			in
-									   *the
-									   *entity
-									   *group
-									   *referred
-									   *to
-									   *by
-									   *entityGroupHandle,
-									   *			to
-									   *start
-									   *tracking
-									   *changes
-									   *of
-									   *the
-									   *readiness
-									   *status
-									   *of
-									   *			these
-									   *entities,
-									   *or
-									   *to
-									   *perform
-									   *both
-									   *actions.
-									   *
-									   * @param[in]
-									   *entityGroupHandle
-									   *-
-									   *The
-									   *handle
-									   *for
-									   *an
-									   *entity
-									   *group
-									   *					     which
-									   *was
-									   *obtained
-									   *by a
-									   *previous
-									   *					     invocation
-									   *of
-									   *the
-									   *					     saPlmEntityGroupCreate()
-									   *function.
-									   * @param[in]
-									   *trackCookie
-									   *-
-									   *Value
-									   *provided
-									   *by
-									   *the
-									   *invoking
-									   *					     process,
-									   *and
-									   *which
-									   *will
-									   *be
-									   *passed
-									   *					     as
-									   *a
-									   *parameter
-									   *to
-									   *all
-									   *invocations
-									   *					     of
-									   *SaPlmReadinessTrackCallbackT
-									   *					     function
-									   *triggered
-									   *by
-									   *this
-									   *					     invocation
-									   *of
-									   *the
-									   *					     saPlmReadinessTrack()
-									   *function.
-									   * @param[in,out]
-									   *trackedEntities
-									   *- A
-									   *pointer
-									   *to a
-									   *structure
-									   *of
-									   *type
-									   *					     SaPlmReadinessTrackedEntitiesT
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *			values.
-									   ***************************************************************************/
+/*************************************************************************
+* @brief        : This function can be used to retrieve the current readiness
+*		  status of all PLM entities that are contained in the entity
+*	          group referred to by entityGroupHandle,to start tracking
+*                 changes of the readiness status of these entities,or to
+*		  perform both actions.
+* @param[in]    : entityGroupHandle - The handle for an entity group which was
+*		  obtained by a previous invocation of the
+*		  saPlmEntityGroupCreate() function.
+* @param[in]    : trackCookie - Value provided by the invoking process,and which
+*		  will be passed as a parameter to all invocations of
+*	          SaPlmReadinessTrackCallbackT function triggered by this
+*		  invocation of the saPlmReadinessTrack() function.
+* @param[in,out]: trackedEntities - A pointer to a structure of type
+*		  SaPlmReadinessTrackedEntitiesT
+* @return       : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaAisErrorT saPlmReadinessTrack(SaPlmEntityGroupHandleT entityGroupHandle,
 				SaUint8T trackFlags, SaUint64T trackCookie,
 				SaPlmReadinessTrackedEntitiesT *trackedEntities)
@@ -2866,114 +1848,31 @@ end:
 	if (plm_out_res) {
 		plms_free_evt(plm_out_res);
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *is
-									   *used
-									   *by a
-									   *process
-									   *to
-									   *provide
-									   *a
-									   *response
-									   *to
-									   *an
-									   *		SaPlmReadinessTrackCallbackT
-									   *callback
-									   *previously
-									   *invoked
-									   *with
-									   *		a
-									   *step
-									   *parameter
-									   *equal
-									   *to
-									   *either
-									   *SA_PLM_CHANGE_VALIDATE
-									   *or
-									   *		SA_PLM_CHANGE_START.
-									   *
-									   * @param[in]
-									   *entityGrpHdl
-									   *-
-									   *The
-									   *handle
-									   *for
-									   *an
-									   *entity
-									   *group
-									   *which
-									   *was
-									   *				    obtained
-									   *by a
-									   *previous
-									   *invocation
-									   *of
-									   *the
-									   *				    saPlmEntityGroupCreate()
-									   *function.
-									   * @param[in]
-									   *invocation
-									   *-
-									   *This
-									   *parameter
-									   *was
-									   *provided
-									   *to
-									   *the
-									   *process
-									   *				    by
-									   *the
-									   *PLM
-									   *Service
-									   *in
-									   *the
-									   *				    SaPlmReadinessTrackCallbackT
-									   *callback.
-									   * @param[in]
-									   *response
-									   *-
-									   *This
-									   *parameter
-									   *provides
-									   *the
-									   *response
-									   *				    expected
-									   *by
-									   *the
-									   *PLM
-									   *Service
-									   *to a
-									   *previous
-									   *				    invocation
-									   *of
-									   *the
-									   *				    SaPlmReadinessTrackCallbackT
-									   *track
-									   *callback.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ****************************************************************************/
+/*************************************************************************
+* @brief    : This function is used by a process to provide a response to an
+*	      SaPlmReadinessTrackCallbackT callback previously invoked with
+*  	      a step parameter equal to either SA_PLM_CHANGE_VALIDATE or
+*             SA_PLM_CHANGE_START.
+* @param[in]: entityGrpHdl - The handle for an entity group which was obtained
+*	      by a previous invocation of the saPlmEntityGroupCreate() function.
+* @param[in]: invocation - This parameter was provided to the process by the PLM
+*	      Service in the SaPlmReadinessTrackCallbackT callback.
+* @param[in]: response - This parameter provides the response expected by the
+*	      PLM Service to a previous invocation of the
+*	      SaPlmReadinessTrackCallback track callback.
+* @return   : Refer to SAI-AIS specification for various return values.
+****************************************************************************/
 SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
 					SaInvocationT invocation,
 					SaPlmReadinessTrackResponseT response)
 {
 	PLMA_CB *plma_cb = plma_ctrlblk;
 	PLMS_EVT plm_in_evt;
+	PLMS_EVT *plm_out_res = NULL;
 	SaAisErrorT rc = SA_AIS_OK;
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	PLMA_ENTITY_GROUP_INFO *group_info;
@@ -2991,6 +1890,12 @@ SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
 	}
 	if (!invocation) {
 		LOG_ER("INVALID INVOCATION ID");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto end;
+	}
+	if (response < SA_PLM_CALLBACK_RESPONSE_OK ||
+            response > SA_PLM_CALLBACK_RESPONSE_ERROR) {
+		TRACE("response parameter is invalid");
 		rc = SA_AIS_ERR_INVALID_PARAM;
 		goto end;
 	}
@@ -3027,10 +1932,11 @@ SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
 	plm_in_evt.req_evt.agent_track.track_cbk_res.invocation_id = invocation;
 	plm_in_evt.req_evt.agent_track.track_cbk_res.response = response;
 
-	/* Send a mds async msg to PLMS to obtain group handle for this */
-	proc_rc = plms_mds_normal_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA,
-				       &plm_in_evt, plma_cb->plms_mdest_id,
-				       NCSMDS_SVC_ID_PLMS);
+	TRACE_5("%d", response);
+	proc_rc = plm_mds_msg_sync_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA,
+					NCSMDS_SVC_ID_PLMS,
+					plma_cb->plms_mdest_id, &plm_in_evt,
+					&plm_out_res, PLMS_MDS_SYNC_TIME);
 
 	if (NCSCC_RC_SUCCESS != proc_rc) {
 		LOG_ER(
@@ -3038,87 +1944,37 @@ SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
 		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto end;
 	}
+
+	/* Verify if the response if ok */
+	if (!plm_out_res) {
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		goto end;
+	}
+	if (plm_out_res->res_evt.error != SA_AIS_OK) {
+		rc = plm_out_res->res_evt.error;
+		goto end;
+	}
+
 end:
-	TRACE_LEAVE();
+	if (plm_out_res)
+		plms_free_evt(plm_out_res);
+
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *stops
-									   *any
-									   *further
-									   *tracking
-									   *notifications
-									   *		of
-									   *readiness
-									   *status
-									   *changes
-									   *of
-									   *the
-									   *group
-									   *of
-									   *entities
-									   *designated
-									   *		by
-									   *entityGroupHandle
-									   *and
-									   *which
-									   *were
-									   *requested
-									   *by
-									   *specifying
-									   *the
-									   *		handle
-									   *entityGroupHandle
-									   *when
-									   *invoking
-									   *the
-									   *saPlmReadinessTrack()
-									   *		function,
-									   *and
-									   *which
-									   *are
-									   *still
-									   *in
-									   *effect.
-									   *		Pending
-									   *callbacks
-									   *are
-									   *removed.
-									   *
-									   * @param[in]
-									   *entityGroupHandle
-									   *-
-									   *The
-									   *handle
-									   *for
-									   *an
-									   *entity
-									   *group
-									   *which
-									   *was
-									   *				     obtained
-									   *by a
-									   *previous
-									   *invocation
-									   *of
-									   *the
-									   *				     saPlmEntityGroupCreate()
-									   *function.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ****************************************************************************/
+/*************************************************************************
+* @brief    : This function stops any further tracking notifications of
+*	      readiness status changes of the group of entities designated by
+*	      entityGroupHandle and which were requested by specifying the
+*	      handle entityGroupHandle when invoking the saPlmReadinessTrack()
+*	      function,and which are still in effect.Pending callbacks are
+*	      removed.
+* @param[in]: entityGroupHandle - The handle for an entity group which was
+*	      obtained by a previous invocation of the saPlmEntityGroupCreate()
+*	      function.
+* @return   : Refer to SAI-AIS specification for various return values.
+****************************************************************************/
 SaAisErrorT saPlmReadinessTrackStop(SaPlmEntityGroupHandleT entityGroupHandle)
 {
 
@@ -3217,65 +2073,18 @@ end:
 	if (plm_out_res) {
 		plms_free_evt(plm_out_res);
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *validates
-									   *memory
-									   *allocated
-									   *for
-									   *entitis
-									   *by
-									   *PLM
-									   *		in
-									   *a
-									   *previous
-									   *call
-									   *to
-									   *the
-									   *saPlmReadinessTrack()
-									   *function.
-									   *
-									   * @param[in]
-									   *entity_list
-									   *-  A
-									   *pointer
-									   *to
-									   *the
-									   *head
-									   *of
-									   *list
-									   *of
-									   *entity
-									   *				   pointers
-									   *to
-									   *be
-									   *freed
-									   *by
-									   *using
-									   *				   saPlmReadinessNotificationFree()
-									   *function.
-									   * @param[in]
-									   *entity_ptr
-									   *-
-									   *Pointer
-									   *to
-									   *the
-									   *array
-									   *of
-									   *entities
-									   *to
-									   *be
-									   *freed.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ****************************************************************************/
+/***********************************************************************
+* @brief    : This function validates memory allocated for entitis by PLM in a
+*	      previous call to the saPlmReadinessTrack() function.
+* @param[in]: entity_list -  A pointer to the head of list of entity pointers to
+*	      be freed by using saPlmReadinessNotificationFree() function.
+* @param[in]: entity_ptr - Pointer to the array of entities to be freed.
+* @return   : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+****************************************************************************/
 uint32_t validate_entities_ptr(PLMA_RDNS_TRK_MEM_LIST **entity_list,
 			       SaPlmReadinessTrackedEntityT *entity_ptr)
 {
@@ -3308,89 +2117,18 @@ uint32_t validate_entities_ptr(PLMA_RDNS_TRK_MEM_LIST **entity_list,
 	return NCSCC_RC_FAILURE;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *frees
-									   *the
-									   *memory
-									   *to
-									   *which
-									   *entities
-									   *points
-									   *and
-									   *		which
-									   *was
-									   *allocated
-									   *by
-									   *the
-									   *PLM
-									   *Service
-									   *library
-									   *in a
-									   *previous
-									   *		call
-									   *to
-									   *the
-									   *saPlmReadinessTrack()
-									   *function.
-									   *
-									   * @param[in]
-									   *entityGroupHandle
-									   *-
-									   *The
-									   *handle
-									   *for
-									   *an
-									   *entity
-									   *group
-									   *which
-									   *was
-									   *				      obtained
-									   *by a
-									   *previous
-									   *invocation
-									   *of
-									   *the
-									   *				      saPlmEntityGroupCreate()
-									   *function.
-									   * @param[in]
-									   *entities
-									   *- A
-									   *pointer
-									   *to
-									   *the
-									   *memory
-									   *array
-									   *that
-									   *was
-									   *				      allocated
-									   *by
-									   *the
-									   *PLM
-									   *Service
-									   *library
-									   *in
-									   *				      the
-									   *saPlmReadinessTrack()
-									   *function
-									   *and
-									   *				      is
-									   *to
-									   *be
-									   *deallocated.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *values.
-									   ***************************************************************************/
+/***********************************************************************
+* @brief    : This function frees the memory to which entities points and which
+*	      was allocated by the PLM Service library in a previous call to the
+*	      saPlmReadinessTrack() function.
+* @param[in]: entityGroupHandle - The handle for an entity group which was
+* 	      obtained by a previous invocation of the saPlmEntityGroupCreate()
+*	      function.
+* @param[in]: entities - A pointer to the memory array that was allocated by the
+*	      PLM Service library in the saPlmReadinessTrack() function and is
+* 	      to be deallocated.
+* @return   : Refer to SAI-AIS specification for various return values.
+***************************************************************************/
 SaAisErrorT
 saPlmReadinessNotificationFree(SaPlmEntityGroupHandleT entityGroupHandle,
 			       SaPlmReadinessTrackedEntityT *entities)
@@ -3443,89 +2181,22 @@ saPlmReadinessNotificationFree(SaPlmEntityGroupHandleT entityGroupHandle,
 	}
 	free(entities);
 end:
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *function
-									   *is
-									   *used
-									   *by
-									   *processes
-									   *to
-									   *report
-									   *that
-									   *the
-									   *			state
-									   *of
-									   *health
-									   *of
-									   *an
-									   *entity
-									   *has
-									   *changed.
-									   *
-									   * @param[in]
-									   *plmHandle
-									   *-
-									   *The
-									   *handle
-									   *which
-									   *was
-									   *obtained
-									   *by a
-									   *					  previous
-									   *invocation
-									   *of
-									   *the
-									   *					  saPlmInitialize()
-									   *function.
-									   * @param[in]
-									   *impactedEntity
-									   *-
-									   *Pointer
-									   *to
-									   *the
-									   *name
-									   *of
-									   *the
-									   *entity
-									   *					  whose
-									   *readiness
-									   *status
-									   *should
-									   *be
-									   *					  updated.
-									   * @param[in]
-									   *impact
-									   *-
-									   *Impact
-									   *being
-									   *reported.
-									   * @param[in,out]
-									   *correlationIds
-									   *-
-									   *Pointer
-									   *to a
-									   *structure
-									   *that
-									   *contains
-									   *					  correlation
-									   *identifiers.
-									   *
-									   * @return
-									   *Refer
-									   *to
-									   *SAI-AIS
-									   *specification
-									   *for
-									   *various
-									   *return
-									   *			values.
-									   ****************************************************************************/
+/*************************************************************************
+* @brief        : This function is used by processes to report that the state of
+*	          health of an entity has changed.
+* @param[in]    : plmHandle - The handle which was obtained by a previous
+*		  invocation of the saPlmInitialize() function.
+* @param[in]    : impactedEntity - Pointer to the name of the entity whose
+*		  readiness status should be updated.
+* @param[in]    : impact - Impact being reported.
+* @param[in,out]: correlationIds - Pointer to a structure that contains
+*		  correlation identifiers.
+* @return       : Refer to SAI-AIS specification for various return values.
+****************************************************************************/
 SaAisErrorT saPlmEntityReadinessImpact(SaPlmHandleT plmHandle,
 				       const SaNameT *impactedEntity,
 				       SaPlmReadinessImpactT impact,
@@ -3637,6 +2308,6 @@ end:
 	if (plm_out_res) {
 		free(plm_out_res);
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }

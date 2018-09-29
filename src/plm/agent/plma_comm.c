@@ -1,33 +1,12 @@
 #include "plma.h"
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *routine
-									   *is
-									   *used
-									   *to
-									   *clean
-									   *up
-									   *the
-									   *mailbox.
-									   *
-									   * @param[in]
-									   *arg
-									   *-
-									   * @param[in]
-									   *msg
-									   *-
-									   *
-									   * @return
-									   *0 -
-									   *If
-									   *failure
-									   * @return
-									   *1 -
-									   *If
-									   *success
-									   ***************************************************************************/
+/***********************************************************************
+* @brief    : This routine is used to clean up the mailbox.
+* @param[in]: arg
+* @param[in]: msg
+* @return   : 0 - If failure
+* @return   : 1 - If success
+***************************************************************************/
 static bool plma_client_cleanup_mbx(NCSCONTEXT arg, NCSCONTEXT msg)
 {
 	PLMS_EVT *cbk_msg, *pnext;
@@ -42,32 +21,11 @@ static bool plma_client_cleanup_mbx(NCSCONTEXT arg, NCSCONTEXT msg)
 	return true;
 }
 
-/***********************************************************************/ /**
-									   * @brief
-									   *This
-									   *routine
-									   *is
-									   *used
-									   *to
-									   *initialize
-									   *the
-									   *queue
-									   *for
-									   *the
-									   *callbacks.
-									   *
-									   * @param[in]
-									   *client_info
-									   *-
-									   *pointer
-									   *to
-									   *the
-									   *client
-									   *info.
-									   *
-									   * @return
-									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
-									   ***************************************************************************/
+/*************************************************************************
+* @brief    : This routine is used to initialize the queue for the callbacks.
+* @param[in]: client_info - pointer to the client info.
+* @return   : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+***************************************************************************/
 uint32_t plma_callback_ipc_init(PLMA_CLIENT_INFO *client_info)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -86,7 +44,7 @@ uint32_t plma_callback_ipc_init(PLMA_CLIENT_INFO *client_info)
 		rc = NCSCC_RC_FAILURE;
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 

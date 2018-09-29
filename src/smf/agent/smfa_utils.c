@@ -615,8 +615,8 @@ SMFA_CBK_HDL_LIST *smfa_inv_hdl_add(SaInvocationT inv_id, SaSmfHandleT hdl)
 }
 
 /***************************************************************************
-@brief		: Match the filter. If matches, post the evt to the client MBX
-		  and increment the cbk count of the the corresponding hdl node.
+@brief		: Match the filter. If matches, increment the cbk count of
+		  the corresponding hdl node and post the evt to the client MBX.
 		  If for a client, more than one scope matches, then those many
 		  no of evts are posted to the MBX.
 @param[in]	: client_info - For which filter match to be performed.
@@ -694,27 +694,32 @@ uint32_t smfa_cbk_filter_match(SMFA_CLIENT_INFO *client_info,
 					&cbk_evt->object_name),
 				    &evt->evt.cbk_evt.object_name);
 
-				if (m_NCS_IPC_SEND(&client_info->cbk_mbx,
-						   (NCSCONTEXT)evt,
-						   NCS_IPC_PRIORITY_NORMAL)) {
-					/* Increment the cbk count.*/
-					if (NULL != hdl_list) {
-						/* There are two scope id
-						 * matching for the same hdl.*/
-					} else {
-						/* First scope id matching for
-						 * this hdl.*/
-						hdl_list = smfa_inv_hdl_add(
-						    cbk_evt->inv_id,
-						    client_info->client_hdl);
-					}
-					hdl_list->cnt++;
-					rc = NCSCC_RC_SUCCESS;
+				/* Increment the cbk count.*/
+				if (NULL != hdl_list) {
+					/* There are two scope id
+					 * matching for the same hdl.*/
 				} else {
+					/* First scope id matching for
+					 * this hdl.*/
+					hdl_list = smfa_inv_hdl_add(
+					    cbk_evt->inv_id,
+					    client_info->client_hdl);
+				}
+				hdl_list->cnt++;
+				rc = m_NCS_IPC_SEND(
+					&client_info->cbk_mbx,
+					(NCSCONTEXT)evt,
+					NCS_IPC_PRIORITY_NORMAL);
+				if (rc != NCSCC_RC_SUCCESS) {
 					LOG_ER(
 					    "SMFA: Posting to MBX failed. hdl: %llu, scoe_id: %u",
 					    client_info->client_hdl,
 					    cbk_evt->scope_id);
+					/* Descrease the cbk count */
+					smfa_cbk_ok_resp_process(
+						client_info->client_hdl,
+						cbk_evt->inv_id);
+					smfa_evt_free(evt);
 				}
 
 				/* If one of the filter matches then go to the

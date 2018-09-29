@@ -67,6 +67,7 @@ extern "C" {
  */
 
 #define ONE_SECOND 1
+#define TWO_SECONDS 2
 
 /* ========================================================================
  *   DATA DECLARATIONS

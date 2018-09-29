@@ -1194,9 +1194,11 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
       if (tmp != nullptr) {
         uint32_t sirank = tmp->rank;
 
-        for (; tmp && (tmp->rank == sirank); tmp = avnd_silist_getprev(tmp)) {
+        for (; tmp && (tmp->rank == sirank);) {
+          AVND_SU_SI_REC *tmp1 = avnd_silist_getprev(tmp);
           uint32_t rc = avnd_su_si_remove(cb, tmp->su, tmp);
           osafassert(rc == NCSCC_RC_SUCCESS);
+          tmp = tmp1;
         }
       } else {
         LOG_NO("Removed assignments from AMF components");
@@ -1267,9 +1269,11 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
     if (tmp != nullptr) {
       uint32_t sirank = tmp->rank;
 
-      for (; tmp && (tmp->rank == sirank); tmp = avnd_silist_getprev(tmp)) {
+      for (; tmp && (tmp->rank == sirank);) {
+        AVND_SU_SI_REC *tmp1 = avnd_silist_getprev(tmp);
         uint32_t rc = avnd_su_si_remove(cb, tmp->su, tmp);
         osafassert(rc == NCSCC_RC_SUCCESS);
+        tmp = tmp1;
       }
     } else {
       LOG_NO("Removed assignments from AMF components");

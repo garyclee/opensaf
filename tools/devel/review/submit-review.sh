@@ -453,7 +453,7 @@ done
 
 "$GIT" format-patch --numbered --cover-letter --subject="PATCH" --to "$toline" --cc "opensaf-devel@lists.sourceforge.net" -o "$rr" "$rev"
 
-sed -i -e "s/\*\*\* SUBJECT HERE \*\*\*/Review Request for $subject/" "$rr/0000-cover-letter.patch"
+sed -i -e "s/\*\*\* SUBJECT HERE \*\*\*/Review Request for ${subject//\//\\\/}/" "$rr/0000-cover-letter.patch"
 sed -i -e '/^\*\*\* BLURB HERE \*\*\*$/,$d' "$rr/0000-cover-letter.patch"
 cat "$rr/rr.patch" >> "$rr/0000-cover-letter.patch"
 rm -f "$rr"/rr.patch*

@@ -1,6 +1,6 @@
 /*      -*- OpenSAF  -*-
  *
- * (C) Copyright 2010 The OpenSAF Foundation
+ * Copyright Ericsson AB 2018 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -11,35 +11,29 @@
  * See the Copying file included with the OpenSAF distribution for full
  * licensing terms.
  *
- * Author(s): Ericsson
- *
  */
 
-#ifndef OSAF_SAFLOG_SAFLOG_H_
-#define OSAF_SAFLOG_SAFLOG_H_
+#ifndef IMM_IMMND_IMMND_UTILS_H_
+#define IMM_IMMND_IMMND_UTILS_H_
 
+#include "imm/immnd/immnd.h"
 #include <saAis.h>
-#include <saLog.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * Log to SAF LOG system stream with priority and usr name. The logging could
- * fail and the failure information is logged in syslog.
- * @param priority
- * @param logSvcUsrName
- * @param format
- */
-extern void saflog(int priority, const SaNameT *logSvcUsrName,
-                   const char *format, ...)
-    __attribute__((format(printf, 3, 4)));
-
-extern void saflog_init(void);
+// There is an enhancement from ticket #2898 which adds 2 functions:
+//    - SyslogRecentFevs
+//    - CollectRecentFevsLogData
+// These functions are used to save information about the latest sync
+// requests received via FEVS and write the information to the syslog
+// if the IMNND goes down.
+void SyslogRecentFevs();
+void CollectRecentFevsLogData(const IMMND_EVT *evt, SaUint64T msg_no);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // OSAF_SAFLOG_SAFLOG_H_
+#endif  // IMM_IMMND_IMMND_UTILS_H_

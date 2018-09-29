@@ -446,14 +446,13 @@ static void CcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId) {
    */
   TRACE("%s: Read value in attributes", __FUNCTION__);
   attrMod = opdata->param.modify.attrMods[0];
-  attribute = attrMod->modAttr;
 
   for (int i = 1; attrMod != nullptr; i++) {
     /* Get the value */
+    attribute = attrMod->modAttr;
     if (attribute_name_.compare(attribute.attrName) != 0) {
       // Not found
       attrMod = opdata->param.modify.attrMods[i];
-      attribute = attrMod->modAttr;
       continue;
     }
 

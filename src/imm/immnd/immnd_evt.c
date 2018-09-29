@@ -30,6 +30,7 @@
 #include <pwd.h>
 #include "base/osaf_secutil.h"
 #include "immnd.h"
+#include "imm/immnd/immnd_utils.h"
 #include "imm/common/immsv_api.h"
 #include "base/ncssysf_mem.h"
 #include "mds/mds_papi.h"
@@ -9665,6 +9666,7 @@ immnd_evt_proc_fevs_dispatch(IMMND_CB *cb, IMMSV_OCTET_STRING *msg,
 
 	/*Dispatch the unpacked FEVS message */
 	immsv_msg_trace_rec(frwrd_evt.sinfo.dest, &frwrd_evt);
+	CollectRecentFevsLogData(&frwrd_evt.info.immnd, msgNo);
 
 	switch (frwrd_evt.info.immnd.type) {
 	case IMMND_EVT_A2ND_OBJ_CREATE:
@@ -10461,6 +10463,11 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 	TRACE_ENTER2("evt->info.ctrl.nodeId(%x) != cb->node_id:(%x) ?%u",
 		     evt->info.ctrl.nodeId, cb->node_id,
 		     evt->info.ctrl.nodeId != cb->node_id);
+	if (!immnd_is_immd_up(cb)) {
+	  LOG_WA("IMMD has not been UP yet. Drop INTRO_RSP message.");
+	  return NCSCC_RC_SUCCESS;
+	}
+
 	cb->mNumNodes++;
 	TRACE("immnd_evt_proc_intro_rsp cb->mNumNodes: %u", cb->mNumNodes);
 	LOG_IN("immnd_evt_proc_intro_rsp: epoch:%i rulingEpoch:%u",
@@ -10779,6 +10786,7 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 			LOG_ER(
 			    "MESSAGE:%llu OUT OF ORDER my highest processed:%llu - exiting",
 			    msgNo, cb->highestProcessed);
+			SyslogRecentFevs();
 			immnd_ackToNid(NCSCC_RC_FAILURE);
 			exit(1);
 		} else if (cb
@@ -10787,6 +10795,7 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 			LOG_ER(
 			    "Sync MESSAGE:%llu OUT OF ORDER my highest processed:%llu - exiting",
 			    msgNo, cb->highestProcessed);
+			SyslogRecentFevs();
 			immnd_ackToNid(NCSCC_RC_FAILURE);
 			exit(1);
 		} else if (cb->mState < IMM_SERVER_LOADING_PENDING) {
@@ -10907,6 +10916,8 @@ static void immnd_evt_proc_discard_node(IMMND_CB *cb, IMMND_EVT *evt,
 		       cb->node_id);
 		exit(1);
 	}
+
+	SyslogRecentFevs();
 	LOG_NO("Global discard node received for nodeId:%x pid:%u",
 	       evt->info.ctrl.nodeId, evt->info.ctrl.ndExecPid);
 	/* We should remember the nodeId/pid pair to avoid a redundant message

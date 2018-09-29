@@ -38,6 +38,7 @@
 
 #include <saAis.h>
 #include "base/osaf_extended_name.h"
+#include "imm/common/immsv_utils.h"
 
 // Default value of accessControlMode attribute in the OpensafImm class
 // Can be changed at build time using configure
@@ -1880,6 +1881,11 @@ static SaImmValueTypeT getClassAttrValueType(
     exit(1);
   }
 
+  // This is system attribute, ignore checking.
+  if (is_system_attribute(attrNameString) == true) {
+    return SA_IMM_ATTR_SASTRINGT;
+  }
+
   if ((*classAttrTypeMap)[classNameString].find(attrNameString) ==
       (*classAttrTypeMap)[classNameString].end()) {
     LOG_ER("NO CORRESPONDING ATTRIBUTE %s in class %s", attrName, className);
@@ -1909,7 +1915,8 @@ void addClassAttributeDefinition(
   attrDefinition.attrFlags = attrFlags;
 
   /* Set the default value */
-  if (attrDefaultValueBuffer) {
+  if (attrDefaultValueBuffer &&
+      (strlen(static_cast<const char*>(attrDefaultValueBuffer)) > 0)) {
     charsToValueHelper(&attrDefinition.attrDefaultValue, attrValueType,
                        (const char *)attrDefaultValueBuffer);
   } else {

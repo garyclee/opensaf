@@ -60,7 +60,7 @@ void saPlmEntityGroupAdd_04(void)
 
 void saPlmEntityGroupAdd_05(void)
 {
-	rc = saPlmEntityGroupAdd((SaPlmEntityGroupHandleT)&entityGroupHandle,
+	rc = saPlmEntityGroupAdd(entityGroupHandle,
 				 &f120_slot_1_dn, entityNamesNumber,
 				 SA_PLM_GROUP_SINGLE_ENTITY);
 	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);

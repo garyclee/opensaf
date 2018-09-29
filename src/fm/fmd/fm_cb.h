@@ -109,6 +109,8 @@ struct FM_CB {
   std::atomic<bool> peer_node_terminated{false};
 
   base::Mutex mutex_{};
+
+  std::string config_file;
 };
 
 extern const char *role_string[];

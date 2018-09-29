@@ -1,0 +1,77 @@
+#      -*- OpenSAF  -*-
+#
+# (C) Copyright 2016 The OpenSAF Foundation
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  This
+# file and program are licensed under High-Availability Operating 
+# Environment Software License Version 1.4.
+# Complete License can be accesseble from below location.
+# <a href="http://www.opensaf.org/license" rel="nofollow">http://www.opensaf.org/license</a> 
+# See the Copying file included with the OpenSAF distribution for
+# full licensing terms.
+#
+# Author(s): Genband
+#
+
+1. General
+
+This directory tree contains a unit test suite for PLM A.01.02. The goal is to
+test the API extensively. Checking all possible error conditions etc.
+
+The PLM test suite uses the unit test framework in OpenSAF (tests/unit_test_fw).
+
+
+2. Building and installing
+
+The program plmtest is built by OpenSAF's normal make system. They are either 
+installed using 'make install' or packaged in the tools rpm. They will be in 
+the path after installation.
+
+
+3. Running the test suite.
+
+3.1 Use of OpenHPI
+
+The tests use a specific hardware configuration which needs to be loaded into
+OpenHPI, as well as specific IMM configuration which describe the HEs and EEs.
+
+To run these tests, you will need to load the simulation file
+"opensaf-plm-sim.txt" into OpenHPI. This can be done by enabling the
+libdyn_simulator in openhpi.conf, making sure "entity_root" is set to
+"{ADVANCEDTCA_CHASSIS,2}", and setting "file" equal to the full path of
+"opensaf-plm-sim.txt". Once this is done, use "hpiinv" to dump out the
+configuration to make sure it is all there. See the OpenHPI documentation for
+more details.
+
+3.2 IMM configuration
+
+You will also need specific PLM IMM configuration. Add the "plm-sim-imm.xml"
+file to your current imm.xml file.
+
+You only need to run one PLM server. Set the EE in "plmcd.conf" to
+"safEE=Linux_os_hosting_clm_node,safHE=f120_slot_1,safDomain=domain_1".
+
+Once plmcd and opensafd have started, you can now run the test suite.
+
+3.3 General
+
+A specific test suite or test case can be run. Just give the numerical value 
+for the suite and/or test case as arguments to the binary.
+
+Examples from the UML Environment:
+# /hostfs/plmtest
+# /hostfs/plmtest 3
+# /hostfs/plmtest 4 2
+
+The result is printed to stdout. Each test case represents one line. At the 
+end a result summary is printed.
+
+4. Adding a new test suite/case
+
+Each test case is implemented in a function in files in the plms directory. To
+add a new test case, a new function for new test case should be defined. Then,
+it should be included in the test case list below in same file.
+
+__attribute__ ((constructor)) static void saPlmInitialize_constructor(void) {

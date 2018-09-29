@@ -52,6 +52,53 @@ static void plms_insted_dep_immi_failure_cbk_call(PLMS_ENTITY *,
 static void plms_is_dep_set_cbk_call(PLMS_ENTITY *);
 
 static void plms_ee_stop_host_timer(PLMS_ENTITY *);
+
+static void plms_cleanup_admin_context(PLMS_ENTITY *ent)
+{
+	if (ent->adm_op_in_progress &&
+		ent->adm_op_in_progress != SA_PLM_CAUSE_EE_RESTART) {
+		PLMS_CB *cb = plms_cb;
+		SaUint32T ret_err = NCSCC_RC_SUCCESS;
+		PLMS_ENTITY_GROUP_INFO_LIST *head =
+			ent->trk_info->group_info_list;
+
+		/*
+		 * clean up the current admin op since we are about to
+		 * go OOS
+		 */
+		ret_err = saImmOiAdminOperationResult(
+			cb->oi_hdl, ent->trk_info->inv_id, SA_AIS_OK);
+		if (NCSCC_RC_SUCCESS != ret_err) {
+			LOG_ER("Sending admin response to IMM failed. "
+				"IMM Ret code: %d",
+				ret_err);
+		}
+
+		while (head) {
+			plms_inv_to_cbk_in_grp_trk_rmv(
+					head->ent_grp_inf,
+					ent->trk_info);
+			head = head->next;
+		}
+
+		plms_trk_info_free(ent->trk_info);
+		ent->trk_info = 0;
+
+		if (ent->adm_op_in_progress == SA_PLM_CAUSE_SHUTDOWN ||
+			ent->adm_op_in_progress == SA_PLM_CAUSE_LOCK)
+		{
+			plms_admin_state_set(ent,
+					SA_PLM_EE_ADMIN_LOCKED,
+					NULL,
+					SA_NTF_OBJECT_OPERATION,
+					SA_PLM_NTFID_STATE_CHANGE_ROOT);
+		}
+
+		ent->adm_op_in_progress = false;
+		ent->am_i_aff_ent = false;
+	}
+}
+
 /******************************************************************************
 @brief		: Process instantiating event from PLMC.
 		  1. Do the OS verification irrespective of previous state.
@@ -645,6 +692,8 @@ SaUint32T plms_plmc_tcp_disconnect_process(PLMS_ENTITY *ent)
 
 	} else { /* If the entity is in insvc, then got to make the entity
 		  to move to OOS.*/
+		plms_cleanup_admin_context(ent);
+
 		/* Get all the affected entities.*/
 		plms_affected_ent_list_get(ent, &aff_ent_list, 0);
 

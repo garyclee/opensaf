@@ -45,6 +45,9 @@ class Consensus {
   void MonitorTakeoverRequest(ConsensusCallback callback,
                               const uint32_t user_defined);
 
+  // Retrieve takeover request (if any)
+  SaAisErrorT ReadTakeoverRequest(std::string& request);
+
   // Is consensus service enabled?
   bool IsEnabled() const;
 
@@ -82,13 +85,13 @@ class Consensus {
  private:
   bool use_consensus_ = false;
   bool use_remote_fencing_ = false;
+  uint32_t takeover_valid_time;
+  uint32_t max_takeover_retry;
   const std::string kTestKeyname = "opensaf_write_test";
   const std::chrono::milliseconds kSleepInterval =
       std::chrono::milliseconds(1000);  // in ms
   static constexpr uint32_t kLockTimeout = 0;  // lock is persistent by default
-  static constexpr uint32_t kMaxTakeoverRetry = 20;
   static constexpr uint32_t kMaxRetry = 30;
-  static constexpr uint32_t kTakeoverValidTime = 15;  // in seconds
 
   void CheckForExistingTakeoverRequest();
 

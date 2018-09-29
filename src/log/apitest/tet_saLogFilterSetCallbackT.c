@@ -238,7 +238,6 @@ void saLogFilterSetCallbackT_03(void)
 		test_validate(ret, 0);
 		goto done;
 	}
-	sleep(1);
 	sprintf(
 	    command,
 	    "immadm -o 1 -p saLogStreamSeverityFilter:SA_UINT32_T:%d %s 2> /dev/null",
@@ -248,6 +247,8 @@ void saLogFilterSetCallbackT_03(void)
 		test_validate(ret, 0);
 		goto done;
 	}
+	// Wait for all filter callbacks come to agent
+	osaf_nanosleep(&kOneSecond);
 
 	fds[0].fd = (int)selectionObject;
 	fds[0].events = POLLIN;

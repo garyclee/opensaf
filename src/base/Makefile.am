@@ -33,6 +33,7 @@ lib_libopensaf_core_la_LDFLAGS += \
 lib_libopensaf_core_la_SOURCES += \
 	src/base/condition_variable.cc \
 	src/base/conf.cc \
+	src/base/config_file_reader.cc \
 	src/base/daemon.c \
 	src/base/file_descriptor.cc \
 	src/base/file_notify.cc \
@@ -94,6 +95,7 @@ noinst_HEADERS += \
 	src/base/buffer.h \
 	src/base/condition_variable.h \
 	src/base/conf.h \
+	src/base/config_file_reader.h \
 	src/base/daemon.h \
 	src/base/file_descriptor.h \
 	src/base/file_notify.h \

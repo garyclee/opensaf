@@ -6065,7 +6065,7 @@ bool ImmModel::commitModify(const std::string& dn, ObjectInfo* afterImage) {
     /* Empty Admin Owner can imply (hard) release during apply/commit.
        This can happen if client invokes apply and then disconnects
        without waiting for reply. Typically because of timeout on
-       the syncronous ccbApply. This can happen for large CCBs
+       the synchronous ccbApply. This can happen for large CCBs
        and/or with a sluggish PBE. The releaseOn finalize will
        have auto-released the adminOwner on the before-image but
        not on the after image of modify. Corrected here.
@@ -6744,8 +6744,8 @@ SaAisErrorT ImmModel::ccbTerminate(SaUint32T ccbId) {
         errStr->next = NULL;
         free(errStr);
       }
-      free(ccb->mAugCcbParent);
-      ccb->mAugCcbParent = NULL;
+      delete ccb->mAugCcbParent;
+      ccb->mAugCcbParent = nullptr;
     }
     // TODO(?) Would be neat to store ccb outcomes in the OpenSafImm object.
   }
@@ -8532,7 +8532,8 @@ SaAisErrorT ImmModel::ccbObjectCreate(
             continue;
           }
 
-          p = new immsv_attr_values_list;
+          p = static_cast<immsv_attr_values_list* >(
+              calloc(1, sizeof(immsv_attr_values_list)));
           (*trailing_p) = p;
           p->n.attrName.size = (SaUint32T)attrName.size() + 1;
           p->n.attrName.buf = strdup(attrName.c_str());
@@ -11275,8 +11276,8 @@ void ImmModel::ccbObjDelContinuation(immsv_oi_ccb_upcall_rsp* rsp,
 
     ccb->mAugCcbParent->mErrorStrings = NULL;
     ccb->mAugCcbParent->mContinuationId = 0;
-    free(ccb->mAugCcbParent);
-    ccb->mAugCcbParent = NULL;
+    delete ccb->mAugCcbParent;
+    ccb->mAugCcbParent = nullptr;
   }
 
   ObjectMutationMap::iterator omuti = ccb->mMutations.find(objectName);
@@ -11360,8 +11361,8 @@ void ImmModel::ccbCompletedContinuation(immsv_oi_ccb_upcall_rsp* rsp,
 
     ccb->mAugCcbParent->mErrorStrings = NULL;
     ccb->mAugCcbParent->mContinuationId = 0;
-    free(ccb->mAugCcbParent);
-    ccb->mAugCcbParent = NULL;
+    delete ccb->mAugCcbParent;
+    ccb->mAugCcbParent = nullptr;
   }
 
   if (ccb->mState == IMM_CCB_VALIDATED) {
@@ -11545,8 +11546,8 @@ void ImmModel::ccbObjCreateContinuation(SaUint32T ccbId, SaUint32T invocation,
 
     ccb->mAugCcbParent->mErrorStrings = NULL;
     ccb->mAugCcbParent->mContinuationId = 0;
-    free(ccb->mAugCcbParent);
-    ccb->mAugCcbParent = NULL;
+    delete ccb->mAugCcbParent;
+    ccb->mAugCcbParent = nullptr;
   }
 
   /* Only send response when ccb continuation is not purged */
@@ -11650,8 +11651,8 @@ void ImmModel::ccbObjModifyContinuation(SaUint32T ccbId, SaUint32T invocation,
 
     ccb->mAugCcbParent->mErrorStrings = NULL;
     ccb->mAugCcbParent->mContinuationId = 0;
-    free(ccb->mAugCcbParent);
-    ccb->mAugCcbParent = NULL;
+    delete ccb->mAugCcbParent;
+    ccb->mAugCcbParent = nullptr;
   }
 
   /* Only send response when ccb continuation is not purged */
@@ -14392,7 +14393,7 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
       SaInt32T subinv = m_IMMSV_UNPACK_HANDLE_LOW(inv);
       if (subinv < 0) {
         LOG_IN(
-            "Attempt to purge syncronous request for client connection,"
+            "Attempt to purge synchronous request for client connection,"
             "and found an asyncronous admin op request %d for that connection,"
             "ignoring the asyncronous continuation",
             subinv);
@@ -14415,7 +14416,7 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
   if (ciFound != sAdmReqContinuationMap.end()) {
     sAdmReqContinuationMap.erase(ciFound);
     purged = true;
-    TRACE_5("Purged syncronous Admin-op continuation");
+    TRACE_5("Purged synchronous Admin-op continuation");
   }
 
   ciFound = sSearchReqContinuationMap.end();
@@ -14424,7 +14425,7 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
     if (ci2->second.mConn == clientId) {
       if (purged || (ciFound != sSearchReqContinuationMap.end())) {
         LOG_WA(
-            "Attempt to purge syncronous search request for client connection,"
+            "Attempt to purge synchronous search request for client connection,"
             "but found multiple requests for that connection, "
             "incorrect use of imm handle");
         return false;
@@ -14445,7 +14446,7 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
     if (ci2->second.mConn == clientId) {
       if (purged || (ciFound != sPbeRtReqContinuationMap.end())) {
         LOG_WA(
-            "Attempt to purge syncronous PRTA request for client connection,"
+            "Attempt to purge synchronous PRTA request for client connection,"
             "but found multiple requests for that connection, "
             "incorrect use of imm handle");
         return false;
@@ -14465,17 +14466,17 @@ bool ImmModel::purgeSyncRequest(SaUint32T clientId) {
         osaf_timespec_compare(&(*i3)->mWaitStartTime, &kZeroSeconds) == 1) {
       SaUint32T ccbId = (*i3)->mId;
 
-      if ((*i3)->mState > IMM_CCB_CRITICAL) {
+      if ((*i3)->mState >= IMM_CCB_CRITICAL) {
         LOG_IN(
-            "Attempt to purge syncronous request for client connection,"
-            "ignoring CCB %u with state > IMM_CCB_CRITICAL",
+            "Attempt to purge synchronous request for client connection,"
+            "ignoring CCB %u with state >= IMM_CCB_CRITICAL",
             ccbId);
         continue;
       }
 
       if (purged || (ccbFound != sCcbVector.end())) {
         LOG_WA(
-            "Attempt to purge syncronous CCB request for client connection,"
+            "Attempt to purge synchronous CCB request for client connection,"
             "but found multiple requests for that connection, "
             "incorrect use of imm handle");
         return false;
@@ -16751,7 +16752,8 @@ SaAisErrorT ImmModel::rtObjectCreate(
           */
           attrValue->setValueC_str(
               object->mImplementer->mImplementerName.c_str());
-          p = new immsv_attr_values_list;
+          p = static_cast<immsv_attr_values_list* >(
+              calloc(1, sizeof(immsv_attr_values_list)));
           p->n.attrName.size = (SaUint32T)attrName.size() + 1;
           p->n.attrName.buf = strdup(attrName.c_str());
           p->n.attrValueType = SA_IMM_ATTR_SASTRINGT;
@@ -16771,7 +16773,8 @@ SaAisErrorT ImmModel::rtObjectCreate(
           Class-name is needed by special aplier, will be ignored by
           PBE if not persistent.
         */
-        p = new immsv_attr_values_list;
+        p = static_cast<immsv_attr_values_list* >(
+            calloc(1, sizeof(immsv_attr_values_list)));
         p->n.attrName.size = (SaUint32T)attrName.size() + 1;
         p->n.attrName.buf = strdup(attrName.c_str());
         p->n.attrValueType = SA_IMM_ATTR_SASTRINGT;
@@ -16842,7 +16845,8 @@ SaAisErrorT ImmModel::rtObjectCreate(
           attrValues = attrValues->next;
         }
         if (!attrValues) {
-          p = new immsv_attr_values_list;
+          p = static_cast<immsv_attr_values_list* >(
+              calloc(1, sizeof(immsv_attr_values_list)));
           p->n.attrName.size = (SaUint32T)attrName.size() + 1;
           p->n.attrName.buf = strdup(attrName.c_str());
           p->n.attrValueType = (SaImmValueTypeT)attr->mValueType;

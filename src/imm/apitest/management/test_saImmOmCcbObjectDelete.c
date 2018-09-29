@@ -794,6 +794,123 @@ void saImmOmCcbObjectDelete_14(void)
 	test_validate(rc, SA_AIS_ERR_FAILED_OPERATION);
 }
 
+/*
+ * The saImmOmCcbObjectDelete_15 test case is created to verify that
+ * no SA_AIS_ERR_BAD_HANDLE is returned when working on the CCB handle
+ * which has been previously applied but got SA_AIS_ERR_TIMEOUT internally
+ * due to PBE hung. (refer to ticket #2889 for more info).
+ *
+ * This test case should be run on the same node with osafimmpbed process.
+ * The test case will report PASSED if the pre-condition does not meet.
+ */
+#include <pthread.h>
+#include <unistd.h>
+
+static bool enable_pbe(void)
+{
+	const char *cmd = "immcfg -m -a saImmRepositoryInit=1"
+		" safRdn=immManagement,safApp=safImmService";
+
+	return (WEXITSTATUS(system(cmd)) == EXIT_SUCCESS);
+}
+
+static bool pbe_running_on_this_node(void)
+{
+	const char *cmd = "pidof osafimmpbed >/dev/null 2>&1";
+
+	return (enable_pbe() && WEXITSTATUS(system(cmd)) == EXIT_SUCCESS);
+}
+
+static int hang_pbe(void)
+{
+	const char *cmd = "pkill -STOP osafimmpbed";
+
+	return WEXITSTATUS(system(cmd));
+}
+
+static void *unhang_pbe(void *args)
+{
+	const char *cmd = "pkill -CONT osafimmpbed";
+
+	sleep(10);
+	if (WEXITSTATUS(system(cmd)) != EXIT_SUCCESS)
+		fprintf(stderr, "Failed to execute cmd: %s\n", cmd);
+
+	return NULL;
+}
+
+static void resume_pbe_in_bg(void)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	pthread_create(&thread, &attr, &unhang_pbe, NULL);
+}
+
+void saImmOmCcbObjectDelete_15(void)
+{
+	const SaImmAdminOwnerNameT adminOwnerName =
+	    (SaImmAdminOwnerNameT) __func__;
+	SaImmAdminOwnerHandleT ownerHandle;
+	SaImmCcbHandleT ccbHandle;
+	SaNameT rdn = {strlen("saImmOmCcbObjectDelete_15"),
+		       "saImmOmCcbObjectDelete_15"};
+	SaNameT *nameValues[] = {&rdn};
+	SaImmAttrValuesT_2 v2 = {"rdn", SA_IMM_ATTR_SANAMET, 1,
+				 (void **)nameValues};
+	SaUint32T int1Value1 = 7;
+	SaUint32T *int1Values[] = {&int1Value1};
+	SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1,
+				 (void **)int1Values};
+	const SaImmAttrValuesT_2 *attrValues[] = {&v1, &v2, NULL};
+	const SaNameT *objectNames[] = {&rootObj, NULL};
+	const SaNameT objectName = {
+		strlen("saImmOmCcbObjectDelete_15,rdn=root"),
+		"saImmOmCcbObjectDelete_15,rdn=root"
+	};
+
+	if (pbe_running_on_this_node() == false) {
+		printf("Not support! This test should run on the same node"
+		       " with osafimmpbed.\n");
+		test_validate(SA_AIS_OK, SA_AIS_OK);
+		return;
+	}
+
+	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks,
+					    &immVersion), SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOwnerInitialize(
+			  immOmHandle, adminOwnerName, SA_TRUE,
+			  &ownerHandle), SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOwnerSet(
+			  ownerHandle, objectNames,
+			  SA_IMM_ONE), SA_AIS_OK);
+
+	safassert(immutil_saImmOmCcbInitialize(
+			  ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+	safassert(immutil_saImmOmCcbObjectCreate_2(
+			  ccbHandle, configClassName, &rootObj,
+			  attrValues), SA_AIS_OK);
+
+	// Make PBE hung while applying CCB
+	hang_pbe();
+	resume_pbe_in_bg();
+	safassert(immutil_saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+
+	SaAisErrorT ais = immutil_saImmOmCcbObjectDelete(ccbHandle,
+							 &objectName);
+	test_validate(ais, SA_AIS_OK);
+
+	safassert(immutil_saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+	safassert(immutil_saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOwnerRelease(
+			  ownerHandle, objectNames,
+			  SA_IMM_ONE), SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
 __attribute__((constructor)) static void
 saImmOmCcbObjectDelete_constructor(void)
 {

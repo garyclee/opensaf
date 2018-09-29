@@ -166,7 +166,8 @@ noinst_HEADERS += \
 	src/imm/immnd/immnd_cb.h \
 	src/imm/immnd/immnd_init.h \
 	src/imm/immpbed/immpbe.h \
-	src/imm/tools/imm_dumper.h
+	src/imm/tools/imm_dumper.h \
+	src/imm/immnd/immnd_utils.h
 
 bin_PROGRAMS += bin/immadm bin/immcfg bin/immdump bin/immfind bin/immlist
 osaf_execbin_PROGRAMS += bin/osafimmd bin/osafimmloadd bin/osafimmnd bin/osafimmpbed
@@ -225,6 +226,7 @@ bin_immcfg_CPPFLAGS = \
 	@XML2_CFLAGS@
 
 bin_immcfg_SOURCES = \
+	src/imm/common/immsv_utils.cc \
 	src/imm/tools/imm_import.cc \
 	src/imm/tools/imm_cfg.c
 
@@ -312,6 +314,7 @@ bin_osafimmd_LDADD = \
 bin_osafimmloadd_CXXFLAGS = $(AM_CXXFLAGS)
 
 bin_osafimmloadd_SOURCES = \
+	src/imm/common/immsv_utils.cc \
 	src/imm/immloadd/imm_loader.cc \
 	src/imm/immloadd/imm_pbe_load.cc
 
@@ -342,6 +345,7 @@ bin_osafimmnd_SOURCES = \
 	src/imm/immnd/immnd_mds.c \
 	src/imm/immnd/immnd_proc.c \
 	src/imm/immnd/immnd_clm.c \
+	src/imm/immnd/immnd_utils.cc \
 	src/imm/immnd/ImmAttrValue.cc \
 	src/imm/immnd/ImmSearchOp.cc \
 	src/imm/immnd/ImmModel.cc

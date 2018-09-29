@@ -142,7 +142,7 @@ SaAisErrorT Consensus::Demote(const std::string& node) {
   }
 
   if (rc != SA_AIS_OK) {
-    LOG_ER("Unlock failed (%u)", rc);
+    LOG_WA("Unlock failed (%u)", rc);
     return rc;
   }
 
@@ -229,6 +229,13 @@ Consensus::Consensus() {
   std::string kv_store_cmd = base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
   uint32_t use_remote_fencing = base::GetEnv("FMS_USE_REMOTE_FENCING", 0);
 
+  // if not specified in fmd.conf,
+  // takeover requests are valid for 20 seconds
+  takeover_valid_time =
+    base::GetEnv("FMS_TAKEOVER_REQUEST_VALID_TIME", 20);
+  // expiration time of takeover request is twice the max wait time
+  max_takeover_retry = takeover_valid_time / 2;
+
   if (split_brain_enable == 1 && kv_store_cmd.empty() == false) {
     use_consensus_ = true;
   } else {
@@ -293,10 +300,11 @@ void Consensus::CheckForExistingTakeoverRequest() {
   LOG_NO("A takeover request is in progress");
 
   uint32_t retries = 0;
-  // wait up to approximately 10 seconds, or until the takeover request is gone
+  // wait up to max_takeover_retry seconds,
+  // or until the takeover request is gone
   rc = ReadTakeoverRequest(tokens);
   while (rc == SA_AIS_OK &&
-         retries < kMaxTakeoverRetry) {
+         retries < max_takeover_retry) {
     ++retries;
     TRACE("Takeover request still present");
     std::this_thread::sleep_for(kSleepInterval);
@@ -326,7 +334,7 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
   SaAisErrorT rc;
   uint32_t retries = 0;
   rc = KeyValue::Create(kTakeoverRequestKeyname, takeover_request,
-                        kTakeoverValidTime);
+                        takeover_valid_time);
   while (rc == SA_AIS_ERR_FAILED_OPERATION && retries < kMaxRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
@@ -339,11 +347,11 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
     // retrieve takeover request
     std::vector<std::string> tokens;
     retries = 0;
-    // wait up to approximately 10 seconds, or until the takeover request is
-    // gone
+    // wait up to approximately max_takeover_retry seconds,
+    // or until the takeover request is gone
     rc = ReadTakeoverRequest(tokens);
     while (rc == SA_AIS_OK &&
-           retries < kMaxTakeoverRetry) {
+           retries < max_takeover_retry) {
       ++retries;
       TRACE("Takeover request still present");
       std::this_thread::sleep_for(kSleepInterval);
@@ -364,9 +372,9 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
     return CreateTakeoverRequest(current_owner, proposed_owner, cluster_size);
   }
 
-  // wait up to 15s for request to be answered
+  // wait up to max_takeover_retry seconds for request to be answered
   retries = 0;
-  while (retries < (kMaxTakeoverRetry * 1.5)) {
+  while (retries < max_takeover_retry) {
     std::vector<std::string> tokens;
     if (ReadTakeoverRequest(tokens) == SA_AIS_OK) {
       const std::string state =
@@ -450,6 +458,23 @@ SaAisErrorT Consensus::ParseTakeoverRequest(const std::string& request,
     return SA_AIS_ERR_LIBRARY;
   }
 
+  return SA_AIS_OK;
+}
+
+SaAisErrorT Consensus::ReadTakeoverRequest(std::string& request) {
+  TRACE_ENTER();
+
+  std::string value;
+  SaAisErrorT rc;
+
+  rc = KeyValue::Get(kTakeoverRequestKeyname, value);
+  if (rc != SA_AIS_OK) {
+    // it doesn't always exist, don't log an error
+    TRACE("Could not read takeover request (%d)", rc);
+    return SA_AIS_ERR_FAILED_OPERATION;
+  }
+
+  request = value;
   return SA_AIS_OK;
 }
 

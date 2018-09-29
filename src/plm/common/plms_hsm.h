@@ -50,7 +50,6 @@ extern HSM_HA_STATE hsm_ha_state;
 
 /* Function Declarations */
 SaUint32T plms_hsm_initialize(PLMS_HPI_CONFIG *hpi_cfg);
-SaUint32T plms_hsm_finalize(void);
 SaUint32T hsm_get_idr_info(SaHpiRptEntryT *rpt_entry, PLMS_INV_DATA *inv_data);
 
 SaUint32T convert_entitypath_to_string(const SaHpiEntityPathT *entity_path,

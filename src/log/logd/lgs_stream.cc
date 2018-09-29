@@ -833,9 +833,6 @@ void log_stream_close(log_stream_t **s, time_t *close_time_ptr) {
   std::string file_to_rename;
   char *timeString = NULL;
   std::string emptyStr = "";
-  uint32_t msecs_waited = 0;
-  const unsigned int max_waiting_time = 8 * 1000; /* 8 secs */
-  const unsigned int sleep_delay_ms = 500;
   SaUint32T trace_num_openers;
   struct timespec closetime_tspec;
   const std::string root_path =
@@ -887,12 +884,6 @@ void log_stream_close(log_stream_t **s, time_t *close_time_ptr) {
       /* Rename stream log file */
       rc = lgs_file_rename_h(root_path, stream->pathName, file_to_rename,
                              timeString, LGS_LOG_FILE_EXT, &emptyStr);
-      while ((rc == -1) && (msecs_waited < max_waiting_time)) {
-        usleep(sleep_delay_ms * 1000);
-        msecs_waited += sleep_delay_ms;
-        rc = lgs_file_rename_h(root_path, stream->pathName, file_to_rename,
-                               timeString, LGS_LOG_FILE_EXT, &emptyStr);
-      }
 
       if (rc == -1) {
         LOG_WA("Could not rename log file: %s", strerror(errno));
@@ -902,12 +893,6 @@ void log_stream_close(log_stream_t **s, time_t *close_time_ptr) {
       /* Rename stream config file */
       rc = lgs_file_rename_h(root_path, stream->pathName, stream->fileName,
                              timeString, LGS_LOG_FILE_CONFIG_EXT, &emptyStr);
-      while ((rc == -1) && (msecs_waited < max_waiting_time)) {
-        usleep(sleep_delay_ms * 1000);
-        msecs_waited += sleep_delay_ms;
-        rc = lgs_file_rename_h(root_path, stream->pathName, stream->fileName,
-                               timeString, LGS_LOG_FILE_CONFIG_EXT, &emptyStr);
-      }
       if (rc == -1) {
         LOG_WA("Could not rename config file: %s", strerror(errno));
         goto done_files;

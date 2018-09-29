@@ -76,4 +76,34 @@ echo "$node_name" > /etc/opensaf/node_name
 echo "/tmp/core_%t_%e_%p" > /proc/sys/kernel/core_pattern
 ulimit -c unlimited
 
+if test -e /etc/plmcd.conf; then
+    sc_1_ip=$(grep "SC-1" /etc/hosts | cut -d' ' -f 1)
+    sc_2_ip=$(grep "SC-2" /etc/hosts | cut -d' ' -f 1)
+    if [ "$node_name" == "SC-1" ]; then
+      ee="Linux_os_hosting_clm_node,safHE=f120_slot_1"
+      path="my_entity = \"{ADVANCEDTCA_CHASSIS,2}{PHYSICAL_SLOT,1}{SWITCH_BLADE,0}\""
+    elif [ "$node_name" == "SC-2" ]; then
+      ee="Linux_os_hosting_clm_node,safHE=f120_slot_16"
+      path="my_entity = \"{ADVANCEDTCA_CHASSIS,2}{PHYSICAL_SLOT,16}{SWITCH_BLADE,0}\""
+    else
+      ee="$node_name"
+    fi
+    sed -i -e "s/10.105.1.3/$sc_1_ip/" \
+        -e "s/10.105.1.6/$sc_2_ip/" \
+        -e "s/0020f/safEE=$ee,safDomain=domain_1/" \
+        -e "s/1;os;Fedora;2.6.31/1;os;SUSE;2.6/" \
+        -e "/^\/etc\/init.d/s/^/#/" \
+        /etc/plmcd.conf
+    cp /etc/openhpi/openhpi.conf /var/opt
+    chmod go-rwx /var/opt/openhpi.conf
+    echo "$path" > /etc/openhpi/openhpiclient.conf
+
+    /usr/sbin/openhpid -c /var/opt/openhpi.conf
+
+    # wait for hpi to read in hardware info
+    sleep 10
+
+    /usr/local/sbin/plmcd&
+fi
+
 /etc/init.d/opensafd start&

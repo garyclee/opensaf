@@ -1,8 +1,8 @@
-OpenSAF 5.18.06 (released 2018-06-30)
+OpenSAF 5.18.09 (released 2018-09-29)
 -------------------------------------
 
 This is a major release containing new enhancements. Before installing or
-upgrading to OpenSAF 5.18.06, make sure your system meets the minimum version
+upgrading to OpenSAF 5.18.09, make sure your system meets the minimum version
 requirements of the following system components:
 
 - Linux kernel, version 2.6.39 or later. Recommended version is Linux 3.18 or
@@ -34,33 +34,30 @@ configuration object amfConfig=1,safApp=safAmfService.
 Important enhancements in this release
 --------------------------------------
 
-**BASE enhancements**
+**DTM enhancements**
 
-- Improve backtrace print in daemon.c [#2853]
+- Add --extract-trace option to osaflog command [#2894]
 
-- Support thread trace buffer [#456]
+**FM enhancements**
 
-- Add support to direct OpenSAF logging to local node file [#2306]
+- Make takeover request expiration time configurable [#2917]
+- Add option to reload fmd.conf at runtime [#2923]
 
-**IMM enhancements**
+**UML enhancements**
 
-- Prioritise election of IMMND coordinator on active node [#2862]
-
-**SMF enhancements**
-
-- Add capability to redo CCBs that fail [#1398]
+- Allow plm (and plmtest) to run in UML [#2922]
 
 
 Links
 -----
 
-* The complete list of enhancements in the 5.18.06 release can be found in this
+* The complete list of enhancements in the 5.18.09 release can be found in this
   report:
 
-https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A5.18.06+AND+_type%3Aenhancement
+https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A5.18.09+AND+_type%3Aenhancement
 
-* The documentation for the OpenSAF 5.18.06 release can be downloaded here:
+* The documentation for the OpenSAF 5.18.09 release can be downloaded here:
 
-http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.18.06.tar.gz/download
+http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.18.09.tar.gz/download
 
 You can also check the README of the respective OpenSAF service.

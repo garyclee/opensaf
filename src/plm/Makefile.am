@@ -282,7 +282,7 @@ dist_systemd_DATA += \
 	src/plm/plmcd/plmcboot.service \
 	src/plm/plmcd/plmcd.service
 
-bin_plmcd_LDFLAGS += -lsystemd-daemon
+bin_plmcd_LDFLAGS += @LIBSYSTEMD_LIBS@
 
 else
 
