@@ -346,7 +346,6 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 			if ((immnd_info_node->isOnController) &&
 			    (immnd_info_node->epoch == cb->mRulingEpoch)) {
 				candidate_coord_node = immnd_info_node;
-				immnd_info_node->isCoord = true;
 				if (immnd_info_node->immnd_key == cb->node_id) {
 					/* Found a new candidate on active SC */
 					break;
@@ -358,7 +357,9 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		}
 
 		immnd_info_node = candidate_coord_node;
-		if (!immnd_info_node && cb->mScAbsenceAllowed) {
+		if (immnd_info_node != NULL) {
+			immnd_info_node->isCoord = true;
+		} else if (cb->mScAbsenceAllowed) {
 			/* If SC absence is allowed and no SC based IMMND is
 			   available then elect an IMMND coord at a payload.
 			   Note this means that an IMMND at a payload may be
