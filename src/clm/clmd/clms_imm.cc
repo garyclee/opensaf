@@ -533,6 +533,15 @@ SaAisErrorT clms_imm_activate(CLMS_CB *cb) {
           goto done;
         }
         continue;
+      } else if (rc == SA_AIS_ERR_EXIST) {
+        /*
+        * Some retries in case takeover with consensus
+        * when OI not released/synced yet
+        */
+        LOG_WA("saImmOiImplementerSet returned %u", (unsigned)rc);
+        usleep(sleep_delay_ms * 1000);
+        msecs_waited += sleep_delay_ms;
+        continue;
       }
       if (rc != SA_AIS_OK) {
         LOG_ER("saImmOiImplementerSet failed rc: %u", (unsigned)rc);
