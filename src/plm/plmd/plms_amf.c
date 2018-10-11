@@ -514,7 +514,7 @@ static uint32_t plms_healthcheck_start()
 		return NCSCC_RC_FAILURE;
 	} else {
 		cb->healthCheckStarted = true;
-		LOG_ER("Health Check started successfully");
+		TRACE("Health Check started successfully");
 		return NCSCC_RC_SUCCESS;
 	}
 }
