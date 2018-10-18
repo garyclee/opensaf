@@ -78,6 +78,7 @@ AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
   bool assigning_flag = false, assigned_flag = false, modify_flag = false,
        unassingned_flag = false;
   bool absent_flag = false;
+  bool excessive_flag = false;
   AVD_SU_SI_STATE fsm_state = AVD_SU_SI_STATE_ABSENT;
 
   TRACE_ENTER2("SU '%s'", su->name.c_str());
@@ -109,6 +110,10 @@ AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
       absent_flag = true;
       TRACE("Absent su'%s', si'%s'", temp_susi->su->name.c_str(),
             temp_susi->si->name.c_str());
+    } else if (AVD_SU_SI_STATE_EXCESSIVE == temp_susi->fsm) {
+      excessive_flag = true;
+      TRACE("Excessive su'%s', si'%s'", temp_susi->su->name.c_str(),
+            temp_susi->si->name.c_str());
     } else {
       osafassert(0);
     }
@@ -116,11 +121,14 @@ AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
   }
 
   TRACE(
-      "assigning_flag'%u', unassingned_flag'%u', assigned_flag'%u', modify_flag'%u', absent_flag'%u'",
+      "assigning_flag'%u', unassingned_flag'%u', assigned_flag'%u',"
+      "modify_flag'%u', absent_flag'%u', excessive_flag'%u'",
       assigning_flag, unassingned_flag, assigned_flag, modify_flag,
-      absent_flag);
+      absent_flag, excessive_flag);
   if (absent_flag == true) {
     fsm_state = AVD_SU_SI_STATE_ABSENT;
+  } if (excessive_flag == true) {
+    fsm_state = AVD_SU_SI_STATE_EXCESSIVE;
   } else if (true == modify_flag) {
     /* Rule 1. => If any one of the SUSI is Mod, then SU will be said to be
        modified. The other SUSI can be in assigning/assigned state in

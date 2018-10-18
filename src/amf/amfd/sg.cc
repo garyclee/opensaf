@@ -2332,6 +2332,39 @@ bool AVD_SG::any_assignment_absent() {
   return pending;
 }
 
+bool AVD_SG::any_assignment_excessive() {
+  bool pending = false;
+  TRACE_ENTER2("SG:'%s'", name.c_str());
+  for (const auto &su : list_of_su) {
+    if (su->any_susi_fsm_in(AVD_SU_SI_STATE_EXCESSIVE)) {
+      pending = true;
+      break;
+    }
+  }
+  TRACE_LEAVE();
+  return pending;
+}
+
+/*
+ * Going through all SU of this SG, if any SU has over assigned,
+ * reboot the node that hosts the SU.
+ */
+void AVD_SG::failover_excessive_assignment() {
+  TRACE_ENTER2("SG:'%s'", name.c_str());
+  for (const auto &su : list_of_su) {
+    if (su->list_of_susi != nullptr) {
+      if (su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) {
+        LOG_EM("Duplicated assignment SU '%s'", su->name.c_str());
+        LOG_EM("Sending node reboot order to '%s'",
+          su->su_on_node->name.c_str());
+        su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
+        avd_d2n_reboot_snd(su->su_on_node);
+      }
+    }
+  }
+  TRACE_LEAVE();
+}
+
 bool AVD_SG::any_assignment_in_progress() {
   bool pending = false;
   TRACE_ENTER2("SG:'%s'", name.c_str());

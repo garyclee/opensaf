@@ -1674,6 +1674,17 @@ uint32_t AVD_SI::count_sisu_with(SaAmfHAStateT ha) {
   }
   return count;
 }
+/*
+ * @brief Count number of SUSI assignments that are assigned to this SI
+ *        (regardless HA state)
+ * @return: number of SUSI assignment
+ */
+uint32_t AVD_SI::count_sisu() {
+  uint32_t count = 0;
+  for (AVD_SU_SI_REL *sisu = list_of_sisu; sisu != nullptr;
+      sisu = sisu->si_next) count++;
+  return count;
+}
 
 /*
  * @brief Update alarm_sent by new value of @alarm_state,

@@ -109,6 +109,11 @@ void avd_cluster_tmr_init_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       continue;
     }
 
+    if (i_sg->any_assignment_excessive()) {
+      i_sg->failover_excessive_assignment();
+      continue;
+    }
+
     while (i_sg->any_assignment_absent()) {
       // failover with ABSENT SUSI, which had already been removed during
       // headless, until all ABSENT SUSI(s) are failovered successfully

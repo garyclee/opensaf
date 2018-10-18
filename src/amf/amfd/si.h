@@ -153,6 +153,7 @@ class AVD_SI {
   bool is_active() const;
   SaAisErrorT si_swap_validate();
   uint32_t count_sisu_with(SaAmfHAStateT ha);
+  uint32_t count_sisu();
   bool is_all_sponsor_si_unassigned() const;
   bool is_all_dependent_si_unassigned() const;
 

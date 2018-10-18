@@ -1751,7 +1751,9 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 done:
   if (su != nullptr) {
     if (su->sg_of_su->sg_ncs_spec == false) {
-      if (su->sg_of_su->any_assignment_absent() == true) {
+      if (su->sg_of_su->any_assignment_excessive() == true) {
+        su->sg_of_su->failover_excessive_assignment();
+      } else if (su->sg_of_su->any_assignment_absent() == true) {
         su->sg_of_su->failover_absent_assignment();
       }
     } else {
@@ -2293,7 +2295,9 @@ void avd_node_down_appl_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd) {
     /* Free all the SU SI assignments*/
     i_su->delete_all_susis();
 
-    if (i_su->sg_of_su->any_assignment_absent() == true) {
+    if (i_su->sg_of_su->any_assignment_excessive() == true) {
+      i_su->sg_of_su->failover_excessive_assignment();
+    } else if (i_su->sg_of_su->any_assignment_absent() == true) {
       i_su->sg_of_su->failover_absent_assignment();
     }
     /* Since a SU has gone out of service relook at the SG to
@@ -2446,7 +2450,7 @@ uint32_t avd_sg_su_si_mod_snd(AVD_CL_CB *cb, AVD_SU *su, SaAmfHAStateT state) {
   uint32_t rc = NCSCC_RC_FAILURE;
   AVD_SU_SI_REL *i_susi;
   SaAmfHAStateT old_ha_state = SA_AMF_HA_ACTIVE;
-  AVD_SU_SI_STATE old_state = AVD_SU_SI_STATE_ASGN;
+  AVD_SU_SI_STATE old_fsm_state = AVD_SU_SI_STATE_ASGN;
 
   TRACE_ENTER2("'%s', state %u", su->name.c_str(), state);
 
@@ -2471,13 +2475,15 @@ uint32_t avd_sg_su_si_mod_snd(AVD_CL_CB *cb, AVD_SU *su, SaAmfHAStateT state) {
     }
 
     old_ha_state = i_susi->state;
-    old_state = i_susi->fsm;
+    old_fsm_state = i_susi->fsm;
 
     i_susi->state = state;
     avd_susi_update_fsm(i_susi, AVD_SU_SI_STATE_MODIFY);
     m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, i_susi, AVSV_CKPT_AVD_SI_ASS);
-    avd_susi_update_assignment_counters(i_susi, AVSV_SUSI_ACT_MOD, old_ha_state,
-                                        state);
+    if (old_fsm_state != AVD_SU_SI_STATE_EXCESSIVE) {
+      avd_susi_update_assignment_counters(i_susi, AVSV_SUSI_ACT_MOD,
+          old_ha_state, state);
+    }
 
     i_susi = i_susi->su_next;
   }
@@ -2497,7 +2503,7 @@ uint32_t avd_sg_su_si_mod_snd(AVD_CL_CB *cb, AVD_SU *su, SaAmfHAStateT state) {
       }
 
       i_susi->state = old_ha_state;
-      avd_susi_update_fsm(i_susi, old_state);
+      avd_susi_update_fsm(i_susi, old_fsm_state);
       m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, i_susi, AVSV_CKPT_AVD_SI_ASS);
       i_susi = i_susi->su_next;
     }
@@ -2562,7 +2568,7 @@ uint32_t avd_sg_susi_mod_snd_honouring_si_dependency(AVD_SU *su,
 uint32_t avd_sg_su_si_del_snd(AVD_CL_CB *cb, AVD_SU *su) {
   uint32_t rc = NCSCC_RC_FAILURE;
   AVD_SU_SI_REL *i_susi;
-  AVD_SU_SI_STATE old_state = AVD_SU_SI_STATE_ASGN;
+  AVD_SU_SI_STATE old_fsm_state = AVD_SU_SI_STATE_ASGN;
 
   TRACE_ENTER2("'%s'", su->name.c_str());
 
@@ -2575,14 +2581,16 @@ uint32_t avd_sg_su_si_del_snd(AVD_CL_CB *cb, AVD_SU *su) {
   /* change the state for all assignments to the specified state. */
   i_susi = su->list_of_susi;
   while (i_susi != AVD_SU_SI_REL_NULL) {
-    old_state = i_susi->fsm;
+    old_fsm_state = i_susi->fsm;
     if (i_susi->fsm != AVD_SU_SI_STATE_UNASGN) {
       avd_susi_update_fsm(i_susi, AVD_SU_SI_STATE_UNASGN);
       m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, i_susi, AVSV_CKPT_AVD_SI_ASS);
       /* Update the assignment counters */
-      avd_susi_update_assignment_counters(i_susi, AVSV_SUSI_ACT_DEL,
-                                          static_cast<SaAmfHAStateT>(0),
-                                          static_cast<SaAmfHAStateT>(0));
+      if (old_fsm_state != AVD_SU_SI_STATE_EXCESSIVE) {
+        avd_susi_update_assignment_counters(i_susi, AVSV_SUSI_ACT_DEL,
+                                            static_cast<SaAmfHAStateT>(0),
+                                            static_cast<SaAmfHAStateT>(0));
+      }
     }
     i_susi = i_susi->su_next;
   }
@@ -2595,7 +2603,7 @@ uint32_t avd_sg_su_si_del_snd(AVD_CL_CB *cb, AVD_SU *su) {
     LOG_ER("%s: avd_snd_susi_msg failed, %s", __FUNCTION__, su->name.c_str());
     i_susi = su->list_of_susi;
     while (i_susi != AVD_SU_SI_REL_NULL) {
-      avd_susi_update_fsm(i_susi, old_state);
+      avd_susi_update_fsm(i_susi, old_fsm_state);
       m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, i_susi, AVSV_CKPT_AVD_SI_ASS);
       i_susi = i_susi->su_next;
     }
