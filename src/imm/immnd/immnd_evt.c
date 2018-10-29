@@ -10279,22 +10279,23 @@ static uint32_t immnd_evt_proc_start_sync(IMMND_CB *cb, IMMND_EVT *evt,
 	} else {
 		if (cb->mMyEpoch + 1 < cb->mRulingEpoch) {
 			if (cb->mState > IMM_SERVER_LOADING_PENDING) {
-				LOG_WA(
-				    "Imm at this node has epoch %u, "
-				    "appears to be a stragler in wrong state %u",
-				    cb->mMyEpoch, cb->mState);
-				abort();
+				LOG_ER(
+				    "Current epoch %u, ruling epoch %u. "
+				    "appears to be a straggler in wrong state %u "
+				    "or cluster is recovering from split-brain.",
+				    cb->mMyEpoch, cb->mRulingEpoch, cb->mState);
+				exit(1);
 			} else {
 				TRACE_2(
 				    "This nodes apparently missed start of sync");
 			}
 		} else {
-			osafassert(cb->mMyEpoch + 1 > cb->mRulingEpoch);
-			LOG_WA(
-			    "Imm at this evs node has epoch %u, "
-			    "COORDINATOR appears to be a stragler!!, aborting.",
-			    cb->mMyEpoch);
-			abort();
+			LOG_ER(
+			    "Current epoch %u, ruling epoch %u. "
+			    "COORDINATOR appears to be a straggler or "
+			    "cluster is recovering from split-brain, aborting.",
+			    cb->mMyEpoch, cb->mRulingEpoch);
+			exit(1);
 			/* TODO: 080414 re-inserted the osafassert/abort ...
 			   This is an extreemely odd case. Possibly it could
 			   occur after a failover ?? */
