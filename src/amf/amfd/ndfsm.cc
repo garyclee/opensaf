@@ -165,34 +165,12 @@ done:
  *
  **************************************************************************/
 uint32_t avd_count_sync_node_size(AVD_CL_CB *cb) {
-  uint32_t twon_ncs_su_count = 0;
   uint32_t count = 0;
   TRACE_ENTER();
 
-  for (const auto &value : *node_name_db) {
-    AVD_AVND *avnd = value.second;
-    osafassert(avnd);
-    for (const auto &su : avnd->list_of_ncs_su) {
-      if (su->sg_of_su->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL) {
-        twon_ncs_su_count++;
-        continue;
-      }
-    }
-  }
-  // cluster can have 1 SC or more SCs which hosting 2N Opensaf SU
-  // so twon_ncs_su_count at least is 1
-  osafassert(twon_ncs_su_count > 0);
-
-  if (twon_ncs_su_count == 1) {
-    // 1 SC, the rest of nodes could be in sync from headless
-    count = node_name_db->size() - 1;
-  } else {
-    // >=2 SCs, the rest of nodes could be in sync except active/standby SC
-    count = node_name_db->size() - 2;
-  }
+  count = node_name_db->size() - 1;
 
   TRACE("sync node size:%d", count);
-  TRACE_LEAVE();
   return count;
 }
 /*****************************************************************************
@@ -218,8 +196,7 @@ uint32_t avd_count_node_up(AVD_CL_CB *cb) {
   for (const auto &value : *node_name_db) {
     node = value.second;
     if (node->node_up_msg_count > 0 &&
-        node->node_info.nodeId != cb->node_id_avd &&
-        node->node_info.nodeId != cb->node_id_avd_other)
+        node->node_info.nodeId != cb->node_id_avd)
       ++received_count;
   }
   TRACE("Number of node director(s) that director received node_up msg:%u",
@@ -329,6 +306,7 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       if (cb->node_sync_tmr.is_active) {
         avd_stop_tmr(cb, &cb->node_sync_tmr);
         TRACE("stop NodeSync timer");
+        cb->node_sync_window_closed = true;
       }
       cb->all_nodes_synced = true;
       LOG_NO("Received node_up_msg from all nodes");
