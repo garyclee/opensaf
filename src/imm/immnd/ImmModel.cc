@@ -596,6 +596,7 @@ static const std::string saImmRepositoryInit("saImmRepositoryInit");
 static const std::string saImmOiTimeout("saImmOiTimeout");
 
 static SaImmRepositoryInitModeT immInitMode = SA_IMM_INIT_FROM_FILE;
+static bool sRegenerateDb = false;
 
 static SaUint32T sCcbIdLongDnGuard =
     0; /* Disallow long DN additions if longDnsAllowed is being changed in ccb*/
@@ -2003,6 +2004,14 @@ void immModel_setLoader(IMMND_CB* cb, SaInt32T loaderPid) {
   ImmModel::instance(&cb->immModel)->setLoader(loaderPid);
 }
 
+void immModel_setRegenerateDbFlag(IMMND_CB* cb, bool value) {
+  ImmModel::instance(&cb->immModel)->setRegenerateDbFlag(value);
+}
+
+bool immModel_getRegenerateDbFlag(IMMND_CB* cb) {
+  return ImmModel::instance(&cb->immModel)->getRegenerateDbFlag();
+}
+
 void immModel_recognizedIsolated(IMMND_CB* cb) {
   ImmModel::instance(&cb->immModel)->recognizedIsolated();
 }
@@ -2899,6 +2908,14 @@ int ImmModel::adjustEpoch(int suggestedEpoch, SaUint32T* continuationIdPtr,
   }
 
   return suggestedEpoch;
+}
+
+bool ImmModel::getRegenerateDbFlag() {
+  return sRegenerateDb;
+}
+
+void ImmModel::setRegenerateDbFlag(bool value) {
+  sRegenerateDb = value;
 }
 
 /**
@@ -13808,6 +13825,9 @@ SaAisErrorT ImmModel::admoImmMngtObject(const ImmsvOmAdminOperationInvoke* req,
       LOG_IN("sAbortNonCriticalCcbs = true;");
       sAbortNonCriticalCcbs = true;
     }
+  } else if (req->operationId == SA_IMM_ADMIN_REGENERATE_PBE_DB) {
+    LOG_NO("Re-generate the pbe database from one in memory.");
+    sRegenerateDb = true;
   } else {
     LOG_NO("Invalid operation ID %llu, for operation on %s",
            (SaUint64T)req->operationId, immManagementDn.c_str());
@@ -14976,7 +14996,7 @@ SaAisErrorT ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
         implName.c_str());
     /* If we find any, then surgically replace the implId of the implAssoc with
         the new implId of the newly reincarnated PBE implementer.*/
-
+    sRegenerateDb = false;
     for (i = sCcbVector.begin(); i != sCcbVector.end(); ++i) {
       CcbInfo* ccb = (*i);
       if (ccb->mState == IMM_CCB_CRITICAL) {

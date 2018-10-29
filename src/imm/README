@@ -3033,6 +3033,25 @@ expires.
 To be possible to use this new feature, bit 10 must be set in
 opensafImmNostdFlags attribute in IMM object.
 
+
+Provide an admin-operation for re-generating backend database from one in RAM
+=============================================================================
+https://sourceforge.net/p/opensaf/tickets/2940/
+
+After split-brain recovery, there is possibility of having inconsistencies
+between IMM data model in memory held by IMMND and one in the back-end
+database (sqlite).
+
+That could happen as we might have 02 active IMMDs, 02 IMMND coordinators
+and more than one PBE processes accessing a shared pbe database during
+split-brain. Change to such database from one therefore might not get
+noticed by the other.
+
+By using this admin operation ID and targeting to IMM, IMM will regenerate the
+back-end database from one in memory to keep them both consistent.
+
+immadm -o 303 safRdn=immManagement,safApp=safImmService
+
 ----------------------------------------
 DEPENDENCIES
 ============

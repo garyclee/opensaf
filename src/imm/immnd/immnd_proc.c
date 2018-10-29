@@ -1935,6 +1935,7 @@ static int immnd_forkPbe(IMMND_CB *cb)
 	LOG_NO("pbe-db-file-path:%s VETERAN:%u B:%u", dbFilePath,
 	       cb->mPbeVeteran, cb->mPbeVeteranB);
 
+	bool regenerate_db = immModel_getRegenerateDbFlag(cb);
 	if ((cb->mPbeVeteran || cb->mPbeVeteranB) &&
 	    !immModel_pbeIsInSync(cb, false)) {
 		/* Currently we can not recover results for PRTO
@@ -1961,7 +1962,7 @@ static int immnd_forkPbe(IMMND_CB *cb)
 		bool veteran = (cb->mIsCoord) ? (cb->mPbeVeteran)
 					      : (cb->m2Pbe && cb->mPbeVeteranB);
 		pbeArgs[0] = (char *)execPath;
-		if (veteran) {
+		if (veteran && !regenerate_db) {
 			pbeArgs[1] = "--recover";
 			pbeArgs[2] = (cb->m2Pbe) ? ((cb->mIsCoord) ? "--pbe2A"
 								   : "--pbe2B")
@@ -1983,6 +1984,8 @@ static int immnd_forkPbe(IMMND_CB *cb)
 	}
 	TRACE_5("Parent %s, successfully forked %s, pid:%d", base, dbFilePath,
 		pid);
+
+	immModel_setRegenerateDbFlag(cb, false);
 	cb->mPbeKills = 0; /* Rest kill count when we just created a new PBE. */
 	if (cb->mIsCoord && cb->mPbeVeteran) {
 		cb->mPbeVeteran = false;
@@ -2701,7 +2704,8 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 				} else { /* Pbe is running. */
 					osafassert(cb->pbePid > 0);
 					if (cb->mRim == SA_IMM_INIT_FROM_FILE ||
-					    cb->mBlockPbeEnable) {
+					    cb->mBlockPbeEnable ||
+					    immModel_getRegenerateDbFlag(cb)) {
 						/* Pbe should NOT run.*/
 						if ((cb->mPbeKills++) ==
 						    0) { /* Send SIGTERM only

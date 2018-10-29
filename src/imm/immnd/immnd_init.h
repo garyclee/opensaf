@@ -309,6 +309,8 @@ bool immModel_readyForLoading(IMMND_CB *cb);
 SaInt32T immModel_getLoader(IMMND_CB *cb);
 
 void immModel_setLoader(IMMND_CB *cb, SaInt32T loaderPid);
+void immModel_setRegenerateDbFlag(IMMND_CB *cb, bool value);
+bool immModel_getRegenerateDbFlag(IMMND_CB *cb);
 
 unsigned int immModel_pbeOiExists(IMMND_CB *cb);
 unsigned int immModel_pbeBSlaveExists(IMMND_CB *cb);

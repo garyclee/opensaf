@@ -157,7 +157,9 @@ typedef enum {
 typedef enum {
   SA_IMM_ADMIN_EXPORT = 1, /* Defined in A.02.01 declared in  A.03.01 */
   SA_IMM_ADMIN_INIT_FROM_FILE = 100, /* Non standard, force PBE disable. */
-  SA_IMM_ADMIN_ABORT_CCBS = 202 /* Non standard, abort non critical CCBs. */
+  SA_IMM_ADMIN_ABORT_CCBS = 202, /* Non standard, abort non critical CCBs. */
+  /* Non standard, regenerate pbe database from RAM */
+  SA_IMM_ADMIN_REGENERATE_PBE_DB = 303
 } SaImmMngtAdminOperationT;
 
 /*
