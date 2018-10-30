@@ -2898,7 +2898,7 @@ static uint32_t immsv_evt_dec_sublevels(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 				implNameList[i].size = ncs_decode_32bit(&p8);
 				ncs_dec_skip_space(i_ub, 4);
 
-				implNameList[i].buf = (char *)malloc(implNameList[i].size);
+				implNameList[i].buf = (char *)malloc(implNameList[i].size + 1);
 				if (implNameList[i].buf == NULL ||
 						ncs_decode_n_octets_from_uba(i_ub,
 								(uint8_t *)implNameList[i].buf,
