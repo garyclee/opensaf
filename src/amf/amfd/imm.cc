@@ -41,6 +41,7 @@
 #include "amf/common/amf_defs.h"
 #include "amf/amfd/imm.h"
 #include "amf/amfd/cluster.h"
+#include "amf/amfd/node.h"
 #include "amf/amfd/app.h"
 #include "amf/amfd/sgtype.h"
 #include "amf/amfd/sg.h"
@@ -2132,6 +2133,8 @@ static void *avd_imm_reinit_bg_thread(void *_cb) {
 
   immutilWrapperProfile.errorsAreFatal = 0;
 
+  /* Try to dispatch imm cb if any, e.g: apply cb, before finalize OI */
+  (void)saImmOiDispatch(avd_cb->immOiHandle, SA_DISPATCH_ALL);
   while (++no_of_retries < MAX_NO_RETRIES) {
     (void)saImmOiFinalize(avd_cb->immOiHandle);
 
@@ -2167,6 +2170,7 @@ static void *avd_imm_reinit_bg_thread(void *_cb) {
         osaf_mutex_unlock_ordie(&imm_reinit_mutex);
         exit(EXIT_FAILURE);
       }
+      avd_check_nodes_after_reinit_imm();
     } else {
       /* become applier and re-read the config */
       rc = avd_imm_applier_set();

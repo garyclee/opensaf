@@ -2024,54 +2024,43 @@ void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata) {
 
   TRACE_ENTER2("'%s'", su->name.c_str());
 
-  if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
-    /* Check if the comp and related objects are still left. This can
-       happen on Standby Amfd when it has just read the configuration
-       and before it becomes applier, Act Amfd deletes Comps. Those Comps
-       will be left out at Standby Amfd. Though this could be rare.*/
-    std::set<std::string> comp_list;
-    for (const auto &comp : su->list_of_comp)
-      comp_list.insert(Amf::to_string(&comp->comp_info.name));
-    for (std::set<std::string>::const_iterator iter1 = comp_list.begin();
-         iter1 != comp_list.end(); ++iter1) {
-      AVD_COMP *comp = comp_db->find(*iter1);
+  std::set<std::string> comp_list;
+  for (const auto &comp : su->list_of_comp)
+    comp_list.insert(Amf::to_string(&comp->comp_info.name));
+  for (std::set<std::string>::const_iterator iter1 = comp_list.begin();
+       iter1 != comp_list.end(); ++iter1) {
+    AVD_COMP *comp = comp_db->find(*iter1);
 
-      // Create a tmp database of compcstype.
-      std::set<std::string> compcstype_list;
-      for (const auto &value : *compcstype_db) {
-        AVD_COMPCS_TYPE *compcstype = value.second;
-        compcstype_list.insert(compcstype->name);
-      }
-      TRACE("Standby Amfd, comp '%s' not deleted",
-            osaf_extended_name_borrow(&comp->comp_info.name));
-
-      for (std::set<std::string>::const_iterator iter1 =
-               compcstype_list.begin();
-           iter1 != compcstype_list.end(); ++iter1) {
-        AVD_COMPCS_TYPE *compcstype = compcstype_db->find(*iter1);
-        if (compcstype->comp == comp) {
-          TRACE("Standby Amfd, compcstype '%s' not deleted",
-                compcstype->name.c_str());
-          compcstype_db->erase(compcstype->name);
-          delete compcstype;
-        }
-      }
-      compcstype_list.clear();
-      /* Delete the Comp. */
-      struct CcbUtilOperationData opdata;
-      osaf_extended_name_alloc(osaf_extended_name_borrow(&comp->comp_info.name),
-                               &opdata.objectName);
-      comp_ccb_apply_delete_hdlr(&opdata);
+    // Create a tmp database of compcstype.
+    std::set<std::string> compcstype_list;
+    for (const auto &value : *compcstype_db) {
+      AVD_COMPCS_TYPE *compcstype = value.second;
+      compcstype_list.insert(compcstype->name);
     }
-    comp_list.clear();
+    LOG_WA("comp '%s' not deleted, delete it",
+          osaf_extended_name_borrow(&comp->comp_info.name));
 
-    su->remove_from_model();
-    delete su;
-    goto done;
+    for (std::set<std::string>::const_iterator iter1 =
+             compcstype_list.begin();
+         iter1 != compcstype_list.end(); ++iter1) {
+      AVD_COMPCS_TYPE *compcstype = compcstype_db->find(*iter1);
+      if (compcstype->comp == comp) {
+        LOG_WA("compcstype '%s' not deleted, delete it",
+              compcstype->name.c_str());
+        compcstype_db->erase(compcstype->name);
+        delete compcstype;
+      }
+    }
+    compcstype_list.clear();
+    /* Delete the Comp. */
+    struct CcbUtilOperationData opdata;
+    osaf_extended_name_alloc(osaf_extended_name_borrow(&comp->comp_info.name),
+                             &opdata.objectName);
+    comp_ccb_apply_delete_hdlr(&opdata);
   }
+  comp_list.clear();
 
   su_node_ptr = su->get_node_ptr();
-
   if ((su_node_ptr->node_state == AVD_AVND_STATE_PRESENT) ||
       (su_node_ptr->node_state == AVD_AVND_STATE_NO_CONFIG) ||
       (su_node_ptr->node_state == AVD_AVND_STATE_NCS_INIT)) {
@@ -2088,6 +2077,10 @@ void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata) {
 
   su->remove_from_model();
   delete su;
+
+  if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+    goto done;
+  }
 
   if (AVD_SG_FSM_STABLE == sg->sg_fsm_state) {
     /*if su of uneqal rank has been delete and all SUs are of same rank then do
