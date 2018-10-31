@@ -111,7 +111,7 @@ LostFound::LostFound(NodeStateMachine *fsm) :
   NodeState(fsm) {
   avd_stop_tmr(fsm_->cb_, fsm_->timer_.get());
   avd_start_tmr(fsm_->cb_, fsm_->timer_.get(),
-                fsm_->cb_->node_failover_nodeup_wait * SA_TIME_ONE_SECOND);
+                fsm_->cb_->node_failover_node_wait * SA_TIME_ONE_SECOND);
 }
 
 void LostFound::TimerExpired() {
@@ -138,7 +138,7 @@ void LostFound::TimerExpired() {
     // wait for checkpoint to transition state
     // meanwhile, restart timer in case a SC failover to this node occurs
     avd_start_tmr(fsm_->cb_, fsm_->timer_.get(),
-                  fsm_->cb_->node_failover_nodeup_wait * SA_TIME_ONE_SECOND);
+                  fsm_->cb_->node_failover_node_wait * SA_TIME_ONE_SECOND);
   }
 }
 
@@ -176,7 +176,7 @@ LostRebooting::LostRebooting(NodeStateMachine *fsm) :
   NodeState(fsm) {
   avd_stop_tmr(fsm_->cb_, fsm_->timer_.get());
   avd_start_tmr(fsm_->cb_, fsm_->timer_.get(),
-                fsm_->cb_->node_failover_nodeup_wait * SA_TIME_ONE_SECOND);
+                fsm_->cb_->node_failover_node_wait * SA_TIME_ONE_SECOND);
 }
 
 void LostRebooting::TimerExpired() {
@@ -198,7 +198,7 @@ void LostRebooting::TimerExpired() {
     // wait for checkpoint to transition state
     // meanwhile, restart timer in case a SC failover to this node occurs
     avd_start_tmr(fsm_->cb_, fsm_->timer_.get(),
-                  fsm_->cb_->node_failover_nodeup_wait * SA_TIME_ONE_SECOND);
+                  fsm_->cb_->node_failover_node_wait * SA_TIME_ONE_SECOND);
   }
 }
 
@@ -270,7 +270,7 @@ FailedFound::FailedFound(NodeStateMachine *fsm) :
 
   // start timer2, wait for node up
   avd_start_tmr(fsm_->cb_, fsm_->timer_.get(),
-                fsm_->cb_->node_failover_nodeup_wait * SA_TIME_ONE_SECOND);
+                fsm_->cb_->node_failover_node_wait * SA_TIME_ONE_SECOND);
 }
 
 void FailedFound::TimerExpired() {
@@ -294,7 +294,7 @@ void FailedFound::TimerExpired() {
     // wait for checkpoint to transition state
     // meanwhile, restart timer in case a SC failover to this node occurs
     avd_start_tmr(fsm_->cb_, fsm_->timer_.get(),
-                  fsm_->cb_->node_failover_nodeup_wait * SA_TIME_ONE_SECOND);
+                  fsm_->cb_->node_failover_node_wait * SA_TIME_ONE_SECOND);
   }
 }
 

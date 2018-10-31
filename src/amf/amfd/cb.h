@@ -52,6 +52,8 @@
 #include "amf/amfd/node_state_machine.h"
 #include "amf/amfd/timer.h"
 
+const SaTimeT kDefaultNodeWaitTime = 180;
+
 class AVD_SI;
 class AVD_AVND;
 
@@ -254,11 +256,12 @@ typedef struct cl_cb_tag {
 
   // MDS_DOWN received for node, we are delaying node failover by this
   // number of seconds (timer1)
-  SaTimeT node_failover_delay;
+  SaTimeT node_failover_delay = 0;
 
   // after receiving MDS_UP, we will wait for NODE_UP up to this number
-  // of seconds (timer2)
-  SaTimeT node_failover_nodeup_wait;
+  // of seconds (timer2). Also wait for this number of seconds for
+  // MDS_DOWN after sending reboot message
+  SaTimeT node_failover_node_wait = kDefaultNodeWaitTime;
 
   using FailedNodeMap = std::map<SaClmNodeIdT, std::shared_ptr<NodeStateMachine>>;
   // We received amfnd down for these nodes

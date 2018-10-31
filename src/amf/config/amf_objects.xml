@@ -11,7 +11,7 @@
 			<value>0</value>
 		</attr>
 		<attr>
-			<name>osafAmfDelayNodeFailoverNodeUpWait</name>
+			<name>osafAmfDelayNodeFailoverNodeWaitTimeout</name>
 			<value>180</value>
 		</attr>
 	</object>
