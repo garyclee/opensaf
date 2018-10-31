@@ -48,6 +48,7 @@ static uint32_t enc_oper_su(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_node_up_info(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_node_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_node_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
+static uint32_t enc_node_failover_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_node_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_node_rcv_msg_id(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_node_snd_msg_id(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
@@ -163,7 +164,8 @@ const AVSV_ENCODE_CKPT_DATA_FUNC_PTR avd_enc_ckpt_data_func_list[] = {
     enc_comp_curr_num_csi_stby, enc_comp_oper_state, enc_comp_readiness_state,
     enc_comp_pres_state, enc_comp_restart_count, nullptr, /* AVSV_SYNC_COMMIT */
     enc_su_restart_count, enc_si_dep_state, enc_ng_admin_state,
-    enc_avd_to_avd_job_queue_status};
+    enc_avd_to_avd_job_queue_status,
+    enc_node_failover_state};
 
 /*
  * Function list for encoding the cold sync response data
@@ -851,8 +853,9 @@ static uint32_t enc_node_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc) {
   if (NCS_MBCSV_ACT_UPDATE == enc->io_action) {
     osaf_encode_sanamet_o2(&enc->io_uba, avnd->name.c_str());
     osaf_encode_uint32(&enc->io_uba, avnd->saAmfNodeOperState);
-  } else
+  } else {
     osafassert(0);
+  }
 
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
@@ -2409,5 +2412,24 @@ static uint32_t enc_avd_to_avd_job_queue_status(AVD_CL_CB *cb,
   const uint32_t *size = reinterpret_cast<uint32_t *>(enc->io_reo_hdl);
   osaf_encode_uint32(&enc->io_uba, *size);
   TRACE_LEAVE();
+  return NCSCC_RC_SUCCESS;
+}
+
+static uint32_t enc_node_failover_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc) {
+  TRACE_ENTER();
+
+  const AVD_AVND *avnd = reinterpret_cast<AVD_AVND *>(enc->io_reo_hdl);
+
+  if (NCS_MBCSV_ACT_UPDATE == enc->io_action) {
+    auto failed_node = cb->failover_list.find(avnd->node_info.nodeId);
+    if (failed_node != cb->failover_list.end()) {
+      osaf_encode_sanamet_o2(&enc->io_uba, avnd->name.c_str());
+      TRACE_ENTER2("New state '%u'", failed_node->second->GetState());
+      osaf_encode_uint32(&enc->io_uba, failed_node->second->GetState());
+    }
+  } else {
+    osafassert(0);
+  }
+
   return NCSCC_RC_SUCCESS;
 }
