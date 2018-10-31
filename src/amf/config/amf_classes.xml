@@ -1452,5 +1452,17 @@
 			<category>SA_CONFIG</category>
 			<flag>SA_WRITABLE</flag>
 		</attr>
-	</class>
+		<attr>
+			<name>osafAmfDelayNodeFailoverTimeout</name>
+			<type>SA_TIME_T</type>
+			<category>SA_CONFIG</category>
+			<flag>SA_WRITABLE</flag>
+		</attr>
+		<attr>
+			<name>osafAmfDelayNodeFailoverNodeUpWait</name>
+			<type>SA_TIME_T</type>
+			<category>SA_CONFIG</category>
+			<flag>SA_WRITABLE</flag>
+		</attr>
+        </class>
 </imm:IMM-contents>

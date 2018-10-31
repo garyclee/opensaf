@@ -6,6 +6,14 @@
 			<name>osafAmfRestrictAutoRepairEnable</name>
 			<value>1</value>
 		</attr>
+		<attr>
+			<name>osafAmfDelayNodeFailoverTimeout</name>
+			<value>0</value>
+		</attr>
+		<attr>
+			<name>osafAmfDelayNodeFailoverNodeUpWait</name>
+			<value>180</value>
+		</attr>
 	</object>
 	<object class="SaAmfAppBaseType">
 		<dn>safAppType=OpenSafApplicationType</dn>
