@@ -32,6 +32,7 @@
 #include "amf/amfd/cluster.h"
 #include "base/daemon.h"
 #include <algorithm>
+#include <memory>
 
 AmfDb<uint32_t, AVD_FAIL_OVER_NODE> *node_list_db = 0; /* SaClmNodeIdT index */
 
@@ -267,6 +268,7 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
   uint32_t rc = NCSCC_RC_SUCCESS;
   uint32_t sync_nd_size = avd_count_sync_node_size(cb);
   bool act_nd;
+  AVD_CL_CB::FailedNodeMap::iterator failed_node;
 
   TRACE_ENTER2(
       "from %x, %s", n2d_msg->msg_info.n2d_node_up.node_id,
@@ -278,6 +280,32 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
     LOG_NO("amfnd svc up not yet received from node %x",
            n2d_msg->msg_info.n2d_node_up.node_id);
     goto done;
+  }
+
+  /* Cannot use avd_msg_sanity_chk here since this is a special case */
+  if ((avnd = avd_node_find_nodeid(n2d_msg->msg_info.n2d_node_up.node_id)) ==
+      nullptr) {
+    TRACE("invalid node ID (%x)", n2d_msg->msg_info.n2d_node_up.node_id);
+    goto done;
+  }
+
+  TRACE("leds_set %d", n2d_msg->msg_info.n2d_node_up.leds_set);
+
+  failed_node = cb->failover_list.find(
+                  n2d_msg->msg_info.n2d_node_up.node_id);
+  if (failed_node != cb->failover_list.end()) {
+    if (n2d_msg->msg_info.n2d_node_up.leds_set == false) {
+      // if set_leds is false indicating the node has rebooted and not
+      // in headless sync state
+      failed_node->second->NodeUp();
+    } else {
+      // split network partition probably occurred, failover and reboot node
+      failed_node->second->TimerExpired();
+      goto done;
+    }
+  } else {
+    TRACE("node_id '%x' not in failover_list.",
+           n2d_msg->msg_info.n2d_node_up.node_id);
   }
 
   act_nd = n2d_msg->msg_info.n2d_node_up.node_id == cb->node_id_avd;
@@ -333,13 +361,6 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
         }
       }
     }
-  }
-
-  /* Cannot use avd_msg_sanity_chk here since this is a special case */
-  if ((avnd = avd_node_find_nodeid(n2d_msg->msg_info.n2d_node_up.node_id)) ==
-      nullptr) {
-    TRACE("invalid node ID (%x)", n2d_msg->msg_info.n2d_node_up.node_id);
-    goto done;
   }
 
   /* Retrieve the information from the message */
@@ -719,10 +740,18 @@ void avd_nd_ncs_su_failed(AVD_CL_CB *cb, AVD_AVND *avnd) {
  **************************************************************************/
 
 void avd_mds_avnd_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
+  TRACE_ENTER();
+
   if (evt->info.node_id == cb->node_id_avd) {
     TRACE("Local node director is up, start sending heart beats to %" PRIx64,
           cb->local_avnd_adest);
     avd_tmr_snd_hb_evh(cb, evt);
+  } else {
+    auto search = cb->failover_list.find(evt->info.node_id);
+    if (search != cb->failover_list.end()) {
+      std::shared_ptr<NodeStateMachine> failed_node = search->second;
+      failed_node->MdsUp();
+    }
   }
 
   TRACE("amfnd on %x is up", evt->info.node_id);
@@ -771,13 +800,29 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       daemon_exit();
     }
 
+    if (cb->failover_list.find(evt->info.node_id) != cb->failover_list.end()) {
+      std::shared_ptr<NodeStateMachine> failed_node =
+        cb->failover_list.at(evt->info.node_id);
+      failed_node->MdsDown();
+    } else if (cb->node_failover_delay > 0) {
+      LOG_NO("Node '%s' is down. Start failover delay timer",
+              node->node_name.c_str());
+
+      auto missing_node = std::make_shared<NodeStateMachine>(cb, evt->info.node_id);
+      cb->failover_list[evt->info.node_id] = missing_node;
+      missing_node->MdsDown();
+    }
+
     if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
-      avd_node_failover(node);
+      if (cb->node_failover_delay == 0) {
+        avd_node_failover(node);
+      }
+      node->node_info.member = SA_FALSE;
       // Update standby out of sync if standby sc goes down
       if (avd_cb->node_id_avd_other == node->node_info.nodeId) {
         cb->stby_sync_state = AVD_STBY_OUT_OF_SYNC;
       }
-    } else {
+    } else if (cb->node_failover_delay == 0) {
       /* Remove dynamic info for node but keep in nodeid tree.
        * Possibly used at the end of controller failover to
        * to failover payload nodes.
@@ -849,6 +894,12 @@ void avd_fail_over_event(AVD_CL_CB *cb) {
     if ((AVD_AVND_STATE_PRESENT == avnd->node_state) ||
         (AVD_AVND_STATE_NO_CONFIG == avnd->node_state) ||
         (AVD_AVND_STATE_NCS_INIT == avnd->node_state)) {
+      // this node is in delayed failover state, do not send data verify to it
+      if (cb->failover_list.find(avnd->node_info.nodeId) !=
+            cb->failover_list.end()) {
+        continue;
+      }
+
       /*
        * Send verify message to this node.
        */
@@ -1107,7 +1158,6 @@ void avd_node_mark_absent(AVD_AVND *node) {
   node->recvr_fail_sw = false;
 
   node->node_info.initialViewNumber = 0;
-  node->node_info.member = SA_FALSE;
 
   /* Increment node failfast counter */
   avd_cb->nodes_exit_cnt++;

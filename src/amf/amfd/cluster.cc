@@ -155,6 +155,24 @@ void avd_node_sync_tmr_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
   TRACE_LEAVE();
 }
 
+void avd_node_failover_tmr_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
+  TRACE_ENTER();
+
+  osafassert(evt->info.tmr.is_active == false);
+  osafassert(evt->info.tmr.type == AVD_TMR_NODE_FAILOVER);
+
+  const SaClmNodeIdT node_id = evt->info.tmr.node_id;
+
+  LOG_NO("Node failover timeout");
+
+  if (cb->failover_list.count(node_id) > 0) {
+    std::shared_ptr<NodeStateMachine> failed_node = cb->failover_list.at(node_id);
+    failed_node->TimerExpired();
+  } else {
+    LOG_WA("Node '%x' is not in failover_list", node_id);
+  }
+}
+
 static void ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
   const SaImmAttrModificationT_2 *attr_mod;
   int i = 0;

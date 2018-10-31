@@ -39,6 +39,7 @@ extern AVD_CLUSTER *avd_cluster;
 extern SaAisErrorT avd_cluster_config_get(void);
 extern void avd_cluster_tmr_init_evh(AVD_CL_CB *cb, struct AVD_EVT *evt);
 extern void avd_node_sync_tmr_evh(AVD_CL_CB *cb, struct AVD_EVT *evt);
+extern void avd_node_failover_tmr_evh(AVD_CL_CB *cb, struct AVD_EVT *evt);
 extern void avd_cluster_constructor(void);
 
 #endif  // AMF_AMFD_CLUSTER_H_

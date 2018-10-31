@@ -118,6 +118,10 @@ void avd_stop_tmr(AVD_CL_CB *cb, AVD_TMR *tmr) {
     return;
   }
 
+  if (tmr->tmr_id == TMR_T_NULL) {
+    return;
+  }
+
   /* Stop the timer if it is active... */
   if (tmr->is_active == true) {
     tmr->is_active = false;
@@ -149,7 +153,7 @@ void avd_tmr_exp(void *uarg) {
   AVD_TMR *tmr = (AVD_TMR *)uarg;
   AVD_EVT *evt = AVD_EVT_NULL;
 
-  TRACE_ENTER();
+  TRACE_ENTER2("%u", tmr->type);
 
   /*
    * Check if this timer was stopped after "avd_tmr_exp" was called

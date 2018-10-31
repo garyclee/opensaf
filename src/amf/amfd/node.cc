@@ -58,6 +58,7 @@ uint32_t avd_node_add_nodeid(AVD_AVND *node) {
 }
 
 void avd_node_delete_nodeid(AVD_AVND *node) {
+  TRACE_ENTER2("%s", node->node_name.c_str());
   node_id_db->erase(node->node_info.nodeId);
 }
 
@@ -793,6 +794,7 @@ static void node_ccb_apply_delete_hdlr(AVD_AVND *node) {
     return;
   }
   TRACE_ENTER2("'%s'", node->name.c_str());
+  avd_cb->failover_list.erase(node->node_info.nodeId);
   avd_node_delete_nodeid(node);
   avd_node_delete(node);
   TRACE_LEAVE();

@@ -490,7 +490,14 @@ static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role) {
 
   avd_cb->is_implementer = true;
 
-  avd_node_failover(failed_node);
+  if (cb->failover_list.find(failed_node->node_info.nodeId) != cb->failover_list.end()) {
+    // triggered by FM, in which case we should failover OpenSAF SUs only
+    // application SUs will be handled via the node failover delay timer
+    LOG_NO("Failing over OpenSAF components only");
+    avd_node_failover(failed_node, true);
+  } else {
+    avd_node_failover(failed_node);
+  }
   avd_act_on_sis_in_tol_timer_state();
 
   LOG_NO("FAILOVER StandBy --> Active DONE!");

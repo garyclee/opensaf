@@ -202,8 +202,11 @@ static void clm_node_exit_complete(SaClmNodeIdT nodeId) {
     goto done;
   }
 
-  avd_node_failover(node);
-  avd_node_delete_nodeid(node);
+  if (avd_cb->failover_list.count(node->node_info.nodeId) == 0 &&
+    avd_cb->node_failover_delay == 0) {
+    avd_node_failover(node);
+    avd_node_delete_nodeid(node);
+  }
   m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node, AVSV_CKPT_AVD_NODE_CONFIG);
   node->clm_change_start_preceded = false;
 
@@ -318,7 +321,10 @@ static void clm_track_cb(
           } else if (node->node_state == AVD_AVND_STATE_ABSENT) {
             LOG_IN("%s: CLM node '%s' is not an AMF cluster member; MDS down received",
                    __FUNCTION__, node_name.c_str());
-            avd_node_delete_nodeid(node);
+            if (avd_cb->failover_list.count(node->node_info.nodeId) == 0 &&
+              avd_cb->node_failover_delay == 0) {
+              avd_node_delete_nodeid(node);
+            }
             goto done;
           }
           TRACE(" Node Left: rootCauseEntity %s for node %u",

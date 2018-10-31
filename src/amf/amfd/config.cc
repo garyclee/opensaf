@@ -41,6 +41,26 @@ static void ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
       }
       TRACE("osafAmfRestrictAutoRepairEnable changed to '%d'", enabled);
       configuration->restrict_auto_repair(enabled);
+    } else if (!strcmp(attr_mod->modAttr.attrName,
+                "osafAmfDelayNodeFailoverTimeout")) {
+      uint32_t delay = 0;  // default to 0 if attribute is blank
+      if (attr_mod->modType != SA_IMM_ATTR_VALUES_DELETE &&
+          attr_mod->modAttr.attrValues != nullptr) {
+        delay = (*((SaUint32T *)attr_mod->modAttr.attrValues[0]));
+      }
+      avd_cb->node_failover_delay = delay;
+      TRACE("osafAmfDelayNodeFailoverTimeout changed to '%llu'",
+             avd_cb->node_failover_delay);
+    } else if (!strcmp(attr_mod->modAttr.attrName,
+                "osafAmfDelayNodeFailoverNodeUpWait")) {
+      uint32_t delay = 0;  // default to 0 if attribute is blank
+      if (attr_mod->modType != SA_IMM_ATTR_VALUES_DELETE &&
+          attr_mod->modAttr.attrValues != nullptr) {
+        delay = (*((SaUint32T *)attr_mod->modAttr.attrValues[0]));
+      }
+      avd_cb->node_failover_nodeup_wait = delay;
+      TRACE("osafAmfDelayNodeFailoverNodeUpWait changed to '%llu'",
+             avd_cb->node_failover_nodeup_wait);
     }
   }
   TRACE_LEAVE();
@@ -151,11 +171,24 @@ SaAisErrorT Configuration::get_config(void) {
                         &value) == SA_AIS_OK) {
       configuration->restrict_auto_repair(static_cast<bool>(value));
     }
+    if (immutil_getAttr("osafAmfDelayNodeFailoverTimeout", attributes, 0,
+                        &value) == SA_AIS_OK) {
+      avd_cb->node_failover_delay = value;
+    }
+    if (immutil_getAttr("osafAmfDelayNodeFailoverNodeUpWait", attributes, 0,
+                        &value) == SA_AIS_OK) {
+      avd_cb->node_failover_nodeup_wait = value;
+    }
   }
 
   error = SA_AIS_OK;
-  TRACE("osafAmfRestrictAutoRepairEnable set to '%d'",
+
+  LOG_NO("osafAmfRestrictAutoRepairEnable set to '%d'",
         restrict_auto_repair_enabled());
+  LOG_NO("osafAmfDelayNodeFailoverTimeout set to '%llu'",
+        avd_cb->node_failover_delay);
+  LOG_NO("osafAmfDelayNodeFailoverNodeUpWait set to '%llu'",
+        avd_cb->node_failover_nodeup_wait);
 
   (void)immutil_saImmOmSearchFinalize(searchHandle);
 done1:

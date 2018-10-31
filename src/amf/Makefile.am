@@ -107,6 +107,8 @@ noinst_HEADERS += \
 	src/amf/amfd/mds.h \
 	src/amf/amfd/msg.h \
 	src/amf/amfd/node.h \
+	src/amf/amfd/node_state.h \
+	src/amf/amfd/node_state_machine.h \
 	src/amf/amfd/ntf.h \
 	src/amf/amfd/pg.h \
 	src/amf/amfd/proc.h \
@@ -225,6 +227,8 @@ bin_testamfd_LDFLAGS = \
 	src/amf/amfd/bin_osafamfd-ndmsg.o \
 	src/amf/amfd/bin_osafamfd-ndproc.o \
 	src/amf/amfd/bin_osafamfd-node.o \
+	src/amf/amfd/bin_osafamfd-node_state.o \
+	src/amf/amfd/bin_osafamfd-node_state_machine.o \
 	src/amf/amfd/bin_osafamfd-nodegroup.o \
 	src/amf/amfd/bin_osafamfd-nodeswbundle.o \
 	src/amf/amfd/bin_osafamfd-ntf.o \
@@ -327,6 +331,8 @@ bin_osafamfd_SOURCES = \
 	src/amf/amfd/ndmsg.cc \
 	src/amf/amfd/ndproc.cc \
 	src/amf/amfd/node.cc \
+	src/amf/amfd/node_state.cc \
+	src/amf/amfd/node_state_machine.cc \
 	src/amf/amfd/nodegroup.cc \
 	src/amf/amfd/nodeswbundle.cc \
 	src/amf/amfd/ntf.cc \
