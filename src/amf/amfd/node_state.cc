@@ -126,6 +126,11 @@ void LostFound::TimerExpired() {
           node->node_name.c_str());
 
   if (fsm_->Active() == true) {
+    // amfnd thinks it's been headless and resets its rcv_msg_id to 0,
+    // also do the same here to avoid 'Message ID mismatch' errors
+    // at amfnd
+    node->snd_msg_id = 0;
+
     LOG_WA("Sending node reboot order");
     avd_d2n_reboot_snd(node);
 
