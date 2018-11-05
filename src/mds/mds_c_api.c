@@ -3644,12 +3644,55 @@ uint32_t mds_mcm_svc_down(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 				    local_svc_hdl, svc_id, vdest_id,
 				    &active_adest, &tmr_running,
 				    &subtn_result_info, true);
-
 				/* First delete the entry */
 				mds_subtn_res_tbl_del(
 				    local_svc_hdl, svc_id, vdest_id, adest,
 				    vdest_policy, svc_sub_part_ver,
 				    archword_type);
+
+				MDS_SUBSCRIPTION_RESULTS_INFO *s_info = NULL;
+				bool adest_exists = false;
+
+				/* if no adest remains for this svc
+				 * send MDS_DOWN
+				 */
+				status = mds_subtn_res_tbl_getnext_any(
+					local_svc_hdl, svc_id,
+					&s_info);
+
+				while (status != NCSCC_RC_FAILURE) {
+					if (s_info->key.vdest_id !=
+						m_VDEST_ID_FOR_ADEST_ENTRY) {
+						adest_exists = true;
+						break;
+					}
+
+					status = mds_subtn_res_tbl_getnext_any(
+						local_svc_hdl, svc_id, &s_info);
+				}
+
+				if (active_adest != adest
+				  && vdest_policy == NCS_VDEST_TYPE_MxN
+					&& adest_exists == false) {
+					m_MDS_LOG_INFO("MCM:API: svc_down : "
+						"svc_id = %s(%d) on DEST id = %d "
+						"got NO_ACTIVE for svc_id = %s(%d) "
+            "on Vdest id = %d Adest = %s, rem_svc_pvt_ver=%d",
+						get_svc_names(
+						    m_MDS_GET_SVC_ID_FROM_SVC_HDL(local_svc_hdl)),
+						m_MDS_GET_SVC_ID_FROM_SVC_HDL(
+						    local_svc_hdl),
+						m_MDS_GET_VDEST_ID_FROM_SVC_HDL(
+						    local_svc_hdl),
+						get_svc_names(svc_id), svc_id,
+						vdest_id,
+						log_subtn_result_info->sub_adest_details,
+						svc_sub_part_ver);
+					status = mds_mcm_user_event_callback(
+					  local_svc_hdl, pwe_id, svc_id,
+					  role, vdest_id, 0, NCSMDS_DOWN,
+						svc_sub_part_ver, archword_type);
+				}
 
 				if (active_adest == adest) {
 					if (vdest_policy ==
@@ -3698,39 +3741,6 @@ uint32_t mds_mcm_svc_down(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 							->sub_adest_details,
 						    svc_sub_part_ver);
 						{
-							MDS_SUBSCRIPTION_RESULTS_INFO
-							    *subtn_result_info =
-								NULL;
-							bool adest_exists =
-							    false;
-
-							/* if no adest remains
-							 * for this svc, send
-							 * MDS_DOWN */
-							status =
-							    mds_subtn_res_tbl_getnext_any(
-								local_svc_hdl,
-								svc_id,
-								&subtn_result_info);
-
-							while (
-							    status !=
-							    NCSCC_RC_FAILURE) {
-								if (subtn_result_info
-									->key
-									.vdest_id !=
-								    m_VDEST_ID_FOR_ADEST_ENTRY) {
-									adest_exists =
-									    true;
-									break;
-								}
-
-								status = mds_subtn_res_tbl_getnext_any(
-								    local_svc_hdl,
-								    svc_id,
-								    &subtn_result_info);
-							}
-
 							if (adest_exists ==
 							    false) {
 								/* No other
