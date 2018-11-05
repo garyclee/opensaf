@@ -1814,7 +1814,7 @@ static uint32_t immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt,
 					       cb->ccb_id_count, msg->ccb_id_count,
 					       cb->impl_count, msg->impl_count);
 				}
-				goto accept_node;
+				goto update_node_type;
 			}
 
 			if (cb->fevsSendCount < evt->info.ctrl_msg.fevs_count) {
@@ -1887,6 +1887,7 @@ static uint32_t immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt,
 		}
 	}
 
+update_node_type:
 	/* Determine type of node. */
 	if (sinfo->dest == cb->loc_immnd_dest) {
 		node_info->isOnController = true;
