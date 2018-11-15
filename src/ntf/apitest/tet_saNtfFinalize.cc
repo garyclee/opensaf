@@ -151,6 +151,11 @@ void saNtfFinalize_05() {
   test_validate(ret1, SA_AIS_OK);
 }
 
+void saNtfFinalize_06(void) {
+  rc = NtfTest::saNtfFinalize(ntfHandle);
+  test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
 __attribute__((constructor)) static void saNtfFinalize_constructor(void) {
   test_suite_add(2, "Life cycle, finalize, API 2");
   test_case_add(2, saNtfFinalize_01, "saNtfFinalize SA_AIS_OK");
@@ -163,4 +168,6 @@ __attribute__((constructor)) static void saNtfFinalize_constructor(void) {
   test_case_add(2, saNtfFinalize_05,
       "Finalize and saNtfStateChangeNotificationAllocate in parallel "
       "SA_AIS_OK");
+  test_case_add(2, saNtfFinalize_06,
+      "saNtfFinalize SA_AIS_ERR_BAD_HANDLE - unintilized handle");
 }
