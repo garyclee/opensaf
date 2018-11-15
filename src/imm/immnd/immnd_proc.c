@@ -2024,6 +2024,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 	struct timespec jobDurationTs;
 	osaf_timespec_subtract(&now, &cb->mJobStart, &jobDurationTs);
 	SaUint32T jobDurationSec = (SaUint32T)jobDurationTs.tv_sec;
+	static SaUint32T prev_jobduration = 0;
 	bool pbeImmndDeadlock = false;
 	if (!jobDurationSec) {
 		++jobDurationSec;
@@ -2050,6 +2051,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 	switch (cb->mState) {
 	case IMM_SERVER_ANONYMOUS: /*send introduceMe msg. */
 		/*TRACE_5("IMM_SERVER_ANONYMOUS");*/
+		prev_jobduration = jobDurationSec;
 		if (immnd_introduceMe(cb) == NCSCC_RC_SUCCESS) {
 			cb->mStep = 0;
 			cb->mJobStart = now;
@@ -2107,12 +2109,13 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 					cb->preLoadPid =
 					    immnd_forkLoader(cb, true);
 				}
-			} else if (!(jobDurationSec %
-				     5)) { /* Every 5 seconds */
+			} else if (!(jobDurationSec % 5)
+				   && (jobDurationSec != prev_jobduration)) { /* Resend every 5 seconds */
 				LOG_WA(
 				    "Resending introduce-me - problems with MDS ? %f",
 				    osaf_timespec_to_double(&jobDurationTs));
 				immnd_introduceMe(cb);
+				prev_jobduration = jobDurationSec;
 			}
 
 			if (cb->preLoadPid > 0) {
