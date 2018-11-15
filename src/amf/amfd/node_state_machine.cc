@@ -80,7 +80,7 @@ void NodeStateMachine::SetState(uint32_t state) {
       state_ = std::make_shared<FailedFound>(this);
       break;
     case NodeState::kEnd:
-      state_ = std::make_shared<FailedFound>(this);
+      state_ = std::make_shared<End>(this);
       cb_->failover_list.erase(node_id_);
       break;
     default:
