@@ -117,6 +117,11 @@ void saNtfInitialize_12(void) {
   test_validate(rc, SA_AIS_ERR_VERSION);
 }
 
+void saNtfInitialize_13(void) {
+  rc = NtfTest::saNtfInitialize(nullptr, nullptr, nullptr);
+  test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
+
 __attribute__((constructor)) static void saNtfInitialize_constructor(void) {
   test_suite_add(1, "Life cycle, initialize, API 1");
   test_case_add(1, saNtfInitialize_01, "saNtfInitialize SA_AIS_OK");
@@ -142,4 +147,7 @@ __attribute__((constructor)) static void saNtfInitialize_constructor(void) {
           "saNtfInitialize with major version set to lower");
   test_case_add(1, saNtfInitialize_12,
           "saNtfInitialize with version A.0.0");
+  test_case_add(1, saNtfInitialize_13,
+      "saNtfInitialize with NULL pointer to handle AND NULLptr to callbacks"
+      " and nullptr to version");
 }
