@@ -1846,10 +1846,28 @@ void avd_sg_app_node_su_inst_func(AVD_CL_CB *cb, AVD_AVND *avnd) {
 
   } else if (cb->init_state == AVD_APP_STATE) {
     for (const auto &i_su : avnd->list_of_su) {
-      if ((i_su->term_state == false) &&
-          (i_su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED)) {
-        /* Look at the SG and do the instantiations. */
-        avd_sg_app_su_inst_func(cb, i_su->sg_of_su);
+      if (i_su->term_state == false) {
+        /* If SU is UNINSTANTIATED, look at the SG and do the instantiations.
+         * If SU is INSTANTIATED but still OUT_OF_SERVICE, this case can happen
+         * if the SU is unlock() while cluster instantiation.
+         * Otherwise presenceState, amfd will continue from intermediate state
+         */
+        if (i_su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) {
+          avd_sg_app_su_inst_func(cb, i_su->sg_of_su);
+        } else if (i_su->saAmfSUPresenceState ==
+            SA_AMF_PRESENCE_INSTANTIATED) {
+          if (i_su->is_in_service() && i_su->sg_of_su->sg_ncs_spec == false &&
+              i_su->saAmfSuReadinessState == SA_AMF_READINESS_OUT_OF_SERVICE) {
+            i_su->set_readiness_state(SA_AMF_READINESS_IN_SERVICE);
+            if (i_su->sg_of_su->su_insvc(cb, i_su) == NCSCC_RC_FAILURE) {
+              LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.c_str());
+              i_su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
+            }
+          }
+        } else {
+          LOG_WA("SU'%s' has unexpected saAmfSUPresenceState:'%d'",
+              i_su->name.c_str(), i_su->saAmfSUPresenceState);
+        }
       }
     }
   }
