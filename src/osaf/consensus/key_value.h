@@ -30,15 +30,17 @@ class KeyValue {
   static SaAisErrorT Get(const std::string& key, std::string& value);
 
   // Set key to value
-  static SaAisErrorT Set(const std::string& key, const std::string& value);
+  static SaAisErrorT Set(const std::string& key, const std::string& value,
+                         const unsigned int timeout);
 
   // Set key to value only if prev value matches
   static SaAisErrorT Set(const std::string& key, const std::string& value,
-                         const std::string& prev_value);
+                         const std::string& prev_value,
+                         const unsigned int timeout);
 
   // Create key, and set to value. Fails if key already exists.
   static SaAisErrorT Create(const std::string& key, const std::string& value,
-                            const unsigned int timeout = 0);
+                            const unsigned int timeout);
 
   // Erase key
   static SaAisErrorT Erase(const std::string& key);

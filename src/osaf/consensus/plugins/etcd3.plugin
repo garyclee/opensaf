@@ -60,15 +60,30 @@ get() {
 # params:
 #   $1 - <key>
 #   $2 - <value>
+#   $3 - <timeout>
 # returns:
 #   0 - success
 #   non-zero - failure
 setkey() {
   readonly key="$1"
   readonly value="$2"
+  readonly timeout="$3"
+
+  if [ $timeout -gt 0 ]; then
+    # create lease
+    if output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout lease grant $timeout)
+    then
+      lease_id=$(echo $output | awk '{print $2}')
+      lease_param="--lease="$lease_id""
+    else
+      return 2
+    fi
+  else
+    lease_param=""
+  fi
 
   if etcdctl $etcd_options --dial-timeout $etcd_timeout put "$directory$key" \
-    "$value" >/dev/null
+    "$value" "$lease_param" >/dev/null
   then
     return 0
   else
@@ -131,6 +146,7 @@ create_key() {
 #   $1 - <key>
 #   $2 - <value>
 #   $3 - <prev>
+#   $4 - <timeout>
 # returns:
 #   0 - success
 #   non-zero - failure
@@ -138,11 +154,25 @@ setkey_match_prev() {
   readonly key="$1"
   readonly value="$2"
   readonly prev="$3"
+  readonly timeout="$4"
 
-  # key already exists, make sure it's empty
+  if [ $timeout -gt 0 ]; then
+    # create lease
+    if output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout lease grant $timeout)
+    then
+      lease_id=$(echo $output | awk '{print $2}')
+      lease_param="--lease="$lease_id""
+    else
+      return 2
+    fi
+  else
+    lease_param=""
+  fi
+
+  # key already exists
   transaction="value(\""$directory$key"\") = \"$prev\"
 
-    put \""$directory$key"\" \""$value"\"
+    put \""$directory$key"\" \""$value"\" "$lease_param"
 
   "
   output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout txn <<< "$transaction")
@@ -313,19 +343,19 @@ case "$1" in
     exit $?
     ;;
   set)
-    if [ "$#" -ne 3 ]; then
-      echo "Usage: $0 set <key> <value>"
+    if [ "$#" -ne 4 ]; then
+      echo "Usage: $0 set <key> <value> <timeout>"
       exit 1
     fi
-    setkey "$2" "$3"
+    setkey "$2" "$3" "$4"
     exit $?
     ;;
   set_if_prev)
-    if [ "$#" -ne 4 ]; then
-      echo "Usage: $0 set <key> <value> <previous_value>"
+    if [ "$#" -ne 5 ]; then
+      echo "Usage: $0 set <key> <value> <previous_value> <timeout>"
       exit 1
     fi
-    setkey_match_prev "$2" "$3" "$4"
+    setkey_match_prev "$2" "$3" "$4" "$5"
     exit $?
     ;;
   create)

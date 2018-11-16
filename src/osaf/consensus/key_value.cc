@@ -58,13 +58,14 @@ SaAisErrorT KeyValue::Get(const std::string& key, std::string& value) {
   }
 }
 
-SaAisErrorT KeyValue::Set(const std::string& key, const std::string& value) {
+SaAisErrorT KeyValue::Set(const std::string& key, const std::string& value,
+                          const unsigned int timeout) {
   TRACE_ENTER();
 
   const std::string kv_store_cmd =
       base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
   const std::string command(kv_store_cmd + " set \"" + key + "\" \"" + value +
-                            "\"");
+                            "\" " + std::to_string(timeout));
   std::string output;
   int rc = KeyValue::Execute(command, output);
 
@@ -76,11 +77,13 @@ SaAisErrorT KeyValue::Set(const std::string& key, const std::string& value) {
 }
 
 SaAisErrorT KeyValue::Set(const std::string& key, const std::string& value,
-                          const std::string& prev_value) {
+                          const std::string& prev_value,
+                          const unsigned int timeout) {
   const std::string kv_store_cmd =
       base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
   const std::string command(kv_store_cmd + " set_if_prev \"" + key + "\" \"" +
-                            value + "\" \"" + prev_value + "\"");
+                            value + "\" \"" + prev_value +
+                            "\" " + std::to_string(timeout));
   std::string output;
   int rc = KeyValue::Execute(command, output);
 
