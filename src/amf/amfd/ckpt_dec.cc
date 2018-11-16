@@ -2990,8 +2990,12 @@ static uint32_t dec_node_failover_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
             node->node_name.c_str());
     auto new_node = std::make_shared<NodeStateMachine>(cb,
       node->node_info.nodeId);
-    new_node->SetState(state);
+    // node must be added to failover_list before SetState() is called.
+    // If the state is 'end', then it will be deleted by SetState().
+    // Otherwise, we will leave a node in 'End' state mistakenly in
+    // failover_list.
     cb->failover_list[node->node_info.nodeId] = new_node;
+    new_node->SetState(state);
   }
 
   return NCSCC_RC_SUCCESS;
