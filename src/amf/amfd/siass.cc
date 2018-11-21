@@ -348,6 +348,9 @@ bool avd_susi_validate_absent_assignment(AVD_SU *su, AVD_SI *si,
       su->sg_of_su->any_assignment_assigned() == false) {
     goto done;
   }
+  // Skip if any excessive assignment exists
+  if (su->sg_of_su->any_assignment_excessive())
+    goto done;
   // Support: 2N, NoRed, NwayActive. Not support: NpM, Nway
   if (su->sg_of_su->sg_redundancy_model == SA_AMF_NPM_REDUNDANCY_MODEL ||
       su->sg_of_su->sg_redundancy_model == SA_AMF_N_WAY_REDUNDANCY_MODEL) {

@@ -127,7 +127,7 @@ AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
       absent_flag, excessive_flag);
   if (absent_flag == true) {
     fsm_state = AVD_SU_SI_STATE_ABSENT;
-  } if (excessive_flag == true) {
+  } else if (excessive_flag == true) {
     fsm_state = AVD_SU_SI_STATE_EXCESSIVE;
   } else if (true == modify_flag) {
     /* Rule 1. => If any one of the SUSI is Mod, then SU will be said to be
