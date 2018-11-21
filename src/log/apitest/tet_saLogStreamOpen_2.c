@@ -492,6 +492,19 @@ void saLogStreamOpen_2_23(void)
 	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
+
+/* Object to test: saLogStreamOpen_2() API:
+ * Test: Opening Stream with invalid handle, invalid logStreamName pointer
+ * logFileCreateAttributes to NULL pointer and logStreamOpenFlags to ZERO(0)
+ * Result: Shall fail with return code SA_AIS_ERR_INVALID_PARAM
+ */
+void saLogStreamOpen_2_with_invalid_hdl_name_attr_flgs(void)
+{
+	rc = saLogStreamOpen_2(12345, NULL,  NULL, 0, SA_TIME_ONE_SECOND,
+			       &logStreamHandle);
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
+
 /**
  * Added test cases to verify ticket #1399:
  * logsv gets stuck in while loop if setting maxFilesRotated = 0.
@@ -1126,28 +1139,8 @@ void add_suite_16()
 extern void saLogStreamOpenAsync_2_01(void);
 extern void saLogStreamOpenCallbackT_01(void);
 extern void saLogWriteLog_01(void);
-extern void saLogWriteLogAsync_01(void);
-extern void saLogWriteLogAsync_02(void);
-extern void saLogWriteLogAsync_03(void);
-extern void saLogWriteLogAsync_04(void);
-extern void saLogWriteLogAsync_05(void);
-extern void saLogWriteLogAsync_06(void);
-extern void saLogWriteLogAsync_07(void);
-extern void saLogWriteLogAsync_08(void);
-extern void saLogWriteLogAsync_09(void);
-extern void saLogWriteLogAsync_10(void);
-extern void saLogWriteLogAsync_11(void);
-extern void saLogWriteLogAsync_12(void);
-extern void saLogWriteLogAsync_13(void);
-extern void saLogWriteLogAsync_14(void);
-extern void saLogWriteLogAsync_15(void);
-extern void saLogWriteLogAsync_16(void);
-extern void saLogWriteLogAsync_17(void);
-extern void saLogWriteLogAsync_18(void);
-extern void saLogWriteLogAsync_19(void);
 extern void saLogWriteLogCallbackT_01(void);
 extern void saLogWriteLogCallbackT_02(void);
-extern void saLogStreamClose_01(void);
 
 __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 {
@@ -1196,6 +1189,11 @@ __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 		      "Open app stream with unsupported logFullAction");
 	test_case_add(2, saLogStreamOpen_2_22,
 		      "Open non exist app stream with NULL create attrs");
+	test_case_add(2, saLogStreamOpen_2_with_invalid_hdl_name_attr_flgs,
+		      "saLogStreamOpen with invalid handle,"
+		      "logStreamName to NULL pointer,"
+		      "logFileCreateAttributes to NULL pointer"
+		      " and logStreamOpenFlags to ZERO(0)");
 	// This test case is no longer valid when Long DN is supported
 	// test_case_add(2, saLogStreamOpen_2_23, "Open with stream name length
 	// == 256");
@@ -1204,49 +1202,10 @@ __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 	test_case_add(2, saLogStreamOpenCallbackT_01,
 		      "saLogStreamOpenCallbackT() OK");
 	test_case_add(2, saLogWriteLog_01, "saLogWriteLog(), Not supported");
-	test_case_add(2, saLogWriteLogAsync_01,
-		      "saLogWriteAsyncLog() system OK");
-	test_case_add(2, saLogWriteLogAsync_02,
-		      "saLogWriteAsyncLog() alarm OK");
-	test_case_add(2, saLogWriteLogAsync_03,
-		      "saLogWriteAsyncLog() notification OK");
-	test_case_add(2, saLogWriteLogAsync_04,
-		      "saLogWriteAsyncLog() with NULL logStreamHandle");
-	test_case_add(2, saLogWriteLogAsync_05,
-		      "saLogWriteAsyncLog() with invalid logStreamHandle");
-	test_case_add(2, saLogWriteLogAsync_06,
-		      "saLogWriteAsyncLog() with invalid ackFlags");
-	test_case_add(2, saLogWriteLogAsync_07,
-		      "saLogWriteAsyncLog() with NULL logRecord ptr");
-	test_case_add(2, saLogWriteLogAsync_09,
-		      "saLogWriteAsyncLog() logSvcUsrName == NULL");
-	test_case_add(2, saLogWriteLogAsync_10,
-		      "saLogWriteAsyncLog() logSvcUsrName == NULL and envset");
-	test_case_add(2, saLogWriteLogAsync_11,
-		      "saLogWriteAsyncLog() with logTimeStamp set");
-	test_case_add(2, saLogWriteLogAsync_12,
-		      "saLogWriteAsyncLog() without logTimeStamp set");
-	test_case_add(
-	    2, saLogWriteLogAsync_13,
-	    "saLogWriteAsyncLog() 1800 bytes logrecord (ticket #203)");
-	test_case_add(2, saLogWriteLogAsync_14,
-		      "saLogWriteAsyncLog() invalid severity");
-	// These test cases are no longer valid when Long DN is supported
-	// test_case_add(2, saLogWriteLogAsync_15, "saLogWriteAsyncLog() NTF
-	// notificationObject length == 256");  test_case_add(2,
-	// saLogWriteLogAsync_16, "saLogWriteAsyncLog() NTF notifyingObject
-	// length == 256");  test_case_add(2, saLogWriteLogAsync_17,
-	// "saLogWriteLogAsync() Generic logSvcUsrName length == 256");
-	test_case_add(2, saLogWriteLogAsync_18,
-		      "saLogWriteLogAsync() logBufSize > strlen(logBuf) + 1");
-	test_case_add(
-	    2, saLogWriteLogAsync_19,
-	    "saLogWriteLogAsync() logBufSize > SA_LOG_MAX_RECORD_SIZE");
 	test_case_add(2, saLogWriteLogCallbackT_01,
 		      "saLogWriteLogCallbackT() SA_DISPATCH_ONE");
 	test_case_add(2, saLogWriteLogCallbackT_02,
 		      "saLogWriteLogCallbackT() SA_DISPATCH_ALL");
-	test_case_add(2, saLogStreamClose_01, "saLogStreamClose OK");
 	test_case_add(2, saLogStreamOpen_2_46,
 		      "saLogStreamOpen_2 with maxFilesRotated = 0, ERR");
 	test_case_add(2, saLogStreamOpen_2_47,

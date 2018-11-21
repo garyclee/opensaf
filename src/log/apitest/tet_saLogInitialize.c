@@ -108,12 +108,54 @@ void saLogInitialize_11(void)
 	test_validate(rc, SA_AIS_OK);
 }
 
-extern void saLogSelectionObjectGet_01(void);
-extern void saLogSelectionObjectGet_02(void);
-extern void saLogFinalize_01(void);
-extern void saLogFinalize_02(void);
-extern void saLogDispatch_01(void);
+/*
+ * Object to test: saLogInitalize() API:
+ * Test: Initializing with invalid version pointer
+ * Result: Shall fail with return code SA_AIS_ERR_INVALID_PARAM
+ */
+void saLogInitialize_with_null_version(void)
+{
+	rc = saLogInitialize(&logHandle, &logCallbacks, NULL);
+	logFinalize();
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
 
+/*
+ * Object to test: saLogInitalize() API:
+ * Test: Initializing with invalid handle and version pointer
+ * Result: Shall fail with return code SA_AIS_ERR_INVALID_PARAM
+ */
+void saLogInitialize_with_null_handle_and_version(void)
+{
+	rc = saLogInitialize(NULL, &logCallbacks, NULL);
+	logFinalize();
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
+
+/*
+ * Object to test: saLogInitalize() API:
+ * Test:Initializing with invalid handle and cblk pointer
+ * Result: Shall fail with return code SA_AIS_ERR_INVALID_PARAM
+ */
+void saLogInitialize_with_null_handle_and_callbacks(void)
+{
+	SaVersionT log_version = {'A', 2};
+	rc = saLogInitialize(NULL, NULL, &log_version);
+	logFinalize();
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
+
+/*
+ * Object to test: saLogInitalize() API:
+ * Test:Initializing with invalid handle, cblk and version  pointer
+ * Result: Shall fail with return code SA_AIS_ERR_INVALID_PARAM
+ */
+void saLogInitialize_with_null_handle_callbacks_version(void)
+{
+	rc = saLogInitialize(NULL, NULL, NULL);
+	logFinalize();
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
 __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 {
 	test_suite_add(1, "Library Life Cycle");
@@ -139,12 +181,16 @@ __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 	    "saLogInitialize() with minor version is set bigger than supported version");
 	test_case_add(1, saLogInitialize_11,
 		      "saLogInitialize() with minor version is not set");
-	test_case_add(1, saLogSelectionObjectGet_01,
-		      "saLogSelectionObjectGet() OK");
-	test_case_add(1, saLogSelectionObjectGet_02,
-		      "saLogSelectionObjectGet() with NULL log handle");
-	test_case_add(1, saLogDispatch_01, "saLogDispatch() OK");
-	test_case_add(1, saLogFinalize_01, "saLogFinalize() OK");
-	test_case_add(1, saLogFinalize_02,
-		      "saLogFinalize() with NULL log handle");
+	test_case_add(
+	    1, saLogInitialize_with_null_version,
+	    "saLogInitialize() with  version as NULL");
+	test_case_add(
+	    1, saLogInitialize_with_null_handle_and_version,
+	    "saLogInitialize() with handle as null, version as null");
+	test_case_add(
+	    1, saLogInitialize_with_null_handle_and_callbacks,
+	    "saLogInitialize() with handle as null and callbk as null");
+	test_case_add(
+	    1, saLogInitialize_with_null_handle_callbacks_version,
+	    "saLogInitialize() with handle, cbk and version as null values");
 }

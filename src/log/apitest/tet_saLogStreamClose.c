@@ -17,7 +17,14 @@
 
 #include "logtest.h"
 
-void saLogStreamClose_01(void)
+/* Object to test: logStreamClose() API:
+ * Test: Test closing an open stream using an valid handle
+ * step1:Call logInitialize()
+ * step2:Call logStreamOpen()
+ * step3:Now call the saLogStreamClose() with logStreamHandle
+ * Result: Shall pass with return code SA_AIS_OK
+ */
+void saLogStreamClose_with_valid_handle(void)
 {
 	rc = logInitialize();
 	if (rc != SA_AIS_OK) {
@@ -34,4 +41,52 @@ void saLogStreamClose_01(void)
 
 done:
 	logFinalize();
+}
+
+/* Object to test: logStreamClose() API:
+ * Test: Test closing an open stream using an invalid handle
+ * step1:Call logInitialize()
+ * step2:Call logStreamOpen()
+ * step3:Call logFinalize()
+ * step4:Now call the saLogStreamClose() with logStreamHandle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saLogStreamClose_with_invalid_handle(void)
+{
+	rc = logInitialize();
+	if (rc != SA_AIS_OK) {
+		test_validate(rc, SA_AIS_OK);
+		return;
+	}
+	rc = logStreamOpen(&systemStreamName);
+	if (rc != SA_AIS_OK) {
+		test_validate(rc, SA_AIS_OK);
+		goto done;
+	}
+	logFinalize();
+	rc = saLogStreamClose(0);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+
+done:
+	logFinalize();
+}
+
+/* Object to test: logStreamClose() API:
+ * Test: Test closing a logstream  with uninitialized handle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saLogStreamClose_with_uninitialized_handle(void)
+{
+	rc = saLogStreamClose(logStreamHandle);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
+__attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
+{
+	test_case_add(2, saLogStreamClose_with_valid_handle,
+		      "saLogStreamClose OK");
+	test_case_add(2, saLogStreamClose_with_invalid_handle,
+		      "saLogStreamClose with invalid handle");
+	test_case_add(2, saLogStreamClose_with_uninitialized_handle,
+		      "saLogStreamClose with uninitialized handle");
 }
