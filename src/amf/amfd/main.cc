@@ -51,6 +51,7 @@
 #include "amf/amfd/amfd.h"
 #include "amf/amfd/imm.h"
 #include "amf/amfd/cluster.h"
+#include "amf/amfd/node.h"
 #include "amf/amfd/si_dep.h"
 #include "amf/amfd/hlt.h"
 #include "amf/amfd/clm.h"
@@ -682,6 +683,7 @@ static void main_loop(void) {
 
       if (evt->rcv_evt == AVD_IMM_REINITIALIZED) {
         cb->avd_imm_status = AVD_IMM_INIT_DONE;
+        avd_check_nodes_after_reinit_imm();
         TRACE("Received IMM reinit msg");
         polltmo = retval_to_polltmo(Fifo::execute(cb));
         continue;
