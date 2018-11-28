@@ -508,6 +508,7 @@ static SaAisErrorT node_ccb_completed_delete_hdlr(
   if (node->node_info.member) {
     report_ccb_validation_error(opdata, "Node '%s' is still cluster member",
                                 osaf_extended_name_borrow(&opdata->objectName));
+    opdata->userData = node;
     return SA_AIS_ERR_BAD_OPERATION;
   }
 
