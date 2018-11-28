@@ -821,6 +821,9 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       // Update standby out of sync if standby sc goes down
       if (avd_cb->node_id_avd_other == node->node_info.nodeId) {
         cb->stby_sync_state = AVD_STBY_OUT_OF_SYNC;
+      } else {
+        m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node,
+                                         AVSV_CKPT_AVD_NODE_CONFIG);
       }
     } else if (cb->node_failover_delay == 0) {
       /* Remove dynamic info for node but keep in nodeid tree.
