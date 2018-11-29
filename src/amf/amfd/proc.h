@@ -96,6 +96,7 @@ void avd_process_hb_event(AVD_CL_CB *cb_now, struct AVD_EVT *evt);
 extern void avd_node_mark_absent(AVD_AVND *node);
 extern void avd_tmr_snd_hb_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 extern void avd_node_failover(AVD_AVND *node, const bool mw_only = false);
+extern void check_quorum();
 extern AVD_SU *get_other_su_from_oper_list(AVD_SU *su);
 extern void su_complete_admin_op(AVD_SU *su, SaAisErrorT result);
 extern void comp_complete_admin_op(AVD_COMP *comp, SaAisErrorT result);

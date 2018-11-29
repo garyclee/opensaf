@@ -1242,6 +1242,12 @@ void avd_node_failover(AVD_AVND *node, const bool mw_only) {
     avd_node_down_appl_susi_failover(avd_cb, node);
   }
 
+  TRACE_LEAVE();
+}
+
+void check_quorum() {
+  TRACE_ENTER();
+
   Consensus consensus_service;
   if (consensus_service.IsRemoteFencingEnabled() == false &&
       consensus_service.IsWritable() == false) {
@@ -1250,6 +1256,4 @@ void avd_node_failover(AVD_AVND *node, const bool mw_only) {
     opensaf_reboot(0, nullptr,
       "Quorum lost. Rebooting this node to prevent split-brain");
   }
-
-  TRACE_LEAVE();
 }
