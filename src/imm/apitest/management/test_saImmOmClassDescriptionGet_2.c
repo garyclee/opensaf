@@ -175,3 +175,35 @@ void saImmOmClassDescriptionGet_2_05(void)
 	safassert(immutil_saImmOmClassDelete(immOmHandle, className), SA_AIS_OK);
 	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
+
+/* Object to test: saImmOmClassDescriptionGet_2() API:
+ * Test: Getting the class description with invalid params
+ * step1:Call saImmOmInitialize() API and it returns SA_AIS_OK
+ * step2:Call saImmOmClassCreate_2()
+ * step3:Now call the saImmOmClassDescriptionGet_2() with class name as null
+ * Result: Shall fail with return code SA_AIS_ERR_INVALID_PARAM
+ */
+void saImmOmClassDescriptionGet_2_with_className_as_null(void)
+{
+	const SaImmClassNameT className = (SaImmClassNameT) __FUNCTION__;
+	SaImmAttrDefinitionT_2 attr1 = {
+	    "rdn", SA_IMM_ATTR_SANAMET,
+	    SA_IMM_ATTR_RUNTIME | SA_IMM_ATTR_RDN | SA_IMM_ATTR_CACHED, NULL};
+	const SaImmAttrDefinitionT_2 *attrDefinitionsIn[] = {&attr1, NULL};
+	SaImmClassCategoryT classCategory;
+	SaImmAttrDefinitionT_2 **attrDefinitionsOut;
+
+	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
+		  SA_AIS_OK);
+	safassert(immutil_saImmOmClassCreate_2(immOmHandle, className,
+				       SA_IMM_CLASS_RUNTIME, attrDefinitionsIn),
+		  SA_AIS_OK);
+	rc = immutil_saImmOmClassDescriptionGet_2(immOmHandle, NULL,
+					  &classCategory, &attrDefinitionsOut);
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+	safassert(immutil_saImmOmClassDescriptionMemoryFree_2(immOmHandle,
+						      attrDefinitionsOut),
+		  SA_AIS_OK);
+	safassert(immutil_saImmOmClassDelete(immOmHandle, className), SA_AIS_OK);
+	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}

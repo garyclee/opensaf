@@ -33,3 +33,29 @@ void saImmOmFinalize_02(void)
 	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
 	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
+
+/* Object to test: saImmOmFinalize() API:
+ * Test: Finalizing with finalized handle
+ * step1:Call saImmOmInitialize() API and it returns SA_AIS_OK
+ * step2:call saImmOmFinalize()
+ * step3:call saImmOmFinalize() with immOmHandle handle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmFinalize_with_finalized_handle(void)
+{
+	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
+		  SA_AIS_OK);
+	rc = immutil_saImmOmFinalize(immOmHandle);
+	rc = immutil_saImmOmFinalize(immOmHandle);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
+/* Object to test: saImmOmFinalize() API:
+ * Test: Finalizing with uninitialized handle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmFinalize_with_uninitialized_handle(void)
+{
+	rc = immutil_saImmOmFinalize(immOmHandle);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}

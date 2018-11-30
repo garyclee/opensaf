@@ -303,12 +303,25 @@ void saImmOmInitialize_11(void)
 
 extern void saImmOmSelectionObjectGet_01(void);
 extern void saImmOmSelectionObjectGet_02(void);
+extern void saImmOmSelectionObjectGet_with_uninitialized_handle(void);
+extern void saImmOmSelectionObjectGet_with_finalized_handle(void);
 extern void saImmOmDispatch_01(void);
 extern void saImmOmDispatch_02(void);
 extern void saImmOmDispatch_03(void);
 extern void saImmOmDispatch_04(void);
+extern void saImmOmDispatch_with_uninitialized_handle_with_SA_DISPATCH_ONE(void);
+extern void saImmOmDispatch_with_finalized_handle_with_SA_DISPATCH_ONE(void);
+extern void saImmOmDispatch_with_SA_DISPATCH_BLOCKING(void);
+extern void saImmOmDispatch_with_invalid_handle_with_SA_DISPATCH_ALL(void);
+extern void saImmOmDispatch_with_uninitialized_handle_with_SA_DISPATCH_ALL(void);
+extern void saImmOmDispatch_with_finalized_handle_with_SA_DISPATCH_ALL(void);
+extern void saImmOmDispatch_with_invalid_handle_with_SA_DISPATCH_BLOCKING(void);
+extern void saImmOmDispatch_with_uninitialized_handle_with_SA_DISPATCH_BLOCKING(void);
+extern void saImmOmDispatch_with_finalized_handle_with_SA_DISPATCH_BLOCKING(void);
 extern void saImmOmFinalize_01(void);
 extern void saImmOmFinalize_02(void);
+extern void saImmOmFinalize_with_finalized_handle(void);
+extern void saImmOmFinalize_with_uninitialized_handle(void);
 extern void saImmOmThreadInterference_01(void);
 
 __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
@@ -350,6 +363,14 @@ __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 	test_case_add(
 	    1, saImmOmSelectionObjectGet_02,
 	    "saImmOmSelectionObjectGet - SA_AIS_ERR_BAD_HANDLE - invalid handle");
+	test_case_add(
+	    1, saImmOmSelectionObjectGet_with_uninitialized_handle,
+	    "saImmOmSelectionObjectGet - SA_AIS_ERR_BAD_HANDLE "
+	    "- uninitialized handle");
+	test_case_add(
+	    1, saImmOmSelectionObjectGet_with_finalized_handle,
+	    "saImmOmSelectionObjectGet - SA_AIS_ERR_BAD_HANDLE "
+	    "- finalized handle");
 
 	test_case_add(1, saImmOmDispatch_01,
 		      "saImmOmDispatch - SA_AIS_OK SA_DISPATCH_ALL");
@@ -361,11 +382,43 @@ __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 	test_case_add(
 	    1, saImmOmDispatch_04,
 	    "saImmOmDispatch - SA_AIS_ERR_INVALID_PARAM - invalid dispatchFlags");
+	test_case_add(
+	    1, saImmOmDispatch_with_uninitialized_handle_with_SA_DISPATCH_ONE,
+	    "saImmOmDispatch - SA_AIS_ERR_BAD_HANDLE - uninitialized handle SA_DISPATCH_ONE");
+	test_case_add(
+	    1, saImmOmDispatch_with_finalized_handle_with_SA_DISPATCH_ONE,
+	    "saImmOmDispatch - SA_AIS_ERR_BAD_HANDLE - finalized handle SA_DISPATCH_ONE");
+	test_case_add(1, saImmOmDispatch_with_SA_DISPATCH_BLOCKING,
+		      "saImmOmDispatch - SA_AIS_OK SA_DISPATCH_BLOCKING");
+	test_case_add(
+	    1, saImmOmDispatch_with_invalid_handle_with_SA_DISPATCH_ALL,
+	    "saImmOmDispatch - SA_AIS_ERR_BAD_HANDLE - invalid handle SA_DISPATCH_ALL");
+	test_case_add(
+	    1, saImmOmDispatch_with_uninitialized_handle_with_SA_DISPATCH_ALL,
+	    "saImmOmDispatch - SA_AIS_ERR_BAD_HANDLE - uninitialized handle SA_DISPATCH_ALL");
+	test_case_add(
+	    1, saImmOmDispatch_with_finalized_handle_with_SA_DISPATCH_ALL,
+	    "saImmOmDispatch - SA_AIS_ERR_BAD_HANDLE - finalized handle SA_DISPATCH_ALL");
+	test_case_add(
+	    1, saImmOmDispatch_with_invalid_handle_with_SA_DISPATCH_BLOCKING,
+	    "saImmOmDispatch - SA_AIS_ERR_BAD_HANDLE - invalid handle SA_DISPATCH_BLOCKING");
+	test_case_add(
+	    1, saImmOmDispatch_with_uninitialized_handle_with_SA_DISPATCH_BLOCKING,
+	    "saImmOmDispatch - SA_AIS_ERR_BAD_HANDLE - uninitialized handle SA_DISPATCH_BLOCKING");
+	test_case_add(
+	    1, saImmOmDispatch_with_finalized_handle_with_SA_DISPATCH_BLOCKING,
+	    "saImmOmDispatch - SA_AIS_ERR_BAD_HANDLE - finalized handle SA_DISPATCH_BLOCKING");
 
 	test_case_add(1, saImmOmFinalize_01, "saImmOmFinalize - SA_AIS_OK");
 	test_case_add(
 	    1, saImmOmFinalize_02,
 	    "saImmOmFinalize - SA_AIS_ERR_BAD_HANDLE - invalid handle");
+	test_case_add(
+	    1, saImmOmFinalize_with_finalized_handle,
+	    "saImmOmFinalize - SA_AIS_ERR_BAD_HANDLE - finalized handle");
+	test_case_add(
+	    1, saImmOmFinalize_with_uninitialized_handle,
+	    "saImmOmFinalize - SA_AIS_ERR_BAD_HANDLE - uninitialized handle");
 
 	test_case_add(
 	    1, saImmOmThreadInterference_01,

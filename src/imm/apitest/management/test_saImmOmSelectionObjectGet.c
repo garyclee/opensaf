@@ -35,3 +35,29 @@ void saImmOmSelectionObjectGet_02(void)
 	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
 	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
+
+/* Object to test: saImmOmSelectionObjectGet() API:
+ * Test: Getting the selectionObject with uninitialized handle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmSelectionObjectGet_with_uninitialized_handle(void)
+{
+	rc = immutil_saImmOmSelectionObjectGet(immOmHandle, &selectionObject);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
+/* Object to test: saImmOmSelectionObjectGet() API:
+ * Test: Getting the SelectionObject with finalized handle
+ * step1:Call saImmOmInitialize() API and it returns SA_AIS_OK
+ * step2:call saImmOmFinalize()
+ * step3:Now call the saImmOmSelectionObjectGet() with immOmHandle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmSelectionObjectGet_with_finalized_handle(void)
+{
+	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
+		  SA_AIS_OK);
+	immutil_saImmOmFinalize(immOmHandle);
+	rc = immutil_saImmOmSelectionObjectGet(immOmHandle, &selectionObject);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}

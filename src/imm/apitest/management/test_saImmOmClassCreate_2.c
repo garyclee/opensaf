@@ -426,6 +426,110 @@ void saImmOmClassCreate_2_19(void)
 	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+/* Object to test: saImmOmClassCreate_2() API:
+ * Test: Creating a config class with invalid handle
+ * step1:Call saImmOmInitialize() API and it returns SA_AIS_OK
+ * step2:Now call the saImmOmClassCreate_2() with -1
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmClassCreate_2_with_invalid_handle_with_config_class(void)
+{
+	const SaImmClassNameT className = (SaImmClassNameT) __FUNCTION__;
+	SaImmAttrDefinitionT_2 attr1 = {"rdn", SA_IMM_ATTR_SANAMET,
+					SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_RDN,
+					NULL};
+	const SaImmAttrDefinitionT_2 *attrDefinitions[] = {&attr1, NULL};
+
+	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
+		  SA_AIS_OK);
+	rc = immutil_saImmOmClassCreate_2(-1, className, SA_IMM_CLASS_CONFIG,
+				  attrDefinitions);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
+/* Object to test: saImmOmClassCreate_2() API:
+ * Test: Creating a config class with uninitialized handle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmClassCreate_2_uninitialized_handle_with_config_class(void)
+{
+	const SaImmClassNameT className = (SaImmClassNameT) __FUNCTION__;
+	SaImmAttrDefinitionT_2 attr1 = {"rdn", SA_IMM_ATTR_SANAMET,
+					SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_RDN,
+					NULL};
+	const SaImmAttrDefinitionT_2 *attrDefinitions[] = {&attr1, NULL};
+
+	rc = immutil_saImmOmClassCreate_2(immOmHandle, className, SA_IMM_CLASS_CONFIG,
+				  attrDefinitions);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
+/* Object to test: saImmOmClassCreate_2() API:
+ * Test: Creating a runtime class with uninitialized handle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmClassCreate_2_with_uninitialized_handle_with_runtime_class(void)
+{
+	const SaImmClassNameT className = (SaImmClassNameT) __FUNCTION__;
+	SaImmAttrDefinitionT_2 attr1 = {
+	    "rdn", SA_IMM_ATTR_SANAMET,
+	    SA_IMM_ATTR_RUNTIME | SA_IMM_ATTR_RDN | SA_IMM_ATTR_CACHED, NULL};
+	const SaImmAttrDefinitionT_2 *attrDefinitions[] = {&attr1, NULL};
+
+	rc = immutil_saImmOmClassCreate_2(immOmHandle, className, SA_IMM_CLASS_RUNTIME,
+				  attrDefinitions);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
+
+/* Object to test: saImmOmClassCreate_2() API:
+ * Test: Creating a config class with invalid handle
+ * step1:Call saImmOmInitialize() API and it returns SA_AIS_OK
+ * step2:Call saImmOmFinalize()
+ * step3:Now call the saImmOmClassCreate_2() with immOmHandle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmClassCreate_2_with_finalized_handle_config_class(void)
+{
+	const SaImmClassNameT className = (SaImmClassNameT) __FUNCTION__;
+	SaImmAttrDefinitionT_2 attr1 = {"rdn", SA_IMM_ATTR_SANAMET,
+					SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_RDN,
+					NULL};
+	const SaImmAttrDefinitionT_2 *attrDefinitions[] = {&attr1, NULL};
+
+	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
+		  SA_AIS_OK);
+	immutil_saImmOmFinalize(immOmHandle);
+	rc = immutil_saImmOmClassCreate_2(immOmHandle, className, SA_IMM_CLASS_CONFIG,
+				  attrDefinitions);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
+
+/* Object to test: saImmOmClassCreate_2() API:
+ * Test: Creating a runtime class with invalid handle
+ * step1:Call saImmOmInitialize() API and it returns SA_AIS_OK
+ * step2:Call saImmOmFinalize()
+ * step3:Now call the saImmOmClassCreate_2() with immOmHandle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saImmOmClassCreate_2_with_finalized_handle_runtime_class(void)
+{
+	const SaImmClassNameT className = (SaImmClassNameT) __FUNCTION__;
+	SaImmAttrDefinitionT_2 attr1 = {
+	    "rdn", SA_IMM_ATTR_SANAMET,
+	    SA_IMM_ATTR_RUNTIME | SA_IMM_ATTR_RDN | SA_IMM_ATTR_CACHED, NULL};
+	const SaImmAttrDefinitionT_2 *attrDefinitions[] = {&attr1, NULL};
+
+	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
+		  SA_AIS_OK);
+	immutil_saImmOmFinalize(immOmHandle);
+	rc = immutil_saImmOmClassCreate_2(immOmHandle, className, SA_IMM_CLASS_RUNTIME,
+				  attrDefinitions);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
 /*
   Verify it is not allowed to create IMM object class with reserved name.
   NOTE: As the list of reserved class names is read from the environment
@@ -1435,6 +1539,7 @@ extern void saImmOmClassDescriptionGet_2_02(void);
 extern void saImmOmClassDescriptionGet_2_03(void);
 extern void saImmOmClassDescriptionGet_2_04(void);
 extern void saImmOmClassDescriptionGet_2_05(void);
+extern void saImmOmClassDescriptionGet_2_with_className_as_null(void);
 extern void saImmOmClassDescriptionMemoryFree_2_01(void);
 extern void saImmOmClassDescriptionMemoryFree_2_02(void);
 
@@ -1442,6 +1547,7 @@ extern void saImmOmClassDelete_2_01(void);
 extern void saImmOmClassDelete_2_02(void);
 extern void saImmOmClassDelete_2_03(void);
 extern void saImmOmClassDelete_2_04(void);
+extern void saImmOmClassDelete_2_with_deleted_class(void);
 
 __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 {
@@ -1497,6 +1603,22 @@ __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 	test_case_add(
 	    2, saImmOmClassCreate_2_19,
 	    "saImmOmClassCreate_2 - SA_AIS_OK, Create a class that has STRONG_DEFAULT flag without having default value");
+	test_case_add(2, saImmOmClassCreate_2_with_invalid_handle_with_config_class,
+		      "saImmOmClassCreate_2 - SA_AIS_ERR_BAD_HANDLE, create config"
+		      " class with invalid handle");
+	test_case_add(2, saImmOmClassCreate_2_uninitialized_handle_with_config_class,
+		      "saImmOmClassCreate_2 - SA_AIS_ERR_BAD_HANDLE, create config"
+		      " class with uninitialized handle");
+	test_case_add(2, saImmOmClassCreate_2_with_uninitialized_handle_with_runtime_class,
+		      "saImmOmClassCreate_2 - SA_AIS_ERR_BAD_HANDLE, create runtime"
+		      "  class with uninitialized handle ");
+	test_case_add(2, saImmOmClassCreate_2_with_finalized_handle_config_class,
+		      "saImmOmClassCreate_2 - SA_AIS_ERR_BAD_HANDLE, create config"
+		      " class with finalized handle");
+	test_case_add(2, saImmOmClassCreate_2_with_finalized_handle_runtime_class,
+		      "saImmOmClassCreate_2 - SA_AIS_ERR_BAD_HANDLE, create runtime"
+		      " class with finalized handle");
+
 	test_case_add(
 		2, saImmOmClassCreate_with_reserved_name_01,
 		"saImmOmClassCreate_2 - SA_AIS_ERR_INVALID_PARAM,"
@@ -1519,6 +1641,9 @@ __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 	test_case_add(
 	    2, saImmOmClassDescriptionGet_2_05,
 	    "saImmOmClassDescriptionGet_2 - SA_AIS_OK, Fetch includes SA_IMM_ATTR_NO_DANGLING");
+	test_case_add(2, saImmOmClassDescriptionGet_2_with_className_as_null,
+		      "saImmOmClassDescriptionGet_2 - SA_AIS_ERR_INVALID_PARAM"
+		      "Get class descriptor of an invalid class name");
 
 	test_case_add(2, saImmOmClassDescriptionMemoryFree_2_01,
 		      "saImmOmClassDescriptionMemoryFree_2 - SA_AIS_OK");
@@ -1539,6 +1664,10 @@ __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 	test_case_add(
 	    2, saImmOmClassDelete_2_04,
 	    "saImmOmClassDelete_2  - SA_AIS_ERR_INVALID_PARAM, Empty classname");
+	test_case_add(
+	    2, saImmOmClassDelete_2_with_deleted_class,
+	    "saImmOmClassDelete_2 - SA_AIS_ERR_NOT_EXIST "
+	    "Double delete class name");
 
 	test_case_add(
 	    2, saImmOmClassCreate_SchemaChange_2_01,
