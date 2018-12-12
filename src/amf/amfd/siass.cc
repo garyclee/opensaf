@@ -264,38 +264,6 @@ void avd_susi_read_headless_cached_rta(AVD_CL_CB *cb) {
       }
 
 #endif
-      // validate SUSI assignments that are over assigned
-      if (avd_susi_validate_excessive_assignment(susi) == true) {
-        susi->fsm = AVD_SU_SI_STATE_EXCESSIVE;
-      }
-
-      // Checkpoint to add this SUSI
-      m_AVSV_SEND_CKPT_UPDT_ASYNC_ADD(avd_cb, susi, AVSV_CKPT_AVD_SI_ASS);
-
-      // restore assignment counter
-      if (susi->fsm == AVD_SU_SI_STATE_ASGN ||
-          susi->fsm == AVD_SU_SI_STATE_ASGND ||
-          susi->fsm == AVD_SU_SI_STATE_MODIFY) {
-        if (susi->state == SA_AMF_HA_ACTIVE ||
-            susi->state == SA_AMF_HA_QUIESCING) {
-          su->inc_curr_act_si();
-          susi->si->inc_curr_act_ass();
-        } else if (susi->state == SA_AMF_HA_STANDBY) {
-          su->inc_curr_stdby_si();
-          susi->si->inc_curr_stdby_ass();
-        }
-      }
-      if (susi->si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED ||
-          susi->si->saAmfSIAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
-        if (susi->fsm == AVD_SU_SI_STATE_MODIFY &&
-            (susi->state == SA_AMF_HA_QUIESCED ||
-             susi->state == SA_AMF_HA_QUIESCING)) {
-          m_AVD_SET_SG_ADMIN_SI(cb, si);
-        }
-      }
-      // only restore if not done
-      if (susi->su->su_on_node->admin_ng == nullptr)
-        avd_ng_restore_headless_states(cb, susi);
     } else {  // For ABSENT SUSI
       TRACE("Check absent SUSI, ha_state:'%u', fsm_state:'%u'", imm_ha_state,
             imm_susi_fsm);
@@ -323,8 +291,49 @@ void avd_susi_read_headless_cached_rta(AVD_CL_CB *cb) {
       }
     }
   }
-
   (void)immutil_saImmOmSearchFinalize(searchHandle);
+
+  // Update all PRESENT SUSI, in case that a SUSI is missed to update because
+  // it is not present in IMM
+  for (const auto &value : *su_db) {
+    AVD_SU *su = value.second;
+    susi = su->list_of_susi;
+    while (susi != nullptr && susi->absent == false) {
+      AVD_SI *si = susi->si;
+      // validate SUSI assignments that are over assigned
+      if (avd_susi_validate_excessive_assignment(susi) == true) {
+        susi->fsm = AVD_SU_SI_STATE_EXCESSIVE;
+      }
+      // Checkpoint to add this SUSI
+      m_AVSV_SEND_CKPT_UPDT_ASYNC_ADD(avd_cb, susi, AVSV_CKPT_AVD_SI_ASS);
+      // restore assignment counter
+      if (susi->fsm == AVD_SU_SI_STATE_ASGN ||
+          susi->fsm == AVD_SU_SI_STATE_ASGND ||
+          susi->fsm == AVD_SU_SI_STATE_MODIFY) {
+        if (susi->state == SA_AMF_HA_ACTIVE ||
+            susi->state == SA_AMF_HA_QUIESCING) {
+          su->inc_curr_act_si();
+          susi->si->inc_curr_act_ass();
+        } else if (susi->state == SA_AMF_HA_STANDBY) {
+          su->inc_curr_stdby_si();
+          susi->si->inc_curr_stdby_ass();
+        }
+      }
+      if (susi->si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED ||
+          susi->si->saAmfSIAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
+        if (susi->fsm == AVD_SU_SI_STATE_MODIFY &&
+            (susi->state == SA_AMF_HA_QUIESCED ||
+             susi->state == SA_AMF_HA_QUIESCING)) {
+          m_AVD_SET_SG_ADMIN_SI(cb, si);
+        }
+      }
+      // only restore if not done
+      if (susi->su->su_on_node->admin_ng == nullptr)
+        avd_ng_restore_headless_states(cb, susi);
+
+      susi = susi->su_next;
+    }
+  }
 
 done:
   TRACE_LEAVE();
