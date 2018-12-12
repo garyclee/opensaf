@@ -37,6 +37,7 @@ if [[ ! -f "$OSAF_TEST_WORKDIR/googletest/googlemock/lib/libgmock.la" ||
     fi
 
     cd "$OSAF_TEST_WORKDIR/googletest"
+    git checkout `git tag | grep "release" | tail -n 1`
     autoreconf -vi
     ./configure --with-pthreads
     make -j "$no_of_processors"
