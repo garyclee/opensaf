@@ -1784,7 +1784,8 @@ uint32_t SG_2N::susi_success_sg_realign(AVD_SU *su, AVD_SU_SI_REL *susi,
       }
 
       if ((state == SA_AMF_HA_ACTIVE) &&
-          (cb->node_id_avd == su->su_on_node->node_info.nodeId)) {
+          (cb->node_id_avd == su->su_on_node->node_info.nodeId) &&
+          (su->sg_of_su->sg_ncs_spec == true)) {
         /* This is as a result of failover, start CLM tracking*/
         if (avd_clm_track_start(cb) == SA_AIS_ERR_TRY_AGAIN)
           Fifo::queue(new ClmTrackStart());
