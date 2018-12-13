@@ -802,7 +802,7 @@ try_again:
   /* Execute admin op jobs before calling saImmOiImplementerClear to avoid
    * SA_AIS_ERR_TIMEOUT
    */
-  Fifo::executeAdminResp(cb);
+  Fifo::executeAll(cb, JOB_TYPE_IMM);
 
   /* Take mutex here to sync with imm reinit thread.*/
   osaf_mutex_lock_ordie(&imm_reinit_mutex);

@@ -456,16 +456,19 @@ AvdJobDequeueResultT Fifo::executeAll(AVD_CL_CB *cb, AvdJobTypeT job_type) {
       if (ret != JOB_EXECUTED)
         break;
     } else {
-      // push back
-      ajob = Fifo::dequeue();
-      Fifo::queue(ajob);
-
       // check if we have gone through all jobs of queue
       if (firstjob == nullptr) {
         firstjob = ajob;
+        // push back
+        ajob = Fifo::dequeue();
+        Fifo::queue(ajob);
       } else {
-        if (firstjob == ajob)
-          break;
+        if (firstjob == ajob) break;
+        else {
+          // push back
+          ajob = Fifo::dequeue();
+          Fifo::queue(ajob);
+        }
       }
     }
   }
@@ -476,52 +479,31 @@ AvdJobDequeueResultT Fifo::executeAll(AVD_CL_CB *cb, AvdJobTypeT job_type) {
 }
 
 void Fifo::remove(const AVD_CL_CB *cb, AvdJobTypeT job_type) {
-
   Job *ajob, *firstjob;
 
   TRACE_ENTER();
   firstjob = nullptr;
-
   while ((ajob = peek()) != nullptr) {
     if (ajob->getJobType() == job_type) {
       delete Fifo::dequeue();
     } else {
-      // push back
-      ajob = Fifo::dequeue();
-      Fifo::queue(ajob);
-
       // check if we have gone through all jobs of queue
       if (firstjob == nullptr) {
         firstjob = ajob;
+        // push back
+        ajob = Fifo::dequeue();
+        Fifo::queue(ajob);
       } else {
-        if (firstjob == ajob)
-          break;
+        if (firstjob == ajob) break;
+        else {
+          // push back
+          ajob = Fifo::dequeue();
+          Fifo::queue(ajob);
+        }
       }
     }
   }
-
   TRACE_LEAVE();
-}
-
-AvdJobDequeueResultT Fifo::executeAdminResp(AVD_CL_CB *cb) {
-  Job *ajob;
-  AvdJobDequeueResultT ret = JOB_EXECUTED;
-
-  TRACE_ENTER();
-
-  while ((ajob = peek()) != nullptr) {
-    if (dynamic_cast<ImmAdminResponse *>(ajob) != nullptr) {
-      ret = ajob->exec(cb);
-    } else {
-      ajob = dequeue();
-      delete ajob;
-      ret = JOB_EXECUTED;
-    }
-  }
-
-  TRACE_LEAVE2("%d", ret);
-
-  return ret;
 }
 
 //
