@@ -191,7 +191,7 @@ void saImmOmClassDescriptionGet_2_with_className_as_null(void)
 	    SA_IMM_ATTR_RUNTIME | SA_IMM_ATTR_RDN | SA_IMM_ATTR_CACHED, NULL};
 	const SaImmAttrDefinitionT_2 *attrDefinitionsIn[] = {&attr1, NULL};
 	SaImmClassCategoryT classCategory;
-	SaImmAttrDefinitionT_2 **attrDefinitionsOut;
+	SaImmAttrDefinitionT_2 **attrDefinitionsOut = NULL;
 
 	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
 		  SA_AIS_OK);
