@@ -171,11 +171,13 @@ void dtm_comm_socket_close(DTM_NODE_DB *node) {
       }
     }
 
-    if (dtm_node_delete(node, 0) != NCSCC_RC_SUCCESS) {
+    if (dtm_node_delete(node, KeyTypes::kDtmNodeIdKeyType) !=
+        NCSCC_RC_SUCCESS) {
       LOG_ER("DTM :dtm_node_delete failed ");
     }
 
-    if (dtm_node_delete(node, 2) != NCSCC_RC_SUCCESS) {
+    if (dtm_node_delete(node, KeyTypes::kDtmNodeIpKeyType) !=
+        NCSCC_RC_SUCCESS) {
       LOG_ER("DTM :dtm_node_delete failed ");
     }
 
@@ -566,7 +568,11 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
     }
   }
 
-  new_node = dtm_node_get_by_id(node.node_id);
+  // Retrieve node from nodeip instead of nodeid to prevent the case dtm already
+  // accepted remote node connection and dtm already add the nodeip to database.
+  // If so, dtm should drop this message as discovery in progress.
+  uint8_t *nodeip = reinterpret_cast<uint8_t *>(node.node_ip);
+  new_node = dtm_node_get(nodeip, KeyTypes::kDtmNodeIpKeyType);
   if (new_node != nullptr) {
     if ((new_node->node_id == 0) || (new_node->node_id == node.node_id) ||
         (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) == 0)) {
@@ -593,10 +599,12 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
                  0))) {
       TRACE("DTM: deleting stale enty cluster_id: %d, node_id :%u, node_ip:%s",
             node.cluster_id, node.node_id, node.node_ip);
-      if (dtm_node_delete(new_node, 0) != NCSCC_RC_SUCCESS) {
+      if (dtm_node_delete(new_node, KeyTypes::kDtmNodeIdKeyType) !=
+          NCSCC_RC_SUCCESS) {
         LOG_ER("DTM :dtm_node_delete failed (recv())");
       }
-      if (dtm_node_delete(new_node, 2) != NCSCC_RC_SUCCESS) {
+      if (dtm_node_delete(new_node, KeyTypes::kDtmNodeIpKeyType) !=
+          NCSCC_RC_SUCCESS) {
         LOG_ER("DTM :dtm_node_delete failed (recv())");
       }
       free(new_node);
@@ -621,7 +629,8 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
   if (sock_desc != -1) {
     TRACE("DTM: dtm_node_add .node_ip: %s node_id: %u, comm_socket %d",
           new_node->node_ip, new_node->node_id, new_node->comm_socket);
-    if (dtm_node_add(new_node, 0) != NCSCC_RC_SUCCESS) {
+    if (dtm_node_add(new_node, KeyTypes::kDtmNodeIdKeyType) !=
+        NCSCC_RC_SUCCESS) {
       LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u",
              new_node->node_ip, new_node->node_id);
       dtm_comm_socket_close(new_node);
@@ -629,7 +638,8 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
       goto node_fail;
     }
 
-    if (dtm_node_add(new_node, 2) != NCSCC_RC_SUCCESS) {
+    if (dtm_node_add(new_node, KeyTypes::kDtmNodeIpKeyType) !=
+        NCSCC_RC_SUCCESS) {
       LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u",
              new_node->node_ip, new_node->node_id);
       dtm_comm_socket_close(new_node);
@@ -748,7 +758,8 @@ DTM_NODE_DB *dtm_process_accept(DTM_INTERNODE_CB *dtms_cb, int stream_sock) {
       continue;
     }
 
-    if (dtm_node_add(new_node, 2) != NCSCC_RC_SUCCESS) {
+    if (dtm_node_add(new_node, KeyTypes::kDtmNodeIpKeyType) !=
+        NCSCC_RC_SUCCESS) {
       LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u",
              new_node->node_ip, new_node->node_id);
       dtm_comm_socket_close(new_node);

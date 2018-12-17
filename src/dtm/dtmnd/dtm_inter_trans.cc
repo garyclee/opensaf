@@ -235,9 +235,10 @@ static uint32_t dtm_internode_snd_msg_common(DTM_NODE_DB *node, uint8_t *buffer,
 uint32_t dtm_internode_snd_msg_to_node(uint8_t *buffer, uint16_t len,
                                        NODE_ID node_id) {
   DTM_NODE_DB *node = nullptr;
+  uint8_t *key = reinterpret_cast<uint8_t *>(&node_id);
 
   TRACE_ENTER();
-  node = dtm_node_get_by_id(node_id);
+  node = dtm_node_get(key, KeyTypes::kDtmNodeIdKeyType);
 
   if (nullptr != node) {
     if (NCSCC_RC_SUCCESS != dtm_internode_snd_msg_common(node, buffer, len)) {

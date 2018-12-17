@@ -123,24 +123,49 @@ uint32_t dtm_cb_init(DTM_INTERNODE_CB *dtms_cb) {
 }
 
 /**
- * Retrieve node from node db by nodeid
+ * Retrieve node from node db
  *
- * @param nodeid
+ * @param key
+ * @param i
  *
- * @return NCSCC_RC_SUCCESS
- * @return NCSCC_RC_FAILURE
+ * @return node
  *
  */
-DTM_NODE_DB *dtm_node_get_by_id(uint32_t nodeid) {
+DTM_NODE_DB *dtm_node_get(uint8_t *key, KeyTypes type) {
   TRACE_ENTER();
   DTM_INTERNODE_CB *dtms_cb = dtms_gl_cb;
+  DTM_NODE_DB *node = nullptr;
 
-  DTM_NODE_DB *node = reinterpret_cast<DTM_NODE_DB *>(ncs_patricia_tree_get(
-      &dtms_cb->nodeid_tree, reinterpret_cast<uint8_t *>(&nodeid)));
-  if (node != nullptr) {
-    /* Adjust the pointer */
-    node = reinterpret_cast<DTM_NODE_DB *>(reinterpret_cast<char *>(node) -
-                                           offsetof(DTM_NODE_DB, pat_nodeid));
+  osafassert(key != nullptr);
+
+  switch (type) {
+    case KeyTypes::kDtmNodeIdKeyType:
+      TRACE("DTM: Getting node from the database by node_id : %u as key",
+            *reinterpret_cast<NODE_ID *>(key));
+      node = reinterpret_cast<DTM_NODE_DB *>(ncs_patricia_tree_get(
+          &dtms_cb->nodeid_tree, key));
+      if (node != nullptr) {
+        // Adjust the pointer
+        node = reinterpret_cast<DTM_NODE_DB *>(reinterpret_cast<char *>(node) -
+            offsetof(DTM_NODE_DB, pat_nodeid));
+      }
+      break;
+
+    case KeyTypes::kDtmNodeIpKeyType:
+      TRACE("DTM: Getting node from the database by node_ip : %s as key",
+            reinterpret_cast<char *>(key));
+      node = reinterpret_cast<DTM_NODE_DB *>(ncs_patricia_tree_get(
+          &dtms_cb->ip_addr_tree, key));
+      if (node != nullptr) {
+        // Adjust the pointer
+        node = reinterpret_cast<DTM_NODE_DB *>(reinterpret_cast<char *>(node) -
+            offsetof(DTM_NODE_DB, pat_ip_address));
+      }
+      break;
+
+    default:
+      osafassert(false);
+      break;
   }
 
   TRACE_LEAVE();
@@ -189,16 +214,15 @@ DTM_NODE_DB *dtm_node_getnext_by_id(uint32_t node_id) {
  * @return NCSCC_RC_FAILURE
  *
  */
-uint32_t dtm_node_add(DTM_NODE_DB *node, int i) {
+uint32_t dtm_node_add(DTM_NODE_DB *node, KeyTypes type) {
   uint32_t rc = NCSCC_RC_SUCCESS;
   DTM_INTERNODE_CB *dtms_cb = dtms_gl_cb;
-  TRACE_ENTER();
-  TRACE("DTM:value of i %d", i);
+  TRACE_ENTER2("DTM:value of type %d", static_cast<int>(type));
 
   osafassert(node != nullptr);
 
-  switch (i) {
-    case 0:
+  switch (type) {
+    case KeyTypes::kDtmNodeIdKeyType:
       TRACE("DTM:Adding node_id to the database with node_id :%u as key",
             node->node_id);
       node->pat_nodeid.key_info = reinterpret_cast<uint8_t *>(&(node->node_id));
@@ -210,11 +234,8 @@ uint32_t dtm_node_add(DTM_NODE_DB *node, int i) {
         goto done;
       }
       break;
-    case 1:
-      osafassert(false);
-      break;
 
-    case 2:
+    case KeyTypes::kDtmNodeIpKeyType:
       TRACE("DTM:Adding node_ip to the database with node_ip :%s as key",
             node->node_ip);
       node->pat_ip_address.key_info =
@@ -230,8 +251,8 @@ uint32_t dtm_node_add(DTM_NODE_DB *node, int i) {
 
     default:
       TRACE("DTM:Invalid Patricia add");
-      rc = NCSCC_RC_FAILURE;
-      goto done;
+      osafassert(false);
+      break;
   }
 
 done:
@@ -248,15 +269,15 @@ done:
  * @return NCSCC_RC_FAILURE
  *
  */
-uint32_t dtm_node_delete(DTM_NODE_DB *node, int i) {
+uint32_t dtm_node_delete(DTM_NODE_DB *node, KeyTypes type) {
   uint32_t rc = NCSCC_RC_SUCCESS;
   DTM_INTERNODE_CB *dtms_cb = dtms_gl_cb;
-  TRACE_ENTER2("DTM:value of i %d", i);
+  TRACE_ENTER2("DTM:value of type %d", static_cast<int>(type));
 
   osafassert(node != nullptr);
 
-  switch (i) {
-    case 0:
+  switch (type) {
+    case KeyTypes::kDtmNodeIdKeyType:
       if (node->node_id != 0 && node->pat_nodeid.key_info) {
         TRACE("DTM:Deleting node_id from the database with node_id :%u as key",
               node->node_id);
@@ -269,11 +290,8 @@ uint32_t dtm_node_delete(DTM_NODE_DB *node, int i) {
         }
       }
       break;
-    case 1:
-      osafassert(false);
-      break;
 
-    case 2:
+    case KeyTypes::kDtmNodeIpKeyType:
       if (node->node_ip != nullptr && node->pat_ip_address.key_info) {
         TRACE("DTM:Deleting node_ip from the  database with node_ip :%s as key",
               node->node_ip);
@@ -290,7 +308,7 @@ uint32_t dtm_node_delete(DTM_NODE_DB *node, int i) {
     default:
       TRACE(
           "DTM:Deleting node from the database  with unknown option :%d as key",
-          i);
+          static_cast<int>(type));
       osafassert(0);
   }
 

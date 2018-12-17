@@ -125,7 +125,7 @@ uint32_t dtm_process_node_info(DTM_INTERNODE_CB *dtms_cb, DTM_NODE_DB *node,
       memcpy(node->node_name, data, nodename_len);
       node->node_name[nodename_len] = '\0';
       node->comm_status = true;
-      if (dtm_node_add(node, 0) != NCSCC_RC_SUCCESS) {
+      if (dtm_node_add(node, KeyTypes::kDtmNodeIdKeyType) != NCSCC_RC_SUCCESS) {
         LOG_ER(
             "DTM:  A node already exists in the cluster with similar "
             "configuration (possible duplicate IP address and/or node id), please "
