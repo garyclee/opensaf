@@ -13671,8 +13671,8 @@ SaAisErrorT ImmModel::resourceDisplay(
 
         } else {
           LOG_NO(
-              "The Number of implementers are greater than 128, displaying the implementers"
-              "information to syslog");
+              "The number of implementers is greater than 127, "
+              "displaying the implementers information to syslog");
           ImplementerVector::iterator i;
           for (i = sImplementerVector.begin(); i != sImplementerVector.end();
                ++i) {
@@ -13707,12 +13707,12 @@ SaAisErrorT ImmModel::resourceDisplay(
           }
         } else {
           LOG_NO(
-              "The Number of AdminOwners are greater than 128, displaying the adminowner"
-              "information to syslog");
+              "The number of adminowners is greater than 127, "
+              "displaying the adminowners information to syslog");
           AdminOwnerVector::iterator i;
           for (i = sOwnerVector.begin(); i != sOwnerVector.end(); ++i) {
             AdminOwnerInfo* adminOwner = (*i);
-            LOG_IN("Implementer name %s and location of the implementer is %u",
+            LOG_IN("Adminowner name %s and location of the adminowner is %u",
                    adminOwner->mAdminOwnerName.c_str(), adminOwner->mNodeId);
           }
         }
