@@ -2064,8 +2064,8 @@ bool sg_stable_after_lock_in_or_unlock_in(AVD_SG *sg) {
 
       break;
     default:
-      TRACE("Called for wrong admin operation");
-      break;
+      TRACE("Called for wrong admin operation %d", sg->adminOp);
+      return false;
   }
 
   return true;
