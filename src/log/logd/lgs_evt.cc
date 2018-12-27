@@ -1523,7 +1523,7 @@ static uint32_t process_api_evt(lgsv_lgs_evt_t *evt) {
   }
 
   if (lgs_lga_api_msg_dispatcher[api_type](lgs_cb, evt) != NCSCC_RC_SUCCESS) {
-    LOG_ER("lgs_lga_api_msg_dispatcher FAILED type: %d", evt->info.msg.type);
+    LOG_WA("lgs_lga_api_msg_dispatcher FAILED type: %d", evt->info.msg.type);
   }
 
 done:
