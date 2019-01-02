@@ -345,13 +345,7 @@ static void free_parserState(ParserState *state) {
     for (it = state->attrValues.begin(); it != state->attrValues.end(); ++it) {
       free(it->attrName);
       for (i = 0; it->attrValues[i]; i++) {
-        if (it->attrValueType == SA_IMM_ATTR_SASTRINGT ||
-            it->attrValueType == SA_IMM_ATTR_SAANYT) {
-          free(*(void **)(it->attrValues[i]));
-        } else if (it->attrValueType == SA_IMM_ATTR_SANAMET) {
-          osaf_extended_name_free((SaNameT *)it->attrValues[i]);
-        }
-        free(it->attrValues[i]);
+        free_attr_value(it->attrValueType, it->attrValues[i]);
       }
       free(it->attrValues);
     }
@@ -833,13 +827,7 @@ done:
   for (it = state->attrValues.begin(); it != state->attrValues.end(); ++it) {
     free(it->attrName);
     for (i = 0; it->attrValues[i]; i++) {
-      if (it->attrValueType == SA_IMM_ATTR_SASTRINGT ||
-          it->attrValueType == SA_IMM_ATTR_SAANYT) {
-        free(*(void **)(it->attrValues[i]));
-      } else if (it->attrValueType == SA_IMM_ATTR_SANAMET) {
-        osaf_extended_name_free((SaNameT *)it->attrValues[i]);
-      }
-      free(it->attrValues[i]);
+      free_attr_value(it->attrValueType, it->attrValues[i]);
     }
     free(it->attrValues);
   }
