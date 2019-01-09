@@ -277,7 +277,7 @@ bool SmfExecControlObjHandler::readOpenSafSmfConfig() {
       false) {
     LOG_WA("%s: Could not get SMF config object from IMM %s", __FUNCTION__,
            SMF_CONFIG_OBJECT_DN);
-    return "";
+    return false;
   }
 
   const char *exec_ctrl_name = immutil_getStringAttr(
@@ -285,7 +285,7 @@ bool SmfExecControlObjHandler::readOpenSafSmfConfig() {
   if (exec_ctrl_name == NULL || strcmp(exec_ctrl_name, "") == 0) {
     LOG_WA("%s: Could not get %s attrs from SmfConfig", __FUNCTION__,
            OPENSAF_SMF_EXEC_CONTROL);
-    return "";
+    return false;
   }
   c_openSafSmfExecControl = exec_ctrl_name;
 
