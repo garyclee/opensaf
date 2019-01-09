@@ -37,17 +37,22 @@
 #include <saImmOi.h>
 #include <saClm.h>
 
+#include <atomic>
+#include <list>
+#include <map>
+#include <memory>
+#include <queue>
+
 #include "base/ncssysf_lck.h"
 #include "mds/mds_papi.h"
 #include "mbc/mbcsv_papi.h"
 #include "base/ncs_edu_pub.h"
 
 #include "amf/amfd/ckpt.h"
+#include "amf/amfd/node_state_machine.h"
 #include "amf/amfd/timer.h"
 
-#include <list>
-#include <queue>
-#include <atomic>
+const SaTimeT kDefaultNodeWaitTime = 180;
 
 class AVD_SI;
 class AVD_AVND;
@@ -248,6 +253,20 @@ typedef struct cl_cb_tag {
   /* The duration that amfd should tolerate the absence of SCs */
   uint32_t scs_absence_max_duration;
   AVD_IMM_INIT_STATUS avd_imm_status;
+
+  // MDS_DOWN received for node, we are delaying node failover by this
+  // number of seconds (timer1)
+  SaTimeT node_failover_delay = 0;
+
+  // after receiving MDS_UP, we will wait for NODE_UP up to this number
+  // of seconds (timer2). Also wait for this number of seconds for
+  // MDS_DOWN after sending reboot message
+  SaTimeT node_failover_node_wait = kDefaultNodeWaitTime;
+
+  using FailedNodeMap = std::map<SaClmNodeIdT, std::shared_ptr<NodeStateMachine>>;
+  // We received amfnd down for these nodes
+  FailedNodeMap failover_list;
+
 } AVD_CL_CB;
 
 extern AVD_CL_CB *avd_cb;

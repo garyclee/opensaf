@@ -44,7 +44,8 @@ typedef enum {
   AVD_SU_SI_STATE_ASGN,
   AVD_SU_SI_STATE_ASGND,
   AVD_SU_SI_STATE_UNASGN,
-  AVD_SU_SI_STATE_MODIFY
+  AVD_SU_SI_STATE_MODIFY,
+  AVD_SU_SI_STATE_EXCESSIVE
 } AVD_SU_SI_STATE;
 
 /* Availability directors SU SI relationship structure(AVD_SU_SI_REL):
@@ -146,6 +147,8 @@ void avd_susi_update_fsm(AVD_SU_SI_REL *susi, AVD_SU_SI_STATE new_fsm_state);
 bool avd_susi_validate_present_assignment(AVD_SU_SI_REL *present_susi,
                                            SaAmfHAStateT ha_fr_imm,
                                            AVD_SU_SI_STATE fsm_fr_imm);
+bool avd_susi_validate_excessive_assignment(AVD_SU_SI_REL *present_susi);
+
 bool avd_susi_validate_absent_assignment(AVD_SU *su, AVD_SI *si,
     SaAmfHAStateT imm_ha_state, AVD_SU_SI_STATE imm_fsm_state);
 void avd_susi_read_headless_cached_rta(AVD_CL_CB *cb);

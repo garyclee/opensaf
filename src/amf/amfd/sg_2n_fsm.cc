@@ -78,6 +78,7 @@ AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
   bool assigning_flag = false, assigned_flag = false, modify_flag = false,
        unassingned_flag = false;
   bool absent_flag = false;
+  bool excessive_flag = false;
   AVD_SU_SI_STATE fsm_state = AVD_SU_SI_STATE_ABSENT;
 
   TRACE_ENTER2("SU '%s'", su->name.c_str());
@@ -109,6 +110,10 @@ AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
       absent_flag = true;
       TRACE("Absent su'%s', si'%s'", temp_susi->su->name.c_str(),
             temp_susi->si->name.c_str());
+    } else if (AVD_SU_SI_STATE_EXCESSIVE == temp_susi->fsm) {
+      excessive_flag = true;
+      TRACE("Excessive su'%s', si'%s'", temp_susi->su->name.c_str(),
+            temp_susi->si->name.c_str());
     } else {
       osafassert(0);
     }
@@ -116,11 +121,14 @@ AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
   }
 
   TRACE(
-      "assigning_flag'%u', unassingned_flag'%u', assigned_flag'%u', modify_flag'%u', absent_flag'%u'",
+      "assigning_flag'%u', unassingned_flag'%u', assigned_flag'%u',"
+      "modify_flag'%u', absent_flag'%u', excessive_flag'%u'",
       assigning_flag, unassingned_flag, assigned_flag, modify_flag,
-      absent_flag);
+      absent_flag, excessive_flag);
   if (absent_flag == true) {
     fsm_state = AVD_SU_SI_STATE_ABSENT;
+  } else if (excessive_flag == true) {
+    fsm_state = AVD_SU_SI_STATE_EXCESSIVE;
   } else if (true == modify_flag) {
     /* Rule 1. => If any one of the SUSI is Mod, then SU will be said to be
        modified. The other SUSI can be in assigning/assigned state in
@@ -590,41 +598,21 @@ static AVD_SU_SI_REL *avd_sg_2n_act_susi(AVD_CL_CB *cb, AVD_SG *sg,
        standby. */
     if ((SA_AMF_HA_QUIESCED == avd_su_state_determine(su_1)) &&
         (SA_AMF_HA_QUIESCED == avd_su_state_determine(su_2))) {
-      osafassert(a_susi_1->su == s_susi_2->su);
-      osafassert(a_susi_2->su == s_susi_1->su);
+      if(a_susi_1->su != s_susi_2->su || a_susi_2->su == s_susi_1->su) {
+        // Duplicate 2N quiesced assignments found
+        LOG_WA("Duplicate 2N quiesced assignments exist in '%s' and '%s'",
+          s_susi_1->su->name.c_str(), s_susi_2->su->name.c_str());
+      }
     } else {
       if (a_susi_1->su != a_susi_2->su) {
         // Duplicate 2N active assignments found, probably after split brain
-        // Reboot both nodes hosting the SUs to recover
-
-        LOG_EM("Duplicate 2N active assignments in '%s' and '%s'",
+        LOG_WA("Duplicate 2N active assignments exist in '%s' and '%s'",
           a_susi_1->su->name.c_str(), a_susi_2->su->name.c_str());
 
-        LOG_EM("Sending node reboot order to '%s'",
-          a_susi_1->su->su_on_node->name.c_str());
-        avd_d2n_reboot_snd(a_susi_1->su->su_on_node);
-
-        if (a_susi_1->su->su_on_node != a_susi_2->su->su_on_node) {
-          LOG_EM("Sending node reboot order to '%s'",
-            a_susi_2->su->su_on_node->name.c_str());
-          avd_d2n_reboot_snd(a_susi_2->su->su_on_node);
-        }
       } else if (s_susi_1->su != s_susi_2->su) {
         // Duplicate 2N standby assignments found
-        // Reboot both nodes hosting the SUs to recover
-
-        LOG_EM("Duplicate 2N standby assignments in '%s' and '%s'",
+        LOG_WA("Duplicate 2N standby assignments exist in '%s' and '%s'",
           s_susi_1->su->name.c_str(), s_susi_2->su->name.c_str());
-
-        LOG_EM("Sending node reboot order to '%s'",
-          s_susi_1->su->su_on_node->name.c_str());
-        avd_d2n_reboot_snd(s_susi_1->su->su_on_node);
-
-        if (s_susi_1->su->su_on_node != s_susi_2->su->su_on_node) {
-          LOG_EM("Sending node reboot order to '%s'",
-            s_susi_2->su->su_on_node->name.c_str());
-          avd_d2n_reboot_snd(s_susi_2->su->su_on_node);
-        }
       }
     }
     a_susi = a_susi_1;
@@ -1796,7 +1784,8 @@ uint32_t SG_2N::susi_success_sg_realign(AVD_SU *su, AVD_SU_SI_REL *susi,
       }
 
       if ((state == SA_AMF_HA_ACTIVE) &&
-          (cb->node_id_avd == su->su_on_node->node_info.nodeId)) {
+          (cb->node_id_avd == su->su_on_node->node_info.nodeId) &&
+          (su->sg_of_su->sg_ncs_spec == true)) {
         /* This is as a result of failover, start CLM tracking*/
         if (avd_clm_track_start(cb) == SA_AIS_ERR_TRY_AGAIN)
           Fifo::queue(new ClmTrackStart());

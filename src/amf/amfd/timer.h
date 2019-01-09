@@ -46,6 +46,7 @@ typedef enum avd_tmr_type {
 
   AVD_TMR_SI_DEP_TOL, /* SI_SI dependency tolerance timer */
   AVD_TMR_NODE_SYNC,  /* node sync timer for all PLs from headless */
+  AVD_TMR_NODE_FAILOVER,
   AVD_TMR_MAX
 } AVD_TMR_TYPE;
 

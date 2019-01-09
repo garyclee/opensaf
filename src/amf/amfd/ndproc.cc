@@ -1231,12 +1231,22 @@ done:
  * services to other nodes.
  * @param node
  */
-void avd_node_failover(AVD_AVND *node) {
+void avd_node_failover(AVD_AVND *node, const bool mw_only) {
   TRACE_ENTER2("'%s'", node->name.c_str());
-  avd_node_mark_absent(node);
-  avd_pg_node_csi_del_all(avd_cb, node);
-  avd_node_down_mw_susi_failover(avd_cb, node);
-  avd_node_down_appl_susi_failover(avd_cb, node);
+  if (mw_only == true) {
+    avd_node_down_mw_susi_failover(avd_cb, node);
+  } else {
+    avd_node_mark_absent(node);
+    avd_pg_node_csi_del_all(avd_cb, node);
+    avd_node_down_mw_susi_failover(avd_cb, node);
+    avd_node_down_appl_susi_failover(avd_cb, node);
+  }
+
+  TRACE_LEAVE();
+}
+
+void check_quorum() {
+  TRACE_ENTER();
 
   Consensus consensus_service;
   if (consensus_service.IsRemoteFencingEnabled() == false &&
@@ -1246,6 +1256,4 @@ void avd_node_failover(AVD_AVND *node) {
     opensaf_reboot(0, nullptr,
       "Quorum lost. Rebooting this node to prevent split-brain");
   }
-
-  TRACE_LEAVE();
 }

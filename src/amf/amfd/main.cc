@@ -51,6 +51,7 @@
 #include "amf/amfd/amfd.h"
 #include "amf/amfd/imm.h"
 #include "amf/amfd/cluster.h"
+#include "amf/amfd/node.h"
 #include "amf/amfd/si_dep.h"
 #include "amf/amfd/hlt.h"
 #include "amf/amfd/clm.h"
@@ -113,6 +114,7 @@ static const AVD_EVT_HDLR g_actv_list[AVD_EVT_MAX] = {
     avd_cluster_tmr_init_evh, /* AVD_EVT_TMR_CL_INIT */
     avd_sidep_tol_tmr_evh,    /* AVD_EVT_TMR_SI_DEP_TOL */
     avd_node_sync_tmr_evh,    /* AVD_EVT_TMR_ALL_NODE_UP */
+    avd_node_failover_tmr_evh,/* AVD_TMR_NODE_FAILOVER */
 
     /* active AvD MDS events processing */
     avd_mds_avd_up_evh,    /* AVD_EVT_MDS_AVD_UP */
@@ -156,6 +158,7 @@ static const AVD_EVT_HDLR g_stndby_list[AVD_EVT_MAX] = {
     standby_invalid_evh,   /* AVD_EVT_TMR_CL_INIT */
     avd_sidep_tol_tmr_evh, /* AVD_EVT_TMR_SI_DEP_TOL */
     standby_invalid_evh,   /* AVD_EVT_TMR_ALL_NODE_UP */
+    avd_node_failover_tmr_evh,/* AVD_TMR_NODE_FAILOVER */
 
     /* standby AvD MDS events processing */
     avd_mds_avd_up_evh,       /* AVD_EVT_MDS_AVD_UP */
@@ -200,6 +203,7 @@ static const AVD_EVT_HDLR g_quiesc_list[AVD_EVT_MAX] = {
     qsd_ignore_evh,        /* AVD_EVT_TMR_CL_INIT */
     avd_sidep_tol_tmr_evh, /* AVD_EVT_TMR_SI_DEP_TOL */
     qsd_ignore_evh,        /* AVD_EVT_TMR_ALL_NODE_UP */
+    avd_node_failover_tmr_evh,/* AVD_TMR_NODE_FAILOVER */
 
     /* active AvD MDS events processing */
     avd_mds_avd_up_evh,    /* AVD_EVT_MDS_AVD_UP */
@@ -381,7 +385,8 @@ static void handle_event_in_failover_state(AVD_EVT *evt) {
    */
   if ((evt->rcv_evt == AVD_EVT_VERIFY_ACK_NACK_MSG) ||
       (evt->rcv_evt == AVD_EVT_MDS_AVND_DOWN) ||
-      (evt->rcv_evt == AVD_EVT_TMR_SND_HB)) {
+      (evt->rcv_evt == AVD_EVT_TMR_SND_HB) ||
+      (evt->rcv_evt == AVD_EVT_TMR_NODE_FAILOVER)) {
     process_event(cb, evt);
   } else {
     AVD_EVT_QUEUE *queue_evt;
@@ -417,7 +422,8 @@ static void handle_event_in_failover_state(AVD_EVT *evt) {
          it != node_id_db->end();) {
       AVD_AVND *node = it->second;
       ++it;
-      if (AVD_AVND_STATE_ABSENT == node->node_state) {
+      if (AVD_AVND_STATE_ABSENT == node->node_state &&
+          cb->failover_list.find(node->node_info.nodeId) == cb->failover_list.end()) {
         bool fover_done = false;
         /* Check whether this node failover has been
            performed or not. */
@@ -429,7 +435,9 @@ static void handle_event_in_failover_state(AVD_EVT *evt) {
             break;
           }
         }
-        if (fover_done == false) avd_node_failover(node);
+        if (fover_done == false) {
+          avd_node_failover(node);
+        }
       }
     }
     /* Since we are sending lots of async update to its peer from
@@ -675,6 +683,7 @@ static void main_loop(void) {
 
       if (evt->rcv_evt == AVD_IMM_REINITIALIZED) {
         cb->avd_imm_status = AVD_IMM_INIT_DONE;
+        avd_check_nodes_after_reinit_imm();
         TRACE("Received IMM reinit msg");
         polltmo = retval_to_polltmo(Fifo::execute(cb));
         continue;

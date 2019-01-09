@@ -2137,4 +2137,23 @@ void SG_NACV::ng_admin(AVD_SU *su, AVD_AMF_NG *ng) {
   return;
 }
 
+/*
+ * Failover the excessive assignment by gracefully removing it
+ */
+void SG_NACV::failover_excessive_assignment() {
+  TRACE_ENTER2("SG:'%s'", name.c_str());
+  for (const auto &su : list_of_su) {
+    if (su->any_susi_fsm_in(AVD_SU_SI_STATE_EXCESSIVE) &&
+        su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) {
+      LOG_WA("SU '%s' has been excessively assigned, remove its assignment",
+          su->name.c_str());
+      // only call su_fault once at a time for
+      su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
+      su_fault(avd_cb, su);
+      break;
+    }
+  }
+  TRACE_LEAVE();
+}
+
 SG_NACV::~SG_NACV() {}

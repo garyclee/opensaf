@@ -1630,6 +1630,25 @@ static uint32_t immd_evt_proc_immnd_req_sync(IMMD_CB *cb, IMMD_EVT *evt,
 }
 
 /****************************************************************************
+ * Name          : is_global_counter_less
+ *
+ * Description   : Check if any global counters is less than ones sent by IMMND.
+ *
+ * Arguments     : IMMD_CB  *cb  - IMMD CB pointer
+ *                 IMMD_EVT *evt - Received Event structure
+ *
+ * Return Values : true if having at least one, false otherwise.
+ *
+ *****************************************************************************/
+static bool is_global_counter_less(const IMMD_CB *cb, const IMMD_EVT *evt)
+{
+	return ((cb->fevsSendCount < evt->info.ctrl_msg.fevs_count) ||
+		(cb->admo_id_count < evt->info.ctrl_msg.admo_id_count) ||
+		(cb->ccb_id_count  < evt->info.ctrl_msg.ccb_id_count) ||
+		(cb->impl_count    < evt->info.ctrl_msg.impl_count));
+}
+
+/****************************************************************************
  * Name          : immd_evt_proc_immnd_intro
  *
  * Description   : Function to process the IMMD_EVT_ND2D_INTRO event
@@ -1718,7 +1737,16 @@ static uint32_t immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt,
 			    cb->mRulingEpoch);
 		}
 
-		if (cb->mRulingEpoch < node_info->epoch) {
+		/*
+		  Don't update the ruling epoch from joining IMMND if the coord
+		  is already elected, except the change comes from the coord.
+		  This check is to avoid cluster reboot after split-brain
+		  recovery; this rule is also applied for all below global
+		  counters (fevs counter, ccb id counter, etc.).
+		*/
+		if ((cb->mRulingEpoch < node_info->epoch) &&
+		    (cb->immnd_coord == 0 ||
+		     cb->immnd_coord == node_info->immnd_key)) {
 			cb->mRulingEpoch = node_info->epoch;
 			LOG_NO("Ruling epoch changed to:%u", cb->mRulingEpoch);
 		}
@@ -1768,6 +1796,26 @@ static uint32_t immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt,
 			}
 
 			veteranImmndNode = true;
+
+			/* Don't update global counters when the coord is
+			   already elected, but except ones come from the coord.
+			*/
+			if (cb->immnd_coord != 0 &&
+			    node_info->immnd_key != cb->immnd_coord) {
+				if (is_global_counter_less(cb, evt)) {
+					IMMSV_ND2D_CONTROL* msg = &(evt->info.ctrl_msg);
+					LOG_NO("Ignore updating counters from %x. "
+					       "Diffs (global/intro):"
+					       "fevs(%llu/%llu), admid (%u/%u),"
+					       "ccbid(%u/%u), impid(%u/%u)",
+					       node_info->immnd_key,
+					       cb->fevsSendCount, msg->fevs_count,
+					       cb->admo_id_count, msg->admo_id_count,
+					       cb->ccb_id_count, msg->ccb_id_count,
+					       cb->impl_count, msg->impl_count);
+				}
+				goto update_node_type;
+			}
 
 			if (cb->fevsSendCount < evt->info.ctrl_msg.fevs_count) {
 				LOG_NO(
@@ -1839,6 +1887,7 @@ static uint32_t immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt,
 		}
 	}
 
+update_node_type:
 	/* Determine type of node. */
 	if (sinfo->dest == cb->loc_immnd_dest) {
 		node_info->isOnController = true;

@@ -79,9 +79,16 @@ void saNtfNotificationReadFinalize_01(void) {
   test_validate(rc, SA_AIS_OK);
 }
 
+void saNtfNotificationReadFinalize_02(void) {
+  rc = NtfTest::saNtfNotificationReadFinalize(-1);
+  test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
 __attribute__((constructor)) static void
 saNtfNotificationReadFinalize_constructor(void) {
   test_suite_add(21, "Consumer operations - Reader API 2");
   test_case_add(21, saNtfNotificationReadFinalize_01,
           "saNtfNotificationReadFinalize SA_AIS_OK");
+  test_case_add(21, saNtfNotificationReadFinalize_02,
+      "saNtfNotificationReadFinalize SA_AIS_ERR_BAD_HANDLE");
 }

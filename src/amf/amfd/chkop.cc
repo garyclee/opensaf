@@ -1042,6 +1042,16 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action,
         return NCSCC_RC_SUCCESS;
       }
       break;
+    case AVSV_CKPT_NODE_FAILOVER_STATE:
+      if ((avd_cb->other_avd_adest != 0) &&
+          (avd_cb->avd_peer_ver < AVD_MBCSV_SUB_PART_VERSION_9)) {
+        TRACE(
+            "No ckpt for AVSV_CKPT_NODE_FAILOVER_STATE as peer AMFD has"
+            " lower version:%d",
+            avd_cb->avd_peer_ver);
+        return NCSCC_RC_SUCCESS;
+      }
+      break;
     default:
       return NCSCC_RC_SUCCESS;
   }

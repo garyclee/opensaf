@@ -52,28 +52,28 @@ read_marked()
     ver  "expected_sequence:  \"$expected_sequence\""
     ver  "searchCriteria  : \"$sc\""
     ver  "search direction: \"$sd\""
-     if expr "$expected_sequence" '!=' "$res" >/dev/null; then
- 	echo "FAILED"
- 	exit $sc
-     fi
-     ver  "PASSED"
+    if expr "$expected_sequence" '!=' "$res" >/dev/null; then
+        echo "FAILED: expected($expected_sequence) - result($res)"
+        exit $sc
+    fi
+    ver  "PASSED"
     return 0
 }
 
 ver  "SA_NTF_SEARCH_BEFORE_OR_AT_TIME = 1"
-read_marked "4 " "1" ""
+read_marked "1 2 3 4 4 4 3 2 " "1" ""
 
 ver  "SA_NTF_SEARCH_AT_TIME = 2"
 read_marked "4 4 4 " "2" ""
 
 ver  "SA_NTF_SEARCH_AT_OR_AFTER_TIME = 3"
-read_marked "4 5 6 7 4 8 9 4 10 3 11 2 12 " "3" ""
+read_marked "4 5 6 7 4 8 9 4 10 11 12 " "3" ""
 
 ver  "SA_NTF_SEARCH_BEFORE_TIME = 4"
-read_marked "3 " "4" ""
+read_marked "1 2 3 3 2 " "4" ""
 
 ver  "SA_NTF_SEARCH_AFTER_TIME = 5"
-read_marked "10 3 11 2 12 " "5" ""
+read_marked "5 6 7 8 9 10 11 12 " "5" ""
 
 ver  "SA_NTF_SEARCH_NOTIFICATION_ID = 6"
 read_marked "12 " "6" "-i $nid"
@@ -85,19 +85,19 @@ ver  "--------------------------------------"
 ver  "      Read OLDER"
 ver  "--------------------------------------"
 ver  "SA_NTF_SEARCH_BEFORE_OR_AT_TIME = 1"
-read_marked "4 9 8 4 7 6 5 4 3 2 1 " "1" "-o"
+read_marked "2 3 4 4 4 3 2 1 " "1" "-o"
 
 ver "SA_NTF_SEARCH_AT_TIME = 2"
 read_marked "4 4 4 " "2" "-o"
 
 ver "SA_NTF_SEARCH_AT_OR_AFTER_TIME = 3"
-read_marked "4 " "3" "-o"
+read_marked "12 11 10 4 9 8 4 7 6 5 4 " "3" "-o"
 
 ver "SA_NTF_SEARCH_BEFORE_TIME = 4"
-read_marked "3 2 1 " "4" "-o"
+read_marked "2 3 3 2 1 " "4" "-o"
 
 ver "SA_NTF_SEARCH_AFTER_TIME = 5"
-read_marked "10 " "5" "-o"
+read_marked "12 11 10 9 8 7 6 5 " "5" "-o"
 
 ver "SA_NTF_SEARCH_NOTIFICATION_ID = 6"
 read_marked "12 " "6" "-i $nid"

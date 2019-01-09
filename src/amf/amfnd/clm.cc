@@ -124,7 +124,7 @@ static void clm_to_amf_node(void) {
 
   error = saImmOmInitialize_cond(&immOmHandle, nullptr, &immVersion);
   if (SA_AIS_OK != error) {
-    LOG_CR("saImmOmInitialize failed. Use previous value of nodeName.");
+    LOG_WA("saImmOmInitialize failed. Use previous value of nodeName.");
     osafassert(avnd_cb->amf_nodeName.empty() == false);
     goto done1;
   }

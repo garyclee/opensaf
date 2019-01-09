@@ -49,12 +49,14 @@
 #include "base/osaf_utility.h"
 #include "role.h"
 #include "nid/agent/nid_api.h"
+#include "base/osaf_time.h"
 
 extern pthread_mutex_t imm_reinit_mutex;
 
 static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role);
 static uint32_t avd_role_failover_qsd_actv(AVD_CL_CB *cb, SaAmfHAStateT role);
 static uint32_t avd_rde_set_role(SaAmfHAStateT role);
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 /****************************************************************************\
  * Function: avd_role_change
@@ -259,12 +261,31 @@ done:
 \**************************************************************************/
 uint32_t avd_active_role_initialization(AVD_CL_CB *cb, SaAmfHAStateT role) {
   uint32_t status = NCSCC_RC_FAILURE;
+  SaAisErrorT rc = SA_AIS_OK;
 
   TRACE_ENTER();
 
-  if (avd_imm_impl_set() != SA_AIS_OK) {
-    LOG_ER("avd_imm_impl_set FAILED");
-    goto done;
+  struct timespec time = {0, 0};
+  uint32_t no_of_retries = 0;
+  const uint32_t MAX_NO_RETRIES = immutilWrapperProfile.nTries;
+  osaf_millis_to_timespec(immutilWrapperProfile.retryInterval, &time);
+  /*
+   * Some retries in case takeover with consensus
+   * when OI not released/synced yet
+  */
+  while (++no_of_retries < MAX_NO_RETRIES) {
+    rc = avd_imm_impl_set();
+    if (rc != SA_AIS_OK) {
+      if (rc == SA_AIS_ERR_EXIST) {
+        osaf_nanosleep(&time);
+        continue;
+      } else {
+        LOG_ER("avd_imm_impl_set FAILED");
+        goto done;
+      }
+    } else {
+      break;
+    }
   }
 
   if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
@@ -469,7 +490,14 @@ static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role) {
 
   avd_cb->is_implementer = true;
 
-  avd_node_failover(failed_node);
+  if (cb->failover_list.find(failed_node->node_info.nodeId) != cb->failover_list.end()) {
+    // triggered by FM, in which case we should failover OpenSAF SUs only
+    // application SUs will be handled via the node failover delay timer
+    LOG_NO("Failing over OpenSAF components only");
+    avd_node_failover(failed_node, true);
+  } else {
+    avd_node_failover(failed_node);
+  }
   avd_act_on_sis_in_tol_timer_state();
 
   LOG_NO("FAILOVER StandBy --> Active DONE!");
@@ -774,7 +802,7 @@ try_again:
   /* Execute admin op jobs before calling saImmOiImplementerClear to avoid
    * SA_AIS_ERR_TIMEOUT
    */
-  Fifo::executeAdminResp(cb);
+  Fifo::executeAll(cb, JOB_TYPE_IMM);
 
   /* Take mutex here to sync with imm reinit thread.*/
   osaf_mutex_lock_ordie(&imm_reinit_mutex);

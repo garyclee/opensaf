@@ -431,10 +431,16 @@ class AVD_SG {
    * @return
    */
   bool is_sg_serviceable_outside_ng(const AVD_AMF_NG *ng);
+  /*
+   * Failover the excessive assignment
+   */
+  virtual void failover_excessive_assignment();
+
   SaAisErrorT check_sg_stability();
   bool any_assignment_in_progress();
   bool any_assignment_absent();
   bool any_assignment_assigned();
+  bool any_assignment_excessive();
   void failover_absent_assignment();
   bool ng_using_saAmfSGAdminState;
   bool headless_validation;
@@ -517,7 +523,7 @@ class SG_NORED : public AVD_SG {
                        struct avd_su_si_rel_tag *susi, AVSV_SUSI_ACT act,
                        SaAmfHAStateT state);
   void ng_admin(AVD_SU *su, AVD_AMF_NG *ng);
-
+  void failover_excessive_assignment();
  private:
   AVD_SU *assign_sis_to_sus();
 };
@@ -580,6 +586,7 @@ class SG_NACV : public AVD_SG {
                        struct avd_su_si_rel_tag *susi, AVSV_SUSI_ACT act,
                        SaAmfHAStateT state);
   void ng_admin(AVD_SU *su, AVD_AMF_NG *ng);
+  void failover_excessive_assignment();
 };
 
 /**

@@ -307,9 +307,11 @@ unsigned int ncs_os_task(NCS_OS_TASK *task, NCS_OS_TASK_REQUEST request)
 
 		if (pthread_join(*(pthread_t *)task->info.release.i_handle,
 				 &status) != 0) {
+			free(task->info.release.i_handle);
 			return (NCSCC_RC_FAILURE);
 		}
 
+		free(task->info.release.i_handle);
 	} break;
 	case NCS_OS_TASK_DETACH:
 		if (pthread_detach(*(pthread_t *)task->info.release.i_handle) !=

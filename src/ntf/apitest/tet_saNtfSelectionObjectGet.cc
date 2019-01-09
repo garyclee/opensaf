@@ -51,6 +51,14 @@ void saNtfSelectionObjectGet_04(void) {
   test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
+void saNtfSelectionObjectGet_05(void) {
+  safassert(NtfTest::saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion),
+      SA_AIS_OK);
+  safassert(NtfTest::saNtfFinalize(ntfHandle), SA_AIS_OK);
+  rc = saNtfSelectionObjectGet(ntfHandle, &selectionObject);
+  test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
 __attribute__((constructor)) static void
 saNtfSelectionObjectGet_constructor(void) {
   test_suite_add(3, "Life cycle, selectObject, API 3");
@@ -65,4 +73,7 @@ saNtfSelectionObjectGet_constructor(void) {
   test_case_add(
       3, saNtfSelectionObjectGet_03,
       "saNtfSelectionObjectGet NULL selectionObject SA_AIS_ERR_INVALID_PARAM");
+  test_case_add(
+      3, saNtfSelectionObjectGet_05,
+      "saNtfSelectionObjectGet Finalized handle SA_AIS_ERR_BAD_HANDLE");
 }

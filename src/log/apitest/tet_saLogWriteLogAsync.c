@@ -453,3 +453,80 @@ void saLogWriteLogAsync_19(void)
 done:
 	logFinalize();
 }
+
+
+/* Object to test: saLogWriteLogAsync() API:
+ * Test: Writing into logstream with invalid logStreamHandle and flag
+ * step1:Call logInitialize()
+ * step2:Call logStreamOpen()
+ * step3:call logFinalize()
+ * step4:Now call the saLogWriteLogAsync() with logStreamHandle
+ * Result: Shall fail with return code SA_AIS_ERR_BAD_HANDLE
+ */
+void saLogWriteLogAsync_invalid_handle(void)
+{
+	SaInvocationT invocation = 0;
+
+	strcpy((char *)genLogRecord.logBuffer->logBuf, __FUNCTION__);
+	genLogRecord.logBuffer->logBufSize = strlen(__FUNCTION__);
+
+	rc = logInitialize();
+	if (rc != SA_AIS_OK) {
+		test_validate(rc, SA_AIS_OK);
+		return;
+	}
+	rc = logStreamOpen(&systemStreamName);
+	if (rc != SA_AIS_OK) {
+		test_validate(rc, SA_AIS_OK);
+		goto done;
+	}
+	rc = saLogWriteLogAsync(0, invocation, 0, &genLogRecord);
+	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+
+done:
+	logFinalize();
+}
+__attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
+{
+	test_case_add(2, saLogWriteLogAsync_01,
+		      "saLogWriteAsyncLog() system OK");
+	test_case_add(2, saLogWriteLogAsync_02,
+		      "saLogWriteAsyncLog() alarm OK");
+	test_case_add(2, saLogWriteLogAsync_03,
+		      "saLogWriteAsyncLog() notification OK");
+	test_case_add(2, saLogWriteLogAsync_04,
+		      "saLogWriteAsyncLog() with NULL logStreamHandle");
+	test_case_add(2, saLogWriteLogAsync_05,
+		      "saLogWriteAsyncLog() with invalid logStreamHandle");
+	test_case_add(2, saLogWriteLogAsync_06,
+		      "saLogWriteAsyncLog() with invalid ackFlags");
+	test_case_add(2, saLogWriteLogAsync_07,
+		      "saLogWriteAsyncLog() with NULL logRecord ptr");
+	test_case_add(2, saLogWriteLogAsync_09,
+		      "saLogWriteAsyncLog() logSvcUsrName == NULL");
+	test_case_add(2, saLogWriteLogAsync_10,
+		      "saLogWriteAsyncLog() logSvcUsrName == NULL and envset");
+	test_case_add(2, saLogWriteLogAsync_11,
+		      "saLogWriteAsyncLog() with logTimeStamp set");
+	test_case_add(2, saLogWriteLogAsync_12,
+		      "saLogWriteAsyncLog() without logTimeStamp set");
+	test_case_add(
+	    2, saLogWriteLogAsync_13,
+	    "saLogWriteAsyncLog() 1800 bytes logrecord (ticket #203)");
+	test_case_add(2, saLogWriteLogAsync_14,
+		      "saLogWriteAsyncLog() invalid severity");
+	// These test cases are no longer valid when Long DN is supported
+	// test_case_add(2, saLogWriteLogAsync_15, "saLogWriteAsyncLog() NTF
+	// notificationObject length == 256");  test_case_add(2,
+	// saLogWriteLogAsync_16, "saLogWriteAsyncLog() NTF notifyingObject
+	// length == 256");  test_case_add(2, saLogWriteLogAsync_17,
+	// "saLogWriteLogAsync() Generic logSvcUsrName length == 256");
+	test_case_add(2, saLogWriteLogAsync_18,
+		      "saLogWriteLogAsync() logBufSize > strlen(logBuf) + 1");
+	test_case_add(
+	    2, saLogWriteLogAsync_19,
+	    "saLogWriteLogAsync() logBufSize > SA_LOG_MAX_RECORD_SIZE");
+	test_case_add(
+	    2, saLogWriteLogAsync_invalid_handle,
+	    "saLogWriteLogAsync() with invalid logStreamHandle");
+}

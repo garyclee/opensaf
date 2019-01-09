@@ -372,7 +372,8 @@ class ImmModel {
   int adjustEpoch(int suggestedEpoch, SaUint32T* continuationId,
                   SaUint32T* pbeConnPtr, unsigned int* pbeNodeIdPtr,
                   bool increment);
-
+  bool getRegenerateDbFlag();
+  void setRegenerateDbFlag(bool value);
   SaImmRepositoryInitModeT getRepositoryInitMode();
   unsigned int getMaxSyncBatchSize();
   bool getLongDnsAllowed(ObjectInfo* immObject = NULL);

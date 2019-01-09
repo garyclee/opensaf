@@ -40,6 +40,14 @@ void saNtfDispatch_03(void) {
   test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
+void saNtfDispatch_04(void) {
+  safassert(NtfTest::saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion),
+      SA_AIS_OK);
+  safassert(NtfTest::saNtfFinalize(ntfHandle), SA_AIS_OK);
+  rc = NtfTest::saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
+  test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
+}
+
 __attribute__((constructor)) static void saNtfDispatch_constructor(void) {
   test_suite_add(4, "Life cycle, dispatch, API 4");
   test_case_add(4, saNtfDispatch_01,
@@ -48,4 +56,6 @@ __attribute__((constructor)) static void saNtfDispatch_constructor(void) {
           "saNtfDispatch - invalid handle SA_AIS_ERR_BAD_HANDLE");
   test_case_add(4, saNtfDispatch_03,
           "saNtfDispatch - zero flag SA_AIS_ERR_INVALID_PARAM");
+  test_case_add(4, saNtfDispatch_04,
+      "saNtfDispatch - Fianlized handle SA_AIS_ERR_BAD_HANDLE");
 }

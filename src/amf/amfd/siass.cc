@@ -258,34 +258,12 @@ void avd_susi_read_headless_cached_rta(AVD_CL_CB *cb) {
       // the last fsm state when AMFD was before headless. This needs
       // AMFND to resend susi_resp message if CSI completes during
       // headless period.
-      susi->fsm = imm_susi_fsm;
+      if (imm_susi_fsm != AVD_SU_SI_STATE_BASE &&
+          imm_susi_fsm != AVD_SU_SI_STATE_ABSENT) {
+        susi->fsm = imm_susi_fsm;
+      }
+
 #endif
-      // Checkpoint to add this SUSI
-      m_AVSV_SEND_CKPT_UPDT_ASYNC_ADD(avd_cb, susi, AVSV_CKPT_AVD_SI_ASS);
-      // restore assignment counter
-      if (susi->fsm == AVD_SU_SI_STATE_ASGN ||
-          susi->fsm == AVD_SU_SI_STATE_ASGND ||
-          susi->fsm == AVD_SU_SI_STATE_MODIFY) {
-        if (susi->state == SA_AMF_HA_ACTIVE ||
-            susi->state == SA_AMF_HA_QUIESCING) {
-          su->inc_curr_act_si();
-          susi->si->inc_curr_act_ass();
-        } else if (susi->state == SA_AMF_HA_STANDBY) {
-          su->inc_curr_stdby_si();
-          susi->si->inc_curr_stdby_ass();
-        }
-      }
-      if (susi->si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED ||
-          susi->si->saAmfSIAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
-        if (susi->fsm == AVD_SU_SI_STATE_MODIFY &&
-            (susi->state == SA_AMF_HA_QUIESCED ||
-             susi->state == SA_AMF_HA_QUIESCING)) {
-          m_AVD_SET_SG_ADMIN_SI(cb, si);
-        }
-      }
-      // only restore if not done
-      if (susi->su->su_on_node->admin_ng == nullptr)
-        avd_ng_restore_headless_states(cb, susi);
     } else {  // For ABSENT SUSI
       TRACE("Check absent SUSI, ha_state:'%u', fsm_state:'%u'", imm_ha_state,
             imm_susi_fsm);
@@ -313,8 +291,49 @@ void avd_susi_read_headless_cached_rta(AVD_CL_CB *cb) {
       }
     }
   }
-
   (void)immutil_saImmOmSearchFinalize(searchHandle);
+
+  // Update all PRESENT SUSI, in case that a SUSI is missed to update because
+  // it is not present in IMM
+  for (const auto &value : *su_db) {
+    AVD_SU *su = value.second;
+    susi = su->list_of_susi;
+    while (susi != nullptr && susi->absent == false) {
+      AVD_SI *si = susi->si;
+      // validate SUSI assignments that are over assigned
+      if (avd_susi_validate_excessive_assignment(susi) == true) {
+        susi->fsm = AVD_SU_SI_STATE_EXCESSIVE;
+      }
+      // Checkpoint to add this SUSI
+      m_AVSV_SEND_CKPT_UPDT_ASYNC_ADD(avd_cb, susi, AVSV_CKPT_AVD_SI_ASS);
+      // restore assignment counter
+      if (susi->fsm == AVD_SU_SI_STATE_ASGN ||
+          susi->fsm == AVD_SU_SI_STATE_ASGND ||
+          susi->fsm == AVD_SU_SI_STATE_MODIFY) {
+        if (susi->state == SA_AMF_HA_ACTIVE ||
+            susi->state == SA_AMF_HA_QUIESCING) {
+          su->inc_curr_act_si();
+          susi->si->inc_curr_act_ass();
+        } else if (susi->state == SA_AMF_HA_STANDBY) {
+          su->inc_curr_stdby_si();
+          susi->si->inc_curr_stdby_ass();
+        }
+      }
+      if (susi->si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED ||
+          susi->si->saAmfSIAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
+        if (susi->fsm == AVD_SU_SI_STATE_MODIFY &&
+            (susi->state == SA_AMF_HA_QUIESCED ||
+             susi->state == SA_AMF_HA_QUIESCING)) {
+          m_AVD_SET_SG_ADMIN_SI(cb, si);
+        }
+      }
+      // only restore if not done
+      if (susi->su->su_on_node->admin_ng == nullptr)
+        avd_ng_restore_headless_states(cb, susi);
+
+      susi = susi->su_next;
+    }
+  }
 
 done:
   TRACE_LEAVE();
@@ -338,6 +357,9 @@ bool avd_susi_validate_absent_assignment(AVD_SU *su, AVD_SI *si,
       su->sg_of_su->any_assignment_assigned() == false) {
     goto done;
   }
+  // Skip if any excessive assignment exists
+  if (su->sg_of_su->any_assignment_excessive())
+    goto done;
   // Support: 2N, NoRed, NwayActive. Not support: NpM, Nway
   if (su->sg_of_su->sg_redundancy_model == SA_AMF_NPM_REDUNDANCY_MODEL ||
       su->sg_of_su->sg_redundancy_model == SA_AMF_N_WAY_REDUNDANCY_MODEL) {
@@ -445,6 +467,34 @@ done:
   TRACE_LEAVE2("%u, %u", valid,
                present_susi->su->sg_of_su->headless_validation);
   return present_susi->su->sg_of_su->headless_validation;
+}
+
+/**
+ * Validate the excessively present assignment
+ * @param present_susi
+ * @return: true of excessively, false otherwise
+ */
+bool avd_susi_validate_excessive_assignment(AVD_SU_SI_REL *present_susi) {
+  bool too_many = false;
+  TRACE_ENTER();
+  AVD_SI *si = present_susi->si;
+  AVD_SU *su = present_susi->su;
+  SaAmfHAStateT ha_state = present_susi->state;
+  if (su->sg_of_su->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL) {
+    if (si->count_sisu_with(ha_state) > 1 ||
+        si->count_sisu() > 2) too_many = true;
+  }
+  if (su->sg_of_su->sg_redundancy_model == SA_AMF_NO_REDUNDANCY_MODEL) {
+    if (si->curr_active_assignments() >= 1) too_many = true;
+  }
+  if (su->sg_of_su->sg_redundancy_model
+      == SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL) {
+    if (si->curr_active_assignments() >=
+        si->pref_active_assignments()) too_many = true;
+  }
+  // TODO: Check for NpM and NWay SG type
+  TRACE_LEAVE2("%u", too_many);
+  return too_many;
 }
 /*****************************************************************************
  * Function: avd_susi_create
@@ -847,9 +897,10 @@ uint32_t avd_susi_mod_send(AVD_SU_SI_REL *susi, SaAmfHAStateT ha_state) {
     goto done;
   }
   /* Update the assignment counters */
-  avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_MOD, old_state,
-                                      ha_state);
-
+  if (old_fsm_state != AVD_SU_SI_STATE_EXCESSIVE) {
+    avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_MOD, old_state,
+                                        ha_state);
+  }
   /* Following updations has to be done after getting response, will take care
    * subsequently */
   m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, susi, AVSV_CKPT_AVD_SI_ASS);
@@ -891,10 +942,11 @@ uint32_t avd_susi_del_send(AVD_SU_SI_REL *susi) {
     goto done;
   }
   /* Update the assignment counters */
-  avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_DEL,
-                                      static_cast<SaAmfHAStateT>(0),
-                                      static_cast<SaAmfHAStateT>(0));
-
+  if (old_fsm_state != AVD_SU_SI_STATE_EXCESSIVE) {
+    avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_DEL,
+                                        static_cast<SaAmfHAStateT>(0),
+                                        static_cast<SaAmfHAStateT>(0));
+  }
   /* Checkpointing has to be done after getting response, will take care
    * subsequently */
   m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, susi, AVSV_CKPT_AVD_SI_ASS);
@@ -922,10 +974,11 @@ void avd_susi_update_assignment_counters(AVD_SU_SI_REL *susi,
                                          SaAmfHAStateT new_ha_state) {
   AVD_SU *su = susi->su;
 
-  TRACE_ENTER2("SI:'%s', SU:'%s' action:%u current_ha_state:%u new_ha_state:%u",
-               susi->si->name.c_str(), susi->su->name.c_str(), action,
-               current_ha_state, new_ha_state);
+  TRACE_ENTER2("SI:'%s', SU:'%s' action:%u current_ha_state:%u new_ha_state:%u"
+                " fsm:%u", susi->si->name.c_str(), susi->su->name.c_str(),
+                action, current_ha_state, new_ha_state, susi->fsm);
 
+  if (susi->fsm == AVD_SU_SI_STATE_EXCESSIVE) goto done;
   switch (action) {
     case AVSV_SUSI_ACT_ASGN:
       if (new_ha_state == SA_AMF_HA_ACTIVE) {
@@ -982,7 +1035,7 @@ void avd_susi_update_assignment_counters(AVD_SU_SI_REL *susi,
       LOG_ER("%s: invalid action %u", __FUNCTION__, action);
       break;
   }
-
+done:
   TRACE_LEAVE();
 }
 /**

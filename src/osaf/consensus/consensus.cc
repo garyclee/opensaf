@@ -181,11 +181,11 @@ bool Consensus::IsWritable() const {
   SaAisErrorT rc;
   uint32_t retries = 0;
   constexpr uint32_t kMaxTestRetry = 3;
-  rc = KeyValue::Set(kTestKeyname, base::Conf::NodeName());
+  rc = KeyValue::Set(kTestKeyname, base::Conf::NodeName(), 0);
   while (rc != SA_AIS_OK && retries < kMaxTestRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
-    rc = KeyValue::Set(kTestKeyname, base::Conf::NodeName());
+    rc = KeyValue::Set(kTestKeyname, base::Conf::NodeName(), 0);
   }
 
   if (rc == SA_AIS_OK) {
@@ -338,7 +338,8 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
   while (rc == SA_AIS_ERR_FAILED_OPERATION && retries < kMaxRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
-    rc = KeyValue::Create(kTakeoverRequestKeyname, takeover_request);
+    rc = KeyValue::Create(kTakeoverRequestKeyname, takeover_request,
+                          takeover_valid_time);
   }
 
   if (rc == SA_AIS_ERR_EXIST) {
@@ -435,7 +436,8 @@ SaAisErrorT Consensus::WriteTakeoverResult(
 
   // previous value must match
   rc =
-      KeyValue::Set(kTakeoverRequestKeyname, takeover_result, takeover_request);
+      KeyValue::Set(kTakeoverRequestKeyname, takeover_result,
+                    takeover_request, takeover_valid_time);
 
   return rc;
 }

@@ -169,8 +169,6 @@ class Fifo {
       AvdJobTypeT job_type = JOB_TYPE_ANY);
   static void remove(const AVD_CL_CB *cb,
       AvdJobTypeT job_type = JOB_TYPE_ANY);
-  static AvdJobDequeueResultT executeAdminResp(AVD_CL_CB *cb);
-
   static void empty();
 
   static uint32_t size();

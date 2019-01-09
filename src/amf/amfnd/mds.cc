@@ -328,7 +328,8 @@ uint32_t avnd_mds_rcv(AVND_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info) {
        * from any other anchor than Active (except for HB message).
        */
       if ((rcv_info->i_fr_dest != cb->active_avd_adest) &&
-          (msg.info.avd->msg_type != AVSV_D2N_HEARTBEAT_MSG)) {
+          (msg.info.avd->msg_type != AVSV_D2N_HEARTBEAT_MSG) &&
+          (msg.info.avd->msg_type != AVSV_D2N_REBOOT_MSG)) {
         LOG_ER("Received dest: %" PRIu64 " and cb active AVD adest:%" PRIu64
                " mismatch, message type = %u",
                rcv_info->i_fr_dest, cb->active_avd_adest,

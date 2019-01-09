@@ -240,5 +240,6 @@ extern bool are_all_ngs_in_unlocked_state(const AVD_AVND *node);
 extern bool any_ng_in_locked_in_state(const AVD_AVND *node);
 void avd_ng_restore_headless_states(AVD_CL_CB *cb,
                                     struct avd_su_si_rel_tag *susi);
+void avd_check_nodes_after_reinit_imm();
 
 #endif  // AMF_AMFD_NODE_H_

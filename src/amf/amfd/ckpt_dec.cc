@@ -49,6 +49,7 @@ static uint32_t dec_oper_su(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_node_up_info(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_node_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_node_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
+static uint32_t dec_node_failover_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_node_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_node_rcv_msg_id(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_node_snd_msg_id(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
@@ -160,7 +161,8 @@ const AVSV_DECODE_CKPT_DATA_FUNC_PTR avd_dec_data_func_list[] = {
     dec_comp_curr_num_csi_stby, dec_comp_oper_state, dec_comp_readiness_state,
     dec_comp_pres_state, dec_comp_restart_count, nullptr, /* AVSV_SYNC_COMMIT */
     dec_su_restart_count, dec_si_dep_state, dec_ng_admin_state,
-    dec_avd_to_avd_job_queue_status
+    dec_avd_to_avd_job_queue_status,
+    dec_node_failover_state
 
 };
 
@@ -2956,5 +2958,45 @@ static uint32_t dec_avd_to_avd_job_queue_status(AVD_CL_CB *cb,
   osaf_decode_uint32(&dec->i_uba, &size);
   Fifo::trim_to_size(size);
   TRACE_LEAVE();
+  return NCSCC_RC_SUCCESS;
+}
+
+static uint32_t dec_node_failover_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
+  TRACE_ENTER();
+
+  uint32_t state;
+  SaNameT name;
+
+  osaf_decode_sanamet(&dec->i_uba, &name);
+  const std::string node_name(Amf::to_string(&name));
+  osaf_extended_name_free(&name);
+
+  AVD_AVND* node;
+  node = avd_node_get(node_name);
+
+  if (node == nullptr) {
+    LOG_ER("%s: node not found, nodeid=%s", __FUNCTION__, node_name.c_str());
+    return NCSCC_RC_FAILURE;
+  }
+
+  osaf_decode_uint32(&dec->i_uba,
+                     reinterpret_cast<uint32_t *>(&state));
+
+  auto failed_node = cb->failover_list.find(node->node_info.nodeId);
+  if (failed_node != cb->failover_list.end()) {
+    failed_node->second->SetState(state);
+  } else {
+    LOG_NO("Node '%s' not found in failover_list. Create new entry",
+            node->node_name.c_str());
+    auto new_node = std::make_shared<NodeStateMachine>(cb,
+      node->node_info.nodeId);
+    // node must be added to failover_list before SetState() is called.
+    // If the state is 'end', then it will be deleted by SetState().
+    // Otherwise, we will leave a node in 'End' state mistakenly in
+    // failover_list.
+    cb->failover_list[node->node_info.nodeId] = new_node;
+    new_node->SetState(state);
+  }
+
   return NCSCC_RC_SUCCESS;
 }
