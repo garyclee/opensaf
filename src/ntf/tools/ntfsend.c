@@ -405,18 +405,12 @@ static SaAisErrorT sendNotification(
 
 	unsigned int repeat = notificationParams->repeateSends;
 
-	do {
-		errorCode = ntftool_saNtfInitialize(&ntfHandle, NULL, &version);
-		if (SA_AIS_OK != errorCode &&
-		    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-			(void)printf("ntftool_saNtfInitialize %s\n",
-				     error_output(errorCode));
-			return errorCode;
-		}
-		if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-			usleep(100000);
-		}
-	} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+	errorCode = ntftool_saNtfInitialize(&ntfHandle, NULL, &version);
+	if (errorCode != SA_AIS_OK) {
+		(void)printf("ntftool_saNtfInitialize %s\n",
+			     error_output(errorCode));
+		return errorCode;
+	}
 
 	switch (notificationParams->notificationType) {
 	case SA_NTF_TYPE_ALARM:
@@ -854,21 +848,13 @@ repeatedSend:
 	case SA_NTF_TYPE_ALARM:
 
 		/* Send the alarm notification */
-		do {
-
-			errorCode = ntftool_saNtfNotificationSend(
-			    myAlarmNotification.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf(
-				    "ntftool_saNtfNotificationSend %s\n",
-				    error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = ntftool_saNtfNotificationSend(
+				myAlarmNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("ntftool_saNtfNotificationSend %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		ntfId =
 		    *(myAlarmNotification.notificationHeader.notificationId);
@@ -884,38 +870,25 @@ repeatedSend:
 			goto repeatedSend;
 		}
 
-		do {
-			errorCode = saNtfNotificationFree(
-			    myAlarmNotification.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf("saNtfNotificationFree %s\n",
-					     error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = saNtfNotificationFree(
+				myAlarmNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("saNtfNotificationFree %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		break;
 	case SA_NTF_TYPE_STATE_CHANGE:
 		/* Send the state change notification */
 
-		do {
-			errorCode = ntftool_saNtfNotificationSend(
-			    myStateChangeNotification.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf(
-				    "ntftool_saNtfNotificationSend %s\n",
-				    error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = ntftool_saNtfNotificationSend(
+		    myStateChangeNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("ntftool_saNtfNotificationSend %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		ntfId = *(myStateChangeNotification.notificationHeader
 			      .notificationId);
@@ -931,39 +904,26 @@ repeatedSend:
 			goto repeatedSend;
 		}
 
-		do {
-			errorCode = saNtfNotificationFree(
-			    myStateChangeNotification.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf("saNtfNotificationFree %s\n",
-					     error_output(errorCode));
-				return errorCode;
-			}
-			usleep(100000);
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = saNtfNotificationFree(
+				myStateChangeNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("saNtfNotificationFree %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		break;
 
 	case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
 		/* Send the object create/delete notification */
 
-		do {
-
-			errorCode = ntftool_saNtfNotificationSend(
-			    myObjectCreateDeleteNotification
-				.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf(
-				    "ntftool_saNtfNotificationSend %s\n",
-				    error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = ntftool_saNtfNotificationSend(
+			myObjectCreateDeleteNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("ntftool_saNtfNotificationSend %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		ntfId = *(myObjectCreateDeleteNotification.notificationHeader
 			      .notificationId);
@@ -979,40 +939,25 @@ repeatedSend:
 			goto repeatedSend;
 		}
 
-		do {
-
-			errorCode = saNtfNotificationFree(
-			    myObjectCreateDeleteNotification
-				.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf("saNtfNotificationFree %s\n",
-					     error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = saNtfNotificationFree(
+			myObjectCreateDeleteNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("saNtfNotificationFree %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		break;
 
 	case SA_NTF_TYPE_ATTRIBUTE_CHANGE:
 		/* Send the attribute change notification */
-		do {
-			errorCode = ntftool_saNtfNotificationSend(
-			    myAttributeChangeNotification.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf(
-				    "ntftool_saNtfNotificationSend %s\n",
-				    error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = ntftool_saNtfNotificationSend(
+			myAttributeChangeNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("ntftool_saNtfNotificationSend %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		ntfId = *(myAttributeChangeNotification.notificationHeader
 			      .notificationId);
@@ -1027,40 +972,26 @@ repeatedSend:
 			goto repeatedSend;
 		}
 
-		do {
-
-			errorCode = saNtfNotificationFree(
-			    myAttributeChangeNotification.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf("saNtfNotificationFree %s\n",
-					     error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = saNtfNotificationFree(
+			myAttributeChangeNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("saNtfNotificationFree %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		break;
 
 	case SA_NTF_TYPE_SECURITY_ALARM: /* Send the state change notification
 					  */
 
-		do {
-			errorCode = ntftool_saNtfNotificationSend(
-			    mySecurityAlarmNotification.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf(
-				    "ntftool_saNtfNotificationSend %s\n",
-				    error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = ntftool_saNtfNotificationSend(
+				mySecurityAlarmNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("ntftool_saNtfNotificationSend %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		ntfId = *(mySecurityAlarmNotification.notificationHeader
 			      .notificationId);
@@ -1075,19 +1006,13 @@ repeatedSend:
 			goto repeatedSend;
 		}
 
-		do {
-			errorCode = saNtfNotificationFree(
-			    mySecurityAlarmNotification.notificationHandle);
-			if (SA_AIS_OK != errorCode &&
-			    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-				(void)printf("saNtfNotificationFree %s\n",
-					     error_output(errorCode));
-				return errorCode;
-			}
-			if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-				usleep(100000);
-			}
-		} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+		errorCode = saNtfNotificationFree(
+				mySecurityAlarmNotification.notificationHandle);
+		if (SA_AIS_OK != errorCode) {
+			(void)printf("saNtfNotificationFree %s\n",
+				     error_output(errorCode));
+			return errorCode;
+		}
 
 		break;
 
@@ -1096,18 +1021,7 @@ repeatedSend:
 		break;
 	}
 
-	do {
-		errorCode = saNtfFinalize(ntfHandle);
-		if (SA_AIS_OK != errorCode &&
-		    SA_AIS_ERR_TRY_AGAIN != errorCode) {
-			(void)printf("saNtfFinalize %s\n",
-				     error_output(errorCode));
-			return errorCode;
-		}
-		if (SA_AIS_ERR_TRY_AGAIN == errorCode) {
-			usleep(100000);
-		}
-	} while (SA_AIS_ERR_TRY_AGAIN == errorCode);
+	saNtfFinalize(ntfHandle);
 
 	return SA_AIS_OK;
 
