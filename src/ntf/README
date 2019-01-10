@@ -233,6 +233,16 @@ NTFSV_ENV_CACHE_SIZE
 The size of the notification cache in the NTF server processes running on the Controller nodes.
 The default value is 10000 notification.
 
+NTFSV_LOGGER_BUFFER_CAPACITY
+
+The logger buffer is used to store the notification if writing notification
+to log file fail. This variable is set for limit of logger buffer size in
+NTFD. If the logger buffer is full and NTFD receives new notification,
+the TRY_AGAIN  error is returned to user. The limit should be set with relevant
+value to avoid congestion in NTFD. Because if this value is set too big and
+writing notification is fail for long time, NTF has to write a big number of
+notifications whenever handling sending notification request and that will delay
+to handle other requests come to NTFD. The value of variable is from 10 to 5000.
 
 for debug see DEBUG.
 

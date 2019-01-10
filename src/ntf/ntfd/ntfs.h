@@ -50,6 +50,8 @@
  * ========================================================================
  */
 #define NTFSV_READER_CACHE_DEFAULT 10000
+#define NTFSV_LOGGER_BUFFER_CAPACITY_DEFAULT 10
+#define NTFSV_LOGGER_BUFFER_CAPACITY_MAX 5000
 
 /* ========================================================================
  *   TYPE DEFINITIONS

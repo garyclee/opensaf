@@ -55,12 +55,20 @@ class NtfLogger {
   NtfLogger();
   //    virtual ~NtfLogger();
 
-  void log(NtfSmartPtr& notif, bool isLocal);
-  void checkQueueAndLog(NtfSmartPtr& notif);
+  void log(NtfSmartPtr& newNotification);
   SaAisErrorT logNotification(NtfSmartPtr& notif);
   void queueNotifcation(NtfSmartPtr& notif);
   void printInfo();
   void syncRequest(NCS_UBAID *uba);
+
+  // Add the notification to the reader list
+  void addNotificationToReaderList(NtfSmartPtr& notification);
+  // Check if the buffer is already full or not
+  bool isLoggerBufferFull();
+  // Check if the type of notification is alarm/alarm security or not
+  bool isAlarmNotification(NtfSmartPtr& notif);
+
+  void resetLoggerBufferFullFlag();
 
  private:
   SaAisErrorT initLog();
@@ -69,6 +77,12 @@ class NtfLogger {
   unsigned int readCounter;
   typedef std::list<NtfSmartPtr> QueuedNotificationsList;
   QueuedNotificationsList queuedNotificationList;
+
+  uint32_t logger_buffer_capacity;
+
+  // The flag if logger buffer is full. This is set when checking the logger
+  // buffer size and is reset if the write callback return with SA_AIS_OK
+  bool isLoggerBufferfull;
 };
 
 #endif  // NTF_NTFD_NTFLOGGER_H_

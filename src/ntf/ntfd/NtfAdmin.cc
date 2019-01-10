@@ -187,25 +187,38 @@ void NtfAdmin::processNotification(unsigned int clientId,
   // NtfAdmin::subscriptionRemoved
   NtfSmartPtr notification(
       new NtfNotification(notificationId, notificationType, sendNotInfo));
-  // store notification in a map for tracking purposes
-  notificationMap[notificationId] = notification;
-  TRACE_2("notification %llu with type %d added, notificationMap size is %u",
-          notificationId, notificationType,
-          (unsigned int)notificationMap.size());
 
-  // log the notification. Callback from SAF log will confirm later.
-  logger.log(notification, activeController());
+  if ((logger.isLoggerBufferFull() == true) &&
+      (logger.isAlarmNotification(notification) == true)) {
+    NtfClient *client = getClient(clientId);
+    MDS_DEST dest = client->getMdsDest();
+    LOG_WA("The logger buffer is full. Check if there is issue in writing");
+    if (activeController())
+      notfication_result_lib(SA_AIS_ERR_TRY_AGAIN, notificationId,
+                             mdsCtxt, dest);
+  } else {
+    // store notification in a map for tracking purposes
+    notificationMap[notificationId] = notification;
+    TRACE_2("notification %llu with type %d added, notificationMap size is %u",
+            notificationId, notificationType,
+            (unsigned int)notificationMap.size());
+    /* send notification to standby */
+    sendNotificationUpdate(clientId, notification->getNotInfo());
 
-  /* send notification to standby */
-  sendNotificationUpdate(clientId, notification->getNotInfo());
-
-  ClientMap::iterator pos;
-  for (pos = clientMap.begin(); pos != clientMap.end(); pos++) {
-    NtfClient *client = pos->second;
-    client->notificationReceived(clientId, notification, mdsCtxt);
+    ClientMap::iterator pos;
+    for (pos = clientMap.begin(); pos != clientMap.end(); pos++) {
+      NtfClient *client = pos->second;
+      client->notificationReceived(clientId, notification, mdsCtxt);
+    }
   }
 
-  /* remove notification if sent to all subscribers and logged */
+  // Add the notification to Reader list
+  logger.addNotificationToReaderList(notification);
+  // Log the notification. Callback from SAF log will confirm later.
+  if (activeController())
+    logger.log(notification);
+
+  // Remove the notification if it is sent to all subscribers and logged
   if (notification->isSubscriptionListEmpty() && notification->loggedOk()) {
     NotificationMap::iterator posNot;
     posNot = notificationMap.find(notificationId);
@@ -341,9 +354,9 @@ void NtfAdmin::notificationReceivedColdSync(
   TRACE_LEAVE();
 }
 /**
- * A cached notification is received in Cold Sync.
- * This cached notification will be marked as logged, and stored
- * only in NtfLogger class to serve the reader.
+ * A cached notifications are received in Cold Sync.
+ * This cached notifications are stored in NtfLogger
+ * class to serve the reader.
  *
  * @param clientId Node-wide unique id for the client who sent the
  *                 notification.
@@ -363,8 +376,7 @@ void NtfAdmin::cachedNotificationReceivedColdSync(
   TRACE_2("cached notification %u received", (unsigned int)notificationId);
   NtfSmartPtr notification(new NtfNotification(notificationId,
       notificationType, sendNotInfo));
-  notification->notificationLoggedConfirmed();
-  logger.log(notification, false);
+  logger.addNotificationToReaderList(notification);
   TRACE_LEAVE();
 }
 
@@ -706,7 +718,7 @@ void NtfAdmin::checkNotificationList() {
 
     if (notification->loggedOk() == false) {
       /* When reader API works check if already logged */
-      logger.log(notification, true);
+      logger.log(notification);
     }
     if (!notification->isSubscriptionListEmpty()) {
       TRACE_2("list not empty check subscriptions for %llu",
