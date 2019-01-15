@@ -524,7 +524,8 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
   const unsigned char *res;
   for (c = 0; c < ncols; ++c) {
     res = sqlite3_column_text(stmt, c);
-    if (res) {
+    bool is_null = false;
+    if (true) {
       SaImmValueTypeT attrType = (SaImmValueTypeT)0;
       const char *colname = sqlite3_column_name(stmt, c);
       assert(colname != NULL);
@@ -544,7 +545,7 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
       assert(it != class_info->attrInfoVector.end());
 
       char *val;
-      if (attrType == SA_IMM_ATTR_SADOUBLET) {
+      if (res && attrType == SA_IMM_ATTR_SADOUBLET) {
         double dbl = sqlite3_column_double(stmt, c);
 
         val = (char *)malloc(30);
@@ -555,12 +556,16 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
           snprintf(val, size, "%.17g", dbl);
         }
       } else {
-        val = strdup((const char *)res);
+        if (res) {
+          val = strdup((const char *)res);
+        }
       }
 
+      is_null = (res == nullptr);
       std::list<char *> attrValueBuffers;
-      attrValueBuffers.push_front(val);
-
+      if (!is_null) {
+        attrValueBuffers.push_front(val);
+      }
       addObjectAttributeDefinition((char *)class_info->className.c_str(),
                                    (SaImmAttrNameT)colname, &attrValueBuffers,
                                    attrType, &attrValuesList);
@@ -669,7 +674,6 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
                                      (char *)(*it)->attrName.c_str(),
                                      &attrValueBuffers, (*it)->attrValueType,
                                      &attrValuesList);
-
       sqlite3_reset(stmt);
     } /*if(attr_is_multi && !attr_is_pure_rt)*/
     ++it;

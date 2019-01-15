@@ -32,6 +32,11 @@
 
 #define XML_VERSION "1.0"
 
+// All attributes with <Empty> values will be dumped to
+// the target with tags <value xsi:nil="true" /> if value
+// of this variable is true - option `-n` is given to immdump.
+bool dump_nil_notation = false;
+
 /* Prototypes */
 static std::map<std::string, std::string> cacheRDNs(
     SaImmHandleT, std::list<std::string>& selectedClassList);
@@ -52,6 +57,9 @@ static void usage(const char* progname) {
   printf("\nOPTIONS\n");
   printf("\t-h, --help\n");
   printf("\t\tthis help\n\n");
+
+  printf("\t-n, --null \n");
+  printf("\t\tDump empty attribute value with xsi:nil notation\n\n");
 
   printf("\t-x, --xmlwriter   {<file name>}\n");
   printf("\t\tOption kept only for backward compatibility\n\n");
@@ -85,6 +93,7 @@ int main(int argc, char* argv[]) {
                                   {"xmlwriter", required_argument, 0, 'x'},
                                   {"class", required_argument, 0, 'c'},
                                   {"audit", required_argument, 0, 'a'},
+                                  {"null", no_argument, 0, 'n'},
                                   {0, 0, 0, 0}};
   SaImmHandleT immHandle;
   SaAisErrorT errorCode;
@@ -136,7 +145,7 @@ int main(int argc, char* argv[]) {
   }
 
   while (1) {
-    if ((c = getopt_long(argc, argv, "hp:x:c:a:", long_options, NULL)) == -1)
+    if ((c = getopt_long(argc, argv, "hp:x:c:a:n", long_options, NULL)) == -1)
       break;
 
     switch (c) {
@@ -161,6 +170,10 @@ int main(int argc, char* argv[]) {
       case 'a':
         auditPbe = true;
         filename.append(optarg);
+        break;
+
+      case 'n':
+        dump_nil_notation = true;
         break;
 
       default:

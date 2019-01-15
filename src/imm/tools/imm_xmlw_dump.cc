@@ -25,6 +25,8 @@
 #include "base/osaf_extended_name.h"
 #include "imm/common/immsv_utils.h"
 
+extern bool dump_nil_notation;
+
 typedef std::pair<std::string, std::list<std::string> > Attribute;
 
 typedef struct {
@@ -419,10 +421,10 @@ void objectToXMLw(std::string objectNameString, SaImmAttrValuesT_2** attrs,
     exit(1);
   }
   for (SaImmAttrValuesT_2** p = attrs; *p != NULL; p++) {
-    /* Skip attributes with attrValues = NULL */
-    if ((*p)->attrValues == NULL) {
+    /* Omit all empty-value attributes from dump target
+       if option '-n' is not given to immdump command */
+    if ((*p)->attrValues == NULL && !dump_nil_notation)
       continue;
-    }
 
     if (classRDNMap.find(classNameString) != classRDNMap.end() &&
         classRDNMap[classNameString] == std::string((*p)->attrName)) {
@@ -469,10 +471,11 @@ static void StoreObject(const std::string& objectName,
 
   /* Add attributes to list */
   for (SaImmAttrValuesT_2** p = attrs; *p != NULL; p++) {
-    /* Skip attributes with attrValues = NULL */
-    if ((*p)->attrValues == NULL) {
+    /* Omit all empty-value attributes from dump target
+       if option '-n' is not given to immdump command */
+    if ((*p)->attrValues == NULL && !dump_nil_notation)
       continue;
-    }
+
     /* Skip RDN */
     if (classRDNMap.find(obj.className) != classRDNMap.end() &&
         classRDNMap[obj.className] == std::string((*p)->attrName)) {
@@ -544,42 +547,62 @@ static void ObjectSetToXMLw(std::set<Object, ObjectComp>& objectSet,
       }
 
       /* Write attribute values */
-      for (std::list<std::string>::const_iterator value_it =
-               attr_it->second.begin();
-           value_it != attr_it->second.end(); ++value_it) {
+      std::list<std::string> values = attr_it->second;
+      if (values.empty()) {
         if (xmlTextWriterStartElement(writer, (xmlChar*)"value") < 0) {
           std::cout << "Error at xmlTextWriterStartElement (value)"
                     << std::endl;
           exit(1);
         }
-        if (osaf_is_valid_xml_utf8((*value_it).c_str())) {
-          if (xmlTextWriterWriteString(writer, (xmlChar*)(*value_it).c_str()) <
-              0) {
-            std::cout << "Error at xmlTextWriterWriteString (value)"
-                      << std::endl;
-            exit(1);
-          }
-        } else {
-          if (xmlTextWriterWriteAttribute(writer, (xmlChar*)"xsi:type",
-                                          (xmlChar*)"xs:base64Binary") < 0) {
-            std::cout << "Error at xmlTextWriterWriteAttribute (value)"
-                      << std::endl;
-            exit(1);
-          }
-          if (xmlTextWriterWriteBase64(writer, (*value_it).c_str(), 0,
-                                       (*value_it).size()) < 0) {
-            std::cout << "Error at xmlTextWriterWriteBase64 (value)"
-                      << std::endl;
-            exit(1);
-          }
+        if (xmlTextWriterWriteAttribute(writer, (xmlChar*)"xsi:nil",
+                                        (xmlChar*)"true") < 0) {
+          std::cout << "Error at xmlTextWriterWriteAttribute (value)"
+                    << std::endl;
+          exit(1);
         }
         if (xmlTextWriterEndElement(writer) < 0) {
           std::cout << "Error at xmlTextWriterWriteEndElement (value)"
                     << std::endl;
           exit(1);
         }
-      } /* Attribute values loop */
 
+      } else {
+        for (std::list<std::string>::const_iterator value_it =
+                 attr_it->second.begin();
+             value_it != attr_it->second.end(); ++value_it) {
+          if (xmlTextWriterStartElement(writer, (xmlChar*)"value") < 0) {
+            std::cout << "Error at xmlTextWriterStartElement (value)"
+                      << std::endl;
+            exit(1);
+          }
+          if (osaf_is_valid_xml_utf8((*value_it).c_str())) {
+            if (xmlTextWriterWriteString(writer, (xmlChar*)(*value_it).c_str()) <
+                0) {
+              std::cout << "Error at xmlTextWriterWriteString (value)"
+                        << std::endl;
+              exit(1);
+            }
+          } else {
+            if (xmlTextWriterWriteAttribute(writer, (xmlChar*)"xsi:type",
+                                            (xmlChar*)"xs:base64Binary") < 0) {
+              std::cout << "Error at xmlTextWriterWriteAttribute (value)"
+                        << std::endl;
+              exit(1);
+            }
+            if (xmlTextWriterWriteBase64(writer, (*value_it).c_str(), 0,
+                                         (*value_it).size()) < 0) {
+              std::cout << "Error at xmlTextWriterWriteBase64 (value)"
+                        << std::endl;
+              exit(1);
+            }
+          }
+          if (xmlTextWriterEndElement(writer) < 0) {
+            std::cout << "Error at xmlTextWriterWriteEndElement (value)"
+                      << std::endl;
+            exit(1);
+          }
+        } /* Attribute values loop */
+      }
       if (xmlTextWriterEndElement(writer) < 0) {
         std::cout << "Error at xmlTextWriterEndElement (attr-object)"
                   << std::endl;
@@ -597,8 +620,23 @@ static void ObjectSetToXMLw(std::set<Object, ObjectComp>& objectSet,
 }
 
 void valuesToXMLw(SaImmAttrValuesT_2* p, xmlTextWriterPtr writer) {
-  if (!p->attrValues) {
-    // std::cout << "No values!" << std::endl;
+  if (p->attrValuesNumber == 0) {
+    if (xmlTextWriterStartElement(writer, (xmlChar*)"value") < 0) {
+      std::cout << "Error at xmlTextWriterStartElement (value)"
+                << std::endl;
+      exit(1);
+    }
+    if (xmlTextWriterWriteAttribute(writer, (xmlChar*)"xsi:nil",
+                                    (xmlChar*)"true") < 0) {
+      std::cout << "Error at xmlTextWriterWriteAttribute (value)"
+                << std::endl;
+      exit(1);
+    }
+    if (xmlTextWriterEndElement(writer) < 0) {
+      std::cout << "Error at xmlTextWriterWriteEndElement (value)"
+                << std::endl;
+      exit(1);
+    }
     return;
   }
 
