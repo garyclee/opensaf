@@ -1847,6 +1847,7 @@ void tet_svc_subscr_VDEST_11()
 		printf("\nFail to subscribing for the service 500\n");
 		FAIL = 1;
 	}
+	sleep(1);
 	/* verifying the rem svc ver from 600 and 700*/
 	printf("\nChanging the role of vdest to active");
 	if (vdest_change_role(1001, V_DEST_RL_ACTIVE) != NCSCC_RC_SUCCESS) {
