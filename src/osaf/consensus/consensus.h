@@ -57,6 +57,9 @@ class Consensus {
   // Is remote fencing enabled?
   bool IsRemoteFencingEnabled() const;
 
+  // Is relaxed node promotion enabled?
+  bool IsRelaxedNodePromotionEnabled() const;
+
   Consensus();
   virtual ~Consensus();
 
@@ -66,7 +69,7 @@ class Consensus {
     UNDEFINED = 0,
     NEW = 1,
     ACCEPTED = 2,
-    REJECTED = 3,
+    REJECTED = 3
   };
 
   enum class TakeoverElements : std::uint8_t {
@@ -85,13 +88,15 @@ class Consensus {
  private:
   bool use_consensus_ = false;
   bool use_remote_fencing_ = false;
+  bool prioritise_partition_size_ = false;
+  bool relaxed_node_promotion_ = false;
   uint32_t takeover_valid_time;
   uint32_t max_takeover_retry;
   const std::string kTestKeyname = "opensaf_write_test";
   const std::chrono::milliseconds kSleepInterval =
       std::chrono::milliseconds(1000);  // in ms
   static constexpr uint32_t kLockTimeout = 0;  // lock is persistent by default
-  static constexpr uint32_t kMaxRetry = 30;
+  static constexpr uint32_t kMaxRetry = 3;
 
   void CheckForExistingTakeoverRequest();
 

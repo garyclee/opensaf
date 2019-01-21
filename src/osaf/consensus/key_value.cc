@@ -53,6 +53,8 @@ SaAisErrorT KeyValue::Get(const std::string& key, std::string& value) {
 
   if (rc == 0) {
     return SA_AIS_OK;
+  } else if (rc == 1) {
+    return SA_AIS_ERR_INVALID_PARAM;
   } else {
     return SA_AIS_ERR_FAILED_OPERATION;
   }
@@ -109,6 +111,8 @@ SaAisErrorT KeyValue::Create(const std::string& key, const std::string& value,
     return SA_AIS_OK;
   } else if (rc == 1) {
     return SA_AIS_ERR_EXIST;
+  } else if (rc == 2) {
+    return SA_AIS_ERR_INVALID_PARAM;
   } else {
     return SA_AIS_ERR_FAILED_OPERATION;
   }
@@ -211,7 +215,7 @@ void WatchKeyFunction(const std::string& key, const ConsensusCallback& callback,
   int rc;
 
   rc = KeyValue::Execute(command, value);
-  while (rc != 0 && retries < kMaxRetry) {
+  while (rc != 0 && rc < 126 && retries < kMaxRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
     rc = KeyValue::Execute(command, value);
@@ -238,7 +242,7 @@ void WatchLockFunction(const ConsensusCallback& callback,
   int rc;
 
   rc = KeyValue::Execute(command, value);
-  while (rc != 0 && retries < kMaxRetry) {
+  while (rc != 0 && rc < 126 && retries < kMaxRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
     rc = KeyValue::Execute(command, value);

@@ -64,6 +64,7 @@ SaAisErrorT Consensus::PromoteThisNode(const bool graceful_takeover,
                                    cluster_size);
         if (rc != SA_AIS_OK) {
           LOG_WA("Takeover request failed (%d)", rc);
+          rc = SA_AIS_ERR_EXIST;
           return rc;
         }
         take_over_request_created = true;
@@ -99,7 +100,7 @@ SaAisErrorT Consensus::PromoteThisNode(const bool graceful_takeover,
   if (rc == SA_AIS_OK) {
     LOG_NO("Active controller set to %s", base::Conf::NodeName().c_str());
   } else {
-    LOG_ER("Failed to promote this node (%u)", rc);
+    LOG_WA("Failed to promote this node (%u)", rc);
   }
 
   return rc;
@@ -197,6 +198,10 @@ bool Consensus::IsWritable() const {
 
 bool Consensus::IsRemoteFencingEnabled() const { return use_remote_fencing_; }
 
+bool Consensus::IsRelaxedNodePromotionEnabled() const {
+  return relaxed_node_promotion_;
+}
+
 std::string Consensus::CurrentActive() const {
   TRACE_ENTER();
   if (use_consensus_ == false) {
@@ -228,6 +233,10 @@ Consensus::Consensus() {
   uint32_t split_brain_enable = base::GetEnv("FMS_SPLIT_BRAIN_PREVENTION", 0);
   std::string kv_store_cmd = base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
   uint32_t use_remote_fencing = base::GetEnv("FMS_USE_REMOTE_FENCING", 0);
+  uint32_t prioritise_partition_size =
+    base::GetEnv("FMS_TAKEOVER_PRIORITISE_PARTITION_SIZE", 1);
+  uint32_t relaxed_node_promotion =
+    base::GetEnv("FMS_RELAXED_NODE_PROMOTION", 0);
 
   // if not specified in fmd.conf,
   // takeover requests are valid for 20 seconds
@@ -244,6 +253,14 @@ Consensus::Consensus() {
 
   if (use_remote_fencing == 1) {
     use_remote_fencing_ = true;
+  }
+
+  if (prioritise_partition_size == 1) {
+    prioritise_partition_size_ = true;
+  }
+
+  if (use_consensus_ == true && relaxed_node_promotion == 1) {
+    relaxed_node_promotion_ = true;
   }
 
   // needed for base::Conf::NodeName() later
@@ -371,6 +388,10 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
     LOG_NO("Takeover request expired or removed");
 
     return CreateTakeoverRequest(current_owner, proposed_owner, cluster_size);
+  }
+
+  if (rc != SA_AIS_OK) {
+     return rc;
   }
 
   // wait up to max_takeover_retry seconds for request to be answered
@@ -546,9 +567,21 @@ Consensus::TakeoverState Consensus::HandleTakeoverRequest(
   LOG_NO("Other network size: %" PRIu64 ", our network size: %" PRIu64,
          proposed_cluster_size, cluster_size);
 
+  const std::string state_str =
+    tokens[static_cast<std::uint8_t>(TakeoverElements::STATE)];
+
   TakeoverState result;
-  if (proposed_cluster_size > cluster_size) {
-    result = TakeoverState::ACCEPTED;
+  if (state_str !=
+        TakeoverStateStr[static_cast<std::uint8_t>(TakeoverState::NEW)]) {
+    return TakeoverState::UNDEFINED;
+  }
+
+  if (prioritise_partition_size_ == true) {
+    if (proposed_cluster_size > cluster_size) {
+      result = TakeoverState::ACCEPTED;
+    } else {
+      result = TakeoverState::REJECTED;
+    }
   } else {
     result = TakeoverState::REJECTED;
   }
@@ -560,7 +593,7 @@ Consensus::TakeoverState Consensus::HandleTakeoverRequest(
           TakeoverElements::PROPOSED_NETWORK_SIZE)],
       result);
   if (rc != SA_AIS_OK) {
-    LOG_ER("Unable to write takeover result (%d)", rc);
+    LOG_WA("Unable to write takeover result (%d)", rc);
     return TakeoverState::UNDEFINED;
   }
 
