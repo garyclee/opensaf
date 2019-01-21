@@ -760,6 +760,19 @@ void clms_track_send_node_down(CLMS_CLUSTER_NODE *node) {
     --(osaf_cluster->num_nodes);
   }
 
+#ifdef ENABLE_AIS_PLM
+  if (node->admin_op == PLM) {
+    // we haven't responded to PLM -- maybe AMF crashed?
+    SaAisErrorT rc(saPlmReadinessTrackResponse(clms_cb->ent_group_hdl,
+                                               node->plm_invid,
+                                               SA_PLM_CALLBACK_RESPONSE_ERROR));
+    if (rc != SA_AIS_OK)
+      LOG_ER("saPlmReadinessTrackResponse FAILED: %u", rc);
+
+    node->admin_op = ADMIN_OP{};
+  }
+#endif
+
   /*Irrespective of plm in system or not,toggle the membership status for
    * MDS NODE DOWN*/
   node->member = SA_FALSE;
