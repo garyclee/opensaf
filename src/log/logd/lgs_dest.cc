@@ -114,7 +114,7 @@ void DestinationHandler::UpdateDestTypeDb(
 
     case MsgType::kNoDest: {
       TRACE("%s kNoDest", __func__);
-      for (auto& it : nametype_map_) nametype_map_.erase(it.first);
+      nametype_map_.clear();
       break;
     }
 

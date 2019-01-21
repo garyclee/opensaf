@@ -603,7 +603,10 @@ uint32_t parse_nodeinit_conf(char *strbuf) {
   (void)fclose(ntfile);
 
   if ((file = fopen(nidconf, "r")) == NULL) {
-    sprintf(strbuf, "%s. file open error '%s'\n", nidconf, strerror(errno));
+    if (snprintf(strbuf, 256, "%s. file open error '%s'\n", nidconf,
+                 strerror(errno)) >= 256) {
+      LOG_WA("strbuf truncated: %s", strbuf);
+    }
     return NCSCC_RC_FAILURE;
   }
 

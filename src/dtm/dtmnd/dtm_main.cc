@@ -367,7 +367,7 @@ void UpdateNodeIdFile(DTM_INTERNODE_CB *cb) {
       try {
         str.open(PKGLOCALSTATEDIR "/node_id", std::ofstream::out);
         str << std::hex << node_id << std::endl;
-      } catch (std::ofstream::failure) {
+      } catch (std::ofstream::failure&) {
       }
       str.close();
     }

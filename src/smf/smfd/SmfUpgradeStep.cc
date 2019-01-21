@@ -1419,7 +1419,7 @@ SaAisErrorT SmfUpgradeStep::calculateStepType() {
          will be ordered within the step */
 
       SaAisErrorT rc;
-      bool isSingleNode;
+      bool isSingleNode(false);
       if ((rc = this->isSingleNodeSystem(isSingleNode)) != SA_AIS_OK) {
         LOG_NO("Fail to read if this is a single node system rc=%s",
                saf_error(rc));

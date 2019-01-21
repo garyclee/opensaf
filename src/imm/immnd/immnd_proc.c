@@ -1887,7 +1887,7 @@ static int immnd_forkPbe(IMMND_CB *cb)
 	char execPath[1024];
 	char dbFilePath[1024];
 	int pid = (-1);
-	int execDirLen = (int)(strlen(cb->mProgName) - strlen(base));
+	size_t execDirLen = strlen(cb->mProgName) - strlen(base);
 	int dirLen = (int)strlen(cb->mDir);
 	int pbeLen = (int)strlen(cb->mPbeFile);
 	int i, j;

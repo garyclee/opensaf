@@ -329,10 +329,9 @@ ErrCode UnixSocketType::ProcessMsg(const DestinationHandler::HandleMsg& msg) {
         return ErrCode::kDrop;
       }
 
-      for (auto& it : name_sockethdlr_map_) {
+      for (auto& it : name_sockethdlr_map_)
         if (it.second != nullptr) delete it.second;
-        name_sockethdlr_map_.erase(it.first);
-      }
+      name_sockethdlr_map_.clear();
       cfgsent = false;
       break;
     }

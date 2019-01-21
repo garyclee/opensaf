@@ -102,7 +102,7 @@ static uint32_t rde_amf_healthcheck_start(RDE_AMF_CB *rde_amf_cb) {
   SaAmfHealthcheckKeyT Healthy;
   SaNameT SaCompName;
   char *phlth_ptr;
-  char hlth_str[256];
+  char hlth_str[SA_AMF_HEALTHCHECK_KEY_MAX];
 
   TRACE_ENTER();
 

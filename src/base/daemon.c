@@ -99,7 +99,8 @@ static int __create_pidfile(const char *pidfile)
 	pid_t pid;
 
 	pid = getpid();
-	snprintf(pidfiletmp, NAME_MAX, "%s.%u.tmp", pidfile, pid);
+	if (snprintf(pidfiletmp, NAME_MAX, "%s.%u.tmp", pidfile, pid) >= NAME_MAX)
+		syslog(LOG_WARNING,"truncation occurred writing pid file: %s", pidfiletmp);
 
 	/* open the file and associate a stream with it */
 	if (((fd = open(pidfiletmp, O_RDWR | O_CREAT, 0644)) == -1) ||
@@ -289,8 +290,8 @@ void daemonize(int argc, char *argv[])
 	int prio_val = sched_get_priority_min(policy);
 	int i;
 	char t_str[256];
-	char buf1[256] = {0};
-	char buf2[256] = {0};
+	char buf1[256 + sizeof("_SCHED_PRIORITY")] = {0};
+	char buf2[256 + sizeof("_SCHED_POLICY")] = {0};
 
 	internal_version_id_ = strdup("@(#) $Id: " INTERNAL_VERSION_ID " $");
 

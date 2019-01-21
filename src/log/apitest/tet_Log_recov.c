@@ -255,6 +255,12 @@ static int filter_logfile_name(const struct dirent *finfo)
 	/* Create format string for sscanf */
 	n = snprintf(name_format, SA_MAX_NAME_LENGTH, "%s%s", file_name_find,
 		     time_stamps);
+	if (n >= SA_MAX_NAME_LENGTH) {
+		fprintf(stderr,
+			"warning: name_format truncated: %s",
+			name_format);
+	}
+
 	/* Get number of timestamps */
 	n = sscanf(finfo->d_name, name_format, &a, &b, &c, &d);
 
@@ -952,8 +958,8 @@ void saLogRecov_pause_s(void)
 void saLogRecov_clean_tstdir(void)
 {
 	int rc = 0;
-	char command[PATH_MAX + 256];
 	char tstpath[PATH_MAX + 256];
+	char command[sizeof(tstpath) + sizeof("rm -rf ")];
 
 	sprintf(tstpath, "%s/%s", log_root_path, logfile_path_str);
 	printf_v("Clean test dir \"%s\"\n", tstpath);

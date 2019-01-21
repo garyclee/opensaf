@@ -29,6 +29,7 @@
 #include "log/apitest/imm_tstutil.h"
 
 #define MAX_DATA 256
+#define SET_VALUES_MAX_DATA 50
 #define opensaf_user "opensaf"
 #define data_group "log-data"
 
@@ -98,8 +99,11 @@ void m_restoreData(SaNameT objName, char *attr, void *v_attr,
 			attr, *(SaUint64T *)v_attr);
 		break;
 	case SA_IMM_ATTR_SASTRINGT:
-		sprintf(command, "immcfg %s -a %s='%s' 2> /dev/null", name,
-			attr, (char *)v_attr);
+		if (snprintf(command, MAX_DATA,
+				"immcfg %s -a %s='%s' 2> /dev/null", name,
+				attr, (char *)v_attr) >= MAX_DATA) {
+			fprintf(stderr, "command truncated: %s", command);
+		}
 		break;
 	default:
 		fprintf(stderr, "Unsupported data type (%s) \n", attr);
@@ -143,8 +147,11 @@ void saLogOi_02(void)
 	tstptr = strrchr(tststr, '/');
 	*tstptr = '\0';
 
-	sprintf(command, "immcfg -a saLogStreamPathName=/%s %s 2> /dev/null",
-		tststr, SA_LOG_STREAM_ALARM);
+	if (snprintf(command, MAX_DATA,
+			"immcfg -a saLogStreamPathName=/%s %s 2> /dev/null",
+			tststr, SA_LOG_STREAM_ALARM) >= MAX_DATA) {
+		fprintf(stderr, "warning: truncation on command: %s", command);
+	}
 	rc = system(command);
 	rc_validate(WEXITSTATUS(rc), 1);
 }
@@ -319,9 +326,9 @@ void saLogOi_12(void)
 {
 	int rc;
 	char command[MAX_DATA];
-	char fomartChange[MAX_DATA] =
+	const char fomartChange[] =
 	    "@Cr @Ct @Nh:@Nn:@Ns @Nm/@Nd/@NY @Ne5 @No30 @Ng30 \"@Cb\" ";
-	char v_saLogStreamLogFileFormat[MAX_DATA] =
+	char v_saLogStreamLogFileFormat[] =
 	    "@Cr @Ct @Nt @Ne6 @No30 @Ng30 \"@Cb\" ";
 
 	get_attr_value(&alarmStreamName, "saLogStreamLogFileFormat",
@@ -343,7 +350,7 @@ void saLogOi_13(void)
 {
 	int rc;
 	char command[MAX_DATA];
-	char fomartChange[MAX_DATA] = "@Cr @Ct @Sv @Ne5 @No30 @Ng30 \"@Cb\" ";
+	const char fomartChange[] = "@Cr @Ct @Sv @Ne5 @No30 @Ng30 \"@Cb\" ";
 
 	sprintf(command,
 		"immcfg -a saLogStreamLogFileFormat='%s' %s 2> /dev/null",
@@ -1242,7 +1249,7 @@ void saLogOi_43(void)
 {
 	int rc;
 	char command[MAX_DATA];
-	char logFileFormat[MAX_DATA];
+	const char logFileFormat[] = "@Cr @Ct @Cd @Cy @Cb40 @Ca @Sl30 @Sv @Cx";
 
 	/* Object Create, strD, */
 	sprintf(
@@ -1253,7 +1260,6 @@ void saLogOi_43(void)
 	if (rc != 0)
 		goto done;
 
-	strcpy(logFileFormat, "@Cr @Ct @Cd @Cy @Cb40 @Ca @Sl30 @Sv @Cx");
 	sprintf(
 	    command,
 	    "immcfg -a saLogStreamLogFileFormat=\"%s\" safLgStrCfg=strD,safApp=safLogService",
@@ -1274,7 +1280,7 @@ void saLogOi_44()
 {
 	int rc;
 	char command[MAX_DATA];
-	char logFileFormat[MAX_DATA];
+	const char logFileFormat[] = "@Cr @Ct @Cd @Cy @Cb40 @Ca @Sl30 @Sv @Cx";
 
 	/* Object Create, strD, */
 	sprintf(
@@ -1285,7 +1291,6 @@ void saLogOi_44()
 	if (rc != 0)
 		goto done;
 
-	strcpy(logFileFormat, "@Cr @Ct @Cd @Cy @Cb40 @Ca @Sl30 @Sv @Cx");
 	sprintf(
 	    command,
 	    "immcfg -a saLogStreamLogFileFormat=\"%s\" safLgStrCfg=strD,safApp=safLogService",
@@ -1314,8 +1319,8 @@ void saLogOi_45(void)
 {
 	int rc;
 	char command[MAX_DATA];
-	char logFileName[MAX_DATA];
-	char logFileFormat[MAX_DATA];
+	const char logFileName[] = "CrCtChCnCsCaCmCMCdCyCYCcCxCb40Ci40";
+	const char logFileFormat[] = "@Cr @Ct @Cd @Cy @Cb40 @Ca @Sl30 @Sv @Cx";
 
 	/* Object Create, strD, */
 	sprintf(
@@ -1326,7 +1331,6 @@ void saLogOi_45(void)
 	if (rc != 0)
 		goto done;
 
-	strcpy(logFileFormat, "@Cr @Ct @Cd @Cy @Cb40 @Ca @Sl30 @Sv @Cx");
 	sprintf(
 	    command,
 	    "immcfg -a saLogStreamLogFileFormat=\"%s\" safLgStrCfg=strD,safApp=safLogService",
@@ -1335,7 +1339,6 @@ void saLogOi_45(void)
 	if (rc != 0)
 		goto delete_object;
 
-	strcpy(logFileName, "CrCtChCnCsCaCmCMCdCyCYCcCxCb40Ci40");
 	sprintf(
 	    command,
 	    "immcfg -a saLogStreamFileName=\"%s\" safLgStrCfg=strD,safApp=safLogService",
@@ -1358,7 +1361,8 @@ void saLogOi_46()
 {
 	int rc;
 	char command[MAX_DATA];
-	char logFileFormat[MAX_DATA];
+	const char logFileFormat[] = "@Cr @Ct @Ch @Cn @Cs @Ca @Cm @CM @Cd @Cy "
+		"@CY @Cc @Cx @Cb40 @Ci40";
 
 	/* Object Create, strD, */
 	sprintf(
@@ -1369,9 +1373,6 @@ void saLogOi_46()
 	if (rc != 0)
 		goto done;
 
-	strcpy(
-	    logFileFormat,
-	    "@Cr @Ct @Ch @Cn @Cs @Ca @Cm @CM @Cd @Cy @CY @Cc @Cx @Cb40 @Ci40");
 	sprintf(
 	    command,
 	    "immcfg -a saLogStreamLogFileFormat=\"%s\" safLgStrCfg=strD,safApp=safLogService",
@@ -1605,7 +1606,7 @@ void saLogOi_501(void)
 void saLogOi_502(void)
 {
 	int rc = 0, tst_stat = 0;
-	char command[MAX_DATA];
+	char command[MAX_DATA * 2];
 	char tstdir[MAX_DATA];
 	struct timespec timeout_time;
 	const int kWaitTime = 10*1000;
@@ -1676,7 +1677,7 @@ done:
 void change_root_path(void)
 {
 	int rc = 0, tst_stat = 0;
-	char command[MAX_DATA];
+	char command[MAX_DATA * 2];
 	char tstdir[MAX_DATA];
 
 	/* Path to test directory */
@@ -2098,7 +2099,8 @@ void saLogOi_515(void)
  * @return false if compare fail
  */
 static bool read_and_compare(SaConstStringT objectName,
-			     char set_values[][MAX_DATA], int num_values)
+			     char set_values[][SET_VALUES_MAX_DATA],
+			     int num_values)
 {
 	char **read_values;
 	char *attr_name = "logRecordDestinationConfiguration";
@@ -2162,7 +2164,7 @@ void check_logRecordDestinationConfigurationAdd(void)
 {
 	char command[MAX_DATA];
 	const int num_values = 5;
-	char set_values[num_values][MAX_DATA];
+	char set_values[num_values][SET_VALUES_MAX_DATA];
 	int test_result = 0; /* -1 if Fail */
 
 	do {
@@ -2221,7 +2223,7 @@ void check_logRecordDestinationConfigurationDelete(void)
 {
 	char command[MAX_DATA];
 	const int num_values = 5;
-	char set_values[num_values][MAX_DATA];
+	char set_values[num_values][SET_VALUES_MAX_DATA];
 	int test_result = 0; /* -1 if Fail */
 
 	do {
@@ -2313,7 +2315,7 @@ void check_logRecordDestinationConfigurationReplace(void)
 {
 	char command[MAX_DATA * 2];
 	const int num_values = 5;
-	char set_values[num_values][MAX_DATA];
+	char set_values[num_values][SET_VALUES_MAX_DATA];
 	int test_result = 0; /* 1 if Fail */
 
 	do {
@@ -2411,7 +2413,7 @@ void check_logRecordDestinationConfigurationEmpty(void)
 {
 	char command[MAX_DATA * 2];
 	const int num_values = 5;
-	char set_values[num_values][MAX_DATA];
+	char set_values[num_values][SET_VALUES_MAX_DATA];
 	int test_result = 0; /* 1 if Fail */
 
 	do {
@@ -3764,7 +3766,7 @@ void modStrLogFileFmt_04(void)
 void modStrLogFileFmt_05(void)
 {
 	int rc;
-	char command[MAX_DATA];
+	char command[MAX_DATA * 2];
 	char v_saLogStreamLogFileFormat[MAX_DATA] =
 	    "@Cr @Ch:@Cn:@Cs @Cm/@Cd/@CY @Sv @Sl \"@Cb\"";
 	/* Enable timezone and millisecond token - @Cz @Ck */

@@ -403,13 +403,25 @@ __attribute__((constructor)) static void ntf_clm_constructor(void) {
   }
   pclose(fp);
 
-  snprintf(clm_node_name,
-     strlen("safNode=") + strlen(rdn) + strlen(cluster_name) + 2,
-     "safNode=%s,%s", rdn, cluster_name);
-  snprintf(lock_cmd, strlen("immadm -o 2 ") + strlen(clm_node_name) + 1,
-     "immadm -o 2 %s", clm_node_name);
-  snprintf(unlock_cmd, strlen("immadm -o 1 ") + strlen(clm_node_name) + 1,
-     "immadm -o 1 %s", clm_node_name);
+  if (snprintf(clm_node_name,
+               strlen("safNode=") + strlen(rdn) + strlen(cluster_name) + 2,
+               "safNode=%s,%s", rdn, cluster_name) >=
+                 static_cast<int>(strlen("safNode=") + strlen(rdn) +
+                                  strlen(cluster_name) + 2)) {
+    std::cerr << "truncation on clm_node_name: " << clm_node_name << std::endl;
+  }
+  if (snprintf(lock_cmd, strlen("immadm -o 2 ") + strlen(clm_node_name) + 1,
+               "immadm -o 2 %s", clm_node_name) >=
+                 static_cast<int>(strlen("immadm -o 2 ") +
+                                  strlen(clm_node_name) + 1)) {
+    std::cerr << "truncation on lock_cmd: " << lock_cmd << std::endl;
+  }
+  if (snprintf(unlock_cmd, strlen("immadm -o 1 ") + strlen(clm_node_name) + 1,
+               "immadm -o 1 %s", clm_node_name) >=
+                 static_cast<int>(strlen("immadm -o 1 ") +
+                                  strlen(clm_node_name) + 1)) {
+    std::cerr << "truncation on unlock_cmd: " << unlock_cmd << std::endl;
+  }
 
   // For debugging purpose.
   // printf("node_name:'%s'\n",clm_node_name);

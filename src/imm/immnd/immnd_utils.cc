@@ -192,8 +192,11 @@ void CollectRecentFevsLogData(const IMMND_EVT *evt, SaUint64T msg_no) {
       break;
   }
 
-  snprintf(evt_data, MAX_LENGTH_FEVS_MSG,
-      "<%llu>[%s -> %s]", msg_no, evt_name, evt_info);
+  if (snprintf(evt_data, MAX_LENGTH_FEVS_MSG,
+               "<%llu>[%s -> %s]", msg_no, evt_name, evt_info) >=
+                 MAX_LENGTH_FEVS_MSG) {
+    LOG_WA("truncation occurred on evt_data: %s", evt_data);
+  }
 
   static int index = 0;
   latest_fevs[index] = std::string(evt_data);
