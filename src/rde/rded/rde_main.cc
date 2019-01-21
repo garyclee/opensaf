@@ -39,6 +39,7 @@
 #include "osaf/consensus/consensus.h"
 #include "rde/rded/rde_cb.h"
 #include "rde/rded/role.h"
+#include "rde_cb.h"
 
 #define RDA_MAX_CLIENTS 32
 
@@ -56,7 +57,9 @@ const char *rde_msg_name[] = {"-",
                               "RDE_MSG_NODE_UP(6)",
                               "RDE_MSG_NODE_DOWN(7)",
                               "RDE_MSG_TAKEOVER_REQUEST_CALLBACK(8)",
-                              "RDE_MSG_ACTIVE_PROMOTION_SUCCESS(9)"};
+                              "RDE_MSG_ACTIVE_PROMOTION_SUCCESS(9)",
+                              "RDE_MSG_CONTROLLER_UP(10)",
+                              "RDE_MSG_CONTROLLER_DOWN(11)"};
 
 static RDE_CONTROL_BLOCK _rde_cb;
 static RDE_CONTROL_BLOCK *rde_cb = &_rde_cb;
@@ -157,6 +160,23 @@ static void handle_mbx_event() {
       rde_cb->cluster_members.erase(msg->fr_node_id);
       TRACE("cluster_size %zu", rde_cb->cluster_members.size());
       break;
+    case RDE_MSG_CONTROLLER_UP:
+      if (msg->fr_node_id != own_node_id) {
+        rde_cb->peer_controllers.insert(msg->fr_node_id);
+        TRACE("peer_controllers: size %zu", rde_cb->peer_controllers.size());
+        if (rde_cb->state == State::kNotActive) {
+          TRACE("Set state to kNotActiveSeenPeer");
+          rde_cb->state = State::kNotActiveSeenPeer;
+        } else if (rde_cb->state == State::kActiveElected) {
+          TRACE("Set state to kActiveElectedSeenPeer");
+          rde_cb->state = State::kActiveElectedSeenPeer;
+        }
+      }
+      break;
+    case RDE_MSG_CONTROLLER_DOWN:
+      rde_cb->peer_controllers.erase(msg->fr_node_id);
+      TRACE("peer_controllers: size %zu", rde_cb->peer_controllers.size());
+      break;
     case RDE_MSG_TAKEOVER_REQUEST_CALLBACK: {
       rde_cb->monitor_takeover_req_thread_running = false;
 
@@ -179,13 +199,44 @@ static void handle_mbx_event() {
                            "Another controller is taking over the active role. "
                            "Rebooting this node");
           }
-        } else {
-          LOG_NO("Rejected takeover request");
+        } else if (state == Consensus::TakeoverState::UNDEFINED) {
+          bool fencing_required = true;
 
-          rde_cb->monitor_takeover_req_thread_running = true;
-          consensus_service.MonitorTakeoverRequest(Role::MonitorCallback,
-                                                   rde_cb->mbx);
+          // differentiate when this occurs after election or
+          // rde has been set active due to failover
+          if (consensus_service.IsRelaxedNodePromotionEnabled() == true) {
+              if (rde_cb->state == State::kActiveElected) {
+                TRACE("Relaxed mode is enabled");
+                TRACE(" No peer SC yet seen, ignore consensus service failure");
+                // if relaxed node promotion is enabled, and we have yet to see
+                // a peer SC after being promoted, tolerate consensus service
+                // not working
+                fencing_required = false;
+              } else if ((rde_cb->state == State::kActiveElectedSeenPeer ||
+                         rde_cb->state == State::kActiveFailover) &&
+                         role->IsPeerPresent() == true) {
+                TRACE("Relaxed mode is enabled");
+                TRACE("Peer SC can be seen, ignore consensus service failure");
+                // we have seen the peer, and peer is still connected, tolerate
+                // consensus service not working
+                fencing_required = false;
+              }
+          }
+          if (fencing_required == true) {
+            LOG_NO("Lost connectivity to consensus service");
+            if (consensus_service.IsRemoteFencingEnabled() == false) {
+                opensaf_reboot(0, nullptr,
+                               "Lost connectivity to consensus service. "
+                               "Rebooting this node");
+            }
+          }
         }
+
+        LOG_NO("Rejected takeover request");
+
+        rde_cb->monitor_takeover_req_thread_running = true;
+        consensus_service.MonitorTakeoverRequest(Role::MonitorCallback,
+                                                 rde_cb->mbx);
       } else {
         LOG_WA("Received takeover request when not active");
       }
@@ -267,6 +318,11 @@ static int initialize_rde() {
     goto init_failed;
   }
 
+  if (rde_discovery_mds_register() != NCSCC_RC_SUCCESS) {
+    LOG_ER("rde_discovery_mds_register() failed");
+    rc = NCSCC_RC_FAILURE;
+  }
+
   rc = NCSCC_RC_SUCCESS;
 
 init_failed:
@@ -343,6 +399,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (fds[FD_TERM].revents & POLLIN) {
+      rde_discovery_mds_unregister();
       daemon_exit();
     }
 
