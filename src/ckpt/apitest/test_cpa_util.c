@@ -181,6 +181,9 @@ struct SafCkptInitialize API_Initialize[] = {
 				      &tcd.general_callbks, SA_AIS_OK,
 				      "ckptHandle2 init with gen. calbks"},
 
+	[CKPT_INIT_NULL_CBKS_NULL_T] = {NULL, &tcd.version_supported, NULL, SA_AIS_ERR_INVALID_PARAM,
+					"Init with all params NULL"},
+
 };
 
 int test_ckptInitialize(int i, CONFIG_FLAG cfg_flg)
