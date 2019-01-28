@@ -17,6 +17,8 @@
 # backward compatible.
 
 readonly keyname="opensaf_consensus_lock"
+readonly takeover_request="takeover_request"
+readonly node_name_file="/etc/opensaf/node_name"
 
 # get
 #   retrieve <value> of <key> from key-value store
@@ -24,7 +26,8 @@ readonly keyname="opensaf_consensus_lock"
 #   $1 - <key>
 # returns:
 #   0 - success, <value> is echoed to stdout
-#   non-zero - failure
+#   1 - invalid param
+#   other - failure
 get() {
   readonly key="$1"
   ...
@@ -56,7 +59,8 @@ setkey() {
 # returns:
 #   0 - success
 #   1 - already exists
-#   2 or above - other failure
+#   2 - invalid param
+#   3 or above - other failure
 create_key() {
   readonly key="$1"
   readonly value="$2"
@@ -74,7 +78,8 @@ create_key() {
 #   $4 - <timeout>
 # returns:
 #   0 - success
-#   non-zero - failure
+#   1 - invalid param
+#   other - failure
 setkey_match_prev() {
   readonly key="$1"
   readonly value="$2"
@@ -101,7 +106,8 @@ erase() {
 #   $2 - <timeout>, will automatically unlock after <timeout> seconds
 # returns:
 #   0 - success
-#   non-zero - failure
+#   1 - the lock is owned by someone else
+#   2 or above - other failure
 lock() {
   readonly owner="$1"
   readonly timeout="$2"
@@ -129,7 +135,7 @@ lock_owner() {
 # returns:
 #   0 - success
 #   1 - the lock is owned by someone else
-#   2 or above - other failure#
+#   2 or above - other failure
 unlock() {
   readonly owner="$1"
   readonly forced=${2:-false}
@@ -146,6 +152,10 @@ unlock() {
 watch() {
   readonly key="$1"
   ..
+  # if <key> is $takeover_request and we have lost connectivity to the
+  # consensus service, a fake takeover_request can be returned to force
+  # rded to fence this node. Eg:
+  # "$hostname SC-0 10000000 UNDEFINED"
 }
 
 # argument parsing
