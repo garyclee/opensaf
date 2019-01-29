@@ -1533,6 +1533,7 @@ fi
 %{_bindir}/clmtest
 %{_bindir}/mdstest
 %{_bindir}/amftest
+%{_bindir}/evttest
 %if %is_ais_smf
 #SMF: Demo and test of CCB handling
 %{_bindir}/ccbdemo_create

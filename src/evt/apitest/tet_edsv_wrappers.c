@@ -1,8 +1,7 @@
 #include <string.h>
-#include "tet_api.h"
-#include "tet_startup.h"
+#include <stdio.h>
 #include "tet_eda.h"
-
+void tet_saEvtFinalize(SaEvtHandleT *);
 extern int gl_sync_pointnum;
 extern int fill_syncparameters(int);
 extern int gl_jCount;
@@ -16,6 +15,11 @@ extern int gl_major_version;
 extern int gl_minor_version;
 extern int gl_b03_flag;
 
+
+
+#ifndef NCS_STACKSIZE_MEDIUM
+#define NCS_STACKSIZE_MEDIUM 32000
+#endif
 /****************************************************************/
 /***************** EDSV CALLBACK FUNCTIONS **********************/
 /****************************************************************/
@@ -118,6 +122,7 @@ void tet_saEvtInitialize(SaEvtHandleT *ptrEvtHandle)
 	gl_evtHandle = *ptrEvtHandle;
 
 	printf("\nEvent Handle (when initialized): %llu", *ptrEvtHandle);
+
 }
 void tet_saEvtSelectionObjectGet(SaEvtHandleT *ptrEvtHandle,
 				 SaSelectionObjectT *ptrSelectionObject)
@@ -607,6 +612,7 @@ void result(char *gl_saf_msg, SaAisErrorT ref)
 		gl_error = gl_rc;
 	}
 	printf("%s\n", gl_saf_error[gl_rc]);
+
 }
 
 void resultSuccess(char *gl_saf_msg, SaAisErrorT rc)
@@ -678,7 +684,8 @@ void thread_creation(SaEvtHandleT *ptrEvtHandle)
 	if (gl_tCount < 2) {
 		gl_rc =
 		    m_NCS_TASK_CREATE((NCS_OS_CB)eda_selection_thread, NULL,
-				      "edsv_test", 8, 8000, &eda_thread_handle);
+				      "edsv_test", 20, 8, 8000,
+				      &eda_thread_handle);
 		if (gl_rc != NCSCC_RC_SUCCESS) {
 			printf("\nthread cannot be created");
 			return;
@@ -694,8 +701,8 @@ void thread_creation(SaEvtHandleT *ptrEvtHandle)
 uint32_t tet_create_task(NCS_OS_CB task_startup)
 {
 	char taskname[] = "My Task";
-	if (m_NCS_TASK_CREATE(task_startup, NULL, taskname, NCS_TASK_PRIORITY_6,
-			      NCS_STACKSIZE_MEDIUM,
+	if (m_NCS_TASK_CREATE(task_startup, NULL, taskname, 20,
+			       8, NCS_STACKSIZE_MEDIUM,
 			      &gl_t_handle) == NCSCC_RC_SUCCESS)
 		return NCSCC_RC_SUCCESS;
 	else

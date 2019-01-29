@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <string.h>
-#include "tet_api.h"
-#include "tet_startup.h"
 #include "tet_eda.h"
+#include "osaf/apitest/utest.h"
 void tet_edsv_startup(void);
 void tet_edsv_cleanup(void);
 
@@ -55,6 +55,7 @@ void tet_saEvtInitializeCases(int iOption)
 		gl_rc = saEvtInitialize(NULL, &gl_evtCallbacks, &gl_version);
 		result("saEvtInitialize() with NULL event handle",
 		       SA_AIS_ERR_INVALID_PARAM);
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		break;
 
 	case 2:
@@ -65,7 +66,7 @@ void tet_saEvtInitializeCases(int iOption)
 		gl_rc = saEvtInitialize(&gl_evtHandle, NULL, &gl_version);
 		result("saEvtInitialize() with NULL pointer to callbacks",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -94,7 +95,7 @@ void tet_saEvtInitializeCases(int iOption)
 		result(
 		    "saEvtInitialize() with uninitialized pointer to callbacks",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -111,7 +112,7 @@ void tet_saEvtInitializeCases(int iOption)
 		    "saEvtInitialize() with NULL saEvtChannelOpenCallback and NULL \
  saEvtEventDeliverCallback",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -126,7 +127,7 @@ void tet_saEvtInitializeCases(int iOption)
 					&gl_version);
 		result("saEvtInitialize() with NULL saEvtChannelOpenCallback",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -141,7 +142,7 @@ void tet_saEvtInitializeCases(int iOption)
 					&gl_version);
 		result("saEvtInitialize() with NULL saEvtEventDeliverCallback",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -152,6 +153,7 @@ void tet_saEvtInitializeCases(int iOption)
 		gl_rc = saEvtInitialize(&gl_evtHandle, &gl_evtCallbacks, NULL);
 		result("saEvtInitialize() with NULL version",
 		       SA_AIS_ERR_INVALID_PARAM);
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		break;
 
 	case 9:
@@ -169,6 +171,7 @@ void tet_saEvtInitializeCases(int iOption)
 		tet_printf("Version Delivered : %c %d %d",
 			   gl_version.releaseCode, gl_version.majorVersion,
 			   gl_version.minorVersion);
+		rc_validate(gl_rc, SA_AIS_ERR_VERSION);
 		break;
 
 	case 10:
@@ -186,6 +189,7 @@ void tet_saEvtInitializeCases(int iOption)
 		tet_printf("Version Delivered : %c %d %d",
 			   gl_version.releaseCode, gl_version.majorVersion,
 			   gl_version.minorVersion);
+		rc_validate(gl_rc, SA_AIS_ERR_VERSION);
 		break;
 
 	case 11:
@@ -207,7 +211,8 @@ void tet_saEvtInitializeCases(int iOption)
 #if 0
       tet_saEvtFinalize(&gl_evtHandle);
 #endif
-		break;
+		rc_validate(gl_rc, SA_AIS_OK);
+	      break;
 
 	case 12:
 		gl_version.releaseCode = 'B';
@@ -221,6 +226,7 @@ void tet_saEvtInitializeCases(int iOption)
 		result("saEvtInitialize() with major version set to 3",
 		       SA_AIS_OK);
 
+		rc_validate(gl_rc, SA_AIS_OK);
 #if 0
       tet_saEvtFinalize(&gl_evtHandle);
 #endif
@@ -244,6 +250,7 @@ void tet_saEvtInitializeCases(int iOption)
 			   gl_version.releaseCode, gl_version.majorVersion,
 			   gl_version.minorVersion);
 
+		rc_validate(gl_rc, SA_AIS_ERR_VERSION);
 #if 0
       tet_saEvtFinalize(&gl_evtHandle);
 #endif
@@ -253,6 +260,7 @@ void tet_saEvtInitializeCases(int iOption)
 		var_initialize();
 		tet_saEvtInitialize(&gl_evtHandle);
 		tet_saEvtFinalize(&gl_evtHandle);
+		rc_validate(gl_rc, SA_AIS_OK);
 		break;
 
 	case 15:
@@ -261,6 +269,7 @@ void tet_saEvtInitializeCases(int iOption)
 		var_initialize();
 		tet_saEvtInitialize(&gl_evtHandle);
 		tet_saEvtFinalize(&gl_evtHandle);
+		rc_validate(gl_rc, SA_AIS_OK);
 		break;
 
 	case 16:
@@ -281,7 +290,7 @@ void tet_saEvtInitializeCases(int iOption)
 		tet_printf("Version Delivered : %c %d %d",
 			   gl_version.releaseCode, gl_version.majorVersion,
 			   gl_version.minorVersion);
-
+		rc_validate(gl_rc, SA_AIS_ERR_UNAVAILABLE);
 		break;
 	}
 	printf("\n-------------------- END : %d ------------------------",
@@ -294,7 +303,7 @@ void tet_Initialize(void)
 	var_initialize();
 
 	tet_saEvtInitialize(&gl_evtHandle);
-
+	rc_validate(gl_rc, SA_AIS_OK);
 	tet_saEvtFinalize(&gl_evtHandle);
 	printf("\n------------ END -----------\n");
 }
@@ -312,6 +321,7 @@ void tet_saEvtSelectionObjectGetCases(int iOption)
 						&gl_selObject);
 		result("saEvtSelectionObjectGet() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -321,12 +331,14 @@ void tet_saEvtSelectionObjectGetCases(int iOption)
 		result(
 		    "saEvtSelectionObjectGet() with uninitialized event handle",
 		    SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
 		gl_rc = saEvtSelectionObjectGet(-123, &gl_selObject);
 		result("saEvtSelectionObjectGet() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -339,7 +351,7 @@ void tet_saEvtSelectionObjectGetCases(int iOption)
 		result(
 		    "saEvtSelectionObjectGet() with NULL event callbacks handle",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -354,7 +366,7 @@ void tet_saEvtSelectionObjectGetCases(int iOption)
 		    "saEvtSelectionObjectGet() with NULL saEvtChannelOpenCallback \
 event handle",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -369,7 +381,7 @@ event handle",
 		    "saEvtSelectionObjectGet() with NULL saEvtEventDeliverCallback \
 event handle",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -380,7 +392,7 @@ event handle",
 		gl_rc = saEvtSelectionObjectGet(gl_evtHandle, NULL);
 		result("saEvtSelectionObjectGet() with NULL selection object",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -388,13 +400,14 @@ event handle",
 		var_initialize();
 		tet_saEvtInitialize(&gl_evtHandle);
 
-		gl_rc = saEvtSelectionObjectGet((SaEvtHandleT)(long)NULL,
-						(SaSelectionObjectT)(long)NULL);
+
+		gl_rc = (saEvtSelectionObjectGet((SaEvtHandleT)(long)NULL,
+						NULL));
 		result(
 		    "saEvtSelectionObjectGet() with NULL event handle and NULL \
 selection object",
 		    SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -403,7 +416,7 @@ selection object",
 		tet_saEvtInitialize(&gl_evtHandle);
 
 		tet_saEvtSelectionObjectGet(&gl_evtHandle, &gl_selObject);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 	}
@@ -440,6 +453,7 @@ void tet_saEvtDispatchCases(int iOption)
 		    saEvtDispatch((SaEvtHandleT)(long)NULL, SA_DISPATCH_ONE);
 		result("saEvtDispatch() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -448,12 +462,14 @@ void tet_saEvtDispatchCases(int iOption)
 		gl_rc = saEvtDispatch(gl_evtHandle, SA_DISPATCH_ONE);
 		result("saEvtDispatch() with uninitialized event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
 		gl_rc = saEvtDispatch(123, SA_DISPATCH_ONE);
 		result("saEvtDispatch() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -463,7 +479,7 @@ void tet_saEvtDispatchCases(int iOption)
 		gl_rc = saEvtDispatch(gl_evtHandle, 0);
 		result("saEvtDispatch() with uninitialized dispatch flags",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -475,7 +491,7 @@ void tet_saEvtDispatchCases(int iOption)
 		result(
 		    "saEvtDispatch() with dispatch flags set to garbage value(24)",
 		    SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -488,7 +504,7 @@ void tet_saEvtDispatchCases(int iOption)
 		result(
 		    "saEvtDispatch() with dispatch flags set to DISPATCH_ALL",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -501,7 +517,7 @@ void tet_saEvtDispatchCases(int iOption)
 		result(
 		    "saEvtDispatch() with dispatch flags set to DISPATCH_ALL",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -575,6 +591,7 @@ void tet_saEvtFinalizeCases(int iOption)
 		gl_rc = saEvtFinalize((SaEvtHandleT)(long)NULL);
 		result("saEvtFinalize() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -583,12 +600,14 @@ void tet_saEvtFinalizeCases(int iOption)
 		gl_rc = saEvtFinalize(gl_evtHandle);
 		result("saEvtFinalize() with uninitialized event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
 		gl_rc = saEvtFinalize(123);
 		result("saEvtFinalize() with garbage value",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -596,7 +615,7 @@ void tet_saEvtFinalizeCases(int iOption)
 		tet_saEvtInitialize(&gl_evtHandle);
 
 		tet_saEvtFinalize(&gl_evtHandle);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		break;
 	}
 	printf("\n-------------------- END : %d ------------------------",
@@ -629,6 +648,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 gl_timeout, &gl_channelHandle);
 		result("saEvtChannelOpen() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -639,6 +659,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 &gl_channelHandle);
 		result("saEvtChannelOpen() with uninitialized event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
@@ -647,6 +668,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 &gl_channelHandle);
 		result("saEvtChannelOpen() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -664,6 +686,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 &gl_channelHandle);
 		result("saEvtChannelOpen() with NULL event callbacks",
 		       SA_AIS_OK);
+		rc_validate(gl_rc, SA_AIS_OK);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
 
@@ -682,7 +705,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 				     gl_timeout, &gl_channelHandle);
 		result("saEvtChannelOpen() with NULL channel name",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -695,7 +718,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 &gl_channelHandle);
 		result("saEvtChannelOpen() with uninitialized channel name",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -708,7 +731,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 gl_timeout, &gl_channelHandle);
 		result("saEvtChannelOpen() with NULL channel open flags",
 		       SA_AIS_ERR_BAD_FLAGS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_FLAGS);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -723,7 +746,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 		result(
 		    "saEvtChannelOpen() with uninitialized channel open flags",
 		    SA_AIS_ERR_BAD_FLAGS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_FLAGS);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -735,7 +758,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 gl_timeout, &gl_channelHandle);
 		result("saEvtChannelOpen() with garbage channel open flags(24)",
 		       SA_AIS_ERR_BAD_FLAGS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_FLAGS);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -750,7 +773,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 		    "saEvtChannelOpen() with SA_EVT_CHANNEL_PUBLISHER before channel\
  name(Test) is given",
 		    SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -765,7 +788,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 		    "saEvtChannelOpen() with SA_EVT_CHANNEL_SUBSCRIBER before channel\
  name(Test) is given",
 		    SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -778,7 +801,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 		    (SaTimeT)(long)NULL, &gl_channelHandle);
 		result("saEvtChannelOpen() with NULL timeout",
 		       SA_AIS_ERR_TIMEOUT);
-
+		rc_validate(gl_rc, SA_AIS_ERR_TIMEOUT);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -791,7 +814,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 &gl_channelHandle);
 		result("saEvtChannelOpen() with negative timeout",
 		       SA_AIS_ERR_TIMEOUT);
-
+		rc_validate(gl_rc, SA_AIS_ERR_TIMEOUT);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -803,7 +826,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 					 SA_EVT_CHANNEL_CREATE, 999999999,
 					 &gl_channelHandle);
 		result("saEvtChannelOpen() with large timeout", SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -820,7 +843,7 @@ void tet_saEvtChannelOpenCases(int iOption)
 				     SA_EVT_CHANNEL_CREATE, gl_timeout, NULL);
 		result("saEvtChannelOpen() with NULL channel handle",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1121,6 +1144,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 					      SA_EVT_CHANNEL_CREATE);
 		result("saEvtChannelOpenAsync() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -1132,6 +1156,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		result(
 		    "saEvtChannelOpenAsync() with uninitialized event handle",
 		    SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
@@ -1140,6 +1165,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 					  SA_EVT_CHANNEL_CREATE);
 		result("saEvtChannelOpenAsync() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -1154,7 +1180,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 					      SA_EVT_CHANNEL_CREATE);
 		result("saEvtChannelOpenAsync() with NULL event callbacks",
 		       SA_AIS_ERR_INIT);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INIT);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1171,7 +1197,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		result(
 		    "saEvtChannelOpenAsync() with NULL channel open callback",
 		    SA_AIS_ERR_INIT);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INIT);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1190,7 +1216,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		    SA_AIS_OK);
 		thread_creation(&gl_evtHandle);
 		DISPATCH_SLEEP();
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		gl_channelName = asyncchannelName;
@@ -1210,7 +1236,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		    "saEvtChannelOpenAsync() with SA_EVT_CHANNEL_PUBLISHER on async\
  channel name(Temp)",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		thread_creation(&gl_evtHandle);
 		DISPATCH_SLEEP();
 
@@ -1230,7 +1256,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		    SA_AIS_OK);
 		thread_creation(&gl_evtHandle);
 		DISPATCH_SLEEP();
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1245,7 +1271,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		       SA_AIS_OK);
 		thread_creation(&gl_evtHandle);
 		DISPATCH_SLEEP();
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		gl_channelName = asyncchannelName;
@@ -1265,7 +1291,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		       SA_AIS_OK);
 		thread_creation(&gl_evtHandle);
 		DISPATCH_SLEEP();
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		gl_channelName = asyncchannelName;
@@ -1285,7 +1311,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		       SA_AIS_OK);
 		thread_creation(&gl_evtHandle);
 		DISPATCH_SLEEP();
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		gl_channelName = asyncchannelName;
@@ -1305,7 +1331,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		       SA_AIS_OK);
 		thread_creation(&gl_evtHandle);
 		DISPATCH_SLEEP();
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		gl_channelName = asyncchannelName;
@@ -1322,7 +1348,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 					      SA_EVT_CHANNEL_CREATE);
 		result("saEvtChannelOpenAsync() with NULL channel name",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1336,7 +1362,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		result(
 		    "saEvtChannelOpenAsync() with uninitialized channel name",
 		    SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1349,7 +1375,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		    (SaEvtChannelOpenFlagsT)(long)NULL);
 		result("saEvtChannelOpenAsync() with NULL channel open flags",
 		       SA_AIS_ERR_BAD_FLAGS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_FLAGS);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1364,7 +1390,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		result(
 		    "saEvtChannelOpenAsync() with uninitialized channel open flags",
 		    SA_AIS_ERR_BAD_FLAGS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_FLAGS);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1377,7 +1403,7 @@ void tet_saEvtChannelOpenAsyncCases(int iOption)
 		result(
 		    "saEvtChannelOpenAsync() with garbage channel open flags(24)",
 		    SA_AIS_ERR_BAD_FLAGS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_FLAGS);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1474,6 +1500,7 @@ void tet_saEvtChannelCloseCases(int iOption)
 		gl_rc = saEvtChannelClose((SaEvtChannelHandleT)(long)NULL);
 		result("saEvtChannelClose() with NULL channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -1482,12 +1509,14 @@ void tet_saEvtChannelCloseCases(int iOption)
 		gl_rc = saEvtChannelClose(gl_channelHandle);
 		result("saEvtChannelClose() with uninitialized channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
 		gl_rc = saEvtChannelClose(123);
 		result("saEvtChannelClose() with garbage channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -1540,6 +1569,7 @@ void tet_saEvtChannelUnlinkCases(int iOption)
 					   &gl_channelName);
 		result("saEvtChannelUnlink() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -1548,12 +1578,14 @@ void tet_saEvtChannelUnlinkCases(int iOption)
 		gl_rc = saEvtChannelUnlink(gl_evtHandle, &gl_channelName);
 		result("saEvtChannelUnlink() with uninitialized event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
 		gl_rc = saEvtChannelUnlink(123, &gl_channelName);
 		result("saEvtChannelUnlink() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -1565,7 +1597,7 @@ void tet_saEvtChannelUnlinkCases(int iOption)
 		gl_rc = saEvtChannelUnlink(gl_evtHandle, NULL);
 		result("saEvtChannelUnlink() with NULL channel name",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1581,7 +1613,7 @@ void tet_saEvtChannelUnlinkCases(int iOption)
 		gl_rc = saEvtChannelUnlink(gl_evtHandle, &emptyName);
 		result("saEvtChannelUnlink() with uninitialized channel name",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1597,7 +1629,7 @@ void tet_saEvtChannelUnlinkCases(int iOption)
 		gl_rc = saEvtChannelUnlink(gl_evtHandle, &tempName);
 		result("saEvtChannelUnlink() with channel name no event",
 		       SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1631,7 +1663,7 @@ void tet_saEvtChannelUnlinkCases(int iOption)
 		result(
 		    "saEvtChannelUnlink() with channel name (News) duplicate check",
 		    SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1688,6 +1720,7 @@ void tet_saEvtEventAllocateCases(int iOption)
 					   &gl_eventHandle);
 		result("saEvtEventAllocate() with NULL channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -1696,12 +1729,14 @@ void tet_saEvtEventAllocateCases(int iOption)
 		gl_rc = saEvtEventAllocate(gl_channelHandle, &gl_eventHandle);
 		result("saEvtEventAllocate() with uninitialized channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
 		gl_rc = saEvtEventAllocate(123, &gl_eventHandle);
 		result("saEvtEventAllocate() with garbage channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -1715,7 +1750,7 @@ void tet_saEvtEventAllocateCases(int iOption)
 		gl_rc = saEvtEventAllocate(gl_channelHandle, NULL);
 		result("saEvtEventAllocate() with NULL event handle",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -1735,7 +1770,7 @@ void tet_saEvtEventAllocateCases(int iOption)
 		result(
 		    "saEvtEventAllocate() with channel open sync for subscriber",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -1754,7 +1789,7 @@ void tet_saEvtEventAllocateCases(int iOption)
 		gl_rc = saEvtEventAllocate(gl_channelHandle, &gl_eventHandle);
 		result("saEvtEventAllocate() with channel opened with create",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -1820,6 +1855,7 @@ void tet_saEvtEventFreeCases(int iOption)
 		gl_rc = saEvtEventFree((SaEvtEventHandleT)(long)NULL);
 		result("saEvtEventFree() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -1828,12 +1864,14 @@ void tet_saEvtEventFreeCases(int iOption)
 		gl_rc = saEvtEventFree(gl_eventHandle);
 		result("saEvtEventFree() with uninitialized event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
 		gl_rc = saEvtEventFree(123);
 		result("saEvtEventFree() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -1852,7 +1890,7 @@ void tet_saEvtEventFreeCases(int iOption)
 
 		gl_rc = saEvtEventFree(gl_eventHandle);
 		result("saEvtEventFree() with channel closed", SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&localChannelHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -1897,7 +1935,7 @@ void tet_saEvtEventFreeCases(int iOption)
 		gl_rc = saEvtEventFree(gl_eventHandle);
 		result("saEvtEventFree() with channel closed",
 		       SA_AIS_ERR_BAD_HANDLE);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtChannelUnlink(&gl_evtHandle);
 
 		tet_saEvtFinalize(&gl_evtHandle);
@@ -1951,6 +1989,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_publishTime, &gl_evtId);
 		result("saEvtEventAttributesGet() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1966,6 +2005,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		result(
 		    "saEvtEventAttributesGet() with uninitialized event handle",
 		    SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1977,6 +2017,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_publisherName, &gl_publishTime, &gl_evtId);
 		result("saEvtEventAttributesGet() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -1995,7 +2036,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_publisherName, &gl_publishTime, &gl_evtId);
 		result("saEvtEventAttributesGet() with NULL pattern array",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2022,7 +2063,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_evtId);
 		result("saEvtEventAttributesGet() with empty pattern array",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2047,7 +2088,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_publisherName, &gl_publishTime, &gl_evtId);
 		result("saEvtEventAttributesGet() with NULL priority",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2075,7 +2116,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_evtId);
 		result("saEvtEventAttributesGet() with uninitialized priority",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2101,7 +2142,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_publisherName, &gl_publishTime, &gl_evtId);
 		result("saEvtEventAttributesGet() with NULL retention time",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2130,7 +2171,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		result(
 		    "saEvtEventAttributesGet() with uninitialized retention time",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2156,7 +2197,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_retentionTime, NULL, &gl_publishTime, &gl_evtId);
 		result("saEvtEventAttributesGet() with NULL publisher name",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2182,7 +2223,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    &gl_retentionTime, &gl_publisherName, NULL, &gl_evtId);
 		result("saEvtEventAttributesGet() with NULL publish time",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2209,7 +2250,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		    NULL);
 		result("saEvtEventAttributesGet() with NULL event id",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2251,7 +2292,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		result(
 		    "saEvtEventAttributesGet() with pattern size greater than 256",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2316,6 +2357,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		result(
 		    "saEvtEventAttributesGet() with pattern size greater than 256",
 		    SA_AIS_OK);
+		rc_validate(gl_rc, SA_AIS_OK);
 		temp->patterns = NULL;
 		gl_rc = saEvtEventPatternFree(gl_eventHandle, temp->patterns);
 		result("saEvtEventPatternsFree() with NULL patterns",
@@ -2361,6 +2403,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		result(
 		    "saEvtEventAttributesGet() with pattern size greater than 256",
 		    SA_AIS_OK);
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 		gl_rc = saEvtEventPatternFree(gl_eventHandle, temp->patterns);
 		result(
@@ -2406,6 +2449,7 @@ void tet_saEvtEventAttributesGetCases(int iOption)
 		result(
 		    "saEvtEventAttributesGet() with pattern size greater than 256",
 		    SA_AIS_OK);
+		rc_validate(gl_rc, SA_AIS_OK);
 		gl_rc = saEvtEventPatternFree(gl_eventHandle, temp->patterns);
 		result("saEvtEventPatternsFree() Success Case", SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
@@ -2473,6 +2517,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 		    gl_priority, gl_retentionTime, &gl_publisherName);
 		result("saEvtEventAttributesSet() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -2487,6 +2532,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 		result(
 		    "saEvtEventAttributesSet() with uninitialized event handle",
 		    SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -2498,6 +2544,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 						&gl_publisherName);
 		result("saEvtEventAttributesSet() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -2516,7 +2563,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 						&gl_publisherName);
 		result("saEvtEventAttributesSet() with NULL pattern array",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2544,7 +2591,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 		result(
 		    "saEvtEventAttributesSet() with uninitialized pattern array",
 		    SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2572,7 +2619,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 		    &gl_publisherName);
 		result("saEvtEventAttributesSet() with NULL priority",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2597,7 +2644,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 		    &gl_publisherName);
 		result("saEvtEventAttributesSet() with garbage priority",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2624,7 +2671,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 		    (SaTimeT)(long)NULL, &gl_publisherName);
 		result("saEvtEventAttributesSet() with NULL retention time",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2651,7 +2698,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 						256, &gl_publisherName);
 		result("saEvtEventAttributesSet() with garbage retention time",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2678,7 +2725,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 						gl_retentionTime, NULL);
 		result("saEvtEventAttributesSet() with NULL publisher name",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2703,7 +2750,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 						gl_retentionTime, &emptyName);
 		result("saEvtEventAttributesSet() with empty publisher name",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2730,7 +2777,7 @@ void tet_saEvtEventAttributesSetCases(int iOption)
 		    "saEvtEventAttributesSet() with publisher name length greater \
 than max length",
 		    SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2758,7 +2805,7 @@ than max length",
 		result(
 		    "saEvtEventAttributesSet() with channel open subscriber case",
 		    SA_AIS_ERR_ACCESS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_ACCESS);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2786,7 +2833,7 @@ than max length",
 		result(
 		    "saEvtEventAttributesSet() with channel open with create",
 		    SA_AIS_ERR_ACCESS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_ACCESS);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2814,7 +2861,7 @@ than max length",
 		result(
 		    "saEvtEventAttributesSet() with pattern size greater than 256",
 		    SA_AIS_ERR_TOO_BIG);
-
+		rc_validate(gl_rc, SA_AIS_ERR_TOO_BIG);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -2844,7 +2891,7 @@ than max length",
 		    gl_retentionTime, &gl_publisherName);
 		result("saEvtEventAttributesSet() with channel closed",
 		       SA_AIS_ERR_BAD_HANDLE);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtChannelUnlink(&gl_evtHandle);
 
 		tet_saEvtFinalize(&gl_evtHandle);
@@ -2925,6 +2972,7 @@ void tet_saEvtEventDataGetCases(int iOption)
 					  &gl_eventData, &gl_eventDataSize);
 		result("saEvtEventDataGet() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -2937,6 +2985,7 @@ void tet_saEvtEventDataGetCases(int iOption)
 					  &gl_eventDataSize);
 		result("saEvtEventDataGet() with uninitialized event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -2947,6 +2996,7 @@ void tet_saEvtEventDataGetCases(int iOption)
 		    saEvtEventDataGet(123, &gl_eventData, &gl_eventDataSize);
 		result("saEvtEventDataGet() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtFinalize(&gl_evtHandle);
 		break;
 
@@ -3111,6 +3161,7 @@ void tet_saEvtEventDataGetCases(int iOption)
 		result(
 		    "saEvtEventDataGet() with event data size > length than allowed",
 		    SA_AIS_ERR_NO_SPACE);
+		rc_validate(gl_rc, SA_AIS_ERR_NO_SPACE);
 		gl_eventDataSize = 20;
 
 		tet_saEvtEventRetentionTimeClear(&gl_channelHandle, &gl_evtId);
@@ -3149,7 +3200,7 @@ void tet_saEvtEventDataGetCases(int iOption)
 					  &gl_eventDataSize);
 		result("saEvtEventDataGet() with channel when published",
 		       SA_AIS_ERR_BAD_HANDLE);
-
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		tet_saEvtEventRetentionTimeClear(&gl_channelHandle, &gl_evtId);
 
 		tet_saEvtEventFree(&gl_eventHandle);
@@ -3197,6 +3248,7 @@ void tet_saEvtEventDataGetCases(int iOption)
 					  &gl_eventDataSize);
 		result("saEvtEventDataGet() with no memory",
 		       SA_AIS_ERR_NO_SPACE);
+		rc_validate(gl_rc, SA_AIS_ERR_NO_SPACE);
 		gl_eventDataSize = 20;
 
 		tet_saEvtEventRetentionTimeClear(&gl_channelHandle, &gl_evtId);
@@ -3375,6 +3427,7 @@ void tet_saEvtEventPublishCases(int iOption)
 					  &gl_evtId);
 		result("saEvtEventPublish() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -3384,6 +3437,7 @@ void tet_saEvtEventPublishCases(int iOption)
 					  gl_eventDataSize, &gl_evtId);
 		result("saEvtEventPublish() with uninitialized event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
@@ -3391,6 +3445,7 @@ void tet_saEvtEventPublishCases(int iOption)
 					  &gl_evtId);
 		result("saEvtEventPublish() with garbage event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -3413,7 +3468,7 @@ void tet_saEvtEventPublishCases(int iOption)
 		gl_rc = saEvtEventPublish(gl_eventHandle, NULL,
 					  gl_eventDataSize, &gl_evtId);
 		result("saEvtEventPublish() with NULL event data", SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -3444,7 +3499,7 @@ void tet_saEvtEventPublishCases(int iOption)
 		gl_rc = saEvtEventPublish(gl_eventHandle, &gl_eventData,
 					  gl_eventDataSize, &gl_evtId);
 		result("saEvtEventPublish() with empty event data", SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -3475,7 +3530,7 @@ void tet_saEvtEventPublishCases(int iOption)
 					  (SaSizeT)(long)NULL, &gl_evtId);
 		result("saEvtEventPublish() with NULL event data size",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -3507,7 +3562,7 @@ void tet_saEvtEventPublishCases(int iOption)
 					  gl_eventDataSize, &gl_evtId);
 		result("saEvtEventPublish() with 0 event data size", SA_AIS_OK);
 		gl_eventDataSize = 20;
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -3538,7 +3593,7 @@ void tet_saEvtEventPublishCases(int iOption)
 					  gl_eventDataSize, NULL);
 		result("saEvtEventPublish() with NULL event id",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -3568,7 +3623,7 @@ void tet_saEvtEventPublishCases(int iOption)
 					  gl_eventDataSize, &gl_evtId);
 		result("saEvtEventPublish() with channel opened with create",
 		       SA_AIS_ERR_ACCESS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_ACCESS);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -3601,7 +3656,7 @@ array",
 					  gl_eventDataSize, &gl_evtId);
 		result("saEvtEventPublish() with NULL pattern array",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -3633,6 +3688,7 @@ array",
 					  gl_eventDataSize, &gl_evtId);
 		result("saEvtEventPublish() with max event data size",
 		       SA_AIS_ERR_TOO_BIG);
+		rc_validate(gl_rc, SA_AIS_ERR_TOO_BIG);
 		gl_eventDataSize = 20;
 
 		tet_saEvtEventFree(&gl_eventHandle);
@@ -3695,7 +3751,7 @@ array",
 		result(
 		    "saEvtEventPublish() with channel opened with subscribe access",
 		    SA_AIS_ERR_ACCESS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_ACCESS);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -3756,6 +3812,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 					    &gl_filterArray, gl_subscriptionId);
 		result("saEvtEventSubscribe() with NULL channel Handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -3765,6 +3822,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 					    gl_subscriptionId);
 		result("saEvtEventSubscribe() with empty channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
@@ -3772,6 +3830,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 					    gl_subscriptionId);
 		result("saEvtEventSubscribe() with garbage channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -3791,7 +3850,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 					    gl_subscriptionId);
 		result("saEvtEventSubscribe() with NULL event callbacks",
 		       SA_AIS_ERR_INIT);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INIT);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -3811,7 +3870,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 					    gl_subscriptionId);
 		result("saEvtEventSubscribe() with NULL filter Array",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -3833,7 +3892,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 					    gl_subscriptionId);
 		result("saEvtEventSubscribe() with empty filter array",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -3856,7 +3915,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 					    (SaEvtSubscriptionIdT)(long)NULL);
 		result("saEvtEventSubscribe() with NULL subscription id",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -3878,7 +3937,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 		    saEvtEventSubscribe(gl_channelHandle, &gl_filterArray, 0);
 		result("saEvtEventSubscribe() with 0 subscriptionId",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -3900,7 +3959,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 		    saEvtEventSubscribe(gl_channelHandle, &gl_filterArray, 1);
 		result("saEvtEventSubscribe() with garbage subscription id",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -3920,7 +3979,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 		result(
 		    "saEvtEventSubscribe() with channel not opened for subscriber",
 		    SA_AIS_ERR_ACCESS);
-
+		rc_validate(gl_rc, SA_AIS_ERR_ACCESS);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -3942,7 +4001,7 @@ void tet_saEvtEventSubscribeCases(int iOption)
 					    gl_subscriptionId);
 		result("saEvtEventSubscribe() with big filters number",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -3963,14 +4022,14 @@ void tet_saEvtEventSubscribeCases(int iOption)
 		gl_rc = saEvtEventSubscribe(gl_channelHandle, &gl_filterArray,
 					    gl_subscriptionId);
 		result("saEvtEventSubscribe() invoked", SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		gl_filterArray.filtersNumber = 2;
 		gl_filterArray.filters = duplicate;
 		gl_rc = saEvtEventSubscribe(gl_channelHandle, &gl_filterArray,
 					    gl_subscriptionId);
 		result("saEvtEventSubscribe() with duplicate subscription",
 		       SA_AIS_ERR_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_EXIST);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4090,6 +4149,7 @@ void tet_saEvtEventUnsubscribeCases(int iOption)
 					      gl_subscriptionId);
 		result("saEvtEventUnsubscribe() with NULL gl_channelHandle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -4100,12 +4160,14 @@ void tet_saEvtEventUnsubscribeCases(int iOption)
 		    saEvtEventUnsubscribe(gl_channelHandle, gl_subscriptionId);
 		result("saEvtEventUnsubscribe() with empty channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
 		gl_rc = saEvtEventUnsubscribe(123, gl_subscriptionId);
 		result("saEvtEventUnsubscribe() with garbage channel handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -4124,7 +4186,7 @@ void tet_saEvtEventUnsubscribeCases(int iOption)
 					      (SaEvtSubscriptionIdT)(long)NULL);
 		result("saEvtEventUnsubscribe() with NULL subscription id",
 		       SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_EXIST);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4148,7 +4210,7 @@ void tet_saEvtEventUnsubscribeCases(int iOption)
 		gl_rc = saEvtEventUnsubscribe(gl_channelHandle, 0);
 		result("saEvtEventUnsubscribe() with 0 subscription id",
 		       SA_AIS_OK);
-
+		rc_validate(gl_rc, SA_AIS_OK);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4171,7 +4233,7 @@ void tet_saEvtEventUnsubscribeCases(int iOption)
 		gl_rc = saEvtEventUnsubscribe(gl_channelHandle, 123);
 		result("saEvtEventUnsubscribe() with garbage subscription id",
 		       SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4198,7 +4260,7 @@ void tet_saEvtEventUnsubscribeCases(int iOption)
 		    "saEvtEventUnsubscribe() with differnt channel handle for \
 different subscription id",
 		    SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4278,6 +4340,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 		result(
 		    "saEvtEventRetentionTimeClear() with NULL channel handle",
 		    SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 2:
@@ -4289,6 +4352,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 		result(
 		    "saEvtEventRetentionTimeClear() with empty channel handle",
 		    SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
@@ -4298,6 +4362,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 		result(
 		    "saEvtEventRetentionTimeClear() with garbage channel handle",
 		    SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 4:
@@ -4313,7 +4378,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 		result(
 		    "saEvtEventRetentionTimeClear() with different channel handle",
 		    SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4333,7 +4398,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 						     (SaEvtEventIdT)(long)NULL);
 		result("saEvtEventRetentionTimeClear() with NULL evt id",
 		       SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4352,7 +4417,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 		gl_rc = saEvtEventRetentionTimeClear(gl_channelHandle, 1234);
 		result("saEvtEventRetentionTimeClear() with garbage evt id",
 		       SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4394,7 +4459,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 		    "saEvtEventRetentionTimeClear() with different event id than\
  published",
 		    SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtEventFree(&eventTempHandle);
@@ -4435,7 +4500,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 		    "saEvtEventRetentionTimeClear() with different event id(1-1000)\
  for channel handle",
 		    SA_AIS_ERR_INVALID_PARAM);
-
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -4470,7 +4535,7 @@ void tet_saEvtEventRetentionTimeClearCases(int iOption)
 		    "saEvtEventRetentionTimeClear() with 0 retention time when \
 published",
 		    SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtEventFree(&gl_eventHandle);
 
 		tet_saEvtChannelClose(&gl_channelHandle);
@@ -4538,7 +4603,7 @@ published",
 		result(
 		    "saEvtEventRetentionTimeClear() with event free already invoked",
 		    SA_AIS_ERR_NOT_EXIST);
-
+		rc_validate(gl_rc, SA_AIS_ERR_NOT_EXIST);
 		tet_saEvtChannelClose(&gl_channelHandle);
 
 		tet_saEvtChannelUnlink(&gl_evtHandle);
@@ -4648,6 +4713,7 @@ void tet_saEvtLimitGetCases(int iOption)
 		gl_rc = saEvtLimitGet(gl_evtHandle, gl_limitId, NULL);
 		result("saEvtLimitGet() with NULL LimitValue",
 		       SA_AIS_ERR_INVALID_PARAM);
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		break;
 
 	case 2:
@@ -4656,6 +4722,7 @@ void tet_saEvtLimitGetCases(int iOption)
 				      &gl_limitValue);
 		result("saEvtLimitGet() with NULL event handle",
 		       SA_AIS_ERR_BAD_HANDLE);
+		rc_validate(gl_rc, SA_AIS_ERR_BAD_HANDLE);
 		break;
 
 	case 3:
@@ -4666,6 +4733,7 @@ void tet_saEvtLimitGetCases(int iOption)
 		gl_rc = saEvtLimitGet(gl_evtHandle, gl_limitId, &gl_limitValue);
 		result("saEvtLimitGet() with biggerlimitId value",
 		       SA_AIS_ERR_INVALID_PARAM);
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		break;
 
 	case 4:
@@ -4676,6 +4744,7 @@ void tet_saEvtLimitGetCases(int iOption)
 		gl_rc = saEvtLimitGet(gl_evtHandle, gl_limitId, &gl_limitValue);
 		result("saEvtLimitGet() with zero limitId value",
 		       SA_AIS_ERR_INVALID_PARAM);
+		rc_validate(gl_rc, SA_AIS_ERR_INVALID_PARAM);
 		break;
 
 	case 5:
@@ -4686,7 +4755,8 @@ void tet_saEvtLimitGetCases(int iOption)
 		gl_rc = saEvtLimitGet(gl_evtHandle, gl_limitId, &gl_limitValue);
 		result("saEvtLimitGet() with limitId = Max Number of Channels",
 		       SA_AIS_OK);
-		tet_printf("MaxNumChannels Limit Receieved = %ld",
+		rc_validate(gl_rc, SA_AIS_OK);
+		tet_printf("MaxNumChannels Limit Receieved = %lld",
 			   gl_limitValue.uint64Value);
 		break;
 
@@ -4698,7 +4768,8 @@ void tet_saEvtLimitGetCases(int iOption)
 		gl_rc = saEvtLimitGet(gl_evtHandle, gl_limitId, &gl_limitValue);
 		result("saEvtLimitGet() with limitId = Max Event Size",
 		       SA_AIS_OK);
-		tet_printf("MaxEventSizeLimit Receieved = %ld",
+		rc_validate(gl_rc, SA_AIS_OK);
+		tet_printf("MaxEventSizeLimit Receieved = %lld",
 			   gl_limitValue.uint64Value);
 		break;
 
@@ -4710,7 +4781,8 @@ void tet_saEvtLimitGetCases(int iOption)
 		gl_rc = saEvtLimitGet(gl_evtHandle, gl_limitId, &gl_limitValue);
 		result("saEvtLimitGet() with limitId = Max Pattern Size",
 		       SA_AIS_OK);
-		tet_printf("MaxPatternSizeLimit Receieved = %ld",
+		rc_validate(gl_rc, SA_AIS_OK);
+		tet_printf("MaxPatternSizeLimit Receieved = %lld",
 			   gl_limitValue.uint64Value);
 		break;
 
@@ -4722,7 +4794,8 @@ void tet_saEvtLimitGetCases(int iOption)
 		gl_rc = saEvtLimitGet(gl_evtHandle, gl_limitId, &gl_limitValue);
 		result("saEvtLimitGet() with limitId = Max Num Patterns",
 		       SA_AIS_OK);
-		tet_printf("MaxNumPatterns Limit Receieved = %ld",
+		rc_validate(gl_rc, SA_AIS_OK);
+		tet_printf("MaxNumPatterns Limit Receieved = %lld",
 			   gl_limitValue.uint64Value);
 		break;
 
@@ -4735,7 +4808,8 @@ void tet_saEvtLimitGetCases(int iOption)
 		result(
 		    "saEvtLimitGet() with limitId = Max RetentionTime Duration",
 		    SA_AIS_OK);
-		tet_printf("MaxRetentionTime Duration Limit Receieved = %ld",
+		rc_validate(gl_rc, SA_AIS_OK);
+		tet_printf("MaxRetentionTime Duration Limit Receieved = %lld",
 			   gl_limitValue.timeValue);
 		break;
 	} /* End Switch */
@@ -4926,13 +5000,14 @@ void gl_defs()
 	temp = (char *)getenv("TET_CHANNEL_NAME");
 	if (temp) {
 		gl_struct.channelName.length = strlen(temp);
-		strcpy(gl_struct.channelName.value, temp);
+		strcpy((char *)gl_struct.channelName.value, temp);
 	} else {
 		gl_struct.channelName.length = 12;
-		strcpy(gl_struct.channelName.value, "tempChannel");
+		strcpy((char *)gl_struct.channelName.value, "tempChannel");
 	}
 	gl_channelName.length = gl_struct.channelName.length;
-	strcpy(gl_channelName.value, gl_struct.channelName.value);
+	strcpy((char *)gl_channelName.value, \
+			(char *)gl_struct.channelName.value);
 	printf("\nChannel Name: ");
 	while (length < gl_channelName.length) {
 		printf("%c", gl_channelName.value[length]);
@@ -4942,14 +5017,15 @@ void gl_defs()
 	temp = (char *)getenv("TET_PUBLISHER_NAME");
 	if (temp) {
 		gl_struct.publisherName.length = strlen(temp);
-		strcpy(gl_struct.publisherName.value, temp);
+		strcpy((char *)gl_struct.publisherName.value, temp);
 	} else {
 		gl_struct.publisherName.length = 9;
-		strcpy(gl_struct.publisherName.value, "Anonymous");
+		strcpy((char *)gl_struct.publisherName.value, "Anonymous");
 	}
-	memset(gl_publisherName.value, '\0', sizeof(SaNameT));
+	memset(&gl_publisherName, '\0', sizeof(SaNameT));
 	gl_publisherName.length = gl_struct.publisherName.length;
-	strcpy(gl_publisherName.value, gl_struct.publisherName.value);
+	strcpy((char *)gl_publisherName.value, \
+			(char *)gl_struct.publisherName.value);
 	printf("\nPublisher Name: ");
 	length = 0;
 	while (length < gl_publisherName.length) {
