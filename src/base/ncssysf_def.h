@@ -76,6 +76,12 @@ void opensaf_reboot_prepare(void);
  */
 void opensaf_reboot(unsigned node_id, const char* ee_name, const char* reason);
 
+/**
+ * Do quick local node reboot - without first unmounting file systems
+ * or syncing disks attached to the system.
+*/
+void opensaf_quick_reboot(const char* reason);
+
 /*****************************************************************************
  **                                                                         **
  ** ncs_os_get_time_stamp:      Return the current timestamp as "time_t" in **

@@ -1262,7 +1262,7 @@ void check_quorum(AVD_CL_CB *cb) {
 
     // remote fencing is disabled and we have lost write access
     // reboot this node to prevent split brain
-    opensaf_reboot(0, nullptr,
-      "Quorum lost. Rebooting this node to prevent split-brain");
+    opensaf_quick_reboot("Quorum lost. Rebooting this node to "
+                         "prevent split-brain");
   }
 }

@@ -140,9 +140,7 @@ static void handle_mbx_event() {
                  active_controller.c_str());
           if (consensus_service.IsRemoteFencingEnabled() == false) {
             LOG_ER("Probable split-brain. Rebooting this node");
-
-            opensaf_reboot(0, nullptr,
-                           "Split-brain detected by consensus service");
+            opensaf_quick_reboot("Split-brain detected by consensus service");
           }
         }
 
@@ -258,7 +256,7 @@ static void CheckForSplitBrain(const rde_msg *msg) {
   PCS_RDA_ROLE own_role = role->role();
   PCS_RDA_ROLE other_role = msg->info.peer_info.ha_role;
   if (own_role == PCS_RDA_ACTIVE && other_role == PCS_RDA_ACTIVE) {
-    opensaf_reboot(0, nullptr, "Split-brain detected");
+    opensaf_quick_reboot("Split-brain detected");
   }
 }
 

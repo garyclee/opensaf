@@ -271,6 +271,16 @@ void opensaf_reboot(unsigned node_id, const char *ee_name, const char *reason)
 	}
 }
 
+void opensaf_quick_reboot(const char *reason)
+{
+	syslog(LOG_CRIT, "Quick local node rebooting, Reason: %s ", reason);
+	int reboot_result = system(PKGLIBDIR "/opensaf_reboot");
+	if (reboot_result != EXIT_SUCCESS) {
+		syslog(LOG_CRIT, "node reboot failure: exit code %d",
+		       WEXITSTATUS(reboot_result));
+	}
+}
+
 /**
  * syslog and abort to generate a core dump (if enabled)
  * @param __file

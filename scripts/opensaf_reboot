@@ -31,7 +31,7 @@ export LD_LIBRARY_PATH=$libdir:$LD_LIBRARY_PATH
 
 # Node fencing: OpenSAF cannot reboot a node when there's no CLM node to
 # PLM EE mapping in the information model. In such cases rebooting would be done
-# through proprietary mechanisms, i.e. not through PLM. Node_id is (the only 
+# through proprietary mechanisms, i.e. not through PLM. Node_id is (the only
 # entity) at the disposal of such a mechanism.
 
 if [ -f "$pkgsysconfdir/fmd.conf" ]; then
@@ -81,7 +81,6 @@ opensaf_reboot_with_remote_fencing()
 #if plm exists in the system,then the reboot is performed using the eename.
 opensaf_reboot_with_plm()
 {
-         
 	immadm -o 7 $ee_name
 	retval=$?
 	if [ $retval != 0 ]; then
@@ -96,12 +95,29 @@ opensaf_reboot_with_plm()
 				logger -t "opensaf_reboot" "abrupt restart failed for $ee_name: unable to restart remote node"
 				exit 1
 			fi
-		fi 
+		fi
 	fi
 #Note: Operation Id SA_PLM_ADMIN_RESTART=7
 #In the example the $ee_name would expand to (for eg:-) safEE=my_linux_os,safHE=64bitmulticore,safDomain=my_domain
 }
 
+# Force local node reboot as fast as possible
+quick_local_node_reboot()
+{
+	logger -t "opensaf_reboot" "Do quick local node reboot"
+
+	$icmd /bin/sh -c "/bin/echo -n 'b' 2> /dev/null > /proc/sysrq-trigger"
+	ret_code=$?
+
+	if [ $ret_code != 0 ] && [ -x /bin/systemctl ]; then
+		$icmd /bin/systemctl --force --force reboot
+		ret_code=$?
+	fi
+
+	if [ $ret_code != 0 ]; then
+		$icmd /sbin/reboot -f
+	fi
+}
 
 if ! test -f "$NODE_ID_FILE"; then
 	logger -t "opensaf_reboot" "$NODE_ID_FILE doesnt exists,reboot failed "
@@ -112,8 +128,13 @@ temp_node_id=`cat "$NODE_ID_FILE"`
 temp_node_id=`echo "$temp_node_id" |sed -e 's:^0[bBxX]::'| sed -e 's:^:0x:'`
 self_node_id=`printf "%d" $temp_node_id`
 
-# If clm cluster reboot requested argument one and two are set but not used, argument 3 is set to 1, "safe reboot" request
-if [ "$safe_reboot" = 1 ]; then
+# If no argument is provided, forcing node reboot immediately without log
+# flushing, process terminating, disk un-mounting.
+# If clm cluster reboot requested argument one and two are set but not used,
+# argument 3 is set to 1, "safe reboot" request.
+if [ "$#" = 0 ]; then
+	quick_local_node_reboot
+elif [ "$safe_reboot" = 1 ]; then
 	opensaf_safe_reboot
 else
 	# A node ID of zero(0) means an order to reboot the local node
@@ -165,7 +186,7 @@ else
 					logger -t "opensaf_reboot" "Not rebooting remote node $ee_name as it is not in INSTANTIATED state"
 				elif [ $plm_node_state != 2 ]; then
 					opensaf_reboot_with_plm
-				else	
+				else
 					logger -t "opensaf_reboot" "Not rebooting remote node $ee_name as it is already in locked state"
 				fi
 			else

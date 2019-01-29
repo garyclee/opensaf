@@ -665,9 +665,9 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt) {
               "Two active controllers observed in a cluster, newActive: %x and "
               "old-Active: %x",
               unsigned(fm_cb->node_id), unsigned(fm_cb->peer_node_id));
-          opensaf_reboot(0, NULL,
-                         "Received svc up from peer node (old-active is not "
-                         "fully DOWN), hence rebooting the new Active");
+          opensaf_quick_reboot("Received svc up from peer node (old-active "
+                               "is not fully DOWN), "
+                               "hence rebooting the new Active");
         }
       }
 

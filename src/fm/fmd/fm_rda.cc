@@ -105,9 +105,8 @@ uint32_t fm_rda_set_role(FM_CB *fm_cb, PCS_RDA_ROLE role) {
       LOG_ER(
           "A controller is already active. We were separated from the "
           "cluster?");
-      opensaf_reboot(0, nullptr,
-                     "A controller is already active. We were separated "
-                     "from the cluster?");
+      opensaf_quick_reboot("A controller is already active. We were separated "
+                           "from the cluster?");
     }
   }
 
