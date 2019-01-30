@@ -202,6 +202,10 @@ bool Consensus::IsRelaxedNodePromotionEnabled() const {
   return relaxed_node_promotion_;
 }
 
+bool Consensus::PrioritisePartitionSize() const {
+  return prioritise_partition_size_;
+}
+
 std::string Consensus::CurrentActive() const {
   TRACE_ENTER();
   if (use_consensus_ == false) {
@@ -464,7 +468,8 @@ SaAisErrorT Consensus::WriteTakeoverResult(
 }
 
 SaAisErrorT Consensus::ParseTakeoverRequest(const std::string& request,
-                                            std::vector<std::string>& tokens) {
+                                            std::vector<std::string>& tokens)
+                                            const {
   TRACE_ENTER();
 
   if (request.empty() == true) {
@@ -477,7 +482,7 @@ SaAisErrorT Consensus::ParseTakeoverRequest(const std::string& request,
   tokens.clear();
   Split(request, tokens);
   if (tokens.size() != 4) {
-    LOG_ER("Invalid takeover request: '%s'", request.c_str());
+    LOG_WA("Invalid takeover request: '%s'", request.c_str());
     return SA_AIS_ERR_LIBRARY;
   }
 
@@ -598,6 +603,30 @@ Consensus::TakeoverState Consensus::HandleTakeoverRequest(
   }
 
   return result;
+}
+
+// Determine if plugin is telling us to self-fence due to loss
+// of connectivity to the KV store
+bool Consensus::SelfFence(const std::string& request) const {
+  TRACE_ENTER();
+
+  bool fence = false;
+  SaAisErrorT rc;
+  std::vector<std::string> tokens;
+
+  if (request.empty() == false) {
+    rc = ParseTakeoverRequest(request, tokens);
+    if (rc == SA_AIS_OK) {
+      const std::string state_str =
+        tokens[static_cast<std::uint8_t>(TakeoverElements::STATE)];
+
+      if (state_str ==
+        TakeoverStateStr[static_cast<std::uint8_t>(TakeoverState::UNDEFINED)]) {
+        fence = true;
+      }
+    }
+  }
+  return fence;
 }
 
 // separate space delimited elements in a string

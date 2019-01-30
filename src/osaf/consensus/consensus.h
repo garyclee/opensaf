@@ -60,6 +60,12 @@ class Consensus {
   // Is relaxed node promotion enabled?
   bool IsRelaxedNodePromotionEnabled() const;
 
+  bool PrioritisePartitionSize() const;
+
+  // Determine if plugin is telling us to self-fence due to loss
+  // of connectivity to the KV store
+  bool SelfFence(const std::string& request) const;
+
   Consensus();
   virtual ~Consensus();
 
@@ -105,7 +111,7 @@ class Consensus {
                                     const uint64_t cluster_size);
 
   SaAisErrorT ParseTakeoverRequest(const std::string& request,
-                                   std::vector<std::string>& tokens);
+                                   std::vector<std::string>& tokens) const;
   SaAisErrorT ReadTakeoverRequest(std::vector<std::string>& tokens);
 
   SaAisErrorT WriteTakeoverResult(const std::string& current_owner,
