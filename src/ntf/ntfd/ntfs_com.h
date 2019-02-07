@@ -78,7 +78,7 @@ void notificationLoggedConfirmed(SaNtfIdentifierT notificationId);
 void clientRemoved(unsigned int clientId);
 void clientRemoveMDS(MDS_DEST mds_dest);
 void ClientsDownRemoved(MDS_DEST mds_dest);
-void SetClientsDownFlag(MDS_DEST mds_dest);
+void SearchAndSetClientsDownFlag(MDS_DEST mds_dest);
 void subscriptionRemoved(unsigned int clientId,
                          SaNtfSubscriptionIdT subscriptionId,
                          MDS_SYNC_SND_CTXT *mdsCtxt);

@@ -947,10 +947,9 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info)
 			// Set flag for client down at standby node then ntfd
 			// just removes only the downed clients. This is helpful
 			// in some cases ntfd receives this event after
-			// checkpoint of initializing new client
-			if (ntfs_cb->ha_state == SA_AMF_HA_STANDBY) {
-				SetClientsDownFlag(evt->fr_dest);
-			}
+			// checkpoint of initializing new client in standby or
+			// checking if client has already downed in active.
+			SearchAndSetClientsDownFlag(evt->fr_dest);
 
 			/* Push the event and we are done */
 			if (m_NCS_IPC_SEND(&ntfs_cb->mbx, evt,

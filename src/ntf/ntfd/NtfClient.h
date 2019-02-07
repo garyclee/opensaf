@@ -22,6 +22,7 @@
 #ifndef NTF_NTFD_NTFCLIENT_H_
 #define NTF_NTFD_NTFCLIENT_H_
 
+#include <atomic>
 #include "ntf/ntfd/NtfSubscription.h"
 #include "ntf/ntfd/NtfNotification.h"
 #include "ntf/ntfd/NtfReader.h"
@@ -68,8 +69,8 @@ class NtfClient {
   bool IsA11Client() const;
   void set_client_version(SaVersionT *ver);
   SaVersionT *getSafVersion();
-  void SetClientDownFlag();
-  bool GetClientDownFlag();
+  void SetClientDownFlag() { client_down_flag_ = true; }
+  bool GetClientDownFlag() { return client_down_flag_;}
 
  private:
   void newReaderResponse(SaAisErrorT *error, unsigned int readerId,
@@ -86,7 +87,7 @@ class NtfClient {
   SaVersionT safVersion_;
 
   // The flag to indicate that the client down and is going to deleted
-  bool client_down_flag_;
+  std::atomic<bool> client_down_flag_;
 
   typedef std::map<SaNtfSubscriptionIdT, NtfSubscription *> SubscriptionMap;
   SubscriptionMap subscriptionMap;
