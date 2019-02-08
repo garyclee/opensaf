@@ -66,6 +66,9 @@ class Consensus {
   // of connectivity to the KV store
   bool SelfFence(const std::string& request) const;
 
+  bool ReloadConfiguration();
+  std::string PluginPath() const;
+
   Consensus();
   virtual ~Consensus();
 
@@ -92,13 +95,17 @@ class Consensus {
                                       const std::string& request);
 
  private:
-  bool use_consensus_ = false;
-  bool use_remote_fencing_ = false;
-  bool prioritise_partition_size_ = false;
-  bool relaxed_node_promotion_ = false;
-  uint32_t takeover_valid_time;
-  uint32_t max_takeover_retry;
+  bool use_consensus_{false};
+  bool use_remote_fencing_{false};
+  bool prioritise_partition_size_{true};
+  bool relaxed_node_promotion_{false};
+  uint32_t takeover_valid_time_{20};
+  uint32_t max_takeover_retry_{0};
+  std::string config_file_{};
+  std::string plugin_path_{};
+
   const std::string kTestKeyname = "opensaf_write_test";
+  const std::string kFmsEnvPrefix = "FMS";
   const std::chrono::milliseconds kSleepInterval =
       std::chrono::milliseconds(1000);  // in ms
   static constexpr uint32_t kLockTimeout = 0;  // lock is persistent by default
@@ -125,6 +132,7 @@ class Consensus {
   bool FenceNode(const std::string& node);
 
   void Split(const std::string& str, std::vector<std::string>& tokens) const;
+  void ProcessEnvironmentSettings();
 
   DELETE_COPY_AND_MOVE_OPERATORS(Consensus);
 };

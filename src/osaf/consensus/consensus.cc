@@ -18,6 +18,7 @@
 #include <sstream>
 #include <thread>
 #include "base/conf.h"
+#include "base/config_file_reader.h"
 #include "base/getenv.h"
 #include "base/logtrace.h"
 #include "base/ncssysf_def.h"
@@ -234,22 +235,32 @@ std::string Consensus::CurrentActive() const {
 Consensus::Consensus() {
   TRACE_ENTER();
 
+  // needed for base::Conf::NodeName() later
+  base::Conf::InitNodeName();
+
+  ProcessEnvironmentSettings();
+}
+
+Consensus::~Consensus() {}
+
+void Consensus::ProcessEnvironmentSettings() {
   uint32_t split_brain_enable = base::GetEnv("FMS_SPLIT_BRAIN_PREVENTION", 0);
-  std::string kv_store_cmd = base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  plugin_path_ = base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
   uint32_t use_remote_fencing = base::GetEnv("FMS_USE_REMOTE_FENCING", 0);
   uint32_t prioritise_partition_size =
     base::GetEnv("FMS_TAKEOVER_PRIORITISE_PARTITION_SIZE", 1);
   uint32_t relaxed_node_promotion =
     base::GetEnv("FMS_RELAXED_NODE_PROMOTION", 0);
+  config_file_ = base::GetEnv("FMS_CONF_FILE", "");
 
   // if not specified in fmd.conf,
   // takeover requests are valid for 20 seconds
-  takeover_valid_time =
+  takeover_valid_time_ =
     base::GetEnv("FMS_TAKEOVER_REQUEST_VALID_TIME", 20);
   // expiration time of takeover request is twice the max wait time
-  max_takeover_retry = takeover_valid_time / 2;
+  max_takeover_retry_ = takeover_valid_time_ / 2;
 
-  if (split_brain_enable == 1 && kv_store_cmd.empty() == false) {
+  if (split_brain_enable == 1 && plugin_path_.empty() == false) {
     use_consensus_ = true;
   } else {
     use_consensus_ = false;
@@ -259,19 +270,43 @@ Consensus::Consensus() {
     use_remote_fencing_ = true;
   }
 
-  if (prioritise_partition_size == 1) {
-    prioritise_partition_size_ = true;
+  if (prioritise_partition_size == 0) {
+    prioritise_partition_size_ = false;
   }
 
   if (use_consensus_ == true && relaxed_node_promotion == 1) {
     relaxed_node_promotion_ = true;
   }
-
-  // needed for base::Conf::NodeName() later
-  base::Conf::InitNodeName();
 }
 
-Consensus::~Consensus() {}
+bool Consensus::ReloadConfiguration() {
+  ConfigFileReader reader;
+  ConfigFileReader::SettingsMap map;
+
+  if (config_file_.empty() == true) {
+    LOG_ER("config file not defined");
+    return false;
+  }
+
+  map = reader.ParseFile(config_file_);
+  for (const auto& kv : map) {
+    if (kv.first.compare(0, kFmsEnvPrefix.size(), kFmsEnvPrefix) != 0) {
+      // we only care about environment variables beginning with 'FMS'
+      continue;
+    }
+    int rc;
+    rc = setenv(kv.first.c_str(), kv.second.c_str(), 1);
+    osafassert(rc == 0);
+  }
+
+  ProcessEnvironmentSettings();
+
+  return true;
+}
+
+std::string Consensus::PluginPath() const {
+  return plugin_path_;
+}
 
 bool Consensus::FenceNode(const std::string& node) {
   if (use_remote_fencing_ == true) {
@@ -325,7 +360,7 @@ void Consensus::CheckForExistingTakeoverRequest() {
   // or until the takeover request is gone
   rc = ReadTakeoverRequest(tokens);
   while (rc == SA_AIS_OK &&
-         retries < max_takeover_retry) {
+         retries < max_takeover_retry_) {
     ++retries;
     TRACE("Takeover request still present");
     std::this_thread::sleep_for(kSleepInterval);
@@ -355,12 +390,12 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
   SaAisErrorT rc;
   uint32_t retries = 0;
   rc = KeyValue::Create(kTakeoverRequestKeyname, takeover_request,
-                        takeover_valid_time);
+                        takeover_valid_time_);
   while (rc == SA_AIS_ERR_FAILED_OPERATION && retries < kMaxRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
     rc = KeyValue::Create(kTakeoverRequestKeyname, takeover_request,
-                          takeover_valid_time);
+                          takeover_valid_time_);
   }
 
   if (rc == SA_AIS_ERR_EXIST) {
@@ -373,7 +408,7 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
     // or until the takeover request is gone
     rc = ReadTakeoverRequest(tokens);
     while (rc == SA_AIS_OK &&
-           retries < max_takeover_retry) {
+           retries < max_takeover_retry_) {
       ++retries;
       TRACE("Takeover request still present");
       std::this_thread::sleep_for(kSleepInterval);
@@ -400,7 +435,7 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
 
   // wait up to max_takeover_retry seconds for request to be answered
   retries = 0;
-  while (retries < max_takeover_retry) {
+  while (retries < max_takeover_retry_) {
     std::vector<std::string> tokens;
     if (ReadTakeoverRequest(tokens) == SA_AIS_OK) {
       const std::string state =
@@ -462,7 +497,7 @@ SaAisErrorT Consensus::WriteTakeoverResult(
   // previous value must match
   rc =
       KeyValue::Set(kTakeoverRequestKeyname, takeover_result,
-                    takeover_request, takeover_valid_time);
+                    takeover_request, takeover_valid_time_);
 
   return rc;
 }
@@ -569,7 +604,7 @@ Consensus::TakeoverState Consensus::HandleTakeoverRequest(
           .c_str(),
       0, 10);
 
-  LOG_NO("Other network size: %" PRIu64 ", our network size: %" PRIu64,
+  TRACE("Other network size: %" PRIu64 ", our network size: %" PRIu64,
          proposed_cluster_size, cluster_size);
 
   const std::string state_str =
