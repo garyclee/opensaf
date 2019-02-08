@@ -306,6 +306,8 @@ int main(int argc, char *argv[]) {
     if (fds[FD_SIGHUP].revents & POLLIN) {
       ncs_sel_obj_rmv_ind(&sighup_sel_obj, true, true);
       reload_configuration(fm_cb);
+      Consensus consensus_service;
+      consensus_service.ReloadConfiguration();
     }
 
     if (fds[FD_MBX].revents & POLLIN) handle_mbx_event();
