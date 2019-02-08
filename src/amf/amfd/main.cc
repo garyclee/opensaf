@@ -84,15 +84,11 @@ AVD_CL_CB *avd_cb = &_control_block;
 static nfds_t nfds = FD_IMM + 1;
 static struct pollfd fds[FD_IMM + 1];
 
-static NCS_SEL_OBJ sighup_sel_obj;
-
 static void process_event(AVD_CL_CB *cb_now, AVD_EVT *evt);
 static void invalid_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 static void standby_invalid_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 static void qsd_invalid_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 static void qsd_ignore_evh(AVD_CL_CB *cb, AVD_EVT *evt);
-
-static void sighup_handler(int signum, siginfo_t *info, void *ptr);
 
 /* list of all the function pointers related to handling the events
  * for active director.
@@ -624,6 +620,8 @@ static void main_loop(void) {
   AVD_STBY_SYNC_STATE old_sync_state = cb->stby_sync_state;
   int polltmo = -1;
   int term_fd;
+  int hangup_fd;
+  NCS_SEL_OBJ *hangup_sel_obj = nullptr;
 
   // function to be called if new fails. The alternative of using catch of
   // std::bad_alloc will unwind the stack and thus no call chain will be
@@ -633,22 +631,11 @@ static void main_loop(void) {
   mbx_fd = ncs_ipc_get_sel_obj(&cb->avd_mbx);
   daemon_sigterm_install(&term_fd);
 
-  int rc = ncs_sel_obj_create(&sighup_sel_obj);
-  osafassert(rc == NCSCC_RC_SUCCESS);
-
-  struct sigaction sighup;
-  sigemptyset(&sighup.sa_mask);
-  sighup.sa_sigaction = sighup_handler;
-  sighup.sa_flags = SA_SIGINFO;
-
-  if (sigaction(SIGHUP, &sighup, NULL) != 0) {
-    osafassert(false);
-  }
-
+  hangup_sel_obj = daemon_sighup_install(&hangup_fd);
 
   fds[FD_TERM].fd = term_fd;
   fds[FD_TERM].events = POLLIN;
-  fds[FD_SIGHUP].fd = sighup_sel_obj.rmv_obj;
+  fds[FD_SIGHUP].fd = hangup_fd;
   fds[FD_SIGHUP].events = POLLIN;
   fds[FD_MBX].fd = mbx_fd.rmv_obj;
   fds[FD_MBX].events = POLLIN;
@@ -691,7 +678,7 @@ static void main_loop(void) {
     }
 
     if (fds[FD_SIGHUP].revents & POLLIN) {
-      ncs_sel_obj_rmv_ind(&sighup_sel_obj, true, true);
+      ncs_sel_obj_rmv_ind(hangup_sel_obj, true, true);
       Consensus consensus_service;
       consensus_service.ReloadConfiguration();
     }
@@ -849,10 +836,6 @@ static void process_event(AVD_CL_CB *cb_now, AVD_EVT *evt) {
   delete evt;
 
   TRACE_LEAVE();
-}
-
-static void sighup_handler(int signum, siginfo_t *info, void *ptr) {
-  ncs_sel_obj_ind(&sighup_sel_obj);
 }
 
 /**

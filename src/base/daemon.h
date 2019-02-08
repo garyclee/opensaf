@@ -25,6 +25,8 @@
 #ifndef BASE_DAEMON_H_
 #define BASE_DAEMON_H_
 
+#include "base/os_defs.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,6 +35,7 @@ void daemonize(int argc, char *argv[]);
 void daemonize_as_user(const char *username, int argc, char *argv[]);
 void daemon_exit(void);
 void daemon_sigterm_install(int *term_fd);
+NCS_SEL_OBJ* daemon_sighup_install(int *hangup_fd);
 
 #ifdef __cplusplus
 }

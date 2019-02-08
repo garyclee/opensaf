@@ -64,7 +64,6 @@ const char *rde_msg_name[] = {"-",
 static RDE_CONTROL_BLOCK _rde_cb;
 static RDE_CONTROL_BLOCK *rde_cb = &_rde_cb;
 static NCS_SEL_OBJ usr1_sel_obj;
-static NCS_SEL_OBJ sighup_sel_obj;
 static NODE_ID own_node_id;
 static Role *role;
 
@@ -81,10 +80,6 @@ static void sigusr1_handler(int sig) {
   (void)sig;
   signal(SIGUSR1, SIG_IGN);
   ncs_sel_obj_ind(&usr1_sel_obj);
-}
-
-static void sighup_handler(int signum, siginfo_t *info, void *ptr) {
-  ncs_sel_obj_ind(&sighup_sel_obj);
 }
 
 static int fd_to_client_ixd(int fd) {
@@ -315,12 +310,6 @@ static int initialize_rde() {
     goto init_failed;
   }
 
-  rc = ncs_sel_obj_create(&sighup_sel_obj);
-  if (rc != NCSCC_RC_SUCCESS) {
-    LOG_ER("ncs_sel_obj_create FAILED");
-    goto init_failed;
-  }
-
   if ((rc = ncs_ipc_create(&rde_cb->mbx)) != NCSCC_RC_SUCCESS) {
     LOG_ER("ncs_ipc_create FAILED");
     goto init_failed;
@@ -334,16 +323,6 @@ static int initialize_rde() {
   if (rde_cb->rde_amf_cb.nid_started &&
       signal(SIGUSR1, sigusr1_handler) == SIG_ERR) {
     LOG_ER("signal USR1 FAILED: %s", strerror(errno));
-    goto init_failed;
-  }
-
-  struct sigaction sighup;
-  sigemptyset(&sighup.sa_mask);
-  sighup.sa_sigaction = sighup_handler;
-  sighup.sa_flags = SA_SIGINFO;
-
-  if (sigaction(SIGHUP, &sighup, NULL) != 0) {
-    LOG_ER("registering SIGHUP FAILED: %s", strerror(errno));
     goto init_failed;
   }
 
@@ -365,6 +344,8 @@ int main(int argc, char *argv[]) {
   NCS_SEL_OBJ mbx_sel_obj;
   RDE_RDA_CB *rde_rda_cb = &rde_cb->rde_rda_cb;
   int term_fd;
+  int hangup_fd;
+  NCS_SEL_OBJ *hangup_sel_obj = nullptr;
   opensaf_reboot_prepare();
 
   daemonize(argc, argv);
@@ -382,6 +363,7 @@ int main(int argc, char *argv[]) {
   }
 
   daemon_sigterm_install(&term_fd);
+  hangup_sel_obj = daemon_sighup_install(&hangup_fd);
 
   fds[FD_TERM].fd = term_fd;
   fds[FD_TERM].events = POLLIN;
@@ -391,7 +373,7 @@ int main(int argc, char *argv[]) {
                                                   : rde_cb->rde_amf_cb.amf_fd;
   fds[FD_AMF].events = POLLIN;
 
-  fds[FD_SIGHUP].fd = sighup_sel_obj.rmv_obj;
+  fds[FD_SIGHUP].fd = hangup_fd;
   fds[FD_SIGHUP].events = POLLIN;
 
   /* Mailbox */
@@ -455,7 +437,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (fds[FD_SIGHUP].revents & POLLIN) {
-      ncs_sel_obj_rmv_ind(&sighup_sel_obj, true, true);
+      ncs_sel_obj_rmv_ind(hangup_sel_obj, true, true);
       Consensus consensus_service;
       bool old_setting = consensus_service.IsEnabled();
       consensus_service.ReloadConfiguration();

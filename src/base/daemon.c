@@ -46,7 +46,6 @@
 #include "base/logtrace.h"
 
 #include "base/ncsgl_defs.h"
-#include "base/os_defs.h"
 #include "base/osaf_gcov.h"
 #include "base/osaf_secutil.h"
 #include "base/osaf_time.h"
@@ -515,6 +514,7 @@ void daemonize_as_user(const char *username, int argc, char *argv[])
 }
 
 static NCS_SEL_OBJ term_sel_obj; /* Selection object for TERM signal events */
+static NCS_SEL_OBJ hangup_sel_obj; /* Selection object for HUP signal */
 
 // symbols from ncs_osprm.h, don't pull in that file here!
 extern uint32_t ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj);
@@ -531,6 +531,15 @@ static void sigterm_handler(int signum, siginfo_t *info, void *ptr)
 
 	ncs_sel_obj_ind(&term_sel_obj);
 	signal(SIGTERM, SIG_IGN);
+}
+
+/**
+ * HUP signal handler
+ * @param sig
+ */
+static void sighup_handler(int signum, siginfo_t *info, void *ptr)
+{
+	ncs_sel_obj_ind(&hangup_sel_obj);
 }
 
 /**
@@ -579,6 +588,31 @@ void daemon_sigterm_install(int *term_fd)
 	}
 
 	*term_fd = term_sel_obj.rmv_obj;
+}
+
+/**
+ * Install HUP signal handler and return descriptor to monitor
+ * @param[out] term_fd  socket descriptor to monitor for SIGHUP event
+ */
+NCS_SEL_OBJ* daemon_sighup_install(int *hangup_fd)
+{
+	struct sigaction act;
+
+	if (ncs_sel_obj_create(&hangup_sel_obj) != NCSCC_RC_SUCCESS) {
+		syslog(LOG_ERR, "ncs_sel_obj_create failed");
+		exit(EXIT_FAILURE);
+	}
+
+	sigemptyset(&act.sa_mask);
+	act.sa_sigaction = sighup_handler;
+	act.sa_flags = SA_SIGINFO;
+	if (sigaction(SIGHUP, &act, NULL) < 0) {
+		syslog(LOG_ERR, "sigaction HUP failed: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	*hangup_fd = hangup_sel_obj.rmv_obj;
+	return &hangup_sel_obj;
 }
 
 static char *bt_filename = 0;

@@ -71,7 +71,6 @@ void rda_cb(uint32_t cb_hdl, PCS_RDA_CB_INFO *cb_info,
             PCSRDA_RETURN_CODE error_code);
 uint32_t gl_fm_hdl;
 static NCS_SEL_OBJ usr1_sel_obj;
-static NCS_SEL_OBJ sighup_sel_obj;
 
 /**
  * USR1 signal is used when AMF wants instantiate us as a
@@ -84,10 +83,6 @@ static void sigusr1_handler(int sig) {
   (void)sig;
   signal(SIGUSR1, SIG_IGN);
   ncs_sel_obj_ind(&usr1_sel_obj);
-}
-
-static void sighup_handler(int signum, siginfo_t *info, void *ptr) {
-  ncs_sel_obj_ind(&sighup_sel_obj);
 }
 
 /**
@@ -136,6 +131,8 @@ int main(int argc, char *argv[]) {
   int ret = 0;
   int rc = NCSCC_RC_FAILURE;
   int term_fd;
+  int hangup_fd;
+  NCS_SEL_OBJ* hangup_sel_obj = nullptr;
   bool nid_started = false;
   char *control_tipc = NULL;
 
@@ -222,22 +219,6 @@ int main(int argc, char *argv[]) {
     goto fm_init_failed;
   }
 
-  rc = ncs_sel_obj_create(&sighup_sel_obj);
-  if (rc != NCSCC_RC_SUCCESS) {
-    LOG_ER("ncs_sel_obj_create FAILED");
-    goto fm_init_failed;
-  }
-
-  struct sigaction sighup;
-  sigemptyset(&sighup.sa_mask);
-  sighup.sa_sigaction = sighup_handler;
-  sighup.sa_flags = SA_SIGINFO;
-
-  if (sigaction(SIGHUP, &sighup, NULL) != 0) {
-    LOG_ER("registering SIGHUP FAILED: %s", strerror(errno));
-    goto fm_init_failed;
-  }
-
   if (!nid_started && fm_amf_init(&fm_cb->fm_amf_cb) != NCSCC_RC_SUCCESS)
     goto fm_init_failed;
 
@@ -254,6 +235,7 @@ int main(int argc, char *argv[]) {
   ncshm_give_hdl(gl_fm_hdl);
 
   daemon_sigterm_install(&term_fd);
+  hangup_sel_obj = daemon_sighup_install(&hangup_fd);
 
   fds[FD_TERM].fd = term_fd;
   fds[FD_TERM].events = POLLIN;
@@ -266,7 +248,7 @@ int main(int argc, char *argv[]) {
   fds[FD_MBX].fd = mbx_sel_obj.rmv_obj;
   fds[FD_MBX].events = POLLIN;
 
-  fds[FD_SIGHUP].fd = sighup_sel_obj.rmv_obj;
+  fds[FD_SIGHUP].fd = hangup_fd;
   fds[FD_SIGHUP].events = POLLIN;
 
   /* notify the NID */
@@ -304,7 +286,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (fds[FD_SIGHUP].revents & POLLIN) {
-      ncs_sel_obj_rmv_ind(&sighup_sel_obj, true, true);
+      ncs_sel_obj_rmv_ind(hangup_sel_obj, true, true);
       reload_configuration(fm_cb);
       Consensus consensus_service;
       consensus_service.ReloadConfiguration();
