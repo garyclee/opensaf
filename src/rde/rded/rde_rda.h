@@ -37,6 +37,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <cstdint>
+#include <string>
+#include "base/getenv.h"
 
 class Role;
 
@@ -85,6 +87,7 @@ struct RDE_RDA_CB {
   int client_count;
   Role *role;
   RDE_RDA_CLIENT clients[MAX_RDA_CLIENTS];
+  std::string fmd_conf_file;
 };
 
 /***************************************************************\

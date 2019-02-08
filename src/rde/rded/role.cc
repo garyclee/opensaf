@@ -77,8 +77,8 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
     size_t len = request.length() + 1;
     msg->info.takeover_request = new char[len];
     strncpy(msg->info.takeover_request, request.c_str(), len);
-    LOG_NO("Sending takeover request '%s' to main thread",
-          msg->info.takeover_request);
+    TRACE("Sending takeover request '%s' to main thread",
+           msg->info.takeover_request);
     if (consensus_service.SelfFence(request) == false &&
         consensus_service.PrioritisePartitionSize() == true) {
       // don't send this to the main thread straight away, as it will
@@ -161,11 +161,13 @@ void Role::NodePromoted() {
 
   // register for callback if active controller is changed
   // in consensus service
-  if (cb->monitor_lock_thread_running == false) {
+  if (consensus_service.IsEnabled() == true &&
+      cb->monitor_lock_thread_running == false) {
     cb->monitor_lock_thread_running = true;
     consensus_service.MonitorLock(MonitorCallback, cb->mbx);
   }
-  if (cb->monitor_takeover_req_thread_running == false) {
+  if (consensus_service.IsEnabled() == true &&
+      cb->monitor_takeover_req_thread_running == false) {
     cb->monitor_takeover_req_thread_running = true;
     consensus_service.MonitorTakeoverRequest(MonitorCallback, cb->mbx);
   }
@@ -276,11 +278,13 @@ uint32_t Role::SetRole(PCS_RDA_ROLE new_role) {
       Consensus consensus_service;
       RDE_CONTROL_BLOCK* cb = rde_get_control_block();
       cb->state = State::kActiveFailover;
-      if (cb->monitor_lock_thread_running == false) {
+      if (consensus_service.IsEnabled() == true &&
+          cb->monitor_lock_thread_running == false) {
         cb->monitor_lock_thread_running = true;
         consensus_service.MonitorLock(MonitorCallback, cb->mbx);
       }
-      if (cb->monitor_takeover_req_thread_running == false) {
+      if (consensus_service.IsEnabled() == true &&
+          cb->monitor_takeover_req_thread_running == false) {
         cb->monitor_takeover_req_thread_running = true;
         consensus_service.MonitorTakeoverRequest(MonitorCallback, cb->mbx);
       }
@@ -333,4 +337,15 @@ void Role::SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id) {
              node_id, to_string(node_role), to_string(role()));
     }
   }
+}
+
+void Role::PromoteNodeLate() {
+  TRACE_ENTER();
+
+  // we are already active and split brain prevention has been
+  // enabled during runtime, we need to obtain lock
+  RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+  std::thread(&Role::PromoteNode,
+              this, cb->cluster_members.size(),
+              true).detach();
 }

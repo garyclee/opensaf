@@ -39,11 +39,11 @@
 #include "osaf/consensus/consensus.h"
 #include "rde/rded/rde_cb.h"
 #include "rde/rded/role.h"
-#include "rde_cb.h"
 
 #define RDA_MAX_CLIENTS 32
 
-enum { FD_TERM = 0, FD_AMF = 1, FD_MBX, FD_RDA_SERVER, FD_CLIENT_START };
+enum { FD_TERM = 0, FD_AMF = 1, FD_MBX, FD_RDA_SERVER,
+       FD_SIGHUP, FD_CLIENT_START };
 
 static void SendPeerInfoResp(MDS_DEST mds_dest);
 static void CheckForSplitBrain(const rde_msg *msg);
@@ -64,6 +64,7 @@ const char *rde_msg_name[] = {"-",
 static RDE_CONTROL_BLOCK _rde_cb;
 static RDE_CONTROL_BLOCK *rde_cb = &_rde_cb;
 static NCS_SEL_OBJ usr1_sel_obj;
+static NCS_SEL_OBJ sighup_sel_obj;
 static NODE_ID own_node_id;
 static Role *role;
 
@@ -80,6 +81,10 @@ static void sigusr1_handler(int sig) {
   (void)sig;
   signal(SIGUSR1, SIG_IGN);
   ncs_sel_obj_ind(&usr1_sel_obj);
+}
+
+static void sighup_handler(int signum, siginfo_t *info, void *ptr) {
+  ncs_sel_obj_ind(&sighup_sel_obj);
 }
 
 static int fd_to_client_ixd(int fd) {
@@ -128,6 +133,10 @@ static void handle_mbx_event() {
 
       // get current active controller
       Consensus consensus_service;
+      if (consensus_service.IsEnabled() == false) {
+        // disabled during runtime
+        break;
+      }
       std::string active_controller = consensus_service.CurrentActive();
 
       LOG_NO("New active controller notification from consensus service");
@@ -179,11 +188,15 @@ static void handle_mbx_event() {
       rde_cb->monitor_takeover_req_thread_running = false;
 
       if (role->role() == PCS_RDA_ACTIVE) {
-        LOG_NO("Received takeover request '%s'. Our network size is %zu",
+        TRACE("Received takeover request '%s'. Our network size is %zu",
                 msg->info.takeover_request,
                rde_cb->cluster_members.size());
 
         Consensus consensus_service;
+        if (consensus_service.IsEnabled() == false) {
+          // disabled during runtime
+          break;
+        }
         Consensus::TakeoverState state =
             consensus_service.HandleTakeoverRequest(
                 rde_cb->cluster_members.size(),
@@ -230,7 +243,7 @@ static void handle_mbx_event() {
           }
         }
 
-        LOG_NO("Rejected takeover request");
+        TRACE("Rejected takeover request");
 
         rde_cb->monitor_takeover_req_thread_running = true;
         consensus_service.MonitorTakeoverRequest(Role::MonitorCallback,
@@ -284,6 +297,8 @@ static int initialize_rde() {
   if (getenv("SA_AMF_COMPONENT_NAME") == nullptr)
     rde_cb->rde_amf_cb.nid_started = true;
 
+  rde_rda_cb->fmd_conf_file = base::GetEnv("FMS_CONF_FILE", "");
+
   if ((rc = ncs_core_agents_startup()) != NCSCC_RC_SUCCESS) {
     LOG_ER("ncs_core_agents_startup FAILED");
     goto init_failed;
@@ -296,6 +311,12 @@ static int initialize_rde() {
 
   if (rde_cb->rde_amf_cb.nid_started &&
       (rc = ncs_sel_obj_create(&usr1_sel_obj)) != NCSCC_RC_SUCCESS) {
+    LOG_ER("ncs_sel_obj_create FAILED");
+    goto init_failed;
+  }
+
+  rc = ncs_sel_obj_create(&sighup_sel_obj);
+  if (rc != NCSCC_RC_SUCCESS) {
     LOG_ER("ncs_sel_obj_create FAILED");
     goto init_failed;
   }
@@ -313,6 +334,16 @@ static int initialize_rde() {
   if (rde_cb->rde_amf_cb.nid_started &&
       signal(SIGUSR1, sigusr1_handler) == SIG_ERR) {
     LOG_ER("signal USR1 FAILED: %s", strerror(errno));
+    goto init_failed;
+  }
+
+  struct sigaction sighup;
+  sigemptyset(&sighup.sa_mask);
+  sighup.sa_sigaction = sighup_handler;
+  sighup.sa_flags = SA_SIGINFO;
+
+  if (sigaction(SIGHUP, &sighup, NULL) != 0) {
+    LOG_ER("registering SIGHUP FAILED: %s", strerror(errno));
     goto init_failed;
   }
 
@@ -359,6 +390,9 @@ int main(int argc, char *argv[]) {
   fds[FD_AMF].fd = rde_cb->rde_amf_cb.nid_started ? usr1_sel_obj.rmv_obj
                                                   : rde_cb->rde_amf_cb.amf_fd;
   fds[FD_AMF].events = POLLIN;
+
+  fds[FD_SIGHUP].fd = sighup_sel_obj.rmv_obj;
+  fds[FD_SIGHUP].events = POLLIN;
 
   /* Mailbox */
   fds[FD_MBX].fd = mbx_sel_obj.rmv_obj;
@@ -417,6 +451,23 @@ int main(int argc, char *argv[]) {
         if (rde_amf_init(&rde_cb->rde_amf_cb) != NCSCC_RC_SUCCESS) goto done;
 
         fds[FD_AMF].fd = rde_cb->rde_amf_cb.amf_fd;
+      }
+    }
+
+    if (fds[FD_SIGHUP].revents & POLLIN) {
+      ncs_sel_obj_rmv_ind(&sighup_sel_obj, true, true);
+      Consensus consensus_service;
+      bool old_setting = consensus_service.IsEnabled();
+      consensus_service.ReloadConfiguration();
+      bool new_setting = consensus_service.IsEnabled();
+      if (role->role() == PCS_RDA_ACTIVE) {
+        if (old_setting == false && new_setting == true) {
+          // if active and switched on, obtain lock
+          role->PromoteNodeLate();
+        } else if (old_setting == true && new_setting == false) {
+          // if active and switched off
+          // @todo remove lock in a new thread
+        }
       }
     }
 

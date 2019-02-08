@@ -44,6 +44,7 @@ class Role {
   static void MonitorCallback(const std::string& key,
                               const std::string& new_value, SYSF_MBX mbx);
   void NodePromoted();
+  void PromoteNodeLate();
 
  private:
   static const uint64_t kDefaultDiscoverPeerTimeout = 2000;

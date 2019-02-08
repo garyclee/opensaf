@@ -28,6 +28,7 @@ else
 	unset args
 	. $pkgsysconfdir/nid.conf
 	. $pkgsysconfdir/rde.conf
+	export FMS_CONF_FILE=$pkgsysconfdir/fmd.conf
 fi	
 
 binary=$pkglibdir/$osafprog
