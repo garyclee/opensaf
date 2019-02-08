@@ -45,6 +45,7 @@
 
 #include "base/daemon.h"
 #include "base/logtrace.h"
+#include "osaf/consensus/consensus.h"
 #include "nid/agent/nid_api.h"
 #include "rde/agent/rda_papi.h"
 
@@ -70,6 +71,7 @@ enum {
   FD_MBX,
   FD_MBCSV,
   FD_CLM,
+  FD_SIGHUP,
   FD_IMM  // must be last
 };
 
@@ -82,11 +84,15 @@ AVD_CL_CB *avd_cb = &_control_block;
 static nfds_t nfds = FD_IMM + 1;
 static struct pollfd fds[FD_IMM + 1];
 
+static NCS_SEL_OBJ sighup_sel_obj;
+
 static void process_event(AVD_CL_CB *cb_now, AVD_EVT *evt);
 static void invalid_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 static void standby_invalid_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 static void qsd_invalid_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 static void qsd_ignore_evh(AVD_CL_CB *cb, AVD_EVT *evt);
+
+static void sighup_handler(int signum, siginfo_t *info, void *ptr);
 
 /* list of all the function pointers related to handling the events
  * for active director.
@@ -574,6 +580,7 @@ static uint32_t initialize(void) {
   }
   cb->minimum_cluster_size =
       base::GetEnv("OSAF_AMF_MIN_CLUSTER_SIZE", uint32_t{2});
+  cb->fmd_conf_file = base::GetEnv("FMS_CONF_FILE", "");
 
   node_list_db = new AmfDb<uint32_t, AVD_FAIL_OVER_NODE>;
   amfnd_svc_db = new std::set<uint32_t>;
@@ -626,8 +633,23 @@ static void main_loop(void) {
   mbx_fd = ncs_ipc_get_sel_obj(&cb->avd_mbx);
   daemon_sigterm_install(&term_fd);
 
+  int rc = ncs_sel_obj_create(&sighup_sel_obj);
+  osafassert(rc == NCSCC_RC_SUCCESS);
+
+  struct sigaction sighup;
+  sigemptyset(&sighup.sa_mask);
+  sighup.sa_sigaction = sighup_handler;
+  sighup.sa_flags = SA_SIGINFO;
+
+  if (sigaction(SIGHUP, &sighup, NULL) != 0) {
+    osafassert(false);
+  }
+
+
   fds[FD_TERM].fd = term_fd;
   fds[FD_TERM].events = POLLIN;
+  fds[FD_SIGHUP].fd = sighup_sel_obj.rmv_obj;
+  fds[FD_SIGHUP].events = POLLIN;
   fds[FD_MBX].fd = mbx_fd.rmv_obj;
   fds[FD_MBX].events = POLLIN;
   while (1) {
@@ -666,6 +688,12 @@ static void main_loop(void) {
 
     if (fds[FD_TERM].revents & POLLIN) {
       daemon_exit();
+    }
+
+    if (fds[FD_SIGHUP].revents & POLLIN) {
+      ncs_sel_obj_rmv_ind(&sighup_sel_obj, true, true);
+      Consensus consensus_service;
+      consensus_service.ReloadConfiguration();
     }
 
     if (fds[FD_MBX].revents & POLLIN) {
@@ -821,6 +849,10 @@ static void process_event(AVD_CL_CB *cb_now, AVD_EVT *evt) {
   delete evt;
 
   TRACE_LEAVE();
+}
+
+static void sighup_handler(int signum, siginfo_t *info, void *ptr) {
+  ncs_sel_obj_ind(&sighup_sel_obj);
 }
 
 /**
