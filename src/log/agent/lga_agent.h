@@ -19,12 +19,14 @@
 #define SRC_LOG_AGENT_LGA_AGENT_H_
 
 #include <atomic>
+#include <memory>
 #include <string>
 #include <vector>
-#include "mds/mds_papi.h"
 #include <saAis.h>
-#include "base/macros.h"
 #include <saLog.h>
+
+#include "base/macros.h"
+#include "mds/mds_papi.h"
 #include "log/common/lgsv_msg.h"
 #include "log/common/lgsv_defs.h"
 #include "log/agent/lga_common.h"
@@ -80,7 +82,15 @@ class LogClient;
 //<
 class LogAgent {
  public:
-  static LogAgent& instance() { return me_; }
+  static std::shared_ptr<LogAgent>& instance() {
+    // Ensure this static singleton instance is only destroyed when
+    // no one is using it. Note that: static data can be destroyed
+    // in log application thread which calls exit() libc. So, introducing
+    // shared_ptr<> to avoid races among threads.
+    static std::shared_ptr<LogAgent> me =
+        std::shared_ptr<LogAgent>{new LogAgent()};
+    return me;
+  }
 
   //<
   // C++ APIs wrapper for corresponding C LOG Agent APIs
@@ -158,11 +168,11 @@ class LogAgent {
   // Introduce these public interface for MDS thread use.
   void EnterCriticalSection();
   void LeaveCriticalSection();
+  ~LogAgent() {}
 
  private:
   // Not allow to create @LogAgent object, except the singleton object @me_.
   LogAgent();
-  ~LogAgent() {}
 
   // True if there is no Active SC, otherwise false
   bool no_active_log_server() const;
@@ -273,9 +283,6 @@ class LogAgent {
 
   // LGS LGA sync params
   NCS_SEL_OBJ lgs_sync_sel_;
-
-  // Singleton represents LOG Agent in LOG application process
-  static LogAgent me_;
 
   DELETE_COPY_AND_MOVE_OPERATORS(LogAgent);
 };

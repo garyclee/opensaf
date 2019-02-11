@@ -40,17 +40,17 @@ static unsigned int lga_create() {
   unsigned int rc = NCSCC_RC_SUCCESS;
 
   // Create and init sel obj for mds sync
-  NCS_SEL_OBJ* lgs_sync_sel = LogAgent::instance().get_lgs_sync_sel();
+  NCS_SEL_OBJ* lgs_sync_sel = LogAgent::instance()->get_lgs_sync_sel();
   m_NCS_SEL_OBJ_CREATE(lgs_sync_sel);
   std::atomic<bool>& lgs_sync_wait =
-      LogAgent::instance().atomic_get_lgs_sync_wait();
+      LogAgent::instance()->atomic_get_lgs_sync_wait();
   lgs_sync_wait = true;
 
   // register with MDS
   if ((NCSCC_RC_SUCCESS != (rc = lga_mds_init()))) {
     rc = NCSCC_RC_FAILURE;
     // Delete the lga init instances
-    LogAgent::instance().RemoveAllLogClients();
+    LogAgent::instance()->RemoveAllLogClients();
     return rc;
   }
 
@@ -64,7 +64,7 @@ static unsigned int lga_create() {
 
   lgs_sync_wait = false;
   std::atomic<SaClmClusterChangesT>& clm_state =
-      LogAgent::instance().atomic_get_clm_node_state();
+      LogAgent::instance()->atomic_get_clm_node_state();
   clm_state = SA_CLM_NODE_JOINED;
 
   // No longer needed
@@ -82,7 +82,7 @@ static unsigned int lga_create() {
 unsigned int lga_startup() {
   unsigned int rc = NCSCC_RC_SUCCESS;
   ScopeLock lock(init_lock);
-  std::atomic<MDS_HDL>& mds_hdl = LogAgent::instance().atomic_get_mds_hdl();
+  std::atomic<MDS_HDL>& mds_hdl = LogAgent::instance()->atomic_get_mds_hdl();
 
   TRACE_ENTER();
 

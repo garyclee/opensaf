@@ -97,7 +97,7 @@ static void *recovery2_thread(void *dummy) {
 
   // Recover all log clients. During this time, any call of LOG APIs
   // return TRY_AGAIN until the recovery is done.
-  LogAgent::instance().RecoverAllLogClients();
+  LogAgent::instance()->RecoverAllLogClients();
 
   // All clients are recovered (or removed). Or recovery is aborted
   // Change to not recovering state RecoveryState::kNormal
