@@ -943,6 +943,8 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT *evt) {
     goto done;
   }
 
+  clms_cb->mds_node_down_list.insert(node_id);
+
   if ((clms_cb->ha_state == SA_AMF_HA_ACTIVE) ||
       (clms_cb->ha_state == SA_AMF_HA_QUIESCED)) {
     clms_track_send_node_down(node);
@@ -1531,18 +1533,23 @@ static uint32_t proc_initialize_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
 
   TRACE_ENTER2("dest %" PRIx64, evt->fr_dest);
 
+  node = clms_node_get_by_id(node_id);
+  TRACE("Node id = %d", node_id);
+  if (node == nullptr) {
+    ais_rc = SA_AIS_ERR_UNAVAILABLE;
+    std::set<SaUint32T>::iterator it =
+          clms_cb->mds_node_down_list.find(node_id);
+    if (it != clms_cb->mds_node_down_list.end()) {
+      return (uint32_t)ais_rc;
+    }
+    LOG_IN("Initialize request of client on an unconfigured node: node_id = %d",
+           node_id);
+  }
+
   /*Handle the wrap around */
   if (clms_cb->last_client_id == INT_MAX) clms_cb->last_client_id = 0;
 
   clms_cb->last_client_id++;
-
-  node = clms_node_get_by_id(node_id);
-  TRACE("Node id = %d", node_id);
-  if (node == nullptr) {
-    LOG_IN("Initialize request of client on an unconfigured node: node_id = %d",
-           node_id);
-    ais_rc = SA_AIS_ERR_UNAVAILABLE;
-  }
 
   if ((client = clms_client_new(evt->fr_dest, clms_cb->last_client_id)) ==
       nullptr) {
@@ -1562,6 +1569,11 @@ static uint32_t proc_initialize_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
     LOG_NO("%s: send failed. dest:%" PRIx64, __FUNCTION__, evt->fr_dest);
     if (client != nullptr) clms_client_delete(client->client_id);
     return rc;
+  }
+
+  std::set<SaUint32T>::iterator it = clms_cb->mds_node_down_list.find(node_id);
+  if (it != clms_cb->mds_node_down_list.end()) {
+    clms_cb->mds_node_down_list.erase(it);
   }
 
   if (node) {

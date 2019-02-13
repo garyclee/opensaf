@@ -22,6 +22,7 @@
 #include "osaf/config.h"
 #endif
 #include <pthread.h>
+#include <set>
 #include <saImm.h>
 #include <saImmOi.h>
 #include <saPlm.h>
@@ -238,6 +239,8 @@ typedef struct clms_cb_t {
       *node_down_list_head; /*NODE_DOWN record - Fix when active node goes down
                              */
   NODE_DOWN_LIST *node_down_list_tail;
+  // Record node id when receive MDS node down
+  std::set<SaUint32T> mds_node_down_list;
   bool is_impl_set;
   bool nid_started;         /**< true if started by NID */
   NCS_PATRICIA_TREE iplist; /* To temporarily store ipaddress information
