@@ -112,8 +112,8 @@ void Role::PromoteNode(const uint64_t cluster_size,
     promotion_pending = true;
   } else if (rc != SA_AIS_OK) {
     LOG_ER("Unable to set active controller in consensus service");
-    opensaf_reboot(0, nullptr,
-                   "Unable to set active controller in consensus service");
+    opensaf_quick_reboot("Unable to set active controller"
+        "in consensus service");
   }
 
   RDE_CONTROL_BLOCK* cb = rde_get_control_block();
@@ -133,8 +133,8 @@ void Role::PromoteNode(const uint64_t cluster_size,
       rc = consensus_service.PromoteThisNode(true, cluster_size);
       if (rc == SA_AIS_ERR_EXIST) {
         LOG_ER("Unable to set active controller in consensus service");
-        opensaf_reboot(0, nullptr,
-                       "Unable to set active controller in consensus service");
+        opensaf_quick_reboot("Unable to set active controller in"
+            "consensus service");
       }
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }

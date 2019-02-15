@@ -203,9 +203,8 @@ static void handle_mbx_event() {
         if (state == Consensus::TakeoverState::ACCEPTED) {
           LOG_NO("Accepted takeover request");
           if (consensus_service.IsRemoteFencingEnabled() == false) {
-            opensaf_reboot(0, nullptr,
-                           "Another controller is taking over the active role. "
-                           "Rebooting this node");
+            opensaf_quick_reboot("Another controller is taking over"
+                "the active role. Rebooting this node");
           }
         } else if (state == Consensus::TakeoverState::UNDEFINED) {
           bool fencing_required = true;
@@ -233,8 +232,7 @@ static void handle_mbx_event() {
           if (fencing_required == true) {
             LOG_NO("Lost connectivity to consensus service");
             if (consensus_service.IsRemoteFencingEnabled() == false) {
-                opensaf_reboot(0, nullptr,
-                               "Lost connectivity to consensus service. "
+                opensaf_quick_reboot("Lost connectivity to consensus service. "
                                "Rebooting this node");
             }
           }
