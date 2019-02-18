@@ -539,6 +539,9 @@ static void sigterm_handler(int signum, siginfo_t *info, void *ptr)
  */
 static void sighup_handler(int signum, siginfo_t *info, void *ptr)
 {
+	(void)signum;
+	(void)info;
+	(void)ptr;
 	ncs_sel_obj_ind(&hangup_sel_obj);
 }
 
@@ -605,7 +608,7 @@ NCS_SEL_OBJ* daemon_sighup_install(int *hangup_fd)
 
 	sigemptyset(&act.sa_mask);
 	act.sa_sigaction = sighup_handler;
-	act.sa_flags = SA_SIGINFO;
+	act.sa_flags = SA_RESTART | SA_SIGINFO;
 	if (sigaction(SIGHUP, &act, NULL) < 0) {
 		syslog(LOG_ERR, "sigaction HUP failed: %s", strerror(errno));
 		exit(EXIT_FAILURE);
