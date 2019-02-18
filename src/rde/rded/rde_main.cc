@@ -203,7 +203,7 @@ static void handle_mbx_event() {
         if (state == Consensus::TakeoverState::ACCEPTED) {
           LOG_NO("Accepted takeover request");
           if (consensus_service.IsRemoteFencingEnabled() == false) {
-            opensaf_quick_reboot("Another controller is taking over"
+            opensaf_quick_reboot("Another controller is taking over "
                 "the active role. Rebooting this node");
           }
         } else if (state == Consensus::TakeoverState::UNDEFINED) {

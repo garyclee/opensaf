@@ -97,7 +97,7 @@ uint32_t fm_rda_set_role(FM_CB *fm_cb, PCS_RDA_ROLE role) {
     rc = consensus_service.PromoteThisNode(true, fm_cb->cluster_size);
     if (rc != SA_AIS_OK && rc != SA_AIS_ERR_EXIST) {
       LOG_ER("Unable to set active controller in consensus service");
-      opensaf_quick_reboot("Unable to set active controller"
+      opensaf_quick_reboot("Unable to set active controller "
           "in consensus service");
     } else if (rc == SA_AIS_ERR_EXIST) {
       // @todo if we don't reboot, we don't seem to recover from this. Can we
