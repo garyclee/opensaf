@@ -88,17 +88,20 @@ uint32_t fm_rda_set_role(FM_CB *fm_cb, PCS_RDA_ROLE role) {
 
   Consensus consensus_service;
   if (consensus_service.IsEnabled() == true) {
-    // Allow topology events to be processed first. The MDS thread may
-    // be processing MDS down events and updating cluster_size concurrently.
-    // We need cluster_size to be as accurate as possible, without waiting
-    // too long for node down events.
-    std::this_thread::sleep_for(std::chrono::seconds(4));
+    if (consensus_service.PrioritisePartitionSize() == true) {
+      // Allow topology events to be processed first. The MDS thread may
+      // be processing MDS down events and updating cluster_size concurrently.
+      // We need cluster_size to be as accurate as possible, without waiting
+      // too long for node down events.
+      std::this_thread::sleep_for(std::chrono::seconds(4));
+    }
 
     rc = consensus_service.PromoteThisNode(true, fm_cb->cluster_size);
     if (rc != SA_AIS_OK && rc != SA_AIS_ERR_EXIST) {
       LOG_ER("Unable to set active controller in consensus service");
       opensaf_quick_reboot("Unable to set active controller "
           "in consensus service");
+      return NCSCC_RC_FAILURE;
     } else if (rc == SA_AIS_ERR_EXIST) {
       // @todo if we don't reboot, we don't seem to recover from this. Can we
       // improve?
@@ -107,6 +110,7 @@ uint32_t fm_rda_set_role(FM_CB *fm_cb, PCS_RDA_ROLE role) {
           "cluster?");
       opensaf_quick_reboot("A controller is already active. We were separated "
                            "from the cluster?");
+      return NCSCC_RC_FAILURE;
     }
   }
 
