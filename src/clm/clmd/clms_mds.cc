@@ -542,7 +542,7 @@ static uint32_t clms_enc_track_cbk_msg(NCS_UBAID *uba, CLMSV_MSG *msg) {
     TRACE("p8 nullptr!!!");
     return 0;
   }
-  ncs_encode_32bit(&p8, track->time_super);
+  ncs_encode_64bit(&p8, track->time_super);
   ncs_enc_claim_space(uba, 8);
   total_bytes += 8;
 
