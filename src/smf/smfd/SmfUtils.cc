@@ -698,6 +698,9 @@ SaAisErrorT SmfImmUtils::doImmOperations(
       }
     }
 
+    // Delete all attributes in the create/modify descriptor before fill
+    imm_operation->DeleteAttributes();
+
     // Verify the create descriptor for this operation and fill in the
     // attributes
     result = imm_operation->Execute(rollbackData);
