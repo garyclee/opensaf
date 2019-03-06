@@ -1805,7 +1805,8 @@ static bool is_failed_comp_eligible_for_instantiation(AVND_COMP *comp) {
       /*During surestart recovery, after cleanup of all components, amfnd starts
         instantiation of components. A component may fault at this stage. Such a
         component is eligible for instantiation.*/
-      if ((comp->pres == SA_AMF_PRESENCE_INSTANTIATING) &&
+      if (((comp->pres == SA_AMF_PRESENCE_RESTARTING) ||
+           (comp->pres == SA_AMF_PRESENCE_INSTANTIATING)) &&
           (comp->su->pres == SA_AMF_PRESENCE_INSTANTIATING))
         return true;
 
