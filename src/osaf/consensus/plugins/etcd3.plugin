@@ -357,9 +357,16 @@ watch() {
         return 0
       fi
     done
+  else
+    # etcd down?
+    if [ "$watch_key" == "$takeover_request" ]; then
+      hostname=`cat $node_name_file`
+      echo "$hostname SC-0 10000000 UNDEFINED"
+      return 0
+    else
+      return 1
+    fi
   fi
-
-  return 1
 }
 
 # argument parsing
