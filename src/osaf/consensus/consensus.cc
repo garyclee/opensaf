@@ -433,6 +433,8 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
      return rc;
   }
 
+  // in case takeover request cannot be read
+  rc = SA_AIS_ERR_FAILED_OPERATION;
   // wait up to max_takeover_retry seconds for request to be answered
   retries = 0;
   while (retries < max_takeover_retry_) {
