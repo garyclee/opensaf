@@ -2,7 +2,7 @@ OpenSAF 5.19.03 (released 2019-03-27)
 -------------------------------------
 
 This is a major release containing new enhancements. Before installing or
-upgrading to OpenSAF 5.19.01, make sure your system meets the minimum version
+upgrading to OpenSAF 5.19.03, make sure your system meets the minimum version
 requirements of the following system components:
 
 - Linux kernel, version 2.6.39 or later. Recommended version is Linux 3.18 or
