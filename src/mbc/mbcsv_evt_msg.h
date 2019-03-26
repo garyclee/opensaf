@@ -197,6 +197,8 @@ typedef struct mbcsv_evt {
     MBCSV_EVT_MDS_SUBSCR_INFO mds_sub_evt;
   } info;
 
+  uint32_t hops;
+
 } MBCSV_EVT;
 
 /***********************************************************************************
