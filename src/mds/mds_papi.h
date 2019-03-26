@@ -191,6 +191,7 @@ typedef enum ncsmds_svc_id {
   NCSMDS_SVC_ID_PLMS = 37,
   NCSMDS_SVC_ID_PLMS_HRB = 38,
   NCSMDS_SVC_ID_PLMA = 39,
+  NCSMDS_SVC_ID_RDE_DISCOVERY = 40,
   NCSMDS_SVC_ID_NCSMAX, /* This mnemonic always last */
 
   /* The range below is for OpenSAF internal use */

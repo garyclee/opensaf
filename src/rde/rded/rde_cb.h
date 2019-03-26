@@ -34,6 +34,9 @@
  **
  */
 
+enum class State {kNotActive = 0, kNotActiveSeenPeer, kActiveElected,
+                  kActiveElectedSeenPeer, kActiveFailover};
+
 struct RDE_CONTROL_BLOCK {
   SYSF_MBX mbx;
   NCSCONTEXT task_handle;
@@ -43,6 +46,9 @@ struct RDE_CONTROL_BLOCK {
   bool monitor_lock_thread_running{false};
   bool monitor_takeover_req_thread_running{false};
   std::set<NODE_ID> cluster_members{};
+  // used for discovering peer controllers, regardless of their role
+  std::set<NODE_ID> peer_controllers{};
+  State state{State::kNotActive};
 };
 
 enum RDE_MSG_TYPE {
@@ -54,7 +60,9 @@ enum RDE_MSG_TYPE {
   RDE_MSG_NODE_UP = 6,
   RDE_MSG_NODE_DOWN = 7,
   RDE_MSG_TAKEOVER_REQUEST_CALLBACK = 8,
-  RDE_MSG_ACTIVE_PROMOTION_SUCCESS = 9
+  RDE_MSG_ACTIVE_PROMOTION_SUCCESS = 9,
+  RDE_MSG_CONTROLLER_UP = 10,
+  RDE_MSG_CONTROLLER_DOWN = 11
 };
 
 struct rde_peer_info {
@@ -82,7 +90,9 @@ extern const char *rde_msg_name[];
 
 extern RDE_CONTROL_BLOCK *rde_get_control_block();
 extern uint32_t rde_mds_register();
+extern uint32_t rde_discovery_mds_register();
 extern uint32_t rde_mds_unregister();
+extern uint32_t rde_discovery_mds_unregister();
 extern uint32_t rde_mds_send(rde_msg *msg, MDS_DEST to_dest);
 extern uint32_t rde_set_role(PCS_RDA_ROLE role);
 

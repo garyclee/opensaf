@@ -1245,15 +1245,24 @@ void avd_node_failover(AVD_AVND *node, const bool mw_only) {
   TRACE_LEAVE();
 }
 
-void check_quorum() {
+void check_quorum(AVD_CL_CB *cb) {
   TRACE_ENTER();
 
   Consensus consensus_service;
   if (consensus_service.IsRemoteFencingEnabled() == false &&
       consensus_service.IsWritable() == false) {
+    // if relaxed mode is enabled, ignore failure if peer SC is up
+    if (consensus_service.IsRelaxedNodePromotionEnabled() == true) {
+      AVD_AVND* peer = avd_node_find_nodeid(cb->node_id_avd_other);
+      if (peer != nullptr && peer->node_state == AVD_AVND_STATE_PRESENT) {
+        LOG_NO("Relaxed node promotion is enabled, peer SC is connected");
+        return;
+      }
+    }
+
     // remote fencing is disabled and we have lost write access
     // reboot this node to prevent split brain
-    opensaf_reboot(0, nullptr,
-      "Quorum lost. Rebooting this node to prevent split-brain");
+    opensaf_quick_reboot("Quorum lost. Rebooting this node to "
+                         "prevent split-brain");
   }
 }

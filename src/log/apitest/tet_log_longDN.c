@@ -512,8 +512,11 @@ static SaAisErrorT openLog(stream_type_t type)
 
 		char tmp[1000] = {0};
 		memset(tmp, 'L', sizeof(tmp) - 1);
-		snprintf(appStreamDN, sizeof(appStreamDN) - 2, "safLgStr=%s",
-			 tmp);
+		if (snprintf(appStreamDN, sizeof(appStreamDN) - 2, "safLgStr=%s",
+			 tmp) >= sizeof(appStreamDN) - 2) {
+			fprintf(stderr, "warning: truncation occurred on "
+				"appStreamDN: %s", appStreamDN);
+		}
 
 		/* Use built-in log file format in log server for app stream */
 		appLogFileCreateAttributesIn.logFileFmt = NULL;

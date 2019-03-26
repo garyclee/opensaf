@@ -186,12 +186,12 @@ bool LogServer::ReadConfig(const char *transport_config_file) {
 
 bool LogServer::ValidateLogName(const char* msg_id, size_t msg_id_size) {
   if (msg_id_size < 1 || msg_id_size > LogStream::kMaxLogNameSize) return false;
-  if (msg_id[0] == '.') return false;
+  if (msg_id[0] == '.' || msg_id[0] == '-') return false;
   size_t no_of_dots = 0;
   for (size_t i = 0; i != msg_id_size; ++i) {
     char c = msg_id[i];
     if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-          (c >= '0' && c <= '9') || (c == '.' || c == '_')))
+          (c >= '0' && c <= '9') || (c == '.' || c == '_' || c == '-')))
       return false;
     if (c == '.') ++no_of_dots;
   }

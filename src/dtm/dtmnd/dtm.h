@@ -97,12 +97,17 @@ typedef struct dtm_snd_msg_elem {
   } info;
 } DTM_SND_MSG_ELEM;
 
+enum class KeyTypes{
+  kDtmNodeIdKeyType = 0,
+  kDtmNodeIpKeyType = 2,
+};
+
 extern void node_discovery_process(void *arg);
 extern uint32_t dtm_cb_init(DTM_INTERNODE_CB *dtms_cb);
-extern DTM_NODE_DB *dtm_node_get_by_id(uint32_t nodeid);
+extern DTM_NODE_DB *dtm_node_get(uint8_t *key, KeyTypes type);
 extern DTM_NODE_DB *dtm_node_getnext_by_id(uint32_t node_id);
-extern uint32_t dtm_node_add(DTM_NODE_DB *node, int i);
-extern uint32_t dtm_node_delete(DTM_NODE_DB *nnode, int i);
+extern uint32_t dtm_node_add(DTM_NODE_DB *node, KeyTypes type);
+extern uint32_t dtm_node_delete(DTM_NODE_DB *nnode, KeyTypes type);
 extern DTM_NODE_DB *dtm_node_new(const DTM_NODE_DB *new_node);
 extern void dtm_print_config(DTM_INTERNODE_CB *config);
 extern int dtm_read_config(DTM_INTERNODE_CB *config,

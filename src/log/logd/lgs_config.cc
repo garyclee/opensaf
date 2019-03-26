@@ -306,10 +306,16 @@ void lgs_cfgupd_multival_delete(const std::string &attribute_name,
     }
   }
 
-  // Add this new list to the config data list
-  for (const auto &value : result_list) {
-    lgs_cfgupd_list_create(attribute_name.c_str(),
-                           const_cast<char *>(value.c_str()), config_data);
+  if (result_list.empty()) {
+    // Delete the last value. Create config_data with empty value
+    lgs_cfgupd_list_create(attribute_name.c_str(), const_cast<char *>(""),
+                           config_data);
+  } else {
+    // Add this new list to the config data list
+    for (const auto &value : result_list) {
+      lgs_cfgupd_list_create(attribute_name.c_str(),
+                             const_cast<char *>(value.c_str()), config_data);
+    }
   }
   TRACE_LEAVE();
 }

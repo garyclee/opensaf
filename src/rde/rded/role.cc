@@ -52,6 +52,7 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
   rde_msg* msg = static_cast<rde_msg*>(malloc(sizeof(rde_msg)));
   if (key == Consensus::kTakeoverRequestKeyname) {
     std::string request;
+    Consensus consensus_service;
 
     if (new_value.empty() == true) {
       // sometimes the KV store plugin doesn't return the new value,
@@ -62,7 +63,6 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
       SaAisErrorT rc = SA_AIS_ERR_TRY_AGAIN;
       constexpr uint8_t max_retry = 5;
       uint8_t retries = 0;
-      Consensus consensus_service;
 
       while (retries < max_retry && rc != SA_AIS_OK) {
         rc = consensus_service.ReadTakeoverRequest(request);
@@ -73,15 +73,18 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
       request = new_value;
     }
 
-    // don't send this to the main thread straight away, as it will
-    // need some time to process topology changes.
     msg->type = RDE_MSG_TAKEOVER_REQUEST_CALLBACK;
     size_t len = request.length() + 1;
     msg->info.takeover_request = new char[len];
     strncpy(msg->info.takeover_request, request.c_str(), len);
-    LOG_NO("Sending takeover request '%s' to main thread",
-          msg->info.takeover_request);
-    std::this_thread::sleep_for(std::chrono::seconds(4));
+    TRACE("Sending takeover request '%s' to main thread",
+           msg->info.takeover_request);
+    if (consensus_service.SelfFence(request) == false &&
+        consensus_service.PrioritisePartitionSize() == true) {
+      // don't send this to the main thread straight away, as it will
+      // need some time to process topology changes.
+      std::this_thread::sleep_for(std::chrono::seconds(4));
+    }
   } else {
     msg->type = RDE_MSG_NEW_ACTIVE_CALLBACK;
   }
@@ -91,21 +94,26 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
   osafassert(status == NCSCC_RC_SUCCESS);
 }
 
-void Role::PromoteNode(const uint64_t cluster_size) {
+void Role::PromoteNode(const uint64_t cluster_size,
+                       const bool relaxed_mode) {
   TRACE_ENTER();
   SaAisErrorT rc;
 
   Consensus consensus_service;
+  bool promotion_pending = false;
 
   rc = consensus_service.PromoteThisNode(true, cluster_size);
-  if (rc != SA_AIS_OK && rc != SA_AIS_ERR_EXIST) {
-    LOG_ER("Unable to set active controller in consensus service");
-    opensaf_reboot(0, nullptr,
-                   "Unable to set active controller in consensus service");
-  }
-
   if (rc == SA_AIS_ERR_EXIST) {
     LOG_WA("Another controller is already active");
+    return;
+  } else if (rc != SA_AIS_OK && relaxed_mode == true) {
+    LOG_WA("Unable to set active controller in consensus service");
+    LOG_WA("Will become active anyway");
+    promotion_pending = true;
+  } else if (rc != SA_AIS_OK) {
+    LOG_ER("Unable to set active controller in consensus service");
+    opensaf_quick_reboot("Unable to set active controller "
+        "in consensus service");
     return;
   }
 
@@ -117,9 +125,27 @@ void Role::PromoteNode(const uint64_t cluster_size) {
   uint32_t status;
   status = m_NCS_IPC_SEND(&cb->mbx, msg, NCS_IPC_PRIORITY_HIGH);
   osafassert(status == NCSCC_RC_SUCCESS);
+
+  if (promotion_pending) {
+    osafassert(consensus_service.IsRelaxedNodePromotionEnabled() == true);
+    // the node has been promoted, even though the lock has not been obtained
+    // keep trying the consensus service
+    while (rc != SA_AIS_OK) {
+      rc = consensus_service.PromoteThisNode(true, cluster_size);
+      if (rc == SA_AIS_ERR_EXIST) {
+        LOG_ER("Unable to set active controller in consensus service");
+        opensaf_quick_reboot("Unable to set active controller in "
+            "consensus service");
+        return;
+      }
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    LOG_NO("Successfully set active controller in consensus service");
+  }
 }
 
 void Role::NodePromoted() {
+  // promoted to active from election
   ExecutePreActiveScript();
   LOG_NO("Switched to ACTIVE from %s", to_string(role()));
   role_ = PCS_RDA_ACTIVE;
@@ -127,14 +153,23 @@ void Role::NodePromoted() {
 
   Consensus consensus_service;
   RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+  if (cb->peer_controllers.empty() == false) {
+    TRACE("Set state to kActiveElectedSeenPeer");
+    cb->state = State::kActiveElectedSeenPeer;
+  } else {
+    TRACE("Set state to kActiveElected");
+    cb->state = State::kActiveElected;
+  }
 
   // register for callback if active controller is changed
   // in consensus service
-  if (cb->monitor_lock_thread_running == false) {
+  if (consensus_service.IsEnabled() == true &&
+      cb->monitor_lock_thread_running == false) {
     cb->monitor_lock_thread_running = true;
     consensus_service.MonitorLock(MonitorCallback, cb->mbx);
   }
-  if (cb->monitor_takeover_req_thread_running == false) {
+  if (consensus_service.IsEnabled() == true &&
+      cb->monitor_takeover_req_thread_running == false) {
     cb->monitor_takeover_req_thread_running = true;
     consensus_service.MonitorTakeoverRequest(MonitorCallback, cb->mbx);
   }
@@ -161,8 +196,24 @@ timespec* Role::Poll(timespec* ts) {
     } else {
       election_end_time_ = base::kTimespecMax;
       RDE_CONTROL_BLOCK* cb = rde_get_control_block();
-      std::thread(&Role::PromoteNode,
-                 this, cb->cluster_members.size()).detach();
+
+      bool is_candidate = IsCandidate();
+      Consensus consensus_service;
+      if (consensus_service.IsEnabled() == true &&
+        is_candidate == false &&
+        consensus_service.IsWritable() == false) {
+        // node promotion will fail resulting in node reboot,
+        // reset timer and try later
+        TRACE("reset timer and try later");
+        ResetElectionTimer();
+        now = base::ReadMonotonicClock();
+        *ts = election_end_time_ - now;
+        timeout = ts;
+      } else {
+        std::thread(&Role::PromoteNode,
+                    this, cb->cluster_members.size(),
+                    is_candidate).detach();
+      }
     }
   }
   return timeout;
@@ -177,10 +228,42 @@ void Role::ExecutePreActiveScript() {
 
 void Role::AddPeer(NODE_ID node_id) {
   auto result = known_nodes_.insert(node_id);
-  if (result.second) ResetElectionTimer();
+  if (result.second) {
+    ResetElectionTimer();
+  }
+}
+
+// call from main thread only
+bool Role::IsCandidate() {
+  TRACE_ENTER();
+  bool result = false;
+  Consensus consensus_service;
+  RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+
+  // if relaxed node promotion is enabled, allow this node to be promoted
+  // active if it can see a peer SC and this node has the lowest node ID
+  if (consensus_service.IsRelaxedNodePromotionEnabled() == true &&
+      cb->state == State::kNotActiveSeenPeer) {
+    LOG_NO("Relaxed node promotion enabled. This node is a candidate.");
+    result = true;
+  }
+
+  return result;
+}
+
+bool Role::IsPeerPresent() {
+  bool result = false;
+  RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+
+  if (cb->peer_controllers.empty() == false) {
+    result = true;
+  }
+
+  return result;
 }
 
 uint32_t Role::SetRole(PCS_RDA_ROLE new_role) {
+  TRACE_ENTER();
   PCS_RDA_ROLE old_role = role_;
   if (new_role == PCS_RDA_ACTIVE &&
       (old_role == PCS_RDA_UNDEFINED || old_role == PCS_RDA_QUIESCED)) {
@@ -196,11 +279,14 @@ uint32_t Role::SetRole(PCS_RDA_ROLE new_role) {
       // in consensus service
       Consensus consensus_service;
       RDE_CONTROL_BLOCK* cb = rde_get_control_block();
-      if (cb->monitor_lock_thread_running == false) {
+      cb->state = State::kActiveFailover;
+      if (consensus_service.IsEnabled() == true &&
+          cb->monitor_lock_thread_running == false) {
         cb->monitor_lock_thread_running = true;
         consensus_service.MonitorLock(MonitorCallback, cb->mbx);
       }
-      if (cb->monitor_takeover_req_thread_running == false) {
+      if (consensus_service.IsEnabled() == true &&
+          cb->monitor_takeover_req_thread_running == false) {
         cb->monitor_takeover_req_thread_running = true;
         consensus_service.MonitorTakeoverRequest(MonitorCallback, cb->mbx);
       }
@@ -253,4 +339,15 @@ void Role::SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id) {
              node_id, to_string(node_role), to_string(role()));
     }
   }
+}
+
+void Role::PromoteNodeLate() {
+  TRACE_ENTER();
+
+  // we are already active and split brain prevention has been
+  // enabled during runtime, we need to obtain lock
+  RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+  std::thread(&Role::PromoteNode,
+              this, cb->cluster_members.size(),
+              true).detach();
 }

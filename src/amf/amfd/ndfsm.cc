@@ -817,7 +817,7 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       if (cb->node_failover_delay == 0) {
         avd_node_failover(node);
       }
-      check_quorum();
+      check_quorum(cb);
       node->node_info.member = SA_FALSE;
       // Update standby out of sync if standby sc goes down
       if (avd_cb->node_id_avd_other == node->node_info.nodeId) {

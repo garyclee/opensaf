@@ -778,7 +778,7 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info,
 		}
 	}
 
-	if (active || !cb->immd_remote_up) {
+	if (active) {
 		/*
 		 ** HAFE - Let IMMND subscribe for IMMND up/down events instead?
 		 ** ABT - Not for now. IMMND up/down are only subscribed by

@@ -202,6 +202,7 @@ typedef struct cl_cb_tag {
   AVD_TMR heartbeat_tmr; /* The timer for sending heart beats to nd. */
   SaTimeT heartbeat_tmr_period;
   uint32_t minimum_cluster_size;
+  std::string fmd_conf_file;
 
   uint32_t nodes_exit_cnt; /* The counter to identifies the number
                       of nodes that have exited the membership

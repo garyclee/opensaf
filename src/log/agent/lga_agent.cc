@@ -108,7 +108,7 @@ ScopeData::~ScopeData() {
     recovery2_unlock(is_locked_);
   }
 
-  LogAgent::instance().EnterCriticalSection();
+  LogAgent::instance()->EnterCriticalSection();
   LogClient* client = client_data_->client;
   bool* is_updated = client_data_->is_updated;
   RefCounter::Degree client_degree = client_data_->value;
@@ -128,15 +128,12 @@ ScopeData::~ScopeData() {
       stream->RestoreRefCounter(caller, stream_degree, *stream_is_updated);
     }
   }
-  LogAgent::instance().LeaveCriticalSection();
+  LogAgent::instance()->LeaveCriticalSection();
 }
 
 //------------------------------------------------------------------------------
 // LogAgent
 //------------------------------------------------------------------------------
-// Singleton represents LOG agent.
-LogAgent LogAgent::me_;
-
 LogAgent::LogAgent() {
   client_list_.clear();
   // There is high risk of calling one @LogClient method

@@ -39,7 +39,7 @@
 SaAisErrorT saLogInitialize(SaLogHandleT* logHandle,
                             const SaLogCallbacksT* callbacks,
                             SaVersionT* version) {
-  return LogAgent::instance().saLogInitialize(logHandle, callbacks, version);
+  return LogAgent::instance()->saLogInitialize(logHandle, callbacks, version);
 }
 
 /***************************************************************************
@@ -69,7 +69,7 @@ SaAisErrorT saLogInitialize(SaLogHandleT* logHandle,
  ***************************************************************************/
 SaAisErrorT saLogSelectionObjectGet(SaLogHandleT logHandle,
                                     SaSelectionObjectT* selectionObject) {
-  return LogAgent::instance().saLogSelectionObjectGet(logHandle,
+  return LogAgent::instance()->saLogSelectionObjectGet(logHandle,
                                                       selectionObject);
 }
 
@@ -96,7 +96,7 @@ SaAisErrorT saLogSelectionObjectGet(SaLogHandleT logHandle,
  ***************************************************************************/
 SaAisErrorT saLogDispatch(SaLogHandleT logHandle,
                           SaDispatchFlagsT dispatchFlags) {
-  return LogAgent::instance().saLogDispatch(logHandle, dispatchFlags);
+  return LogAgent::instance()->saLogDispatch(logHandle, dispatchFlags);
 }
 
 /***************************************************************************
@@ -122,7 +122,7 @@ SaAisErrorT saLogDispatch(SaLogHandleT logHandle,
  *
  ***************************************************************************/
 SaAisErrorT saLogFinalize(SaLogHandleT logHandle) {
-  return LogAgent::instance().saLogFinalize(logHandle);
+  return LogAgent::instance()->saLogFinalize(logHandle);
 }
 
 /**
@@ -142,7 +142,7 @@ SaAisErrorT saLogStreamOpen_2(
     const SaLogFileCreateAttributesT_2* logFileCreateAttributes,
     SaLogStreamOpenFlagsT logStreamOpenFlags, SaTimeT timeOut,
     SaLogStreamHandleT* logStreamHandle) {
-  return LogAgent::instance().saLogStreamOpen_2(
+  return LogAgent::instance()->saLogStreamOpen_2(
       logHandle, logStreamName, logFileCreateAttributes, logStreamOpenFlags,
       timeOut, logStreamHandle);
 }
@@ -161,7 +161,7 @@ SaAisErrorT saLogStreamOpenAsync_2(
     SaLogHandleT logHandle, const SaNameT* logStreamName,
     const SaLogFileCreateAttributesT_2* logFileCreateAttributes,
     SaLogStreamOpenFlagsT logstreamOpenFlags, SaInvocationT invocation) {
-  return LogAgent::instance().saLogStreamOpenAsync_2(
+  return LogAgent::instance()->saLogStreamOpenAsync_2(
       logHandle, logStreamName, logFileCreateAttributes, logstreamOpenFlags,
       invocation);
 }
@@ -176,7 +176,7 @@ SaAisErrorT saLogStreamOpenAsync_2(
  */
 SaAisErrorT saLogWriteLog(SaLogStreamHandleT logStreamHandle, SaTimeT timeOut,
                           const SaLogRecordT* logRecord) {
-  return LogAgent::instance().saLogWriteLog(logStreamHandle, timeOut,
+  return LogAgent::instance()->saLogWriteLog(logStreamHandle, timeOut,
                                             logRecord);
 }
 
@@ -193,7 +193,7 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
                                SaInvocationT invocation,
                                SaLogAckFlagsT ackFlags,
                                const SaLogRecordT* logRecord) {
-  return LogAgent::instance().saLogWriteLogAsync(logStreamHandle, invocation,
+  return LogAgent::instance()->saLogWriteLogAsync(logStreamHandle, invocation,
                                                  ackFlags, logRecord);
 }
 /**
@@ -204,7 +204,7 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
  * @return SaAisErrorT
  */
 SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle) {
-  return LogAgent::instance().saLogStreamClose(logStreamHandle);
+  return LogAgent::instance()->saLogStreamClose(logStreamHandle);
 }
 
 /**
@@ -217,5 +217,5 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle) {
  */
 SaAisErrorT saLogLimitGet(SaLogHandleT logHandle, SaLogLimitIdT limitId,
                           SaLimitValueT* limitValue) {
-  return LogAgent::instance().saLogLimitGet(logHandle, limitId, limitValue);
+  return LogAgent::instance()->saLogLimitGet(logHandle, limitId, limitValue);
 }

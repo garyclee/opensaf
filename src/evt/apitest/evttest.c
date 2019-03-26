@@ -1,6 +1,6 @@
 /*      -*- OpenSAF  -*-
  *
- * (C) Copyright 2010 The OpenSAF Foundation
+ * (C) Copyright 2017 The OpenSAF Foundation
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -11,34 +11,34 @@
  * See the Copying file included with the OpenSAF distribution for full
  * licensing terms.
  *
- * Author(s): Wind River Systems
+ * Author(s): High Availability Solutions
  *
  */
 
-/**
- * This file defines APIs for daemon management.
- *
- * TODO
- *
- */
+#include <stdlib.h>
+#include <unistd.h>
+#include "osaf/apitest/utest.h"
+#include "osaf/apitest/util.h"
 
-#ifndef BASE_DAEMON_H_
-#define BASE_DAEMON_H_
+int main(int argc, char **argv)
+{
+	int suite = ALL_SUITES, tcase = ALL_TESTS;
 
-#include "base/os_defs.h"
+	srandom(getpid());
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+	if (argc > 1) {
+		suite = atoi(argv[1]);
+	}
 
-void daemonize(int argc, char *argv[]);
-void daemonize_as_user(const char *username, int argc, char *argv[]);
-void daemon_exit(void);
-void daemon_sigterm_install(int *term_fd);
-NCS_SEL_OBJ* daemon_sighup_install(int *hangup_fd);
+	if (argc > 2) {
+		tcase = atoi(argv[2]);
+	}
 
-#ifdef __cplusplus
+	if (suite == 0) {
+		test_list();
+		return 0;
+	}
+
+	return test_run(suite, tcase);
 }
-#endif
 
-#endif  // BASE_DAEMON_H_

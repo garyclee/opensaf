@@ -117,6 +117,7 @@ typedef struct ParserStateStruct {
   SaImmAttrFlagsT attrFlags;
   SaUint32T attrNtfId;
   char *attrDefaultValueBuffer;
+  bool is_null_value;
 
   int attrValueTypeSet;
   int attrNtfIdSet;
@@ -925,6 +926,13 @@ static void startElementHandler(void *userData, const xmlChar *name,
     state->state[state->depth] = VALUE;
     state->valueContinue = 0;
     state->isBase64Encoded = isBase64Encoded(attrs);
+    state->is_null_value = false;
+    if (attrs) {
+      char* null_value = getAttributeValue("xsi:nil", attrs);
+      if (null_value && std::string{null_value} == "true") {
+        state->is_null_value = true;
+      }
+    }
     /* <category> */
   } else if (strcmp((const char *)name, "category") == 0) {
     state->state[state->depth] = CATEGORY;
@@ -982,7 +990,7 @@ static void endElementHandler(void *userData, const xmlChar *name) {
 
   /* </value> */
   if (strcmp((const char *)name, "value") == 0) {
-    if (state->attrValueBuffers.empty()) {
+    if (state->attrValueBuffers.empty() && !state->is_null_value) {
       char *str = (char *)malloc(1);
 
       str[0] = '\0';
@@ -1759,13 +1767,12 @@ void addObjectAttributeDefinition(
   SaImmAttrValuesT_2 attrValues;
   int i;
   size_t len;
+  bool null_value = attrValueBuffers->empty();
+
   TRACE_ENTER2("attrValueBuffers size:%u",
                (unsigned int)attrValueBuffers->size());
   /* The attrName must be set */
   assert(attrName);
-
-  /* The value array can not be empty */
-  assert(!attrValueBuffers->empty());
 
   /* The object class must be set */
   assert(objectClass);
@@ -1778,15 +1785,15 @@ void addObjectAttributeDefinition(
 
   /* For each value, convert from char* to SaImmAttrValuesT_2 and
      store an array pointing to all in attrValues */
-  attrValues.attrValuesNumber = attrValueBuffers->size();
-  attrValues.attrValues = (SaImmAttrValueT *)malloc(
+  attrValues.attrValuesNumber = null_value ? 0 : attrValueBuffers->size();
+  attrValues.attrValues = null_value ? nullptr : (SaImmAttrValueT *)malloc(
       sizeof(SaImmAttrValuesT_2) * attrValues.attrValuesNumber + 1);
 
-  attrValues.attrValues[attrValues.attrValuesNumber] = NULL;
+  if (!null_value) attrValues.attrValues[attrValues.attrValuesNumber] = NULL;
 
   it = attrValueBuffers->begin();
   i = 0;
-  while (it != attrValueBuffers->end()) {
+  while (!null_value && it != attrValueBuffers->end()) {
     charsToValueHelper(&attrValues.attrValues[i], attrValues.attrValueType,
                        *it);
     i++;

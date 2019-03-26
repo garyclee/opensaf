@@ -21,9 +21,12 @@
 #include <saAmf.h>
 #include <saClm.h>
 #include <saNtf.h>
+#include "base/osaf_time.h"
 #include "ntf/tools/ntfclient.h"
 #include "ntf/tools/ntfconsumer.h"
 #include <limits.h>
+
+const uint64_t kWaitTime = 10*1000;  // Wait for timeout is 10 seconds
 
 /* help functions for printouts */
 void ntfsvtools_exitIfFalse(const char *file, unsigned int line, int expression)
@@ -34,8 +37,6 @@ void ntfsvtools_exitIfFalse(const char *file, unsigned int line, int expression)
 	}
 }
 
-unsigned int gl_apiTolerance = 900; // in seconds
-unsigned int gl_apiRetry = 3;       // in seconds
 static const char *sa_probable_cause_list[] = {
     "SA_NTF_ADAPTER_ERROR",
     "SA_NTF_APPLICATION_SUBSYSTEM_FAILURE",
@@ -1097,18 +1098,19 @@ SaAisErrorT ntftool_saNtfInitialize(SaNtfHandleT *ntfHandle,
 				    const SaNtfCallbacksT *ntfCallbacks,
 				    SaVersionT *version)
 {
-	int curRetryTime = 0;
-	SaAisErrorT rc;
+	SaAisErrorT rc = SA_AIS_OK;
+	struct timespec timeout_time;
 	SaVersionT ntf_version = *version;
-	do {
+
+	osaf_set_millis_timeout(kWaitTime, &timeout_time);
+	while (!osaf_is_timeout(&timeout_time)) {
 		rc = saNtfInitialize(ntfHandle, ntfCallbacks, &ntf_version);
 		if (rc == SA_AIS_ERR_TRY_AGAIN) {
-			sleep(gl_apiRetry);
-			curRetryTime += gl_apiRetry;
+			osaf_nanosleep(&kHundredMilliseconds);
 			ntf_version = *version;
 		} else
 			break;
-	} while (curRetryTime < gl_apiTolerance);
+	}
 
 	return rc;
 }
@@ -1119,16 +1121,17 @@ SaAisErrorT ntftool_saNtfInitialize(SaNtfHandleT *ntfHandle,
 SaAisErrorT ntftool_saNtfDispatch(SaNtfHandleT ntfHandle,
 				  SaDispatchFlagsT dispatchFlags)
 {
-	int curRetryTime = 0;
-	SaAisErrorT rc;
-	do {
+	SaAisErrorT rc = SA_AIS_OK;
+	struct timespec timeout_time;
+
+	osaf_set_millis_timeout(kWaitTime, &timeout_time);
+	while (!osaf_is_timeout(&timeout_time)) {
 		rc = saNtfDispatch(ntfHandle, dispatchFlags);
 		if (rc == SA_AIS_ERR_TRY_AGAIN) {
-			sleep(gl_apiRetry);
-			curRetryTime += gl_apiRetry;
+			osaf_nanosleep(&kHundredMilliseconds);
 		} else
 			break;
-	} while (curRetryTime < gl_apiTolerance);
+	}
 
 	return rc;
 }
@@ -1139,16 +1142,17 @@ SaAisErrorT ntftool_saNtfDispatch(SaNtfHandleT ntfHandle,
 SaAisErrorT
 ntftool_saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 {
-	int curRetryTime = 0;
-	SaAisErrorT rc;
-	do {
+	SaAisErrorT rc = SA_AIS_OK;
+	struct timespec timeout_time;
+
+	osaf_set_millis_timeout(kWaitTime, &timeout_time);
+	while (!osaf_is_timeout(&timeout_time)) {
 		rc = saNtfNotificationSend(notificationHandle);
 		if (rc == SA_AIS_ERR_TRY_AGAIN) {
-			sleep(gl_apiRetry);
-			curRetryTime += gl_apiRetry;
+			osaf_nanosleep(&kHundredMilliseconds);
 		} else
 			break;
-	} while (curRetryTime < gl_apiTolerance);
+	}
 
 	return rc;
 }
@@ -1160,17 +1164,18 @@ SaAisErrorT ntftool_saNtfNotificationSubscribe(
     const SaNtfNotificationTypeFilterHandlesT *notificationFilterHandles,
     SaNtfSubscriptionIdT subscriptionId)
 {
-	int curRetryTime = 0;
-	SaAisErrorT rc;
-	do {
+	SaAisErrorT rc = SA_AIS_OK;
+	struct timespec timeout_time;
+
+	osaf_set_millis_timeout(kWaitTime, &timeout_time);
+	while (!osaf_is_timeout(&timeout_time)) {
 		rc = saNtfNotificationSubscribe(notificationFilterHandles,
 						subscriptionId);
 		if (rc == SA_AIS_ERR_TRY_AGAIN) {
-			sleep(gl_apiRetry);
-			curRetryTime += gl_apiRetry;
+			osaf_nanosleep(&kHundredMilliseconds);
 		} else
 			break;
-	} while (curRetryTime < gl_apiTolerance);
+	}
 
 	return rc;
 }
@@ -1181,16 +1186,17 @@ SaAisErrorT ntftool_saNtfNotificationSubscribe(
 SaAisErrorT
 ntftool_saNtfNotificationUnsubscribe(SaNtfSubscriptionIdT subscriptionId)
 {
-	int curRetryTime = 0;
-	SaAisErrorT rc;
-	do {
+	SaAisErrorT rc = SA_AIS_OK;
+	struct timespec timeout_time;
+
+	osaf_set_millis_timeout(kWaitTime, &timeout_time);
+	while (!osaf_is_timeout(&timeout_time)) {
 		rc = saNtfNotificationUnsubscribe(subscriptionId);
 		if (rc == SA_AIS_ERR_TRY_AGAIN) {
-			sleep(gl_apiRetry);
-			curRetryTime += gl_apiRetry;
+			osaf_nanosleep(&kHundredMilliseconds);
 		} else
 			break;
-	} while (curRetryTime < gl_apiTolerance);
+	}
 
 	return rc;
 }
@@ -1203,17 +1209,18 @@ SaAisErrorT ntftool_saNtfNotificationReadInitialize(
     const SaNtfNotificationTypeFilterHandlesT *notificationFilterHandles,
     SaNtfReadHandleT *readHandle)
 {
-	int curRetryTime = 0;
-	SaAisErrorT rc;
-	do {
+	SaAisErrorT rc = SA_AIS_OK;
+	struct timespec timeout_time;
+
+	osaf_set_millis_timeout(kWaitTime, &timeout_time);
+	while (!osaf_is_timeout(&timeout_time)) {
 		rc = saNtfNotificationReadInitialize(
 		    searchCriteria, notificationFilterHandles, readHandle);
 		if (rc == SA_AIS_ERR_TRY_AGAIN) {
-			sleep(gl_apiRetry);
-			curRetryTime += gl_apiRetry;
+			osaf_nanosleep(&kHundredMilliseconds);
 		} else
 			break;
-	} while (curRetryTime < gl_apiTolerance);
+	}
 
 	return rc;
 }
@@ -1226,17 +1233,18 @@ ntftool_saNtfNotificationReadNext(SaNtfReadHandleT readHandle,
 				  SaNtfSearchDirectionT searchDirection,
 				  SaNtfNotificationsT *notification)
 {
-	int curRetryTime = 0;
-	SaAisErrorT rc;
-	do {
+	SaAisErrorT rc = SA_AIS_OK;
+	struct timespec timeout_time;
+
+	osaf_set_millis_timeout(kWaitTime, &timeout_time);
+	while (!osaf_is_timeout(&timeout_time)) {
 		rc = saNtfNotificationReadNext(readHandle, searchDirection,
 					       notification);
 		if (rc == SA_AIS_ERR_TRY_AGAIN) {
-			sleep(gl_apiRetry);
-			curRetryTime += gl_apiRetry;
+			osaf_nanosleep(&kHundredMilliseconds);
 		} else
 			break;
-	} while (curRetryTime < gl_apiTolerance);
+	}
 
 	return rc;
 }
@@ -1246,16 +1254,17 @@ ntftool_saNtfNotificationReadNext(SaNtfReadHandleT readHandle,
  */
 SaAisErrorT ntftool_saNtfNotificationReadFinalize(SaNtfReadHandleT readhandle)
 {
-	int curRetryTime = 0;
-	SaAisErrorT rc;
-	do {
+	SaAisErrorT rc = SA_AIS_OK;
+	struct timespec timeout_time;
+
+	osaf_set_millis_timeout(kWaitTime, &timeout_time);
+	while (!osaf_is_timeout(&timeout_time)) {
 		rc = saNtfNotificationReadFinalize(readhandle);
 		if (rc == SA_AIS_ERR_TRY_AGAIN) {
-			sleep(gl_apiRetry);
-			curRetryTime += gl_apiRetry;
+			osaf_nanosleep(&kHundredMilliseconds);
 		} else
 			break;
-	} while (curRetryTime < gl_apiTolerance);
+	}
 
 	return rc;
 }

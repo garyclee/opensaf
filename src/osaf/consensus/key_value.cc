@@ -17,6 +17,7 @@
 #include "base/conf.h"
 #include "base/getenv.h"
 #include "base/logtrace.h"
+#include "osaf/consensus/consensus.h"
 
 int KeyValue::Execute(const std::string& command, std::string& output) {
   TRACE_ENTER();
@@ -45,14 +46,16 @@ int KeyValue::Execute(const std::string& command, std::string& output) {
 SaAisErrorT KeyValue::Get(const std::string& key, std::string& value) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " get \"" + key + "\"");
   int rc = KeyValue::Execute(command, value);
   TRACE("Read '%s'", value.c_str());
 
   if (rc == 0) {
     return SA_AIS_OK;
+  } else if (rc == 1) {
+    return SA_AIS_ERR_INVALID_PARAM;
   } else {
     return SA_AIS_ERR_FAILED_OPERATION;
   }
@@ -62,8 +65,8 @@ SaAisErrorT KeyValue::Set(const std::string& key, const std::string& value,
                           const unsigned int timeout) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " set \"" + key + "\" \"" + value +
                             "\" " + std::to_string(timeout));
   std::string output;
@@ -79,8 +82,8 @@ SaAisErrorT KeyValue::Set(const std::string& key, const std::string& value,
 SaAisErrorT KeyValue::Set(const std::string& key, const std::string& value,
                           const std::string& prev_value,
                           const unsigned int timeout) {
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " set_if_prev \"" + key + "\" \"" +
                             value + "\" \"" + prev_value +
                             "\" " + std::to_string(timeout));
@@ -98,8 +101,8 @@ SaAisErrorT KeyValue::Create(const std::string& key, const std::string& value,
                              const unsigned int timeout) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " create \"" + key + "\" \"" +
                             value + "\" " + std::to_string(timeout));
   std::string output;
@@ -109,6 +112,8 @@ SaAisErrorT KeyValue::Create(const std::string& key, const std::string& value,
     return SA_AIS_OK;
   } else if (rc == 1) {
     return SA_AIS_ERR_EXIST;
+  } else if (rc == 2) {
+    return SA_AIS_ERR_INVALID_PARAM;
   } else {
     return SA_AIS_ERR_FAILED_OPERATION;
   }
@@ -117,8 +122,8 @@ SaAisErrorT KeyValue::Create(const std::string& key, const std::string& value,
 SaAisErrorT KeyValue::Erase(const std::string& key) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " erase \"" + key + "\"");
   std::string output;
   int rc = KeyValue::Execute(command, output);
@@ -134,8 +139,8 @@ SaAisErrorT KeyValue::Lock(const std::string& owner,
                            const unsigned int timeout) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " lock \"" + owner + "\" " +
                             std::to_string(timeout));
   std::string output;
@@ -156,8 +161,8 @@ SaAisErrorT KeyValue::Lock(const std::string& owner,
 SaAisErrorT KeyValue::Unlock(const std::string& owner) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " unlock \"" + owner + "\"");
   std::string output;
   int rc = Execute(command, output);
@@ -176,8 +181,8 @@ SaAisErrorT KeyValue::Unlock(const std::string& owner) {
 SaAisErrorT KeyValue::LockOwner(std::string& owner) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " lock_owner");
   std::string output;
   int rc = KeyValue::Execute(command, output);
@@ -203,15 +208,15 @@ void WatchKeyFunction(const std::string& key, const ConsensusCallback& callback,
                       const uint32_t user_defined) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " watch \"" + key + "\"");
   std::string value;
   uint32_t retries = 0;
   int rc;
 
   rc = KeyValue::Execute(command, value);
-  while (rc != 0 && retries < kMaxRetry) {
+  while (rc != 0 && rc < 126 && retries < kMaxRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
     rc = KeyValue::Execute(command, value);
@@ -230,15 +235,15 @@ void WatchLockFunction(const ConsensusCallback& callback,
                        const uint32_t user_defined) {
   TRACE_ENTER();
 
-  const std::string kv_store_cmd =
-      base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
+  Consensus consensus_service;
+  const std::string kv_store_cmd = consensus_service.PluginPath();
   const std::string command(kv_store_cmd + " watch_lock");
   std::string value;
   uint32_t retries = 0;
   int rc;
 
   rc = KeyValue::Execute(command, value);
-  while (rc != 0 && retries < kMaxRetry) {
+  while (rc != 0 && rc < 126 && retries < kMaxRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
     rc = KeyValue::Execute(command, value);

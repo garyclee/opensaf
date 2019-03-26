@@ -199,13 +199,14 @@ char *lgs_get_time(time_t *time_in) {
   osafassert(timeStampData);
 
   stringSize = 5 * sizeof(char);
-  snprintf(srcString, (size_t)stringSize, "%d",
+  snprintf(srcString, (size_t)stringSize, "%u",
            (timeStampData->tm_year + START_YEAR));
 
   strncpy(timeStampString, srcString, stringSize);
 
   stringSize = 3 * sizeof(char);
-  snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_mon + 1));
+  snprintf(srcString, (size_t)stringSize, "%02u",
+               timeStampData->tm_mon + 1);
 
   strncat(timeStampString, srcString, stringSize);
 

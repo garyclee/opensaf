@@ -452,7 +452,8 @@ static int truncate_filenames(void)
 	size_t str_end;
 
 	/* Create path to log files */
-	snprintf(file_path, 256, "%s/%s/", log_root_path, logfile_path_str);
+	if (snprintf(file_path, 256, "%s/%s/", log_root_path, logfile_path_str) >= 256)
+		fprintf(stderr, "warning: trunction occurred on file_path: %s", file_path);
 	printf_v("%s: logdir \"%s\"\n", __FUNCTION__, file_path);
 
 	/* Get the files to truncate */
@@ -529,8 +530,11 @@ static int remove_rf(const char *path)
 
 	/* Remove files */
 	for (i = 0; i < file_cnt; i++) {
-		(void)snprintf(filepath, PATH_MAX, "%s/%s", path,
-			       namelist[i]->d_name);
+		if (snprintf(filepath, PATH_MAX, "%s/%s", path,
+			       namelist[i]->d_name) >= PATH_MAX) {
+			fprintf(stderr, "warning: truncation occurred on "
+				"filepath: %s", filepath);
+		}
 		rc = remove(filepath);
 		if (rc < 0) {
 			goto done;
@@ -688,8 +692,11 @@ int tst_logrotation_truncated_filename(void)
 	 */
 	/* Create path to remove*/
 	char rem_path[PATH_MAX];
-	(void)snprintf(rem_path, PATH_MAX, "%s/%s", log_root_path,
-		       logfile_path_str);
+	if (snprintf(rem_path, PATH_MAX, "%s/%s", log_root_path,
+		       logfile_path_str) >= PATH_MAX) {
+		fprintf(stderr, "warning: truncation occurred on rem_path: %s",
+				rem_path);
+	}
 	printf_v("Path to remove \"%s\"\n", rem_path);
 	rc = remove_rf(rem_path);
 	if (rc < 0) {

@@ -189,7 +189,7 @@ std::string Conf::ReadFile(const std::string& path_name,
   try {
     str.open(path_name);
     str >> contents;
-  } catch (std::ifstream::failure) {
+  } catch (std::ifstream::failure&) {
     contents.clear();
   }
   return (str.fail() || contents.empty()) ? default_contents : contents;
@@ -203,7 +203,7 @@ void Conf::WriteFileAtomically(const std::string& path_name,
   try {
     str.open(tmp_file, std::ofstream::out | std::ofstream::trunc);
     str << contents << std::endl;
-  } catch (std::ofstream::failure) {
+  } catch (std::ofstream::failure&) {
     success = false;
   }
   str.close();

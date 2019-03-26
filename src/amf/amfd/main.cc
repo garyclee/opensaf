@@ -45,6 +45,7 @@
 
 #include "base/daemon.h"
 #include "base/logtrace.h"
+#include "osaf/consensus/consensus.h"
 #include "nid/agent/nid_api.h"
 #include "rde/agent/rda_papi.h"
 
@@ -70,6 +71,7 @@ enum {
   FD_MBX,
   FD_MBCSV,
   FD_CLM,
+  FD_SIGHUP,
   FD_IMM  // must be last
 };
 
@@ -574,6 +576,7 @@ static uint32_t initialize(void) {
   }
   cb->minimum_cluster_size =
       base::GetEnv("OSAF_AMF_MIN_CLUSTER_SIZE", uint32_t{2});
+  cb->fmd_conf_file = base::GetEnv("FMS_CONF_FILE", "");
 
   node_list_db = new AmfDb<uint32_t, AVD_FAIL_OVER_NODE>;
   amfnd_svc_db = new std::set<uint32_t>;
@@ -617,6 +620,8 @@ static void main_loop(void) {
   AVD_STBY_SYNC_STATE old_sync_state = cb->stby_sync_state;
   int polltmo = -1;
   int term_fd;
+  int hangup_fd;
+  NCS_SEL_OBJ *hangup_sel_obj = nullptr;
 
   // function to be called if new fails. The alternative of using catch of
   // std::bad_alloc will unwind the stack and thus no call chain will be
@@ -626,8 +631,12 @@ static void main_loop(void) {
   mbx_fd = ncs_ipc_get_sel_obj(&cb->avd_mbx);
   daemon_sigterm_install(&term_fd);
 
+  hangup_sel_obj = daemon_sighup_install(&hangup_fd);
+
   fds[FD_TERM].fd = term_fd;
   fds[FD_TERM].events = POLLIN;
+  fds[FD_SIGHUP].fd = hangup_fd;
+  fds[FD_SIGHUP].events = POLLIN;
   fds[FD_MBX].fd = mbx_fd.rmv_obj;
   fds[FD_MBX].events = POLLIN;
   while (1) {
@@ -666,6 +675,12 @@ static void main_loop(void) {
 
     if (fds[FD_TERM].revents & POLLIN) {
       daemon_exit();
+    }
+
+    if (fds[FD_SIGHUP].revents & POLLIN) {
+      ncs_sel_obj_rmv_ind(hangup_sel_obj, true, true);
+      Consensus consensus_service;
+      consensus_service.ReloadConfiguration();
     }
 
     if (fds[FD_MBX].revents & POLLIN) {

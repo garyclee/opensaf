@@ -516,9 +516,9 @@ static uint32_t lga_lgs_msg_proc(lgsv_msg_t *lgsv_msg,
   // Lookup the hdl rec by client_id
   LogClient *client = nullptr;
   uint32_t id = lgsv_msg->info.cbk_info.lgs_client_id;
-  LogAgent::instance().EnterCriticalSection();
-  if (nullptr == (client = LogAgent::instance().SearchClientById(id))) {
-    LogAgent::instance().LeaveCriticalSection();
+  LogAgent::instance()->EnterCriticalSection();
+  if (nullptr == (client = LogAgent::instance()->SearchClientById(id))) {
+    LogAgent::instance()->LeaveCriticalSection();
     TRACE("regid not found");
     lga_msg_destroy(lgsv_msg);
     return NCSCC_RC_FAILURE;
@@ -527,12 +527,12 @@ static uint32_t lga_lgs_msg_proc(lgsv_msg_t *lgsv_msg,
   // @client is being deleted in other thread. DO NOT touch this.
   bool updated = false;
   if (client->FetchAndIncreaseRefCounter(__func__, &updated) == -1) {
-    LogAgent::instance().LeaveCriticalSection();
+    LogAgent::instance()->LeaveCriticalSection();
     lga_msg_destroy(lgsv_msg);
     TRACE_LEAVE();
     return rc;
   }
-  LogAgent::instance().LeaveCriticalSection();
+  LogAgent::instance()->LeaveCriticalSection();
 
   switch (lgsv_msg->type) {
     case LGSV_LGS_CBK_MSG:
@@ -554,7 +554,7 @@ static uint32_t lga_lgs_msg_proc(lgsv_msg_t *lgsv_msg,
 
           TRACE_2("LGSV_CLM_NODE_STATUS_CALLBACK clm_node_status: %d", status);
           std::atomic<SaClmClusterChangesT> &clm_node_state =
-              LogAgent::instance().atomic_get_clm_node_state();
+              LogAgent::instance()->atomic_get_clm_node_state();
           clm_node_state =
               lgsv_msg->info.cbk_info.clm_node_status_cbk.clm_node_status;
           // A client becomes stale if Node loses CLM Membership.
@@ -644,7 +644,7 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info) {
       TRACE("%s\t NCSMDS_NO_ACTIVE", __func__);
       // This is a temporary server down e.g. during switch/fail over
       if (mds_cb_info->info.svc_evt.i_svc_id == NCSMDS_SVC_ID_LGS) {
-        LogAgent::instance().NoActiveLogServer();
+        LogAgent::instance()->NoActiveLogServer();
       }
       break;
 
@@ -658,7 +658,7 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info) {
         // Notify to LOG Agent that no LOG server exist.
         // In turn, it will inform to all its log clients
         // and all log streams belong to each log client.
-        LogAgent::instance().NoLogServer();
+        LogAgent::instance()->NoLogServer();
         // Stop the recovery thread if it is running
         lga_no_server_state_set();
       }
@@ -671,11 +671,11 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info) {
           TRACE("%s\t NCSMDS_UP", __func__);
           // Inform to LOG agent that LOG server is up from headless
           // and provide it the LOG server destination address too.
-          LogAgent::instance().HasActiveLogServer(
+          LogAgent::instance()->HasActiveLogServer(
               mds_cb_info->info.svc_evt.i_dest);
-          if (LogAgent::instance().waiting_log_server_up() == true) {
+          if (LogAgent::instance()->waiting_log_server_up() == true) {
             // Signal waiting thread
-            m_NCS_SEL_OBJ_IND(LogAgent::instance().get_lgs_sync_sel());
+            m_NCS_SEL_OBJ_IND(LogAgent::instance()->get_lgs_sync_sel());
           }
           // Start recovery
           lga_serv_recov1state_set();
@@ -1236,7 +1236,7 @@ uint32_t lga_mds_init() {
   NCSMDS_INFO mds_info;
   uint32_t rc = NCSCC_RC_SUCCESS;
   MDS_SVC_ID svc = NCSMDS_SVC_ID_LGS;
-  std::atomic<MDS_HDL> &mds_hdl = LogAgent::instance().atomic_get_mds_hdl();
+  std::atomic<MDS_HDL> &mds_hdl = LogAgent::instance()->atomic_get_mds_hdl();
 
   TRACE_ENTER();
   // Create the ADEST for LGA and get the pwe hdl
@@ -1307,9 +1307,9 @@ uint32_t lga_mds_msg_sync_send(lgsv_msg_t *i_msg, lgsv_msg_t **o_msg,
                                SaTimeT timeout, uint32_t prio) {
   NCSMDS_INFO mds_info;
   uint32_t rc = NCSCC_RC_SUCCESS;
-  std::atomic<MDS_HDL> &mds_hdl = LogAgent::instance().atomic_get_mds_hdl();
+  std::atomic<MDS_HDL> &mds_hdl = LogAgent::instance()->atomic_get_mds_hdl();
   std::atomic<MDS_DEST> &lgs_mds_dest =
-      LogAgent::instance().atomic_get_lgs_mds_dest();
+      LogAgent::instance()->atomic_get_lgs_mds_dest();
 
   TRACE_ENTER();
 
@@ -1358,9 +1358,9 @@ uint32_t lga_mds_msg_sync_send(lgsv_msg_t *i_msg, lgsv_msg_t **o_msg,
 ******************************************************************************/
 uint32_t lga_mds_msg_async_send(lgsv_msg_t *i_msg, uint32_t prio) {
   NCSMDS_INFO mds_info;
-  std::atomic<MDS_HDL> &mds_hdl = LogAgent::instance().atomic_get_mds_hdl();
+  std::atomic<MDS_HDL> &mds_hdl = LogAgent::instance()->atomic_get_mds_hdl();
   std::atomic<MDS_DEST> &lgs_mds_dest =
-      LogAgent::instance().atomic_get_lgs_mds_dest();
+      LogAgent::instance()->atomic_get_lgs_mds_dest();
 
   TRACE_ENTER();
   osafassert(i_msg != nullptr);

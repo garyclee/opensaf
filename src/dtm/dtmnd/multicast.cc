@@ -199,7 +199,7 @@ bool Multicast::GetPeersFromFile(const std::string &path_name) {
         }
       }
     }
-  } catch (std::ifstream::failure) {
+  } catch (std::ifstream::failure&) {
     LOG_ER("Caught std::ifstream::failure when reading file '%s', peers=%zu",
            path_name.c_str(), static_cast<size_t>(peers_.size()));
     peers_.clear();

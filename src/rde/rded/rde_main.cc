@@ -42,7 +42,8 @@
 
 #define RDA_MAX_CLIENTS 32
 
-enum { FD_TERM = 0, FD_AMF = 1, FD_MBX, FD_RDA_SERVER, FD_CLIENT_START };
+enum { FD_TERM = 0, FD_AMF = 1, FD_MBX, FD_RDA_SERVER,
+       FD_SIGHUP, FD_CLIENT_START };
 
 static void SendPeerInfoResp(MDS_DEST mds_dest);
 static void CheckForSplitBrain(const rde_msg *msg);
@@ -56,7 +57,9 @@ const char *rde_msg_name[] = {"-",
                               "RDE_MSG_NODE_UP(6)",
                               "RDE_MSG_NODE_DOWN(7)",
                               "RDE_MSG_TAKEOVER_REQUEST_CALLBACK(8)",
-                              "RDE_MSG_ACTIVE_PROMOTION_SUCCESS(9)"};
+                              "RDE_MSG_ACTIVE_PROMOTION_SUCCESS(9)",
+                              "RDE_MSG_CONTROLLER_UP(10)",
+                              "RDE_MSG_CONTROLLER_DOWN(11)"};
 
 static RDE_CONTROL_BLOCK _rde_cb;
 static RDE_CONTROL_BLOCK *rde_cb = &_rde_cb;
@@ -125,6 +128,10 @@ static void handle_mbx_event() {
 
       // get current active controller
       Consensus consensus_service;
+      if (consensus_service.IsEnabled() == false) {
+        // disabled during runtime
+        break;
+      }
       std::string active_controller = consensus_service.CurrentActive();
 
       LOG_NO("New active controller notification from consensus service");
@@ -137,9 +144,7 @@ static void handle_mbx_event() {
                  active_controller.c_str());
           if (consensus_service.IsRemoteFencingEnabled() == false) {
             LOG_ER("Probable split-brain. Rebooting this node");
-
-            opensaf_reboot(0, nullptr,
-                           "Split-brain detected by consensus service");
+            opensaf_quick_reboot("Split-brain detected by consensus service");
           }
         }
 
@@ -157,35 +162,87 @@ static void handle_mbx_event() {
       rde_cb->cluster_members.erase(msg->fr_node_id);
       TRACE("cluster_size %zu", rde_cb->cluster_members.size());
       break;
+    case RDE_MSG_CONTROLLER_UP:
+      if (msg->fr_node_id != own_node_id) {
+        rde_cb->peer_controllers.insert(msg->fr_node_id);
+        TRACE("peer_controllers: size %zu", rde_cb->peer_controllers.size());
+        if (rde_cb->state == State::kNotActive) {
+          TRACE("Set state to kNotActiveSeenPeer");
+          rde_cb->state = State::kNotActiveSeenPeer;
+        } else if (rde_cb->state == State::kActiveElected) {
+          TRACE("Set state to kActiveElectedSeenPeer");
+          rde_cb->state = State::kActiveElectedSeenPeer;
+        }
+      }
+      break;
+    case RDE_MSG_CONTROLLER_DOWN:
+      rde_cb->peer_controllers.erase(msg->fr_node_id);
+      TRACE("peer_controllers: size %zu", rde_cb->peer_controllers.size());
+      break;
     case RDE_MSG_TAKEOVER_REQUEST_CALLBACK: {
       rde_cb->monitor_takeover_req_thread_running = false;
+      const std::string takeover_request(msg->info.takeover_request);
+      delete[] msg->info.takeover_request;
+      msg->info.takeover_request = nullptr;
 
       if (role->role() == PCS_RDA_ACTIVE) {
-        LOG_NO("Received takeover request '%s'. Our network size is %zu",
-                msg->info.takeover_request,
+        TRACE("Received takeover request '%s'. Our network size is %zu",
+               takeover_request.c_str(),
                rde_cb->cluster_members.size());
 
         Consensus consensus_service;
+        if (consensus_service.IsEnabled() == false) {
+          // disabled during runtime
+          break;
+        }
         Consensus::TakeoverState state =
             consensus_service.HandleTakeoverRequest(
                 rde_cb->cluster_members.size(),
-                msg->info.takeover_request);
-        delete[] msg->info.takeover_request;
+                takeover_request);
 
         if (state == Consensus::TakeoverState::ACCEPTED) {
           LOG_NO("Accepted takeover request");
           if (consensus_service.IsRemoteFencingEnabled() == false) {
-            opensaf_reboot(0, nullptr,
-                           "Another controller is taking over the active role. "
-                           "Rebooting this node");
+            opensaf_quick_reboot("Another controller is taking over "
+                "the active role. Rebooting this node");
           }
-        } else {
-          LOG_NO("Rejected takeover request");
+        } else if (state == Consensus::TakeoverState::UNDEFINED) {
+          bool fencing_required = true;
 
-          rde_cb->monitor_takeover_req_thread_running = true;
-          consensus_service.MonitorTakeoverRequest(Role::MonitorCallback,
-                                                   rde_cb->mbx);
+          // differentiate when this occurs after election or
+          // rde has been set active due to failover
+          if (consensus_service.IsRelaxedNodePromotionEnabled() == true) {
+              if (rde_cb->state == State::kActiveElected) {
+                TRACE("Relaxed mode is enabled");
+                TRACE(" No peer SC yet seen, ignore consensus service failure");
+                // if relaxed node promotion is enabled, and we have yet to see
+                // a peer SC after being promoted, tolerate consensus service
+                // not working
+                fencing_required = false;
+              } else if ((rde_cb->state == State::kActiveElectedSeenPeer ||
+                         rde_cb->state == State::kActiveFailover) &&
+                         role->IsPeerPresent() == true) {
+                TRACE("Relaxed mode is enabled");
+                TRACE("Peer SC can be seen, ignore consensus service failure");
+                // we have seen the peer, and peer is still connected, tolerate
+                // consensus service not working
+                fencing_required = false;
+              }
+          }
+          if (fencing_required == true) {
+            LOG_NO("Lost connectivity to consensus service");
+            if (consensus_service.IsRemoteFencingEnabled() == false) {
+                opensaf_quick_reboot("Lost connectivity to consensus service. "
+                               "Rebooting this node");
+            }
+          }
         }
+
+        TRACE("Rejected takeover request");
+
+        rde_cb->monitor_takeover_req_thread_running = true;
+        consensus_service.MonitorTakeoverRequest(Role::MonitorCallback,
+                                                 rde_cb->mbx);
       } else {
         LOG_WA("Received takeover request when not active");
       }
@@ -207,7 +264,7 @@ static void CheckForSplitBrain(const rde_msg *msg) {
   PCS_RDA_ROLE own_role = role->role();
   PCS_RDA_ROLE other_role = msg->info.peer_info.ha_role;
   if (own_role == PCS_RDA_ACTIVE && other_role == PCS_RDA_ACTIVE) {
-    opensaf_reboot(0, nullptr, "Split-brain detected");
+    opensaf_quick_reboot("Split-brain detected");
   }
 }
 
@@ -234,6 +291,8 @@ static int initialize_rde() {
   /* Determine how this process was started, by NID or AMF */
   if (getenv("SA_AMF_COMPONENT_NAME") == nullptr)
     rde_cb->rde_amf_cb.nid_started = true;
+
+  rde_rda_cb->fmd_conf_file = base::GetEnv("FMS_CONF_FILE", "");
 
   if ((rc = ncs_core_agents_startup()) != NCSCC_RC_SUCCESS) {
     LOG_ER("ncs_core_agents_startup FAILED");
@@ -267,6 +326,11 @@ static int initialize_rde() {
     goto init_failed;
   }
 
+  if (rde_discovery_mds_register() != NCSCC_RC_SUCCESS) {
+    LOG_ER("rde_discovery_mds_register() failed");
+    rc = NCSCC_RC_FAILURE;
+  }
+
   rc = NCSCC_RC_SUCCESS;
 
 init_failed:
@@ -280,6 +344,8 @@ int main(int argc, char *argv[]) {
   NCS_SEL_OBJ mbx_sel_obj;
   RDE_RDA_CB *rde_rda_cb = &rde_cb->rde_rda_cb;
   int term_fd;
+  int hangup_fd;
+  NCS_SEL_OBJ *hangup_sel_obj = nullptr;
   opensaf_reboot_prepare();
 
   daemonize(argc, argv);
@@ -297,6 +363,7 @@ int main(int argc, char *argv[]) {
   }
 
   daemon_sigterm_install(&term_fd);
+  hangup_sel_obj = daemon_sighup_install(&hangup_fd);
 
   fds[FD_TERM].fd = term_fd;
   fds[FD_TERM].events = POLLIN;
@@ -305,6 +372,9 @@ int main(int argc, char *argv[]) {
   fds[FD_AMF].fd = rde_cb->rde_amf_cb.nid_started ? usr1_sel_obj.rmv_obj
                                                   : rde_cb->rde_amf_cb.amf_fd;
   fds[FD_AMF].events = POLLIN;
+
+  fds[FD_SIGHUP].fd = hangup_fd;
+  fds[FD_SIGHUP].events = POLLIN;
 
   /* Mailbox */
   fds[FD_MBX].fd = mbx_sel_obj.rmv_obj;
@@ -343,6 +413,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (fds[FD_TERM].revents & POLLIN) {
+      rde_discovery_mds_unregister();
       daemon_exit();
     }
 
@@ -362,6 +433,23 @@ int main(int argc, char *argv[]) {
         if (rde_amf_init(&rde_cb->rde_amf_cb) != NCSCC_RC_SUCCESS) goto done;
 
         fds[FD_AMF].fd = rde_cb->rde_amf_cb.amf_fd;
+      }
+    }
+
+    if (fds[FD_SIGHUP].revents & POLLIN) {
+      ncs_sel_obj_rmv_ind(hangup_sel_obj, true, true);
+      Consensus consensus_service;
+      bool old_setting = consensus_service.IsEnabled();
+      consensus_service.ReloadConfiguration();
+      bool new_setting = consensus_service.IsEnabled();
+      if (role->role() == PCS_RDA_ACTIVE) {
+        if (old_setting == false && new_setting == true) {
+          // if active and switched on, obtain lock
+          role->PromoteNodeLate();
+        } else if (old_setting == true && new_setting == false) {
+          // if active and switched off
+          // @todo remove lock in a new thread
+        }
       }
     }
 

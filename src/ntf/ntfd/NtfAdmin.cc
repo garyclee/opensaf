@@ -45,7 +45,7 @@ NtfAdmin::NtfAdmin() {
   clientIdCounter = 0;
 
   // Initialize @client_down_mutex
-  pthread_mutex_init(&client_down_mutex, nullptr);
+  pthread_mutex_init(&client_map_mutex, nullptr);
 }
 
 NtfAdmin::~NtfAdmin() {}
@@ -99,9 +99,9 @@ void NtfAdmin::clientAdded(unsigned int clientId, MDS_DEST mdsDest,
     rc = SA_AIS_ERR_EXIST;
   } else {
     // store new client in clientMap
-    osaf_mutex_lock_ordie(&client_down_mutex);
+    osaf_mutex_lock_ordie(&client_map_mutex);
     clientMap[client->getClientId()] = client;
-    osaf_mutex_unlock_ordie(&client_down_mutex);
+    osaf_mutex_unlock_ordie(&client_map_mutex);
     TRACE_1("NtfAdmin::clientAdded client %u added, clientMap size is %u",
             client->getClientId(), (unsigned int)clientMap.size());
   }
@@ -187,25 +187,38 @@ void NtfAdmin::processNotification(unsigned int clientId,
   // NtfAdmin::subscriptionRemoved
   NtfSmartPtr notification(
       new NtfNotification(notificationId, notificationType, sendNotInfo));
-  // store notification in a map for tracking purposes
-  notificationMap[notificationId] = notification;
-  TRACE_2("notification %llu with type %d added, notificationMap size is %u",
-          notificationId, notificationType,
-          (unsigned int)notificationMap.size());
 
-  // log the notification. Callback from SAF log will confirm later.
-  logger.log(notification, activeController());
+  if ((logger.isLoggerBufferFull() == true) &&
+      (logger.isAlarmNotification(notification) == true)) {
+    NtfClient *client = getClient(clientId);
+    MDS_DEST dest = client->getMdsDest();
+    LOG_WA("The logger buffer is full. Check if there is issue in writing");
+    if (activeController())
+      notfication_result_lib(SA_AIS_ERR_TRY_AGAIN, notificationId,
+                             mdsCtxt, dest);
+  } else {
+    // store notification in a map for tracking purposes
+    notificationMap[notificationId] = notification;
+    TRACE_2("notification %llu with type %d added, notificationMap size is %u",
+            notificationId, notificationType,
+            (unsigned int)notificationMap.size());
+    /* send notification to standby */
+    sendNotificationUpdate(clientId, notification->getNotInfo());
 
-  /* send notification to standby */
-  sendNotificationUpdate(clientId, notification->getNotInfo());
-
-  ClientMap::iterator pos;
-  for (pos = clientMap.begin(); pos != clientMap.end(); pos++) {
-    NtfClient *client = pos->second;
-    client->notificationReceived(clientId, notification, mdsCtxt);
+    ClientMap::iterator pos;
+    for (pos = clientMap.begin(); pos != clientMap.end(); pos++) {
+      NtfClient *client = pos->second;
+      client->notificationReceived(clientId, notification, mdsCtxt);
+    }
   }
 
-  /* remove notification if sent to all subscribers and logged */
+  // Add the notification to Reader list
+  logger.addNotificationToReaderList(notification);
+  // Log the notification. Callback from SAF log will confirm later.
+  if (activeController())
+    logger.log(notification);
+
+  // Remove the notification if it is sent to all subscribers and logged
   if (notification->isSubscriptionListEmpty() && notification->loggedOk()) {
     NotificationMap::iterator posNot;
     posNot = notificationMap.find(notificationId);
@@ -341,9 +354,9 @@ void NtfAdmin::notificationReceivedColdSync(
   TRACE_LEAVE();
 }
 /**
- * A cached notification is received in Cold Sync.
- * This cached notification will be marked as logged, and stored
- * only in NtfLogger class to serve the reader.
+ * A cached notifications are received in Cold Sync.
+ * This cached notifications are stored in NtfLogger
+ * class to serve the reader.
  *
  * @param clientId Node-wide unique id for the client who sent the
  *                 notification.
@@ -363,8 +376,7 @@ void NtfAdmin::cachedNotificationReceivedColdSync(
   TRACE_2("cached notification %u received", (unsigned int)notificationId);
   NtfSmartPtr notification(new NtfNotification(notificationId,
       notificationType, sendNotInfo));
-  notification->notificationLoggedConfirmed();
-  logger.log(notification, false);
+  logger.addNotificationToReaderList(notification);
   TRACE_LEAVE();
 }
 
@@ -457,12 +469,12 @@ void NtfAdmin::clientRemoved(unsigned int clientId) {
   pos = clientMap.find(clientId);
   if (pos != clientMap.end()) {
     // client found
-    osaf_mutex_lock_ordie(&client_down_mutex);
+    osaf_mutex_lock_ordie(&client_map_mutex);
     NtfClient *client = pos->second;
     delete client;
     // remove client from client map
     clientMap.erase(pos);
-    osaf_mutex_unlock_ordie(&client_down_mutex);
+    osaf_mutex_unlock_ordie(&client_map_mutex);
   } else {
     TRACE_2("NtfAdmin::clientRemoved client %u not found", clientId);
     return;
@@ -524,23 +536,26 @@ void NtfAdmin::ClientsDownRemoved(MDS_DEST mds_dest) {
 }
 
 /**
- * Set flag for the clients that belong to the ntfa down. This is set on mds
- * thread and the clients are removed in ntfd thread.
+ * Search all clients in client-map and set flag down for them that belong
+ * to the ntfa down. This is set on mds thread and the clients are removed
+ * in ntfd thread.
  * Help to prevent the disorder of coming between NTFSV_NTFS_EVT_NTFA_DOWN event
- * and checkpoint of NTFSV_NTFS_NTFSV_MSG requests. (Ticket #2705)
+ * and checkpoint of NTFSV_NTFS_NTFSV_MSG requests in standby(Ticket #2705).
+ * And also help to realize all clients have already downed then don't send the
+ * response to these clients.
  *
  * @param mds_dest
  */
-void NtfAdmin::SetClientsDownFlag(MDS_DEST mds_dest) {
+void NtfAdmin::SearchAndSetClientsDownFlag(MDS_DEST mds_dest) {
   TRACE_ENTER();
-  osaf_mutex_lock_ordie(&client_down_mutex);
+  osaf_mutex_lock_ordie(&client_map_mutex);
   for (const auto &it : clientMap) {
     NtfClient *client = it.second;
     if (client->getMdsDest() == mds_dest) {
       client->SetClientDownFlag();
     }
   }
-  osaf_mutex_unlock_ordie(&client_down_mutex);
+  osaf_mutex_unlock_ordie(&client_map_mutex);
   TRACE_LEAVE();
 }
 
@@ -706,7 +721,7 @@ void NtfAdmin::checkNotificationList() {
 
     if (notification->loggedOk() == false) {
       /* When reader API works check if already logged */
-      logger.log(notification, true);
+      logger.log(notification);
     }
     if (!notification->isSubscriptionListEmpty()) {
       TRACE_2("list not empty check subscriptions for %llu",
@@ -1048,6 +1063,7 @@ uint32_t NtfAdmin::send_cluster_membership_msg_to_clients(
   ClientMap::iterator pos;
   for (pos = clientMap.begin(); pos != clientMap.end(); pos++) {
     NtfClient *client = pos->second;
+    if (client->GetClientDownFlag() == true) continue;
     client_id = client->getClientId();
     mds_dest = client->getMdsDest();
     NODE_ID tmp_node_id = m_NTFS_GET_NODE_ID_FROM_ADEST(mds_dest);
@@ -1161,9 +1177,9 @@ void ClientsDownRemoved(MDS_DEST mds_dest) {
   NtfAdmin::theNtfAdmin->ClientsDownRemoved(mds_dest);
 }
 
-void SetClientsDownFlag(MDS_DEST mds_dest) {
+void SearchAndSetClientsDownFlag(MDS_DEST mds_dest) {
   osafassert(NtfAdmin::theNtfAdmin != NULL);
-  NtfAdmin::theNtfAdmin->SetClientsDownFlag(mds_dest);
+  NtfAdmin::theNtfAdmin->SearchAndSetClientsDownFlag(mds_dest);
 }
 
 void subscriptionRemoved(unsigned int clientId,

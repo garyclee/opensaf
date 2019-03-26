@@ -149,6 +149,31 @@ static uint32_t process_amfnd_mds_evt(struct ncsmds_callback_info *info) {
   return rc;
 }
 
+static uint32_t process_rde_discovery_mds_evt(
+  struct ncsmds_callback_info *info) {
+  uint32_t rc = NCSCC_RC_SUCCESS;
+
+  TRACE_ENTER();
+  osafassert(info->info.svc_evt.i_svc_id == NCSMDS_SVC_ID_RDE_DISCOVERY);
+
+  // process these events in the main thread to avoid
+  // synchronisation issues
+  switch (info->info.svc_evt.i_change) {
+    case NCSMDS_DOWN:
+      rc = mbx_send(RDE_MSG_CONTROLLER_DOWN, info->info.svc_evt.i_dest,
+                    info->info.svc_evt.i_node_id);
+      break;
+    case NCSMDS_UP:
+      rc = mbx_send(RDE_MSG_CONTROLLER_UP, info->info.svc_evt.i_dest,
+                    info->info.svc_evt.i_node_id);
+      break;
+    default:
+      break;
+  }
+
+  return rc;
+}
+
 static uint32_t mds_callback(struct ncsmds_callback_info *info) {
   struct rde_msg *msg;
   uint32_t rc = NCSCC_RC_SUCCESS;
@@ -185,8 +210,10 @@ static uint32_t mds_callback(struct ncsmds_callback_info *info) {
       if (info->info.svc_evt.i_svc_id == NCSMDS_SVC_ID_AVND) {
         rc = process_amfnd_mds_evt(info);
         break;
-      }
-      if (info->info.svc_evt.i_change == NCSMDS_DOWN) {
+      } else if (info->info.svc_evt.i_svc_id == NCSMDS_SVC_ID_RDE_DISCOVERY) {
+        rc = process_rde_discovery_mds_evt(info);
+        break;
+      } else if (info->info.svc_evt.i_change == NCSMDS_DOWN) {
         TRACE("MDS DOWN dest: %" PRIx64 ", node ID: %x, svc_id: %d",
               info->info.svc_evt.i_dest, info->info.svc_evt.i_node_id,
               info->info.svc_evt.i_svc_id);
@@ -218,7 +245,8 @@ done:
 uint32_t rde_mds_register() {
   NCSADA_INFO ada_info;
   NCSMDS_INFO svc_info;
-  MDS_SVC_ID svc_id[] = {NCSMDS_SVC_ID_RDE, NCSMDS_SVC_ID_AVND};
+  MDS_SVC_ID svc_id[] = {NCSMDS_SVC_ID_RDE, NCSMDS_SVC_ID_AVND,
+                         NCSMDS_SVC_ID_RDE_DISCOVERY};
   MDS_DEST mds_adest;
 
   TRACE_ENTER();
@@ -252,12 +280,49 @@ uint32_t rde_mds_register() {
   svc_info.i_mds_hdl = mds_hdl;
   svc_info.i_svc_id = NCSMDS_SVC_ID_RDE;
   svc_info.i_op = MDS_RED_SUBSCRIBE;
-  svc_info.info.svc_subscribe.i_num_svcs = 2;
+  svc_info.info.svc_subscribe.i_num_svcs = 3;
   svc_info.info.svc_subscribe.i_scope = NCSMDS_SCOPE_NONE;
   svc_info.info.svc_subscribe.i_svc_ids = svc_id;
 
   if (ncsmds_api(&svc_info) == NCSCC_RC_FAILURE) {
     LOG_ER("MDS Subscribe for redundancy Failed");
+    return NCSCC_RC_FAILURE;
+  }
+
+  TRACE_LEAVE2("NodeId:%x, mds_adest:%" PRIx64, ncs_get_node_id(), mds_adest);
+
+  return NCSCC_RC_SUCCESS;
+}
+
+uint32_t rde_discovery_mds_register() {
+  NCSADA_INFO ada_info;
+  NCSMDS_INFO svc_info;
+  MDS_DEST mds_adest;
+
+  TRACE_ENTER();
+
+  ada_info.req = NCSADA_GET_HDLS;
+  if (ncsada_api(&ada_info) != NCSCC_RC_SUCCESS) {
+    LOG_ER("%s: NCSADA_GET_HDLS Failed", __FUNCTION__);
+    return NCSCC_RC_FAILURE;
+  }
+
+  mds_hdl = ada_info.info.adest_get_hdls.o_mds_pwe1_hdl;
+  mds_adest = ada_info.info.adest_get_hdls.o_adest;
+
+  svc_info.i_mds_hdl = mds_hdl;
+  svc_info.i_svc_id = NCSMDS_SVC_ID_RDE_DISCOVERY;
+  svc_info.i_op = MDS_INSTALL;
+
+  svc_info.info.svc_install.i_yr_svc_hdl = 0;
+  // node specific
+  svc_info.info.svc_install.i_install_scope = NCSMDS_SCOPE_NONE;
+  svc_info.info.svc_install.i_svc_cb = mds_callback; /* callback */
+  svc_info.info.svc_install.i_mds_q_ownership = false;
+  svc_info.info.svc_install.i_mds_svc_pvt_ver = RDE_MDS_PVT_SUBPART_VERSION;
+
+  if (ncsmds_api(&svc_info) == NCSCC_RC_FAILURE) {
+    LOG_ER("%s: MDS Install Failed", __FUNCTION__);
     return NCSCC_RC_FAILURE;
   }
 
@@ -276,6 +341,27 @@ uint32_t rde_mds_unregister() {
 
   mds_info.i_mds_hdl = mds_hdl;
   mds_info.i_svc_id = NCSMDS_SVC_ID_RDE;
+  mds_info.i_op = MDS_UNINSTALL;
+
+  uint32_t rc = ncsmds_api(&mds_info);
+  if (rc != NCSCC_RC_SUCCESS) {
+    LOG_WA("MDS Unregister Failed");
+  }
+
+  TRACE_LEAVE2("retval = %u", rc);
+  return rc;
+}
+
+uint32_t rde_discovery_mds_unregister() {
+  NCSMDS_INFO mds_info;
+  TRACE_ENTER();
+
+  /* Un-install your service into MDS.
+   No need to cancel the services that are subscribed */
+  memset(&mds_info, 0, sizeof(NCSMDS_INFO));
+
+  mds_info.i_mds_hdl = mds_hdl;
+  mds_info.i_svc_id = NCSMDS_SVC_ID_RDE_DISCOVERY;
   mds_info.i_op = MDS_UNINSTALL;
 
   uint32_t rc = ncsmds_api(&mds_info);

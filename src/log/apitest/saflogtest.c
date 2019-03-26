@@ -413,8 +413,11 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	sprintf((char *)logSvcUsrName.value, "%s.%u@%s", "saflogtest", getpid(),
-		hostname);
+	if (snprintf((char *)logSvcUsrName.value, SA_MAX_NAME_LENGTH,
+	       	"%s.%u@%s", "saflogtest", getpid(),
+		hostname) >= SA_MAX_NAME_LENGTH) {
+		fprintf(stderr, "warning: truncation occurred with logSvcUsrName: %s", logSvcUsrName.value);
+	}
 	logSvcUsrName.length = strlen((char *)logSvcUsrName.value);
 
 	while (1) {

@@ -47,6 +47,8 @@
  *            any notification.                                          *
  ************************************************************************/
 
+#include "nid/nodeinit.h"
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <syslog.h>
@@ -61,20 +63,18 @@
 #include <sys/wait.h>
 #include <stdint.h>
 
-#include "osaf/configmake.h"
-#include "rde/agent/rda_papi.h"
-#include "base/logtrace.h"
-
+#include <atomic>
 #include <string>
 #include <vector>
 #include <cerrno>
 #include <cstdio>
 
+#include "osaf/configmake.h"
+#include "rde/agent/rda_papi.h"
+#include "base/logtrace.h"
 #include "base/conf.h"
 #include "base/osaf_poll.h"
 #include "base/osaf_time.h"
-
-#include "nid/nodeinit.h"
 #include "base/file_notify.h"
 
 #define SETSIG(sa, sig, fun, flags) \
@@ -134,6 +134,7 @@ static int start_monitor_svc(const char *svc);
 /* Data declarations for service monitoring */
 static int svc_mon_fd = -1;
 static int next_svc_fds_slot = 0;
+static std::atomic<bool> svc_monitor_thread_ready{false};
 
 struct SAFServices {
   const std::string fifo_dir = PKGLOCALSTATEDIR;
@@ -603,7 +604,10 @@ uint32_t parse_nodeinit_conf(char *strbuf) {
   (void)fclose(ntfile);
 
   if ((file = fopen(nidconf, "r")) == NULL) {
-    sprintf(strbuf, "%s. file open error '%s'\n", nidconf, strerror(errno));
+    if (snprintf(strbuf, 256, "%s. file open error '%s'\n", nidconf,
+                 strerror(errno)) >= 256) {
+      LOG_WA("strbuf truncated: %s", strbuf);
+    }
     return NCSCC_RC_FAILURE;
   }
 
@@ -709,9 +713,9 @@ int32_t fork_daemon(NID_SPAWN_INFO *service, char *app, char *args[],
 
     tmp_pid = getpid();
     while (write(filedes[1], &tmp_pid, sizeof(int)) < 0) {
-      if (errno == EINTR)
+      if (errno == EINTR) {
         continue;
-      else if (errno == EPIPE) {
+      } else if (errno == EPIPE) {
         LOG_ER("Reader not available to return my PID");
       } else {
         LOG_ER("Problem writing to pipe, err=%s", strerror(errno));
@@ -1513,6 +1517,8 @@ void *svc_monitor_thread(void *fd) {
   fds[FD_SVC_MON_THR].events = POLLIN;
   next_svc_fds_slot++;
 
+  svc_monitor_thread_ready = true;
+
   while (true) {
     unsigned rc = osaf_poll(fds, next_svc_fds_slot, -1);
     if (rc > 0) {
@@ -1526,24 +1532,27 @@ void *svc_monitor_thread(void *fd) {
 
       if (fds[FD_SVC_MON_THR].revents & POLLIN) {
         while (true) {
-          read_rc = read(svc_mon_thr_fd, nid_name, NID_MAXSNAME);
+          read_rc = recv(svc_mon_thr_fd, nid_name, NID_MAXSNAME, MSG_DONTWAIT);
           if (read_rc == -1) {
             if (errno == EINTR) {
               continue;
+            } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+              break;
             } else {
               LOG_ER("Failed to read on socketpair descriptor: %s",
                      strerror(errno));
               exit(EXIT_FAILURE);
             }
           }
+
           osafassert(read_rc < NID_MAXSNAME);
           nid_name[read_rc] = '\0';
-          break;
-        }
-        if (handle_data_request(fds, nid_name) != NCSCC_RC_SUCCESS) {
-          LOG_ER("Failed to start monitoring for service %s, exiting",
-                 nid_name);
-          exit(EXIT_FAILURE);
+
+          if (handle_data_request(fds, nid_name) != NCSCC_RC_SUCCESS) {
+            LOG_ER("Failed to start monitoring for service %s, exiting",
+                   nid_name);
+            exit(EXIT_FAILURE);
+          }
         }
       }
     } else {
@@ -1571,7 +1580,7 @@ uint32_t create_svc_monitor_thread(void) {
 
   TRACE_ENTER();
 
-  if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, s_pair) == -1) {
+  if (socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0, s_pair) == -1) {
     LOG_ER("socketpair FAILED: %s", strerror(errno));
     return NCSCC_RC_FAILURE;
   }
@@ -1651,6 +1660,16 @@ int main(int argc, char *argv[]) {
     LOG_ER("Failed to create service monitor thread, exiting");
     exit(EXIT_FAILURE);
   }
+
+  // Waiting until svc_monitor_thread is up and in ready state.
+  unsigned no_repeat = 0;
+  while (svc_monitor_thread_ready == false && no_repeat < 100) {
+    osaf_nanosleep(&kHundredMilliseconds);
+    no_repeat++;
+  }
+
+  osafassert(svc_monitor_thread_ready);
+  LOG_NO("svc_monitor_thread is up and in ready state");
 
   if (parse_nodeinit_conf(sbuf) != NCSCC_RC_SUCCESS) {
     LOG_ER("Failed to parse file %s. Exiting", sbuf);

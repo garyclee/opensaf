@@ -1,8 +1,6 @@
 #include <string.h>
-#include "tet_api.h"
-#include "tet_startup.h"
+#include <stdio.h>
 #include "tet_eda.h"
-
 extern int gl_sync_pointnum;
 extern int fill_syncparameters(int);
 extern int gl_jCount;
@@ -19,12 +17,21 @@ int gl_b03_flag = 0;
 
 /*******Channel Open Functionality*******/
 
+void tet_result(int result)
+{
+	if (result == TET_PASS) {
+		m_TEST_CPSV_PRINTF("\n ##### TEST CASE SUCCEEDED #####\n\n");
+	} else if (result == TET_FAIL) {
+		m_TEST_CPSV_PRINTF("\n ##### TEST CASE FAILED #####\n\n");
+	} else if (result == TET_UNRESOLVED) {
+		m_TEST_CPSV_PRINTF("\n ##### TEST CASE UNRESOLVED #####\n\n");
+	}
+}
+
 void tet_ChannelOpen_SingleEvtHandle()
 /* Channel Open with same event handle single instance */
 /* Subscriber(3) - Publisher */
 {
-	char *tempData;
-	SaSizeT tempDataSize;
 	SaEvtChannelHandleT tempChannelHandle;
 	SaEvtEventFilterT duplicate[2] = {{3, {5, 5, (SaUint8T *)"Hello"}},
 					  {3, {4, 4, (SaUint8T *)"Moto"}}};
@@ -119,7 +126,6 @@ void tet_ChannelOpen_SingleEvtHandle_SamePatterns()
 /* Subscriber(3) - Publisher - Subscriber(3) - Subscribe(4) */
 {
 	SaEvtChannelHandleT pubChannelHandle, subChannelHandle;
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -241,7 +247,6 @@ void tet_ChannelOpen_SingleEvtHandle_DifferentPatterns()
 {
 	SaEvtEventFilterT duplicate[2] = {{3, {5, 5, (SaUint8T *)"Hello"}},
 					  {3, {4, 4, (SaUint8T *)"Moto"}}};
-	char *tempData;
 	SaEvtChannelHandleT pubChannelHandle, subChannelHandle;
 	SaSizeT tempDataSize;
 
@@ -363,8 +368,6 @@ void tet_ChannelOpen_MultipleEvtHandle()
 /* Channel Open with multiple event handles */
 /* Subscriber(I1,3) - Publisher(I2)*/
 {
-	char *tempData;
-	SaSizeT tempDataSize;
 
 	SaEvtHandleT tempEvtHandle, temp1EvtHandle;
 	SaEvtChannelHandleT tempChannelHandle;
@@ -467,8 +470,6 @@ void tet_ChannelOpen_MultipleEvtHandle_SamePatterns()
 /* Channel Open with multiple event handles mulitple instance same patterns*/
 /* Subscriber(I1,3) - Publisher(I2) - Subscriber(I1,4) */
 {
-	char *tempData;
-	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
 
@@ -594,8 +595,6 @@ void tet_ChannelOpen_MultipleEvtHandle_DifferentPatterns()
 {
 	SaEvtEventFilterT duplicate[2] = {{3, {5, 5, (SaUint8T *)"Hello"}},
 					  {3, {4, 4, (SaUint8T *)"Moto"}}};
-	char *tempData;
-	SaSizeT tempDataSize;
 
 	SaEvtHandleT tempEvtHandle, localEvtHandle;
 	SaEvtChannelHandleT tempChannelHandle;
@@ -784,7 +783,6 @@ void tet_ChannelClose_Simple() /* Channel Close  simple case */
 	printf("\n\n*************Case 8: Channel Close*************");
 	tet_printf(" F:8: Close an Opened Event Channel");
 
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	var_initialize();
@@ -1219,7 +1217,6 @@ void tet_AttributesGet_ReceivedEvent()
 /* Attributes Get for a received event */
 {
 	int iCmpCount = 0;
-	char *tempData;
 	SaSizeT tempDataSize;
 	printf(
 	    "\n\n********Case 14: Attributes Get for recevied event**********");
@@ -1310,7 +1307,6 @@ void tet_PatternFree_ReceivedEvent()
 /* Patternfree for a received event */
 {
 	int iCmpCount = 0;
-	char *tempData;
 	SaSizeT tempDataSize;
 	tet_printf(" PatternsFree for a Received Event");
 	gl_b03_flag = 1;
@@ -1468,7 +1464,6 @@ void tet_EventSubscribe_PrefixFilter()
 /* Event Subscribe with prefix filter */
 {
 	SaEvtEventFilterT prefixFilter[1] = {{1, {3, 3, (SaUint8T *)"Hel"}}};
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -1561,7 +1556,6 @@ void tet_EventSubscribe_SuffixFilter()
 {
 	SaEvtEventFilterT suffixFilter[1] = {{2, {3, 3, (SaUint8T *)"llo"}}};
 
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -1651,7 +1645,6 @@ subscribe suffix filter");
 void tet_EventSubscribe_ExactFilter() /* Event Subscribe with exact filter */
 {
 
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -1741,10 +1734,9 @@ void tet_EventSubscribe_AllPassFilter() /* Event Subscribe with all pass \
 {
 	SaEvtEventFilterT allPassFilter[1] = {{4, {1, 1, (SaUint8T *)"A"}}};
 
-	char *tempData;
 	SaSizeT tempDataSize;
 
-	int iCmpCount;
+	int iCmpCount = 0;
 
 	printf(
 	    "\n\n*******Case 19: Event Subscribe with all pass filter*********");
@@ -1828,7 +1820,6 @@ subscribe all pass filter");
 void tet_EventSubscribe_LessFilters()
 /* Event Subscribe with less filters than patterns */
 {
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -1922,7 +1913,6 @@ void tet_EventSubscribe_LessPatterns()
 	SaEvtEventPatternT patternL[1] = {
 	    {5, 5, (SaUint8T *)"Hello"},
 	};
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -2017,7 +2007,6 @@ void tet_EventSubscribe_LessPatterns_FilterSize()
 	SaEvtEventPatternT patternL[1] = {
 	    {5, 5, (SaUint8T *)"Hello"},
 	};
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -2108,7 +2097,6 @@ void tet_EventSubscribe_LessFilters_DifferentOrder()
 /* Event Subscribe with less filters than patterns in different order */
 {
 	SaEvtEventFilterT filterDup[1] = {{3, {4, 4, (SaUint8T *)"Hell"}}};
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -2200,7 +2188,6 @@ filters");
 void tet_EventSubscribe_PatternMatch_DifferentSubscriptions()
 /* Event Subscribe with pattern match for different subscriptions*/
 {
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -2303,7 +2290,6 @@ and Filters match Published Patterns");
 
 void tet_ChannelOpenAsync_Simple() /* Channel Open Async Cases */
 {
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -2393,7 +2379,6 @@ void tet_EventSubscribe_multipleFilters()
 /* Event Subscribe with mutliple filters with patternsize lessthan filtersize*/
 {
 	int iCmpCount = 0;
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	SaEvtEventPatternT multiplePattern[5] = {
@@ -2718,7 +2703,6 @@ match*************");
 void tet_EventSubscribe_DiffFilterTypes()
 /* Event Subscribe with different filter types */
 {
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -3088,7 +3072,6 @@ void tet_Same_Subscriber_Publisher_DiffChannel()
 /* Same publisher and subscriber for different channels */
 {
 	int iCmpCount;
-	char *tempData;
 	SaSizeT tempDataSize;
 	SaEvtChannelHandleT tempChannelHandle;
 	SaEvtEventFilterT duplicate[2] = {
@@ -3184,7 +3167,6 @@ void tet_Sync_Async_Subscriber_Publisher()
 /* Sync and Async channel for subscriber and publisher */
 {
 	int iCmpCount = 0;
-	char *tempData;
 	SaSizeT tempDataSize;
 	SaEvtChannelHandleT tempChannelHandle;
 
@@ -3279,7 +3261,6 @@ void tet_Sync_Async_Subscriber_Publisher()
 void tet_Event_Subscriber_Unsubscriber() /* Event subscribe and unsubscribe */
 {
 	int iCmpCount = 0;
-	char *tempData;
 	SaSizeT tempDataSize;
 	SaEvtEventIdT tempId;
 	printf(
@@ -3472,7 +3453,6 @@ void tet_MultipleHandle_Subscribers_Publisher()
 /* Mulitple Handle subscribers and publisher */
 {
 	int iCmpCount = 0;
-	char *tempData;
 	SaSizeT tempDataSize;
 	SaEvtHandleT tempEvtHandle, localEvtHandle;
 	SaEvtChannelHandleT tempChannelHandle;
@@ -3674,7 +3654,6 @@ void tet_EventPublish_Priority() /* Event Publish with priority */
 void tet_EventPublish_EventOrder() /* Event Publish with event order */
 {
 	int iCmpCount;
-	char *tempData;
 	SaSizeT tempDataSize;
 	printf(
 	    "\n\n*************Case 40: Event Publish with event order*********");
@@ -3757,7 +3736,6 @@ void tet_EventPublish_EventOrder() /* Event Publish with event order */
 
 void tet_EventPublish_EventFree()
 {
-	char *tempData;
 	SaSizeT tempDataSize;
 	int iCmpCount = 0;
 
@@ -3844,7 +3822,6 @@ void tet_EventPublish_EventFree()
 void tet_EventFree_DeliverCallback()
 {
 	SaEvtChannelHandleT pubChannelHandle, subChannelHandle;
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -3970,7 +3947,6 @@ void tet_EventFree_DeliverCallback()
 void tet_EventRetentionTimeClear_EventFree()
 {
 	SaEvtChannelHandleT pubChannelHandle;
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;
@@ -4074,9 +4050,7 @@ void tet_EventRetentionTimeClear_EventFree()
 void tet_EventPublish_ChannelUnlink()
 {
 	SaEvtChannelHandleT pubChannelHandle, dupHandle;
-	char *tempData;
 	SaSizeT tempDataSize;
-	SaEvtEventIdT tempEvtId;
 
 	int iCmpCount = 0;
 
@@ -4115,7 +4089,6 @@ void tet_EventPublish_ChannelUnlink()
 	tempData = gl_eventData;
 	tempDataSize = gl_eventDataSize;
 	tet_saEvtEventPublish(&gl_eventHandle, &gl_evtId);
-	tempEvtId = gl_evtId;
 
 	gl_allocatedNumber = 2;
 	gl_patternLength = 5;
@@ -4210,7 +4183,6 @@ after channel unlink");
 void tet_EventUnsubscribe_EventPublish()
 {
 	SaEvtChannelHandleT pubChannelHandle;
-	char *tempData;
 	SaSizeT tempDataSize;
 
 	int iCmpCount = 0;

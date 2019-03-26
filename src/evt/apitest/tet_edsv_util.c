@@ -16,10 +16,11 @@ process.
 #
 *******************************************************************************************/
 
-#include "tet_startup.h"
-#include "ncs_main_papi.h"
+#include <stdio.h>
 #include "tet_eda.h"
-
+#include "base/ncs_main_papi.h"
+#include "base/ncs_lib.h"
+#include "osaf/apitest/utest.h"
 void edsv_smoke_test(void);
 void tet_run_edsv_app(void);
 
@@ -30,6 +31,11 @@ void (*tet_startup)() = tet_edsv_startup;
 void (*tet_cleanup)() = tet_edsv_end;
 
 extern void tet_saEvtLimitGetCases(int iOption);
+struct tet_testlist {
+	void (*testfunc)();
+	int icref;
+	int tpnum;
+};
 
 #if (TET_PATCH == 1)
 struct tet_testlist edsv_test[] = {
@@ -1259,3 +1265,192 @@ void tet_edsv_startup()
 }
 
 void tet_edsv_end() { tet_infoline(" Ending the agony.. "); }
+
+__attribute__((constructor)) static void edsv_constructor(void)
+{
+	tet_edsv_startup();
+
+	test_suite_add(1, "saevtInitialize Test Suite");
+	test_case_add(1, tet_saEvtInitializeCases_01,
+		      "saEvtInitialize() with NULL event handle");
+        test_case_add(1, tet_saEvtInitializeCases_02,
+		      "saEvtInitialize() with NULL pointer to callbacks");
+	test_case_add(1, tet_saEvtInitializeCases_04,
+		      "Initialize() with uninitialized pointer to callbacks");
+	test_case_add(1, tet_saEvtInitializeCases_05,
+		      "Initialize with NULL ChannelOpenClbk,NULLDeliverClbk");
+	test_case_add(1, tet_saEvtInitializeCases_06,
+		      "saEvtInitialize() with NULL saEvtChannelOpenCallback");
+	test_case_add(1, tet_saEvtInitializeCases_07,
+		      "saEvtInitialize() with NULL saEvtEventDeliverCallback");
+	test_case_add(1, tet_saEvtInitializeCases_08,
+		      "saEvtInitialize() with NULL version");
+	test_case_add(1, tet_saEvtInitializeCases_09,
+		      "saEvtInitialize() with uninitialized version");
+	test_case_add(1, tet_saEvtInitializeCases_10,
+		      "saEvtInitialize() with error version");
+	test_case_add(1, tet_saEvtInitializeCases_11,
+		      "saEvtInitialize() with minor version set to 0");
+	test_case_add(1, tet_saEvtInitializeCases_12,
+		      "saEvtInitialize() with major version set to 3");
+	test_case_add(1, tet_saEvtInitializeCases_13,
+		      "saEvtInitialize() with major version set to 0");
+	test_case_add(1, tet_saEvtInitializeCases_14,
+		      "saEvtInitialize() invoked");
+	test_case_add(1, tet_saEvtInitializeCases_15,
+		      "saEvtInitialize() invoked");
+
+	test_suite_add(2, "saEvtSelectionObjectGet Test Suite");
+	test_case_add(2, tet_saEvtSelectionObjectGetCases_01,
+		      "saEvtSelectionObjectGet() with NULL event handle");
+	test_case_add(2, tet_saEvtSelectionObjectGetCases_02,
+		      "SelectionObjectGet() with uninitialized event handle");
+	test_case_add(2, tet_saEvtSelectionObjectGetCases_03,
+		      "saEvtSelectionObjectGet() with garbage event handle");
+	test_case_add(2, tet_saEvtSelectionObjectGetCases_04,
+		      "saEvtSelectionObjectGet() with NULL event clbk hdle");
+	test_case_add(2, tet_saEvtSelectionObjectGetCases_05,
+		      "SelectionObjectGet() with NULL EvtChannelOpenCbk");
+	test_case_add(2, tet_saEvtSelectionObjectGetCases_06,
+		      "SelectionObjectGet() with NULL DeliverCallback hdle");
+	test_case_add(2, tet_saEvtSelectionObjectGetCases_07,
+		      "saEvtSelectionObjectGet() with NULL selection object");
+        test_case_add(2, tet_saEvtSelectionObjectGetCases_08,
+		      "SelectionObjectGet()with NULL hdl,NULL selection obj");
+	test_case_add(2, tet_saEvtSelectionObjectGetCases_09,
+		      "saEvtSelectionObjectGet() invoked");
+
+	test_suite_add(3, "saEvtDispatch Test Suite");
+	test_case_add(3, tet_saEvtDispatchCases_01,
+		      "saEvtDispatch() with NULL event handle");
+	test_case_add(3, tet_saEvtDispatchCases_02,
+		      "saEvtDispatch() with uninitialized event handle");
+	test_case_add(3, tet_saEvtDispatchCases_03,
+		      "saEvtDispatch() with garbage event handle");
+	test_case_add(3, tet_saEvtDispatchCases_04,
+		      "saEvtDispatch() with uninitialized dispatch flag");
+	test_case_add(3, tet_saEvtDispatchCases_05,
+		      "Dispatch with dispatch flags set to garbagevalue(24)");
+	test_case_add(3, tet_saEvtDispatchCases_06,
+		      "Dispatch() with dispatch flags set to DISPATCH_ALL");
+	test_case_add(3, tet_saEvtDispatchCases_07,
+		      "Dispatch() with dispatch flags set to DISPATCH_ALL");
+
+	test_suite_add(4, "saEvtFinalize Test Suite");
+	test_case_add(4, tet_saEvtFinalizeCases_01,
+		      "saEvtFinalize() with NULL event handle");
+        test_case_add(4, tet_saEvtFinalizeCases_02,
+		      "saEvtFinalize() with uninitialized event handle");
+	test_case_add(4, tet_saEvtFinalizeCases_03,
+		      "saEvtFinalize() with garbage values");
+        test_case_add(4, tet_saEvtFinalizeCases_04,
+		      "saEvtFinalize() invoked");
+
+	test_suite_add(5, "saEvtChannelOpene Test Suite");
+	test_case_add(5, tet_saEvtChannelOpenCases_15,
+		      "saEvtChannelOpen() with NULL channel handle");
+
+	test_suite_add(6, "saEvtChannelOpenAsync Test Suite");
+
+	test_suite_add(7, "saEvtChannelClose Test Suite");
+	test_case_add(7, tet_saEvtChannelCloseCases_01,
+		      "saEvtChannelClose() with NULL channel handle");
+	test_case_add(7, tet_saEvtChannelCloseCases_02,
+		      "saEvtChannelClose() with uninitialized channel ");
+	test_case_add(7, tet_saEvtChannelCloseCases_03,
+		      "saEvtChannelClose() with garbage channel handle");
+
+	test_suite_add(8, "saEvtChannelUnlink Test Suite");
+	test_case_add(8, tet_saEvtChannelUnlinkCases_05,
+		      "saEvtChannelUnlink() with uninitialized channel name");
+
+	test_suite_add(9, "saEvtEventAllocate Test Suite");
+	test_case_add(9, tet_saEvtEventAllocateCases_01,
+		      "saEvtEventAllocate() with NULL channel handle");
+	test_case_add(9, tet_saEvtEventAllocateCases_02,
+		      "EventAllocate() with uninitialized channel handle");
+	test_case_add(9, tet_saEvtEventAllocateCases_03,
+		      "saEvtEventAllocate() with garbage channel handle");
+	test_case_add(9, tet_saEvtEventAllocateCases_04,
+		      "saEvtEventAllocate() with NULL event handle");
+
+	test_suite_add(10, "saEvtEventFree Test Suite");
+	test_case_add(10, tet_saEvtEventFreeCases_01,
+		      "saEvtEventFree() with NULL event handle");
+	test_case_add(10, tet_saEvtEventFreeCases_02,
+		      "saEvtEventFree() with uninitialized event handle");
+	test_case_add(10, tet_saEvtEventFreeCases_03,
+		      "saEvtEventFree() with garbage event handle");
+	test_case_add(10, tet_saEvtEventFreeCases_06,
+		      "saEvtEventFree() with channel closed");
+
+	test_suite_add(11, "saEvtEventAttributesSet Test Suite");
+	test_case_add(11, tet_saEvtEventAttributesSetCases_11,
+		      "saEvtEventAttributesSet() with empty publisher name");
+
+        test_suite_add(12, "saEvtEventAttributesGet Test Suite");
+        test_case_add(12, tet_saEvtEventAttributesGetCases_01,
+		      "saEvtEventAttributesGet() with NULL event handle");
+	test_case_add(12, tet_saEvtEventAttributesGetCases_02,
+		      "EventAttributesGet() with uninitialized event handle");
+	test_case_add(12, tet_saEvtEventAttributesGetCases_03,
+		      "tAttributesGet() with garbage event handle");
+	test_case_add(12, tet_saEvtEventAttributesGetCases_04,
+		      "AttributesGet() with NULL pattern array");
+
+	test_suite_add(13, "saEvtEventDataGet Test Suite");
+	test_case_add(13, tet_saEvtEventDataGetCases_01,
+		      "saEvtEventDataGet() with NULL event handle");
+	test_case_add(13, tet_saEvtEventDataGetCases_02,
+		      "saEvtEventDataGet() with uninitialized event handle");
+	test_case_add(13, tet_saEvtEventDataGetCases_03,
+		      "tEventDataGet() with garbage event handle");
+	test_case_add(13, tet_saEvtEventDataGetCases_08,
+		      "EventDataGet() with channel when published");
+
+	test_suite_add(14, "saEvtEventPublish Test Suite");
+	test_case_add(14, tet_saEvtEventPublishCases_01,
+			"tEventPublish() with NULL event handle");
+	test_case_add(14, tet_saEvtEventPublishCases_02,
+		      "EventPublish() with uninitialized event handle");
+	test_case_add(14, tet_saEvtEventPublishCases_03,
+		      "EventPublish() with garbage event handle");
+	test_case_add(14, tet_saEvtEventPublishCases_08,
+		      "EventPublish() with NULL event id");
+
+	test_suite_add(15, "saEvtEventSubscribe Test Suite");
+	test_case_add(15, tet_saEvtEventSubscribeCases_01,
+		      "EventSubscribe() with NULL channel Handle");
+	test_case_add(15, tet_saEvtEventSubscribeCases_02,
+		      "EventSubscribe() with empty channel handle");
+	test_case_add(15, tet_saEvtEventSubscribeCases_03,
+		      "EventSubscribe() with garbage channel handle");
+	test_case_add(15, tet_saEvtEventSubscribeCases_05,
+		      "EventSubscribe() with NULL filter Array");
+
+	test_suite_add(16, "saEvtEventUnsubscribe Test Suite");
+	test_case_add(16, tet_saEvtEventUnsubscribeCases_01,
+		      "EventUnsubscribe() with NULL gl_channelHandle");
+	test_case_add(16, tet_saEvtEventUnsubscribeCases_02,
+		      "EventUnsubscribe() with empty channel handle");
+	test_case_add(16, tet_saEvtEventUnsubscribeCases_03,
+		      "EventUnsubscribe() with garbage channel handle");
+
+	test_suite_add(17, "saEvtEventRetentionTimeClear Test Suite");
+	test_case_add(17, tet_saEvtEventRetentionTimeClearCases_01,
+			"EventRetentionTimeClear() with NULL channel handle");
+	test_case_add(17, tet_saEvtEventRetentionTimeClearCases_02,
+		      "RetentionTimeClear() with empty channel handle");
+	test_case_add(17, tet_saEvtEventRetentionTimeClearCases_03,
+		      "EventUnsubscribe() with garbage channel handle");
+	test_case_add(17, tet_saEvtEventRetentionTimeClearCases_05,
+		      "EventRetentionTimeClear() with NULL evt id");
+
+	test_suite_add(18, "api test Test Suite");
+        test_suite_add(19, "fun test Test Suite");
+	test_suite_add(20, "saEvtLimitGet Test Suite");
+	test_case_add(20, tet_saEvtLimitGetCases_01,
+		      "EvtLimitGet() with NULL LimitValue");
+	test_case_add(20, tet_saEvtLimitGetCases_02,
+		      "EvtLimitGet() with NULL event handle");
+}

@@ -34,6 +34,8 @@ class Role {
  public:
   explicit Role(NODE_ID own_node_id);
   void AddPeer(NODE_ID node_id);
+  bool IsCandidate();
+  bool IsPeerPresent();
   void SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id);
   timespec* Poll(timespec* ts);
   uint32_t SetRole(PCS_RDA_ROLE new_role);
@@ -42,6 +44,7 @@ class Role {
   static void MonitorCallback(const std::string& key,
                               const std::string& new_value, SYSF_MBX mbx);
   void NodePromoted();
+  void PromoteNodeLate();
 
  private:
   static const uint64_t kDefaultDiscoverPeerTimeout = 2000;
@@ -49,7 +52,7 @@ class Role {
   void ExecutePreActiveScript();
   void ResetElectionTimer();
   uint32_t UpdateMdsRegistration(PCS_RDA_ROLE new_role, PCS_RDA_ROLE old_role);
-  void PromoteNode(const uint64_t cluster_size);
+  void PromoteNode(const uint64_t cluster_size, const bool relaxed_mode);
 
   std::set<NODE_ID> known_nodes_;
   PCS_RDA_ROLE role_;

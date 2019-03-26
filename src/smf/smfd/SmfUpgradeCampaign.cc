@@ -473,7 +473,7 @@ SaAisErrorT SmfUpgradeCampaign::tooManyRestarts(bool *o_result) {
     attrsmfCampRestartCnt.SetAttributeName("smfCampRestartCnt");
     attrsmfCampRestartCnt.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
     char buf[5];
-    snprintf(buf, 4, "%d", curCnt);
+    snprintf(buf, 4, "%u", curCnt);
     attrsmfCampRestartCnt.AddAttributeValue(buf);
     imoCampRestartInfo.AddValue(attrsmfCampRestartCnt);
 

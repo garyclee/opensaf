@@ -81,8 +81,9 @@ class LogServer {
   // Validate the log stream name, for security reasons. This method will check
   // that the string, when used as a file name, does not traverse the directory
   // structure (e.g. ../../../etc/passwd would be an illegal log stream
-  // name). File names starting with a dot are also disallowed, since they would
-  // result in hidden files.
+  // name). File names starting with a dot or a hyphen are also disallowed,
+  // since they would result in hidden files and the hyphen can be
+  // interpreted as an command line option.
   static bool ValidateLogName(const char* msg_id, size_t msg_id_size);
   void ExecuteCommand(const char* command, size_t size,
                       const struct sockaddr_un& addr, socklen_t addrlen);

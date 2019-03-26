@@ -113,6 +113,12 @@ class SmfImmOperation {
     LOG_NO("addValue must be specialised");
   }
 
+  // Delete all attribute of object_create_ or object_modify_
+  void DeleteAttributes() {
+    object_create_.attributes.clear();
+    object_modify_.modifications.clear();
+  }
+
   // Create and add a new attribute if the attribute does not already
   // exist (based on name). If an attribute with the given name already exist
   // no attribute is created but the value (i_value) is added (multivalue).

@@ -2037,7 +2037,7 @@ static SaAisErrorT ccb_object_create_common(
         TRACE_2("ERR_INVALID_PARAM: Not allowed to set attribute %s",
                 sysaImplName);
         goto mds_send_fail;
-      } else if (attr->attrValuesNumber == 0) {
+      } else if (attr->attrValuesNumber == 0 && !immOmIsLoader) {
         TRACE("CcbObjectCreate ignoring attribute %s with no values",
               attr->attrName);
         continue;
@@ -2065,7 +2065,9 @@ static SaAisErrorT ccb_object_create_common(
 
       const SaImmAttrValueT *avarr = attr->attrValues;
       /*alloc-5 */
-      imma_copyAttrValue(&(p->n.attrValue), attr->attrValueType, avarr[0]);
+      if (attr->attrValuesNumber > 0) {
+        imma_copyAttrValue(&(p->n.attrValue), attr->attrValueType, avarr[0]);
+      }
 
       if (attr->attrValuesNumber > 1) {
         unsigned int numAdded = attr->attrValuesNumber - 1;
@@ -2086,6 +2088,7 @@ static SaAisErrorT ccb_object_create_common(
       evt.info.immnd.info.objCreate.attrValues = p;
     }
   }
+
 
   rc = imma_evt_fake_evs(cb, &evt, &out_evt, cl_node->syncr_timeout,
                          cl_node->handle, &locked, false);

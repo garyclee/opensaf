@@ -8393,8 +8393,13 @@ SaAisErrorT ImmModel::ccbObjectCreate(
 
       ImmAttrValue* attrValue = i6->second;
       IMMSV_OCTET_STRING tmpos;  // temporary octet string
-      eduAtValToOs(&tmpos, &(p->n.attrValue),
-                   (SaImmValueTypeT)p->n.attrValueType);
+      memset(&tmpos, 0, sizeof(tmpos));
+      // Attribute value will be assigned null value or <empty>
+      // if having `attrValuesNumber=0` goes with it.
+      if (p->n.attrValuesNumber) {
+        eduAtValToOs(&tmpos, &(p->n.attrValue),
+                     (SaImmValueTypeT)p->n.attrValueType);
+      }
       attrValue->setValue(tmpos);
       if (p->n.attrValuesNumber > 1) {
         /*

@@ -180,7 +180,7 @@ void NtfClient::notificationReceived(unsigned int clientId,
       notification->storeMatchingSubscription(
           clientId_, subscription->getSubscriptionId());
       // if active, send out the notification
-      if (activeController()) {
+      if (activeController() && client_down_flag_ == false) {
         subscription->sendNotification(notification, this);
       }
     } else {
@@ -279,7 +279,7 @@ void NtfClient::sendNotConfirmedNotification(
     NtfSmartPtr notification, SaNtfSubscriptionIdT subscriptionId) {
   TRACE_ENTER();
   // if active, send out the notification
-  if (activeController()) {
+  if (activeController() && client_down_flag_ == false) {
     SubscriptionMap::iterator pos;
     pos = subscriptionMap.find(subscriptionId);
     if (pos != subscriptionMap.end()) {
@@ -305,7 +305,8 @@ void NtfClient::confirmNtfSubscribe(SaNtfSubscriptionIdT subscriptionId,
       "NtfClient::confirmNtfSubscribe subscribe_res_lib called, "
       "client %u, subscription %u",
       clientId_, subscriptionId);
-  subscribe_res_lib(SA_AIS_OK, subscriptionId, mdsDest_, mds_ctxt);
+  if (client_down_flag_ == false)
+    subscribe_res_lib(SA_AIS_OK, subscriptionId, mdsDest_, mds_ctxt);
 }
 
 /**
@@ -321,7 +322,8 @@ void NtfClient::confirmNtfUnsubscribe(SaNtfSubscriptionIdT subscriptionId,
       "NtfClient::confirmNtfUnsubscribe unsubscribe_res_lib called,"
       " client %u, subscription %u",
       clientId_, subscriptionId);
-  unsubscribe_res_lib(SA_AIS_OK, subscriptionId, mdsDest_, mdsCtxt);
+  if (client_down_flag_ == false)
+    unsubscribe_res_lib(SA_AIS_OK, subscriptionId, mdsDest_, mdsCtxt);
 }
 
 /**
@@ -335,17 +337,20 @@ void NtfClient::confirmNtfUnsubscribe(SaNtfSubscriptionIdT subscriptionId,
 void NtfClient::confirmNtfNotification(SaNtfIdentifierT notificationId,
                                        MDS_SYNC_SND_CTXT* mdsCtxt,
                                        MDS_DEST mdsDest) {
-  notfication_result_lib(SA_AIS_OK, notificationId, mdsCtxt, mdsDest);
+  if (client_down_flag_ == false)
+    notfication_result_lib(SA_AIS_OK, notificationId, mdsCtxt, mdsDest);
 }
 
 void NtfClient::newReaderResponse(SaAisErrorT* error, unsigned int readerId,
                                   MDS_SYNC_SND_CTXT* mdsCtxt) {
-  new_reader_res_lib(*error, readerId, mdsDest_, mdsCtxt);
+  if (client_down_flag_ == false)
+    new_reader_res_lib(*error, readerId, mdsDest_, mdsCtxt);
 }
 
 void NtfClient::readNextResponse(SaAisErrorT* error, NtfSmartPtr& notification,
                                  MDS_SYNC_SND_CTXT* mdsCtxt) {
   TRACE_ENTER();
+  if (client_down_flag_ == true) return;
   if (*error == SA_AIS_OK) {
     read_next_res_lib(*error, notification->sendNotInfo_, mdsDest_, mdsCtxt);
   } else {
@@ -356,7 +361,8 @@ void NtfClient::readNextResponse(SaAisErrorT* error, NtfSmartPtr& notification,
 
 void NtfClient::deleteReaderResponse(SaAisErrorT* error,
                                      MDS_SYNC_SND_CTXT* mdsCtxt) {
-  delete_reader_res_lib(*error, mdsDest_, mdsCtxt);
+  if (client_down_flag_ == false)
+    delete_reader_res_lib(*error, mdsDest_, mdsCtxt);
 }
 
 NtfReader* NtfClient::createReaderWithoutFilter(ntfsv_reader_init_req_t rp,
@@ -496,9 +502,3 @@ void NtfClient::set_client_version(SaVersionT* ver) { safVersion_ = *ver; }
  * @return ptr to SaVersionT.
  */
 SaVersionT* NtfClient::getSafVersion() { return &safVersion_; }
-
-
-void NtfClient::SetClientDownFlag() { client_down_flag_ = true; }
-
-
-bool NtfClient::GetClientDownFlag() { return client_down_flag_;}

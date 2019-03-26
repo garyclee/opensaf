@@ -137,8 +137,25 @@ bin_osafevtd_LDADD = \
 
 if ENABLE_TESTS
 
+bin_evttest_CPPFLAGS = \
+	$(AM_CPPFLAGS)
+
+bin_PROGRAMS += bin/evttest
+
 noinst_HEADERS += \
 	src/evt/apitest/tet_eda.h
+
+bin_evttest_SOURCES = \
+  src/evt/apitest/tet_edsv_wrappers.c \
+  src/evt/apitest/tet_eda.c \
+  src/evt/apitest/tet_edsv_func.c \
+  src/evt/apitest/tet_edsv_util.c \
+  src/evt/apitest/evttest.c
+
+bin_evttest_LDADD = \
+  lib/libSaEvt.la \
+  lib/libopensaf_core.la \
+  lib/libapitest.la
 
 endif
 

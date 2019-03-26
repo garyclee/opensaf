@@ -123,12 +123,17 @@ void get_adest_details(MDS_DEST adest, char *adest_details)
 		}
 	}
 
-	if (remote == true)
-		snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN,
-			 "<rem_nodeid[0x%" PRIx32 "]:%s>", ncs_node_id, process_name);
-	else
-		snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN,
-			 "<nodeid[0x%" PRIx32 "]:%s>", ncs_node_id, process_name);
+	if (remote == true) {
+		if (snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN,
+			 "<rem_nodeid[0x%" PRIx32 "]:%s>", ncs_node_id, process_name) >= MDS_MAX_PROCESS_NAME_LEN) {
+			LOG_WA("truncation occurred while writing adest: %s", adest_details);
+		}
+	} else {
+		if (snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN,
+			 "<nodeid[0x%" PRIx32 "]:%s>", ncs_node_id, process_name) >= MDS_MAX_PROCESS_NAME_LEN) {
+			LOG_WA("truncation occurred while writing adest: %s", adest_details);
+		}
+	}
 
 	m_MDS_LOG_DBG("MDS:DB: adest_details: %s ", adest_details);
 	m_MDS_LEAVE();
@@ -206,12 +211,17 @@ void get_subtn_adest_details(MDS_PWE_HDL pwe_hdl, MDS_SVC_ID svc_id,
 		}
 	}
 
-	if (remote == true)
-		snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN,
-			 "<rem_node[0x%" PRIx32 "]:%s>", ncs_node_id, process_name);
-	else
-		snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN,
-			 "<node[0x%" PRIx32 "]:%s>", ncs_node_id, process_name);
+	if (remote == true) {
+		if (snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN,
+			 "<rem_node[0x%" PRIx32 "]:%s>", ncs_node_id, process_name) >= MDS_MAX_PROCESS_NAME_LEN) {
+			LOG_WA("truncation occurred while writing adest: %s", adest_details);
+		}
+	} else {
+		if (snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN,
+			 "<node[0x%" PRIx32 "]:%s>", ncs_node_id, process_name) >= MDS_MAX_PROCESS_NAME_LEN) {
+			LOG_WA("truncation occurred while writing adest: %s", adest_details);
+		}
+	}
 done:
 	m_MDS_LOG_DBG("MDS:DB: adest_details: %s ", adest_details);
 	m_MDS_LEAVE();

@@ -19,16 +19,30 @@
 /*******Global Declarations*******/
 
 #include <saEvt.h>
-#include <ncs_lib.h>
-
+#include "base/ncs_main_papi.h"
+#include "base/ncs_lib.h"
+#include "base/ncssysf_tsk.h"
 #define gl_red 0
-
+#define tet_printf printf
+#define TET_PASS 0
+#define TET_FAIL 1
+#define TET_UNRESOLVED 2
+#define tet_infoline printf
 #define WHILE_TRY_AGAIN(rc) \
   while ((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_TIMEOUT))
 
 #define RETRY_SLEEP sleep(3)
 #define MAX_NUM_TRY_AGAINS 12
 #define DISPATCH_SLEEP() sleep_for_dispatch()
+#if FULL_LOG
+#define m_TEST_CPSV_PRINTF printf
+#else
+#define m_TEST_CPSV_PRINTF(...)
+#endif
+
+#define TET_EDSV_NODE1 3
+
+void tet_result(int result);
 
 int gl_act;
 int gl_tNode1, gl_tNode2, gl_tNode3, gl_node_id, gl_jCount, gl_allocatedNumber,
@@ -72,7 +86,6 @@ struct gl_list {
 };
 
 NCSCONTEXT eda_thread_handle, subscription_handle;
-#define TET_EDSV_NODE1 3
 /*******String Constants*******/
 const char *gl_saf_error[32];
 
@@ -117,7 +130,7 @@ void tet_saEvtEventRetentionTimeClear(SaEvtChannelHandleT *, SaEvtEventIdT *);
 
 void result(char *, SaAisErrorT);
 void resultSuccess(char *, SaAisErrorT);
-uint32_t tet_create_task(NCS_OS_CB);
+extern uint32_t tet_create_task(NCS_OS_CB);
 
 void tet_run_edsv_app(void);
 void gl_defs(void);

@@ -537,6 +537,21 @@ void test_cpsv_cleanup(CPSV_CLEANUP_TC_TYPE tc)
 		    test_ckptFinalize(CKPT_FIN_SUCCESS2_T, TEST_CONFIG_MODE);
 		cpsv_clean_clbk_params();
 		break;
+	case CKPT_CLEAN_INIT_NULL_CBKS_NULL_T:
+		error =
+		    test_ckptFinalize(CKPT_FIN_NULL_HANDLE_T, TEST_CONFIG_MODE);
+		cpsv_clean_clbk_params();
+		break;
+	case CKPT_CLEAN_INIT_NULL_ver_NULL_T:
+		error =
+		    test_ckptFinalize(CKPT_FIN_NULL_HANDLE_T, TEST_CONFIG_MODE);
+		cpsv_clean_clbk_params();
+		break;
+	case CKPT_CLEAN_INIT_NULL_ver_NULL_CBK_NULL_T:
+		error =
+		    test_ckptFinalize(CKPT_FIN_NULL_HANDLE_T, TEST_CONFIG_MODE);
+		cpsv_clean_clbk_params();
+		break;
 	}
 
 	if (error != TEST_PASS)
@@ -755,6 +770,44 @@ void cpsv_it_init_11()
 	result = test_ckptInitialize(CKPT_INIT_SYNC_NULL_CBK_T, TEST_NONCONFIG_MODE);
 	test_cpsv_cleanup(CPSV_CLEAN_INIT_SYNC_NULL_CBK_T);
 	printResult(result);
+	test_validate(result, TEST_PASS);
+}
+
+void cpsv_it_init_12()
+{
+	int result;
+	printHead("To verify saCkptInitialize with null handles and null pointer to  clbk");
+
+	result =
+		test_ckptInitialize(CKPT_INIT_NULL_CBKS_NULL_T, TEST_CONFIG_MODE);
+	test_cpsv_cleanup(CKPT_CLEAN_INIT_NULL_CBKS_NULL_T);
+	printResult(result);
+
+	test_validate(result, TEST_PASS);
+}
+
+void cpsv_it_init_13()
+{
+	int result;
+	printHead("To verify saCkptInitialize with null handle and null version");
+
+	result =
+		test_ckptInitialize(CKPT_INIT_HDL_VER_NULL_T, TEST_CONFIG_MODE);
+	test_cpsv_cleanup(CKPT_CLEAN_INIT_NULL_ver_NULL_T);
+	printResult(result);
+
+	test_validate(result, TEST_PASS);
+}
+void cpsv_it_init_14()
+{
+	int result;
+	printHead("To verify saCkptInitialize with null handle and null version and cbk null");
+
+	result =
+		test_ckptInitialize(CKPT_INIT_NULL_PARAMS_T, TEST_CONFIG_MODE);
+	test_cpsv_cleanup(CKPT_CLEAN_INIT_NULL_ver_NULL_CBK_NULL_T);
+	printResult(result);
+
 	test_validate(result, TEST_PASS);
 }
 
@@ -7953,6 +8006,13 @@ __attribute__((constructor)) static void ckpt_cpa_test_constructor(void)
 		      "To verify saCkptInitialize with one NULL clbk");
 	test_case_add(1, cpsv_it_init_11,
 		"To verify saCkptInitialize with one SYNC clbk and NULL clbk");
+	test_case_add(1, cpsv_it_init_12,
+		"To verify saCkptInitialize with null handle and null pointer to clbks");
+	test_case_add(1, cpsv_it_init_13,
+		"To verify saCkptInitialize with null handle and null version");
+	test_case_add(1, cpsv_it_init_14,
+		"To verify saCkptInitialize with null handle and null version and cbk null");
+
 
 	test_suite_add(2, "CKPT API saCkptSelectObjectGet()");
 	test_case_add(
