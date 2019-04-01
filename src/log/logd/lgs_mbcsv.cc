@@ -800,7 +800,6 @@ static uint32_t edu_enc_streams(lgs_cb_t *cb, NCS_UBAID *uba) {
  *
  * Notes         : None.
  ***************************************************************************/
-
 static uint32_t edu_enc_reg_list(lgs_cb_t *cb, NCS_UBAID *uba) {
   log_client_t *client = NULL;
   lgs_ckpt_initialize_msg_t ckpt_reg_rec;
@@ -2086,11 +2085,17 @@ uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, void *data) {
   stream = log_stream_get_by_name(param->logStreamName);
   if (stream != NULL) {
     TRACE("\tExisting stream - id %u", stream->streamId);
-    /*
-    ** Update stream attributes that might change when a stream is
-    ** opened a second time.
-    */
-    stream->numOpeners = param->numOpeners;
+
+    // Update the "numOpeners" on standby when reopening the stream
+    ++stream->numOpeners;
+    if (param->numOpeners != stream->numOpeners) {
+      // In some cases the checkpoint of closing stream fail and standby node
+      // haven't received the checkpoint. The "numOpeners" is different between
+      // standby and active node. Should restart standby node if reopening
+      // the stream
+      lgs_exit("NumOpeners is different between standby and active node",
+               SA_AMF_COMPONENT_RESTART);
+    }
   } else {
     TRACE("\tNew stream %s, id %u", param->logStreamName, param->streamId);
 
