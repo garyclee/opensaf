@@ -45,7 +45,7 @@ SaAisErrorT plms_hpi_evt_ntf_send(SaNtfHandleT plm_ntf_hdl, SaNameT *object,
 SaAisErrorT plms_alarm_ntf_send(SaNtfHandleT plm_ntf_hdl, SaNameT *object,
                                 SaUint32T event_type, SaInt8T *entity_path,
                                 SaUint32T severity, SaUint32T cause,
-                                SaUint32T minor_id,
+                                SaUint32T minor_id, SaTimeT timestamp,
                                 SaUint16T no_of_corr_notifications,
                                 SaNtfIdentifierT *corr_ids,
                                 SaNtfIdentifierT *ntf_id);

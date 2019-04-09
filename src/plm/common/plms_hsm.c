@@ -99,6 +99,8 @@ static SaUint32T hsm_send_hotswap_event(SaHpiRptEntryT *rpt_entry,
 					SaUint32T retriev_idr_info);
 static SaUint32T hsm_send_resource_event(const SaHpiRptEntryT *rpt_entry,
 					 const SaHpiEventT *event);
+static SaUint32T hsm_send_sensor_event(const SaHpiRptEntryT *rpt_entry,
+				 	const SaHpiEventT *event);
 SaUint32T hsm_correct_length(SaHpiIdrFieldT *thisfield);
 SaUint32T hsm_get_idr_info(SaHpiRptEntryT *rpt_entry, PLMS_INV_DATA *inv_data);
 static SaUint32T hsm_get_idr_product_info(SaHpiRptEntryT *rpt_entry,
@@ -766,6 +768,8 @@ static void *plms_hsm(void)
 		SAHPI_ENTITY_PRESENCE will be generated, send the status after
 		upgrade to check that the state has not changed */
 		if (event.EventType == SAHPI_ET_SENSOR) {
+			hsm_send_sensor_event(&rpt_entry, &event);
+
 			if (event.EventDataUnion.SensorEvent.SensorType ==
 			    SAHPI_ENTITY_PRESENCE) {
 				hsm_send_hotswap_event(
@@ -1302,6 +1306,82 @@ static SaUint32T hsm_send_resource_event(const SaHpiRptEntryT *rpt_entry,
 	TRACE("Sending Resource_event for res:%u entity:%s  Type:%u \n",
 	      rpt_entry->ResourceId, entity_path_str,
 	      event->EventDataUnion.ResourceEvent.ResourceEventType);
+
+	/*  post event to PLM mailbox */
+	rc = m_NCS_IPC_SEND(&cb->mbx, (NCSCONTEXT)plms_evt,
+			    MDS_SEND_PRIORITY_MEDIUM);
+	if (rc != NCSCC_RC_SUCCESS)
+		LOG_ER("m_NCS_IPC_SEND failed error %u", rc);
+
+	TRACE_LEAVE();
+	return rc;
+}
+
+/**********************************************************************
+* @brief Sends resource event to PLM main thread
+*
+*
+* @param[in] rpt_entry
+* @param[in] retriev_idr_info
+*
+* @return NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+***********************************************************************/
+static SaUint32T hsm_send_sensor_event(const SaHpiRptEntryT *rpt_entry,
+					 const SaHpiEventT *event)
+{
+	PLMS_CB *cb = plms_cb;
+	PLMS_EVT *plms_evt = NULL;
+	PLMS_EVT_REQ req_evt;
+	SaHpiEntityPathT entity_path;
+	SaInt8T *entity_path_str = NULL;
+	SaUint32T i, rc;
+
+	TRACE_ENTER();
+
+	if (NULL == rpt_entry) {
+		LOG_ER("Invalid rpt_entry");
+		return NCSCC_RC_FAILURE;
+	}
+
+	/* Get the entity path */
+	memset(&entity_path, 0, sizeof(SaHpiEntityPathT));
+	for (i = 0; i < SAHPI_MAX_ENTITY_PATH; i++) {
+		entity_path.Entry[i] = rpt_entry->ResourceEntity.Entry[i];
+
+		/* Stop copying when we see SAHPI_ENT_ROOT */
+		if (rpt_entry->ResourceEntity.Entry[i].EntityType ==
+		    SAHPI_ENT_ROOT)
+			break;
+	}
+
+	memset(&req_evt, 0, sizeof(PLMS_EVT_REQ));
+
+	req_evt.req_type = PLMS_HPI_EVT_T;
+	req_evt.hpi_evt.sa_hpi_evt = *event;
+
+	/* convert SaHpiEntityPathT to string format */
+	rc = convert_entitypath_to_string(&entity_path, &entity_path_str);
+	if (NCSCC_RC_FAILURE == rc) {
+		/* Log */
+		return NCSCC_RC_FAILURE;
+	}
+	req_evt.hpi_evt.entity_path = entity_path_str;
+
+	/* Copy entity key to req_evt*/
+	memcpy(&req_evt.hpi_evt.epath_key, &entity_path, sizeof(entity_path));
+
+	plms_evt = (PLMS_EVT *)malloc(sizeof(PLMS_EVT));
+	if (NULL == plms_evt) {
+		LOG_ER("Memory allocation failed ret:%s", strerror(errno));
+		assert(0);
+	}
+	memset(plms_evt, 0, sizeof(PLMS_EVT));
+	plms_evt->req_res = PLMS_REQ;
+	plms_evt->req_evt = req_evt;
+
+	TRACE("Sending Sensor_event for res:%u entity:%s  Sensor Num:%u \n",
+	      rpt_entry->ResourceId, entity_path_str,
+	      event->EventDataUnion.SensorEvent.SensorNum);
 
 	/*  post event to PLM mailbox */
 	rc = m_NCS_IPC_SEND(&cb->mbx, (NCSCONTEXT)plms_evt,

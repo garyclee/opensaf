@@ -71,6 +71,33 @@ static SaUint32T plms_act_resp_mngt_flag_clear(PLMS_ENTITY *);
 
 static SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *);
 static SaUint32T plms_hpi_resource_evt_process(PLMS_EVT *);
+static SaUint32T plms_hpi_sensor_evt_process(PLMS_EVT *);
+
+static SaNtfSeverityT convertSeverity(SaHpiSeverityT hpiSeverity, bool asserted)
+{
+	SaNtfSeverityT ntfSeverity = SA_NTF_SEVERITY_INDETERMINATE;
+
+	if (!asserted)
+		ntfSeverity = SA_NTF_SEVERITY_CLEARED;
+	else if (hpiSeverity == SAHPI_CRITICAL)
+		ntfSeverity = SA_NTF_SEVERITY_CRITICAL;
+	else if (hpiSeverity == SAHPI_MAJOR)
+		ntfSeverity = SA_NTF_SEVERITY_MAJOR;
+	else if (hpiSeverity == SAHPI_MINOR)
+		ntfSeverity = SA_NTF_SEVERITY_MINOR;
+
+	return ntfSeverity;
+}
+
+static SaNtfProbableCauseT convertCause(SaHpiEventCategoryT category)
+{
+	SaNtfProbableCauseT cause = SA_NTF_UNSPECIFIED_REASON;
+
+	if (category == SAHPI_EC_THRESHOLD)
+		cause = SA_NTF_THRESHOLD_CROSSED;
+
+	return cause;
+}
 
 /******************************************************************************
 @brief		: Initializes the HE presence state FSM function pointers.
@@ -3114,6 +3141,8 @@ SaUint32T plms_hpi_evt_process(PLMS_EVT *evt)
 		rc = plms_hpi_hs_evt_process(evt);
 	else if (evt->req_evt.hpi_evt.sa_hpi_evt.EventType == SAHPI_ET_RESOURCE)
 		rc = plms_hpi_resource_evt_process(evt);
+	else if (evt->req_evt.hpi_evt.sa_hpi_evt.EventType == SAHPI_ET_SENSOR)
+		rc = plms_hpi_sensor_evt_process(evt);
 	else {
 		LOG_ER("Unknown HPI event received: %i",
 		       evt->req_evt.hpi_evt.sa_hpi_evt.EventType);
@@ -3208,7 +3237,8 @@ static SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *evt)
 				    hpi_evt->entity_path,
 				    SA_NTF_SEVERITY_CRITICAL,
 				    SA_NTF_AUTHENTICATION_FAILURE,
-				    SA_PLM_NTFID_UNMAPPED_HE_ALARM, 0,
+				    SA_PLM_NTFID_UNMAPPED_HE_ALARM,
+				    hpi_evt->sa_hpi_evt.Timestamp, 0,
 				    NULL /*cor_ids*/, NULL /*buf*/);
 				if (NCSCC_RC_SUCCESS != ret_err) {
 					LOG_ER("Unmapped HE notification \
@@ -3430,6 +3460,75 @@ static SaUint32T plms_hpi_resource_evt_process(PLMS_EVT *evt)
 			    ent, SA_PLM_RF_MANAGEMENT_LOST, SA_FALSE, NULL,
 			    SA_NTF_MANAGEMENT_OPERATION,
 			    SA_PLM_NTFID_STATE_CHANGE_ROOT);
+		}
+	} while (false);
+
+	TRACE_LEAVE2("Return Val: %d", rc);
+	return rc;
+}
+/******************************************************************************
+@brief		: Process HPI sensor events. This function does the
+following things 1. Handle SAHPI_RESE_RESOURCE_FAILURE event, and set management
+lost 2. Handle SAHPI_RESE_RESOURCE_RESTORED, and clear management lost
+
+@param[in]	: evt - PLMS_EVT representation of the SENSOR event.
+
+@return		: NCSCC_RC_FAILURE/NCSCC_RC_SUCCESS
+******************************************************************************/
+static SaUint32T plms_hpi_sensor_evt_process(PLMS_EVT *evt)
+{
+	SaUint32T rc = NCSCC_RC_SUCCESS;
+	PLMS_HPI_EVT *hpi_evt = &(evt->req_evt.hpi_evt);
+	SaHpiSensorEventT *sensorEvent = &hpi_evt->sa_hpi_evt.EventDataUnion.SensorEvent;
+
+	TRACE_ENTER2("Entity: %s, sensor num: %u", hpi_evt->entity_path,
+			sensorEvent->SensorNum);
+
+	do {
+		PLMS_EPATH_TO_ENTITY_MAP_INFO *epath_to_ent;
+		PLMS_ENTITY *ent;
+		PLMS_CB *cb = plms_cb;
+
+		if (cb->ha_state == SA_AMF_HA_STANDBY) {
+			TRACE_LEAVE2(
+			    "Ignoring the event as current role is standby");
+			break;
+		}
+
+		if (hpi_evt->sa_hpi_evt.Severity > SAHPI_MINOR)
+			break;
+
+		epath_to_ent =
+		    (PLMS_EPATH_TO_ENTITY_MAP_INFO *)ncs_patricia_tree_get(
+			&(cb->epath_to_entity_map_info),
+			(SaUint8T *)&(hpi_evt->epath_key));
+
+		if (NULL == epath_to_ent) {
+			LOG_ER(
+			    "Received SENSOR event num %u for unknown resource %s",
+			    sensorEvent->SensorNum,
+			    hpi_evt->entity_path);
+			break;
+		}
+
+		ent = epath_to_ent->plms_entity;
+
+		rc = plms_alarm_ntf_send(cb->ntf_hdl,
+					&ent->dn_name,
+					SA_NTF_ALARM_EQUIPMENT,
+					hpi_evt->entity_path,
+					convertSeverity(hpi_evt->sa_hpi_evt.Severity,
+						sensorEvent->Assertion),
+					convertCause(sensorEvent->EventCategory),
+                                	SA_PLM_NTFID_HE_ALARM,
+					hpi_evt->sa_hpi_evt.Timestamp,
+					0,
+					0,
+					0);
+
+		if (rc != NCSCC_RC_SUCCESS) {
+			LOG_ER("Failed to send NTF alarm for %s",
+				hpi_evt->entity_path);
 		}
 	} while (false);
 
