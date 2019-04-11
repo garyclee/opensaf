@@ -16,6 +16,7 @@
  */
 
 #include "imm/apitest/immtest.h"
+#include "imm/common/immsv_api.h"
 
 void saImmOmClassCreate_2_01(void)
 {
@@ -709,6 +710,7 @@ void saImmOmClassCreate_SchemaChange_2_02(void)
 	/*
 	 * [CONFIG_CLASS] Add default value to default-removed attribute
 	 */
+
 	int schemaChangeEnabled = enableSchemaChange();
 	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
 		  SA_AIS_OK);
@@ -1534,6 +1536,133 @@ void saImmOmClassCreate_SchemaChange_2_18(void)
 		disableSchemaChange();
 }
 
+/* Here are test cases to verify:
+   1) SA_AIS_ERR_TRY_AGAIN is returned on IMM class creation request if file
+   system is unavailable which is informed to IMM via admop id 400, and also
+   ensure saImmFileSystemStatus attribute of SaImmMgnt class must be zero.
+   Note that, the test is only valid if PBE is enabled, otherwise we expect
+   getting SA_AIS_OK instead.
+
+   2) SA_AIS_OK is returned on IMM class creation request if the file system
+   is back which is informed to IMM via admop id 401, and also ensure that
+   saImmFileSystemStatus attribute of SaImmMgnt class must be equal to one.
+*/
+const char mgmt_object[] = "safRdn=immManagement,safApp=safImmService";
+static void updateFileSystemStatus(uint64_t operation_id)
+{
+	SaImmHandleT myOmHandle;
+	SaImmAdminOwnerHandleT ownerHandle;
+	const SaImmAdminOwnerNameT adminOwnerName = "imm_test";
+	SaNameT objectName;
+	const SaNameT *objectNames[] = {&objectName, NULL};
+	const SaImmAdminOperationParamsT_2 *params[] = {NULL};
+	SaAisErrorT operation_return_value;
+
+	objectName.length = strlen(mgmt_object);
+	strncpy((char *)objectName.value, mgmt_object,
+		objectName.length);
+
+	safassert(immutil_saImmOmInitialize(&myOmHandle, NULL, &immVersion),
+		  SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOwnerInitialize(myOmHandle,
+						      adminOwnerName,
+						      SA_TRUE, &ownerHandle),
+		  SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOwnerSet(ownerHandle, objectNames,
+					       SA_IMM_ONE),
+		  SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOperationInvoke_2(
+		      ownerHandle, &objectName, 0, operation_id,
+		      params, &operation_return_value, SA_TIME_ONE_MINUTE),
+		  SA_AIS_OK);
+	safassert(immutil_saImmOmFinalize(myOmHandle), SA_AIS_OK);
+}
+
+uint32_t fetchAttributeValue(const char* attribute_name)
+{
+	SaImmHandleT myOmHandle;
+	SaImmAccessorHandleT accessorHandle;
+	SaImmAttrValuesT_2 **attributes;
+	SaImmAttrNameT attributeNames[] = {
+		(SaImmAttrNameT)attribute_name,
+		NULL
+	};
+	SaNameT objectName;
+	objectName.length = strlen(mgmt_object);
+	strncpy((char *)objectName.value, mgmt_object,
+		objectName.length);
+
+	safassert(immutil_saImmOmInitialize(&myOmHandle, NULL,
+					    &immVersion),
+		  SA_AIS_OK);
+	safassert(immutil_saImmOmAccessorInitialize(myOmHandle,
+						    &accessorHandle),
+		  SA_AIS_OK);
+	safassert(immutil_saImmOmAccessorGet_2(accessorHandle, &objectName,
+					       attributeNames, &attributes),
+		  SA_AIS_OK);
+
+	uint32_t attribute_value = *(uint32_t *)(attributes[0]->attrValues[0]);
+	safassert(immutil_saImmOmFinalize(myOmHandle), SA_AIS_OK);
+	return attribute_value;
+}
+
+bool pbeEnabled(void)
+{
+	return fetchAttributeValue("saImmRepositoryInit") == 1;
+}
+
+void saImmOmClassCreate_with_fs_unavailable(void)
+{
+	const SaImmClassNameT className = (SaImmClassNameT) "TestClass";
+	SaImmAttrDefinitionT_2 attr1 = {
+		"rdn", SA_IMM_ATTR_SANAMET,
+		SA_IMM_ATTR_RUNTIME | SA_IMM_ATTR_RDN | SA_IMM_ATTR_CACHED,
+		NULL};
+	const SaImmAttrDefinitionT_2 *attrDefinitions[] = {&attr1, NULL};
+
+	updateFileSystemStatus(SA_IMM_ADMIN_FS_UNAVAILABLE);
+	safassert(fetchAttributeValue("saImmFileSystemStatus"), 0);
+
+	safassert(immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion),
+		  SA_AIS_OK);
+	rc = saImmOmClassCreate_2(immOmHandle, className, SA_IMM_CLASS_RUNTIME,
+				  attrDefinitions);
+	if (pbeEnabled()) {
+		test_validate(rc, SA_AIS_ERR_TRY_AGAIN);
+	} else {
+		test_validate(rc, SA_AIS_OK);
+		safassert(immutil_saImmOmClassDelete(immOmHandle, className),
+			  SA_AIS_OK);
+	}
+	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
+	updateFileSystemStatus(SA_IMM_ADMIN_FS_AVAILABLE);
+	safassert(fetchAttributeValue("saImmFileSystemStatus"), 1);
+}
+
+void saImmOmClassCreate_with_fs_available(void)
+{
+	const SaImmClassNameT className = (SaImmClassNameT) "TestClass";
+	SaImmAttrDefinitionT_2 attr1 = {
+		"rdn", SA_IMM_ATTR_SANAMET,
+		SA_IMM_ATTR_RUNTIME | SA_IMM_ATTR_RDN | SA_IMM_ATTR_CACHED,
+		NULL};
+	const SaImmAttrDefinitionT_2 *attrDefinitions[] = {&attr1, NULL};
+
+	updateFileSystemStatus(SA_IMM_ADMIN_FS_AVAILABLE);
+	safassert(fetchAttributeValue("saImmFileSystemStatus"), 1);
+
+	safassert(immutil_saImmOmInitialize(&immOmHandle, &immOmCallbacks,
+					    &immVersion),
+		  SA_AIS_OK);
+	rc = immutil_saImmOmClassCreate_2(immOmHandle, className,
+					  SA_IMM_CLASS_RUNTIME,
+					  attrDefinitions);
+	test_validate(rc, SA_AIS_OK);
+	safassert(immutil_saImmOmClassDelete(immOmHandle, className), SA_AIS_OK);
+	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
 extern void saImmOmClassDescriptionGet_2_01(void);
 extern void saImmOmClassDescriptionGet_2_02(void);
 extern void saImmOmClassDescriptionGet_2_03(void);
@@ -1724,4 +1853,11 @@ __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 	test_case_add(
 	    2, saImmOmClassCreate_SchemaChange_2_18,
 	    "SchemaChange - SA_AIS_OK, Remove STRONG_DEFAULT flag from an attribute");
+	test_case_add(
+		2, saImmOmClassCreate_with_fs_unavailable,
+		"FileSystemUnavailable - SA_AIS_ERR_TRY_AGAIN, create class while FS is unavailable");
+	test_case_add(
+		2, saImmOmClassCreate_with_fs_available,
+		"FileSystemAvailable - SA_AIS_OK, create class while FS is available");
+
 }

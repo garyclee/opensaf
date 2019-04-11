@@ -345,6 +345,7 @@ bool immModel_protocol45Allowed(IMMND_CB *cb);
 bool immModel_protocol46Allowed(IMMND_CB *cb);
 bool immModel_protocol47Allowed(IMMND_CB *cb);
 bool immModel_protocol50Allowed(IMMND_CB *cb);
+bool immModel_protocol51906Allowed(IMMND_CB *cb);
 bool immModel_oneSafe2PBEAllowed(IMMND_CB *cb);
 OsafImmAccessControlModeT immModel_accessControlMode(IMMND_CB *cb);
 const char *immModel_authorizedGroup(IMMND_CB *cb);

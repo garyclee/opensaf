@@ -114,6 +114,7 @@ class ImmModel {
   bool protocol50Allowed();
   bool protocol51Allowed();
   bool protocol51710Allowed();
+  bool protocol51906Allowed();
   bool oneSafe2PBEAllowed();
   bool purgeSyncRequest(SaUint32T clientId);
   bool verifySchemaChange(const std::string& className, ClassInfo* oldClass,

@@ -594,7 +594,7 @@ static const std::string immManagementDn(
     "safRdn=immManagement,safApp=safImmService");
 static const std::string saImmRepositoryInit("saImmRepositoryInit");
 static const std::string saImmOiTimeout("saImmOiTimeout");
-
+static const std::string saImmFileSystemStatus("saImmFileSystemStatus");
 static SaImmRepositoryInitModeT immInitMode = SA_IMM_INIT_FROM_FILE;
 static bool sRegenerateDb = false;
 
@@ -609,6 +609,8 @@ static bool sAbortNonCriticalCcbs =
 static SaUint32T sTerminatedCcbcount = 0; /* Terminated ccbs count. calculated
                                              at cleanTheBasement  for every
                                              second*/
+// Show the status of underlying file system.
+static bool sFileSystemAvailable = true;
 
 struct AttrFlagIncludes {
   explicit AttrFlagIncludes(SaImmAttrFlagsT attrFlag) : mFlag(attrFlag) {}
@@ -1123,6 +1125,10 @@ bool immModel_protocol51Allowed(IMMND_CB* cb) {
 
 bool immModel_protocol51710Allowed(IMMND_CB* cb) {
   return ImmModel::instance(&cb->immModel)->protocol51710Allowed();
+}
+
+bool immModel_protocol51906Allowed(IMMND_CB* cb) {
+  return ImmModel::instance(&cb->immModel)->protocol51906Allowed();
 }
 
 OsafImmAccessControlModeT immModel_accessControlMode(IMMND_CB* cb) {
@@ -2360,6 +2366,7 @@ bool ImmModel::immNotWritable() {
 bool ImmModel::immNotPbeWritable(bool isPrtoClient) {
   SaUint32T dummyCon;
   unsigned int dummyNode;
+
   /* Not writable => Not persitent writable. */
   if (immNotWritable() || is_sync_aborting()) {
     return true;
@@ -2379,7 +2386,7 @@ bool ImmModel::immNotPbeWritable(bool isPrtoClient) {
   /* immInitMode == SA_IMM_KEEP_REPOSITORY */
   /* Check if PBE OI is available and making progress. */
 
-  if (!getPbeOi(&dummyCon, &dummyNode)) {
+  if (!getPbeOi(&dummyCon, &dummyNode) || !sFileSystemAvailable) {
     /* Pbe SHOULD be present but is NOT */
     return true;
   }
@@ -4023,6 +4030,27 @@ bool ImmModel::protocol51710Allowed() {
   return noStdFlags & OPENSAF_IMM_FLAG_PRT51710_ALLOW;
 }
 
+bool ImmModel::protocol51906Allowed() {
+  /* Assume that all nodes are running the same version when loading */
+  if (sImmNodeState == IMM_NODE_LOADING) {
+    return true;
+  }
+  ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
+  if (oi == sObjectMap.end()) {
+    return false;
+  }
+
+  ObjectInfo* immObject = oi->second;
+  ImmAttrValueMap::iterator avi =
+      immObject->mAttrValueMap.find(immAttrNostFlags);
+  osafassert(avi != immObject->mAttrValueMap.end());
+  osafassert(!(avi->second->isMultiValued()));
+  ImmAttrValue* valuep = avi->second;
+  unsigned int noStdFlags = valuep->getValue_int();
+
+  return noStdFlags & OPENSAF_IMM_FLAG_PRT51906_ALLOW;
+}
+
 bool ImmModel::protocol41Allowed() {
   // TRACE_ENTER();
   ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
@@ -5085,6 +5113,8 @@ SaAisErrorT ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard,
              flags when cluster is started/loaded or restarted/reloaded.
           */
           ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
+          auto oi2 = sObjectMap.find(immManagementDn);
+
           if (oi == sObjectMap.end()) {
             LOG_ER("Failed to find object %s - loading failed",
                    immObjectDn.c_str());
@@ -5093,6 +5123,16 @@ SaAisErrorT ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard,
             err = SA_AIS_ERR_NOT_READY;
             goto done;
           }
+
+          if (oi2 == sObjectMap.end()) {
+            LOG_ER("Failed to find object %s - loading failed",
+                   immManagementDn.c_str());
+            /* Return special error up to immnd_evt so that NackToNid can be
+               sent before aborting. */
+            err = SA_AIS_ERR_NOT_READY;
+            goto done;
+          }
+
           ObjectInfo* immObject = oi->second;
           ImmAttrValueMap::iterator avi =
               immObject->mAttrValueMap.find(immAttrNostFlags);
@@ -5108,6 +5148,9 @@ SaAisErrorT ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard,
               immObject->mAttrValueMap.find(immMaxCcbs);
           ImmAttrValueMap::iterator avi5 =
               immObject->mAttrValueMap.find(immMinApplierTimeout);
+          auto mgnt_object = oi2->second;
+          auto fs_attr_it =
+              mgnt_object->mAttrValueMap.find(saImmFileSystemStatus);
 
           ImmAttrValue* valuep = (ImmAttrValue*)avi->second;
           unsigned int noStdFlags = valuep->getValue_int();
@@ -5133,6 +5176,14 @@ SaAisErrorT ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard,
                 "to OpensafImm class");
           } else {
             noStdFlags |= OPENSAF_IMM_FLAG_PRT51710_ALLOW;
+          }
+
+          if (fs_attr_it == immObject->mAttrValueMap.end()) {
+            LOG_NO("protocol51906 is not set for opensafImmNostdFlags because "
+                   "the new OpenSAF 5.19.06 attribute is not added to "
+                   "SaImmMngt class");
+          } else {
+            noStdFlags |= OPENSAF_IMM_FLAG_PRT51906_ALLOW;
           }
           valuep->setValue_int(noStdFlags);
           LOG_NO("%s changed to: 0x%x", immAttrNostFlags.c_str(), noStdFlags);
@@ -12272,6 +12323,11 @@ SaAisErrorT ImmModel::accessorGet(const ImmsvOmSearchInit* req,
           // The attribute is cached and the OI is transiently detached
           op.addAttrValue(*j->second);
           checkAttribute = true;
+        } else if ((k->second->mFlags & SA_IMM_ATTR_CACHED) &&
+                    (objectName == immManagementDn) &&
+                    !(j->second->empty())) {
+          op.addAttrValue(*j->second);
+          checkAttribute = true;
         } else {
           checkAttribute = false;
         }
@@ -12842,6 +12898,11 @@ SaAisErrorT ImmModel::searchInitialize(ImmsvOmSearchInit* req,
                              !(j->second->empty())) {
                     // The attribute is cached and the OI is transiently
                     // detached
+                    op.addAttrValue(*j->second);
+                    checkAttribute = true;
+                  } else if ((k->second->mFlags & SA_IMM_ATTR_CACHED) &&
+                             (objectName == immManagementDn) &&
+                             !(j->second->empty())) {
                     op.addAttrValue(*j->second);
                     checkAttribute = true;
                   } else {
@@ -13798,8 +13859,11 @@ SaAisErrorT ImmModel::admoImmMngtObject(const ImmsvOmAdminOperationInvoke* req,
   TRACE_ENTER();
   ObjectMap::iterator oi = sObjectMap.find(immManagementDn);
   if (oi == sObjectMap.end()) {
-    err = SA_AIS_ERR_NOT_EXIST;
-    goto done;
+    return SA_AIS_ERR_NOT_EXIST;
+  }
+
+  if (req->params != NULL) {
+    return SA_AIS_ERR_INVALID_PARAM;
   }
 
   immObject = oi->second;
@@ -13808,10 +13872,10 @@ SaAisErrorT ImmModel::admoImmMngtObject(const ImmsvOmAdminOperationInvoke* req,
   osafassert(!(avi->second->isMultiValued()));
   valuep = (ImmAttrValue*)avi->second;
 
-  if (req->params != NULL) {
-    err = SA_AIS_ERR_INVALID_PARAM;
-    goto done;
-  }
+  auto fs_attr_iter = immObject->mAttrValueMap.find(saImmFileSystemStatus);
+  osafassert(fs_attr_iter != immObject->mAttrValueMap.end());
+  auto fs_attr_value = fs_attr_iter->second;
+
 
   if (req->operationId == SA_IMM_ADMIN_EXPORT) { /* Standard */
     err = SA_AIS_ERR_NOT_SUPPORTED;
@@ -13833,13 +13897,22 @@ SaAisErrorT ImmModel::admoImmMngtObject(const ImmsvOmAdminOperationInvoke* req,
   } else if (req->operationId == SA_IMM_ADMIN_REGENERATE_PBE_DB) {
     LOG_NO("Re-generate the pbe database from one in memory.");
     sRegenerateDb = true;
+  } else if (req->operationId == SA_IMM_ADMIN_FS_AVAILABLE) {
+    LOG_NO("Received: immadm -o %u safRdn=immManagement,safApp=safImmService",
+           SA_IMM_ADMIN_FS_AVAILABLE);
+    sFileSystemAvailable = true;
+    fs_attr_value->setValue_int(1);
+  } else if (req->operationId == SA_IMM_ADMIN_FS_UNAVAILABLE) {
+    LOG_NO("Received: immadm -o %u safRdn=immManagement,safApp=safImmService",
+           SA_IMM_ADMIN_FS_UNAVAILABLE);
+    sFileSystemAvailable = false;
+    fs_attr_value->setValue_int(0);
   } else {
     LOG_NO("Invalid operation ID %llu, for operation on %s",
            (SaUint64T)req->operationId, immManagementDn.c_str());
     err = SA_AIS_ERR_INVALID_PARAM;
   }
 
-done:
   TRACE_LEAVE();
   return err;
 }
