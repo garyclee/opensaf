@@ -67,6 +67,8 @@ typedef enum avsv_amf_cbk_type {
   AVSV_AMF_PXIED_COMP_CLEAN,
   AVSV_AMF_CSI_ATTR_CHANGE,
   AVSV_AMF_SC_STATUS_CHANGE,
+  AVSV_AMF_CONTAINED_COMP_INST,
+  AVSV_AMF_CONTAINED_COMP_CLEAN,
   AVSV_AMF_CBK_MAX
 } AVSV_AMF_CBK_TYPE;
 
@@ -105,6 +107,14 @@ typedef struct avsv_amf_comp_reg_param_tag {
   SaNameT comp_name;       /* comp name */
   SaNameT proxy_comp_name; /* proxy comp name */
   SaVersionT version;      // SAF VERSION of component.
+#define AVSV_AMF_CALLBACK_TERMINATE       0x01
+#define AVSV_AMF_CALLBACK_CSI_SET         0x02
+#define AVSV_AMF_CALLBACK_CSI_REMOVE      0x04
+#define AVSV_AMF_CALLBACK_CONTAINED_INST  0x08
+#define AVSV_AMF_CALLBACK_CONTAINED_CLEAN 0x10
+#define AVSV_AMF_CALLBACK_PROXIED_INST    0x20
+#define AVSV_AMF_CALLBACK_PROXIED_CLEAN   0x40
+  SaUint64T callbacks;
 } AVSV_AMF_COMP_REG_PARAM;
 
 /* component unregister */
@@ -284,6 +294,16 @@ typedef struct avsv_amf_pxied_comp_clean_param_tag {
   SaNameT comp_name; /* comp name */
 } AVSV_AMF_PXIED_COMP_CLEAN_PARAM;
 
+/* contained component instantiate */
+typedef struct avsv_amf_contained_comp_inst_param_tag {
+  SaNameT comp_name; /* comp name */
+} AVSV_AMF_CONTAINED_COMP_INST_PARAM;
+
+/* contained component cleanup */
+typedef struct avsv_amf_contained_comp_clean_param_tag {
+  SaNameT comp_name; /* comp name */
+} AVSV_AMF_CONTAINED_COMP_CLEAN_PARAM;
+
 /* wrapper structure for all the callbacks */
 typedef struct avsv_amf_cbk_info_tag {
   SaAmfHandleT hdl;       /* AMF handle */
@@ -299,6 +319,8 @@ typedef struct avsv_amf_cbk_info_tag {
     AVSV_AMF_PXIED_COMP_CLEAN_PARAM pxied_comp_clean;
     AVSV_AMF_CSI_ATTR_CHANGE_PARAM csi_attr_change;
     AVSV_AMF_SC_STATUS_CHANGE_PARAM sc_status_change;
+    AVSV_AMF_CONTAINED_COMP_INST_PARAM contained_inst;
+    AVSV_AMF_CONTAINED_COMP_CLEAN_PARAM contained_clean;
   } param;
 } AVSV_AMF_CBK_INFO;
 

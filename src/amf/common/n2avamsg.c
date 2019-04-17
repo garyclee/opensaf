@@ -484,6 +484,19 @@ uint32_t avsv_amf_cbk_copy(AVSV_AMF_CBK_INFO **o_dcbk, AVSV_AMF_CBK_INFO *scbk)
 			    &scbk->param.csi_attr_change.csiAttr);
 		}
 		break;
+
+	case AVSV_AMF_CONTAINED_COMP_INST:
+		osaf_extended_name_alloc(osaf_extended_name_borrow(
+					&scbk->param.contained_inst.comp_name),
+				&(*o_dcbk)->param.contained_inst.comp_name);
+                break;
+
+        case AVSV_AMF_CONTAINED_COMP_CLEAN:
+                osaf_extended_name_alloc(osaf_extended_name_borrow(
+					&scbk->param.contained_clean.comp_name),
+				&(*o_dcbk)->param.contained_clean.comp_name);
+                break;
+
 	default:
 		osafassert(0);
 	}

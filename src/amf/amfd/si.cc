@@ -703,6 +703,13 @@ SaAisErrorT avd_si_config_get(AVD_APP *app) {
     if (avd_sirankedsu_config_get(si_str, si) != SA_AIS_OK) goto done2;
 
     if (avd_csi_config_get(si_str, si) != SA_AIS_OK) goto done2;
+
+    if ((si->sg_of_si != nullptr) && (si->sg_of_si->any_container_su() == true)
+        && (si->csi_count() > 1)) {
+      LOG_ER("More than one CSIs configured in a container si:'%s'",
+              si->name.c_str());
+      goto done2;
+    }
   }
 
   if (rc == SA_AIS_ERR_NOT_EXIST) {
@@ -1927,4 +1934,14 @@ SaAisErrorT AVD_SI::si_swap_validate() {
 
 done:
   return rc;
+}
+
+uint32_t AVD_SI::csi_count(void) const {
+  uint32_t count(0);
+  for (const AVD_CSI *csi(list_of_csi);
+       csi;
+       csi = csi->si_list_of_csi_next) {
+    count++;
+  }
+  return count;
 }

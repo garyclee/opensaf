@@ -48,7 +48,8 @@ void ava_fill_finalize_msg(AVSV_NDA_AVA_MSG* msg, MDS_DEST dst,
                            SaAmfHandleT hdl, SaNameT comp_name);
 void ava_fill_comp_reg_msg(AVSV_NDA_AVA_MSG* msg, MDS_DEST dst,
                            SaAmfHandleT hdl, SaNameT comp_name,
-                           SaNameT proxy_comp_name, SaVersionT* version);
+                           SaNameT proxy_comp_name, SaVersionT* version,
+                           const OsafAmfCallbacksT *);
 void ava_fill_comp_unreg_msg(AVSV_NDA_AVA_MSG* msg, MDS_DEST dst,
                              SaAmfHandleT hdl, SaNameT comp_name,
                              SaNameT proxy_comp_name);

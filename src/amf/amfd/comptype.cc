@@ -140,7 +140,9 @@ static AVD_COMP_TYPE *comptype_create(const std::string &dn,
     strcpy(compt->saAmfCtDefAmStopCmdArgv, str);
 
   if ((IS_COMP_SAAWARE(compt->saAmfCtCompCategory) ||
-       IS_COMP_PROXIED_PI(compt->saAmfCtCompCategory)) &&
+       IS_COMP_PROXIED_PI(compt->saAmfCtCompCategory) ||
+       IS_COMP_CONTAINED(compt->saAmfCtCompCategory) ||
+       IS_COMP_CONTAINER(compt->saAmfCtCompCategory)) &&
       (immutil_getAttr(
            const_cast<SaImmAttrNameT>("saAmfCtDefQuiescingCompleteTimeout"),
            attributes, 0,
@@ -223,9 +225,8 @@ static bool config_is_valid(const std::string &dn,
                        attributes, 0, &category);
   osafassert(rc == SA_AIS_OK);
 
-  /* We do not support Proxy, Container and Contained as of now. */
-  if (IS_COMP_PROXY(category) || IS_COMP_CONTAINER(category) ||
-      IS_COMP_CONTAINED(category)) {
+  /* We do not support Proxy as of now. */
+  if (IS_COMP_PROXY(category)) {
     report_ccb_validation_error(
         opdata, "Unsupported saAmfCtCompCategory value '%u' for '%s'", category,
         dn.c_str());
@@ -250,7 +251,8 @@ static bool config_is_valid(const std::string &dn,
   ** The saAmfCtDefCallbackTimeout attribute "mandatory for all components
   *except for * non-proxied, non-SA-aware components"
   */
-  if ((IS_COMP_PROXIED(category) || IS_COMP_SAAWARE(category)) &&
+  if ((IS_COMP_PROXIED(category) || IS_COMP_SAAWARE(category) ||
+      IS_COMP_CONTAINED(category) || IS_COMP_CONTAINER(category)) &&
       (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtDefCallbackTimeout"),
                        attributes, 0, &time) != SA_AIS_OK)) {
     report_ccb_validation_error(
@@ -264,7 +266,8 @@ static bool config_is_valid(const std::string &dn,
   ** The saAmfCtDefQuiescingCompleteTimeout attribute "is actually mandatory for
   *SA-aware and proxied, * pre-instantiable components"
   */
-  if ((IS_COMP_SAAWARE(category) || IS_COMP_PROXIED_PI(category)) &&
+  if ((IS_COMP_SAAWARE(category) || IS_COMP_PROXIED_PI(category) ||
+      IS_COMP_CONTAINED(category) || IS_COMP_CONTAINER(category)) &&
       (immutil_getAttr(
            const_cast<SaImmAttrNameT>("saAmfCtDefQuiescingCompleteTimeout"),
            attributes, 0, &time) != SA_AIS_OK)) {
@@ -286,10 +289,10 @@ static bool config_is_valid(const std::string &dn,
 
   /*
   ** The saAmfCtRelPathInstantiateCmd "attribute is mandatory for all
-  ** non-proxied local components".
+  ** non-proxied non-contained local components".
   */
-  if (!(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category)) &&
-      IS_COMP_LOCAL(category)) {
+  if (!(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category) ||
+       IS_COMP_CONTAINED(category)) && IS_COMP_LOCAL(category)) {
     attr_name = "saAmfCtRelPathInstantiateCmd";
 
     cmd = immutil_getStringAttr(attributes, attr_name, 0);
@@ -312,6 +315,7 @@ static bool config_is_valid(const std::string &dn,
   */
   if (IS_COMP_LOCAL(category) &&
       !(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category)) &&
+      !IS_COMP_CONTAINER(category) && !IS_COMP_CONTAINED(category) &&
       !IS_COMP_SAAWARE(category)) {
     attr_name = "saAmfCtRelPathTerminateCmd";
 
@@ -331,9 +335,9 @@ static bool config_is_valid(const std::string &dn,
 
   /*
   ** The saAmfCtRelPathCleanupCmd "attribute is mandatory for all local
-  ** components (proxied or non-proxied)"
+  ** components (proxied or non-proxied) except contained"
   */
-  if (IS_COMP_LOCAL(category)) {
+  if (IS_COMP_LOCAL(category) && !IS_COMP_CONTAINED(category)) {
     attr_name = "saAmfCtRelPathCleanupCmd";
 
     cmd = immutil_getStringAttr(attributes, attr_name, 0);
@@ -372,7 +376,9 @@ static bool config_is_valid(const std::string &dn,
                        attributes, 0, &value);
   osafassert(rc == SA_AIS_OK);
 
-  if ((value < SA_AMF_NO_RECOMMENDATION) || (value > SA_AMF_CLUSTER_RESET)) {
+  if ((value < SA_AMF_NO_RECOMMENDATION) ||
+      (value > SA_AMF_CONTAINER_RESTART) ||
+      (value == SA_AMF_APPLICATION_RESTART)) {
     report_ccb_validation_error(
         opdata,
         "Illegal/unsupported saAmfCtDefRecoveryOnError value %u for '%s'",
@@ -380,10 +386,17 @@ static bool config_is_valid(const std::string &dn,
     return false;
   }
 
-  if (value == SA_AMF_NO_RECOMMENDATION)
+  if (value == SA_AMF_NO_RECOMMENDATION) {
     LOG_NO(
         "Invalid configuration, saAmfCtDefRecoveryOnError=NO_RECOMMENDATION(%u) for '%s'",
         value, dn.c_str());
+  } else if (value == SA_AMF_CONTAINER_RESTART && !IS_COMP_CONTAINED(category)) {
+    report_ccb_validation_error(
+        opdata,
+        "saAmfCtDefRecoveryOnError=SA_AMF_CONTAINER_RESTART can only be used "
+        "by contained component: '%s'", dn.c_str());
+    return false;
+  }
 
   rc = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtDefDisableRestart"),
                        attributes, 0, &value);
@@ -737,8 +750,9 @@ static SaAisErrorT ccb_completed_modify_hdlr(
         goto done;
       }
       uint32_t value = *((SaUint32T *)mod->modAttr.attrValues[0]);
-      if ((value < SA_AMF_COMPONENT_RESTART) ||
-          (value > SA_AMF_CLUSTER_RESET)) {
+      if (value < SA_AMF_COMPONENT_RESTART ||
+          value > SA_AMF_CONTAINER_RESTART ||
+          value == SA_AMF_APPLICATION_RESTART) {
         report_ccb_validation_error(
             opdata, "Invalid saAmfCtDefRecoveryOnError for '%s'", dn);
         rc = SA_AIS_ERR_BAD_OPERATION;

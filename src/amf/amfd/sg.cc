@@ -2433,3 +2433,24 @@ bool AVD_SG::find_instantiable_same_rank_su(AVD_SU *su) {
   }
   return false;
 }
+
+/**
+ * @brief  Checks if any su of Sg is a container su.
+ * @return true/false
+ */
+bool AVD_SG::any_container_su(void) const {
+  return (std::any_of(list_of_su.begin(), list_of_su.end(),
+                  [&](AVD_SU *su) -> bool {
+                    return su->container();
+                  }));
+}
+/**
+ * @brief  Checks if any su of Sg is a contained su.
+ * @return true/false
+ */
+bool AVD_SG::any_contained_su(void) const {
+  return (std::any_of(list_of_su.begin(), list_of_su.end(),
+                  [&](AVD_SU *su) -> bool {
+                    return su->contained();
+                  }));
+}

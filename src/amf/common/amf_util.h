@@ -50,7 +50,8 @@ extern "C" {
 #define IS_COMP_PROXIED_NPI(category) (((category)&SA_AMF_COMP_PROXIED_NPI))
 
 #define IS_COMP_LOCAL(category) \
-  (((category)&SA_AMF_COMP_SA_AWARE) || ((category)&SA_AMF_COMP_LOCAL))
+  (((category)&SA_AMF_COMP_SA_AWARE) || ((category)&SA_AMF_COMP_LOCAL) || \
+   ((category)&SA_AMF_COMP_CONTAINER) || ((category)&SA_AMF_COMP_CONTAINED))
 
 #define IS_COMP_CONTAINER(category) (((category)&SA_AMF_COMP_CONTAINER))
 

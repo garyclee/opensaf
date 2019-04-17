@@ -546,7 +546,7 @@ uint32_t avnd_int_ext_comp_hdlr(AVND_CB *cb, AVSV_AMF_API_INFO *api_info,
          invocation handle in the response with the original one. Check
          function avnd_evt_avnd_avnd_cbk_msg_hdl()'s comments */
       resp->inv = cbk_rec->orig_opq_hdl;
-      avnd_comp_cbq_rec_pop_and_del(cb, o_comp, cbk_rec, false);
+      avnd_comp_cbq_rec_pop_and_del(cb, o_comp, cbk_rec->opq_hdl, false);
     }
 
     /* if(AVSV_AMF_RESP == api_info->type)  */

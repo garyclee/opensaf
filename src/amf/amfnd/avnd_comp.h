@@ -31,6 +31,7 @@
 #define AMF_AMFND_AVND_COMP_H_
 
 #include <bitset>
+#include <vector>
 
 struct avnd_cb_tag;
 struct avnd_su_si_rec;
@@ -72,6 +73,7 @@ typedef enum avnd_comp_clc_pres_fsm_ev {
   AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL,
   AVND_COMP_CLC_PRES_FSM_EV_RESTART,
   AVND_COMP_CLC_PRES_FSM_EV_ORPH,
+  AVND_COMP_CLC_PRES_FSM_EV_INST_TRY_AGAIN,
   AVND_COMP_CLC_PRES_FSM_EV_MAX
 } AVND_COMP_CLC_PRES_FSM_EV;
 
@@ -324,6 +326,7 @@ typedef struct avnd_comp_tag {
 
   std::string name; /* comp name */
   std::string saAmfCompType;
+  std::string saAmfCompContainerCsi;
   uint32_t numOfCompCmdEnv;   /* number of comp command environment variables */
   SaStringT *saAmfCompCmdEnv; /* comp command environment variables */
   uint32_t inst_level;        /* comp instantiation level */
@@ -384,6 +387,9 @@ typedef struct avnd_comp_tag {
 
   struct avnd_comp_tag *pxy_comp; /* ptr to the proxy comp (if any) */
 
+  // list of associated contained sus.
+  std::vector<avnd_su_tag *> list_of_contained_sus;
+
   AVND_COMP_CLC_PRES_FSM_EV
       pend_evt; /* stores last fsm event got in orph state */
 
@@ -412,6 +418,9 @@ typedef struct avnd_comp_tag {
   SaInvocationT
       term_cbq_inv_value; /* invocation value for termination callback. */
   SaVersionT version;     // SAF version of comp.
+
+  bool container(void) const;
+  bool contained(void) const;
 } AVND_COMP;
 
 #define AVND_COMP_NULL ((AVND_COMP *)0)
@@ -457,6 +466,8 @@ typedef struct avnd_comp_tag {
 #define AVND_COMP_TYPE_PROXIED 0x00000004
 #define AVND_COMP_TYPE_PREINSTANTIABLE 0x00000008
 #define AVND_COMP_TYPE_SAAWARE 0x00000010
+#define AVND_COMP_TYPE_CONTAINER 0x00000020
+#define AVND_COMP_TYPE_CONTAINED 0x00000040
 
 /* component state (comp-reg, failed etc.) values */
 #define AVND_COMP_FLAG_REG 0x00000100
@@ -492,6 +503,8 @@ typedef struct avnd_comp_tag {
 #define m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(x) \
   (((x)->flag) & AVND_COMP_TYPE_PREINSTANTIABLE)
 #define m_AVND_COMP_TYPE_IS_SAAWARE(x) (((x)->flag) & AVND_COMP_TYPE_SAAWARE)
+#define m_AVND_COMP_TYPE_IS_CONTAINER(x) (((x)->flag) & AVND_COMP_TYPE_CONTAINER)
+#define m_AVND_COMP_TYPE_IS_CONTAINED(x) (((x)->flag) & AVND_COMP_TYPE_CONTAINED)
 
 /* macros for setting the comp types */
 #define m_AVND_COMP_TYPE_SET(x, bitmap) (((x)->flag) |= (bitmap))
@@ -800,24 +813,28 @@ void m_AVND_COMP_OPER_STATE_AVD_SYNC(struct avnd_cb_tag *cb,
       (o_rec) = 0;                             \
   }
 
-/* macro to pop a given callback record from the list */
-#define m_AVND_COMP_CBQ_REC_POP(comp, rec, o_found)         \
-  {                                                         \
-    AVND_COMP_CBK *prv = (comp)->cbk_list, *curr;           \
-    o_found = false;                                        \
-    for (curr = (comp)->cbk_list; curr && !(curr == (rec)); \
-         prv = curr, curr = curr->next)                     \
-      ;                                                     \
-    if (curr) {                                             \
-      /* found the record... pop it */                      \
-      o_found = true;                                       \
-      if (curr == (comp)->cbk_list)                         \
-        (comp)->cbk_list = curr->next;                      \
-      else                                                  \
-        prv->next = curr->next;                             \
-      curr->next = 0;                                       \
-    }                                                       \
+/* inline function to pop a given callback record from the list */
+inline AVND_COMP_CBK * avnd_comp_cbq_rec_pop(AVND_COMP *comp,
+                                             uint32_t opq_hdl,
+                                             uint32_t& o_found) {
+  AVND_COMP_CBK *prv = comp->cbk_list, *curr, *rec(0);
+  o_found = false;
+  for (curr = comp->cbk_list; curr && (curr->opq_hdl != opq_hdl);
+       prv = curr, curr = curr->next)
+    ;
+  if (curr) {
+    /* found the record... pop it */
+    o_found = true;
+    rec = curr;
+    if (curr == comp->cbk_list)
+      comp->cbk_list = curr->next;
+    else
+      prv->next = curr->next;
+    curr->next = 0;
   }
+
+  return rec;
+}
 
 /* macro to get the callback record with the same inv value */
 /* note that inv value is derived from the hdl mngr */
@@ -860,7 +877,7 @@ extern void avnd_comp_hc_rec_del_all(struct avnd_cb_tag *, AVND_COMP *);
 
 extern void avnd_comp_cbq_del(struct avnd_cb_tag *, AVND_COMP *, bool);
 extern void avnd_comp_cbq_rec_pop_and_del(struct avnd_cb_tag *, AVND_COMP *,
-                                          AVND_COMP_CBK *, bool);
+                                          uint32_t opq_hdl, bool);
 extern AVND_COMP_CBK *avnd_comp_cbq_rec_add(struct avnd_cb_tag *, AVND_COMP *,
                                             AVSV_AMF_CBK_INFO *, MDS_DEST *,
                                             SaTimeT);
@@ -1012,5 +1029,18 @@ void avnd_amf_pxied_comp_inst_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
                                        const std::string &cn);
 void avnd_amf_pxied_comp_clean_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
                                         const std::string &cn);
+void avnd_amf_contained_comp_inst_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
+                                       const std::string &cn);
+void avnd_amf_contained_comp_clean_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
+                                       const std::string &cn);
+
+AVND_COMP * avnd_get_comp_from_csi(avnd_cb_tag *, const std::string& csi);
+
+inline AVND_COMP * get_associated_container_comp(avnd_cb_tag *cb,
+                                                 const AVND_COMP *comp) {
+  return avnd_get_comp_from_csi(cb, comp->saAmfCompContainerCsi);
+}
+
+uint32_t avnd_comp_unregister_contained(avnd_cb_tag *, AVND_COMP *comp);
 
 #endif  // AMF_AMFND_AVND_COMP_H_

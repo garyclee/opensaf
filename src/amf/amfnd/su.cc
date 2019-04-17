@@ -605,6 +605,33 @@ uint32_t avnd_su_curr_info_del(AVND_CB *cb, AVND_SU *su) {
                  m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
     rc = avnd_comp_curr_info_del(cb, comp);
     if (NCSCC_RC_SUCCESS != rc) goto done;
+
+    if (comp->container()) {
+      // reset contained comps for this container
+      AVND_COMP_CSI_REC *curr_csi(m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
+        m_NCS_DBLIST_FIND_FIRST(&comp->csi_list)));
+
+      if (curr_csi) {
+        const std::string& containerCsi(curr_csi->name);
+
+        for (auto &it : cb->compdb) {
+          if (it.second->contained() &&
+              it.second->saAmfCompContainerCsi == containerCsi) {
+            rc = avnd_comp_curr_info_del(cb, it.second);
+            if (NCSCC_RC_SUCCESS != rc) goto done;
+
+            // unregister the contained comp
+            rc = avnd_comp_unregister_contained(cb, it.second);
+
+            avnd_comp_pres_state_set(cb, it.second,
+                                     SA_AMF_PRESENCE_UNINSTANTIATED);
+
+            avnd_su_pres_state_set(cb, it.second->su,
+                                   SA_AMF_PRESENCE_UNINSTANTIATED);
+          }
+        }
+      }
+    }
   }
 
 done:
@@ -1043,4 +1070,12 @@ uint32_t avnd_evt_avd_compcsi_evh(AVND_CB *cb, AVND_EVT *evt) {
 done:
   TRACE_LEAVE2("%u", rc);
   return rc;
+}
+
+bool AVND_SU::contained(void) const {
+  AVND_COMP *comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(
+       m_NCS_DBLIST_FIND_FIRST(&comp_list));
+  if ((comp != nullptr) && (comp->contained() == true))
+    return true;
+  return false;
 }

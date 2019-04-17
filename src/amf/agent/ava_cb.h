@@ -43,6 +43,7 @@ typedef struct ava_cb_tag {
   NCS_LOCK lock;     /* CB lock */
   uint32_t pend_dis; /* Number of pending dispaches */
   uint32_t pend_fin; /* Number of pending agent destroy */
+  bool container;    /* is this comp a container? */
 
   SaNameT comp_name;  /* comp-name */
   uint32_t flag;      /* flags */

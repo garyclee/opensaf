@@ -156,6 +156,7 @@ class AVD_SI {
   uint32_t count_sisu();
   bool is_all_sponsor_si_unassigned() const;
   bool is_all_dependent_si_unassigned() const;
+  uint32_t csi_count(void) const;
 
  private:
   bool is_assigned() const { return list_of_sisu ? true : false; }

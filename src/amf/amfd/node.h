@@ -148,6 +148,7 @@ class AVD_AVND {
   bool is_campaign_set_for_all_sus() const;
   // Member functions.
   void node_sus_termstate_set(bool term_state) const;
+  void instantiate_contained_sus(AVD_SU* su, const AVD_CSI *container_csi);
 
  private:
   void initialize();

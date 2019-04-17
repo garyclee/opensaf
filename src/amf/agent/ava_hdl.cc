@@ -848,6 +848,37 @@ uint32_t ava_hdl_cbk_rec_prc(AVSV_AMF_CBK_INFO *info,
       }
     } break;
 
+    case AVSV_AMF_CONTAINED_COMP_INST: {
+      AVSV_AMF_CONTAINED_COMP_INST_PARAM *comp_inst =
+        &info->param.contained_inst;
+      if (!ava_sanamet_is_valid(&comp_inst->comp_name))
+        rc = SA_AIS_ERR_NAME_TOO_LONG;
+      if (rc == SA_AIS_OK &&
+          reg_cbk->saAmfContainedComponentInstantiateCallback) {
+        TRACE("Invoking saAmfContainedComponentInstantiateCallback: contained "
+                "comp = %s",
+              osaf_extended_name_borrow(&comp_inst->comp_name));
+        reg_cbk->saAmfContainedComponentInstantiateCallback(
+          info->inv, &comp_inst->comp_name);
+      }
+      break;
+    }
+    case AVSV_AMF_CONTAINED_COMP_CLEAN: {
+      AVSV_AMF_CONTAINED_COMP_CLEAN_PARAM *comp_clean =
+        &info->param.contained_clean;
+      if (!ava_sanamet_is_valid(&comp_clean->comp_name))
+        rc = SA_AIS_ERR_NAME_TOO_LONG;
+      if (rc == SA_AIS_OK &&
+          reg_cbk->saAmfContainedComponentCleanupCallback) {
+        TRACE("Invoking saAmfContainedComponentCleanupCallback: contained comp "
+                "= %s",
+              osaf_extended_name_borrow(&comp_clean->comp_name));
+        reg_cbk->saAmfContainedComponentCleanupCallback(
+          info->inv, &comp_clean->comp_name);
+      }
+      break;
+    }
+
     default:
       osafassert(0);
       break;

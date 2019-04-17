@@ -87,6 +87,7 @@ AVND_EVT *avnd_evt_create(AVND_CB *cb, AVND_EVT_TYPE type,
     case AVND_EVT_AVD_ADMIN_OP_REQ_MSG:
     case AVND_EVT_AVD_REBOOT_MSG:
     case AVND_EVT_AVD_COMPCSI_ASSIGN_MSG:
+    case AVND_EVT_AVD_CONTAINED_SU_MSG:
       evt->info.avd = (AVSV_DND_MSG *)info;
       break;
 
@@ -238,6 +239,7 @@ void avnd_evt_destroy(AVND_EVT *evt) {
     case AVND_EVT_AVD_HEARTBEAT_MSG:
     case AVND_EVT_AVD_REBOOT_MSG:
     case AVND_EVT_AVD_COMPCSI_ASSIGN_MSG:
+    case AVND_EVT_AVD_CONTAINED_SU_MSG:
       if (evt->info.avd) avsv_dnd_msg_free(evt->info.avd);
       break;
 

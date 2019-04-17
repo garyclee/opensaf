@@ -1,0 +1,50 @@
+This directory contains a sample implementation of container and contained
+SA-Aware AMF components.
+
+amf_container.c contains the skeleton of a container SA-Aware AMF component.
+All required callbacks are implemented and responds OK when requested.
+Instantiating the  contained application will respond with TRY_AGAIN for the
+first instantiation to demonstrate the use of TRY_AGAIN when instantiating a
+contained component. To be used with any of the configuration files mentioned
+below. This implementation can be used as a starting point to see what happens
+when you do admin operations such as lock, lock-instantiation, etc on SU or any
+other level containing the component.
+
+amf_contained.c contains the skeleton of a contained SA-Aware AMF component.
+All required callbacks are implemented and responds OK when requested. To be
+used with any of the configuration files mentioned below. This implementation
+can be used as a starting point to see what happens when you do admin
+operations such as lock, lock-instantiation, etc on SU or any other level
+containing the component.
+
+Logging output is done to the system log (normally /var/log/message).
+
+AppConfig-contained-2N.xml: This file contains the AMF model for a contained
+application running in a 2N redundancy model. The amf_container is
+configured to run on the 2 controllers.
+
+AppConfig-container.xml: This file contains the AMF model for the container
+application running in an NWayActive redundancy model.
+
+Note that the SU admin state has the value UNLOCKED-INSTANTIATION(3). This
+means that the SUs needs to be unlocked after the file has been loaded.
+
+Some steps to follow:
+
+1. Install amf_container into /opt/amf_demo
+2. Install amf_container_script into /opt/amf_demo
+3. Build a container with amf_contained in it to execute when the container is
+   started
+4. Load configuration:
+	immcfg -f AppConfig-contained-2N.xml
+	immcfg -f AppConfig-container.xml
+5. Unlock instantiation and unlock container:
+	amf-adm unlock-in safSu=SU1,safSg=Container,safApp=Container
+	amf-adm unlock-in safSu=SU2,safSg=Container,safApp=Container
+	amf-adm unlock safSu=SU1,safSg=Container,safApp=Container
+	amf-adm unlock safSu=SU2,safSg=Container,safApp=Container
+6. Unlock instantiation and unlock contained:
+	amf-adm unlock-in safSu=SU1,safSg=Contained_2N,safApp=Contained_2N
+	amf-adm unlock-in safSu=SU2,safSg=Contained_2N,safApp=Contained_2N
+	amf-adm unlock safSu=SU1,safSg=Contained_2N,safApp=Contained_2N
+	amf-adm unlock safSu=SU2,safSg=Contained_2N,safApp=Contained_2N

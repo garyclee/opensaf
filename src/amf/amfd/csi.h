@@ -98,6 +98,8 @@ class AVD_CSI {
       const std::string &cstype, const AVD_SU_SI_REL *sisu,
       const std::vector<AVD_COMP *> &list_of_comp);
 
+  bool is_container_csi(void) const;
+
  private:
   AVD_CSI();
   // disallow copy and assign
@@ -106,6 +108,7 @@ class AVD_CSI {
 };
 
 extern AmfDb<std::string, AVD_CSI> *csi_db;
+extern std::set<std::string> container_csis;
 
 class AVD_CS_TYPE {
  public:

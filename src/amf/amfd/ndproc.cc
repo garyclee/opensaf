@@ -949,6 +949,7 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
             if (comp->admin_pend_cbk.invocation != 0)
               comp_admin_op_report_to_imm(
                   comp, static_cast<SaAmfPresenceStateT>(l_val));
+            SaAmfPresenceStateT oldState(comp->saAmfCompPresenceState);
             comp->avd_comp_pres_state_set(
                 static_cast<SaAmfPresenceStateT>(l_val));
 
@@ -960,6 +961,16 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
                 (comp->su->all_comps_in_presence_state(
                      SA_AMF_PRESENCE_INSTANTIATED) == true))
               comp->su->complete_admin_op(SA_AIS_OK);
+
+            if (comp->container() &&
+                l_val == SA_AMF_PRESENCE_INSTANTIATED &&
+                comp->su->saAmfSUPresenceState ==
+                  SA_AMF_PRESENCE_INSTANTIATED &&
+                oldState == SA_AMF_PRESENCE_RESTARTING) {
+              // container restarted, need to restart contained components
+              comp->su->instantiate_associated_contained_sus();
+            }
+                
           } else {
             /* log error that a the  value len is invalid */
             LOG_ER("%s:%u: %u", __FILE__, __LINE__,
@@ -1077,6 +1088,8 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
                   su, static_cast<SaAmfPresenceStateT>(l_val));
             }
 
+            SaAmfPresenceStateT oldState(su->saAmfSUPresenceState);
+
             su->set_pres_state(static_cast<SaAmfPresenceStateT>(l_val));
 
             /* In the Quiesced node, ncs 2N SU is the spare SU so it's not
@@ -1113,6 +1126,25 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
             /* send response to pending clm callback */
             if (su->su_on_node->clm_pend_inv != 0)
               clm_pend_response(su, static_cast<SaAmfPresenceStateT>(l_val));
+
+            /*
+             * If the contained su has finished terminating we can now finish
+             * with the container su.
+             */
+            if (su->contained() && l_val == SA_AMF_PRESENCE_UNINSTANTIATED) {
+              AVD_SU *container_su(su->get_container_su_on_same_node());
+
+              if (container_su->wait_for_contained_to_quiesce) {
+                // XXX fix me, could be quiescing
+                avd_sg_su_si_mod_snd(cb, container_su, SA_AMF_HA_QUIESCED);
+                container_su->wait_for_contained_to_quiesce = false;
+              }
+            } else if (su->container() &&
+                       l_val == SA_AMF_PRESENCE_INSTANTIATED &&
+                       oldState == SA_AMF_PRESENCE_RESTARTING) {
+              // container restarted, need to restart contained components
+              su->instantiate_associated_contained_sus();
+            }
           } else {
             /* log error that a the  value len is invalid */
             LOG_ER("%s:%u: %u", __FILE__, __LINE__,

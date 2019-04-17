@@ -710,7 +710,7 @@ void avd_send_error_report_ntf(const std::string& name,
   bool additional_info_is_present;
 
   if ((recovery >= SA_AMF_NO_RECOMMENDATION) &&
-      (recovery < SA_AMF_CONTAINER_RESTART)) {
+      (recovery <= SA_AMF_CONTAINER_RESTART)) {
     add_text = "Error reported on " + name + " with recovery " +
                amf_recovery[recovery];
     minorid = SA_AMF_NTFID_ERROR_REPORT;

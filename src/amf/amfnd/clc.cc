@@ -56,6 +56,7 @@ static uint32_t avnd_comp_clc_inst_term_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_inst_clean_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_inst_restart_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_inst_orph_hdler(AVND_CB *, AVND_COMP *);
+static uint32_t avnd_comp_clc_inst_try_again_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_terming_termsucc_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_terming_termfail_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *, AVND_COMP *);
@@ -99,6 +100,7 @@ static AVND_COMP_CLC_FSM_FN
             0,                               /* CLEANUP_FAIL EV */
             0,                               /* RESTART EV */
             0,                               /* ORPH EV */
+            0,                               /* TRY AGAIN EV */
         },
 
         /* SA_AMF_PRESENCE_INSTANTIATING */
@@ -114,6 +116,7 @@ static AVND_COMP_CLC_FSM_FN
             avnd_comp_clc_insting_cleanfail_hdler, /* CLEANUP_FAIL EV */
             avnd_comp_clc_insting_restart_hdler,   /* RESTART EV */
             0,                                     /* ORPH EV */
+	    avnd_comp_clc_inst_try_again_hdler,    /* TRY_AGAIN EV */
         },
 
         /* SA_AMF_PRESENCE_INSTANTIATED */
@@ -129,6 +132,7 @@ static AVND_COMP_CLC_FSM_FN
             0,                                /* CLEANUP_FAIL EV */
             avnd_comp_clc_inst_restart_hdler, /* RESTART EV */
             avnd_comp_clc_inst_orph_hdler,    /* ORPH EV */
+            0,                                /* TRY AGAIN EV */
         },
 
         /* SA_AMF_PRESENCE_TERMINATING */
@@ -144,6 +148,7 @@ static AVND_COMP_CLC_FSM_FN
             avnd_comp_clc_terming_cleanfail_hdler, /* CLEANUP_FAIL EV */
             0,                                     /* RESTART EV */
             0,                                     /* ORPH EV */
+            0,                                     /* TRY AGAIN EV */
         },
 
         /* SA_AMF_PRESENCE_RESTARTING */
@@ -159,6 +164,7 @@ static AVND_COMP_CLC_FSM_FN
             avnd_comp_clc_restart_cleanfail_hdler, /* CLEANUP_FAIL EV */
             avnd_comp_clc_restart_restart_hdler,   /* RESTART EV */
             0,                                     /* ORPH EV */
+	    avnd_comp_clc_inst_try_again_hdler,    /* TRY_AGAIN EV */
         },
 
         /* SA_AMF_PRESENCE_INSTANTIATION_FAILED */
@@ -174,6 +180,7 @@ static AVND_COMP_CLC_FSM_FN
             0, /* CLEANUP_FAIL EV */
             0, /* RESTART EV */
             0, /* ORPH EV */
+            0, /* TRY AGAIN EV */
         },
 
         /* SA_AMF_PRESENCE_TERMINATION_FAILED */
@@ -189,6 +196,7 @@ static AVND_COMP_CLC_FSM_FN
             0, /* CLEANUP_FAIL EV */
             0, /* RESTART EV */
             0, /* ORPH EV */
+            0, /* TRY AGAIN EV */
         },
 
         /* SA_AMF_PRESENCE_ORPHANED */
@@ -204,6 +212,7 @@ static AVND_COMP_CLC_FSM_FN
             0,                                 /* CLEANUP_FAIL EV */
             avnd_comp_clc_orph_restart_hdler,  /* RESTART EV */
             0,                                 /* ORPH EV */
+            0,                                 /* TRY AGAIN EV */
         }
 
 };
@@ -220,6 +229,7 @@ static const char *pres_state_evt[] = {"OUT_OF_RANGE",
                                        "AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL",
                                        "AVND_COMP_CLC_PRES_FSM_EV_RESTART",
                                        "AVND_COMP_CLC_PRES_FSM_EV_ORPH",
+                                       "AVND_COMP_CLC_PRES_FSM_EV_TRY_AGAIN",
                                        "AVND_COMP_CLC_PRES_FSM_EV_MAX"};
 
 static const char *pres_state[] = {"OUT_OF_RANGE",
@@ -1383,7 +1393,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp,
       /* flush out the cbk related to health check */
       if (curr_rec->cbk_info->type == AVSV_AMF_HC) {
         /* delete the HC cbk */
-        avnd_comp_cbq_rec_pop_and_del(cb, comp, curr_rec, true);
+        avnd_comp_cbq_rec_pop_and_del(cb, comp, curr_rec->opq_hdl, true);
         continue;
       }
     } /* while */
@@ -1425,7 +1435,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp,
         /* send it */
         rc = avnd_comp_cbq_rec_send(cb, comp, curr_rec, true);
         if (NCSCC_RC_SUCCESS != rc) {
-          avnd_comp_cbq_rec_pop_and_del(cb, comp, curr_rec, true);
+          avnd_comp_cbq_rec_pop_and_del(cb, comp, curr_rec->opq_hdl, true);
         }
       } /* while loop */
     }
@@ -1583,6 +1593,15 @@ uint32_t avnd_comp_clc_uninst_inst_hdler(AVND_CB *cb, AVND_COMP *comp) {
   }
 
   /* instantiate the comp */
+  if (comp->contained() == true) {
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_INST, 0, 0);
+    if (NCSCC_RC_SUCCESS == rc) {
+      avnd_comp_pres_state_set(cb, comp, SA_AMF_PRESENCE_INSTANTIATING);
+      m_AVND_TMR_COMP_REG_START(cb, *comp, rc);
+    }
+    goto done;
+  }
+
   rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_INSTANTIATE);
 
   if (NCSCC_RC_SUCCESS == rc) {
@@ -1703,13 +1722,62 @@ uint32_t avnd_comp_clc_xxxing_instfail_hdler(AVND_CB *cb, AVND_COMP *comp) {
   avnd_comp_pm_finalize(cb, comp, comp->reg_hdl);
   avnd_comp_pm_rec_del_all(cb, comp); /*if at all anythnig is left behind */
 
-  /* no state transition */
+  // B.04.01 contained instantiation failure there are no retries
+  if (m_AVND_COMP_TYPE_IS_CONTAINED(comp))
+    avnd_comp_pres_state_set(cb, comp, SA_AMF_PRESENCE_INSTANTIATION_FAILED);
 
   /* cleanup the comp */
   if (m_AVND_COMP_TYPE_IS_PROXIED(comp) && comp->pxy_comp != 0)
     rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+  else if (m_AVND_COMP_TYPE_IS_CONTAINED(comp))
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
   else
     rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+
+  TRACE_LEAVE2("%u", rc);
+  return rc;
+}
+
+/****************************************************************************
+  Name          : avnd_comp_clc_inst_try_again_hdler
+
+  Description   : This routine processes the `try again` event in
+                  `instantiating/restarting` state for a proxied/contained comp.
+
+  Arguments     : cb   - ptr to the AvND control block
+                  comp - ptr to the comp
+
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+
+  Notes         : None.
+******************************************************************************/
+uint32_t avnd_comp_clc_inst_try_again_hdler(AVND_CB *cb, AVND_COMP *comp) {
+  uint32_t rc = NCSCC_RC_SUCCESS;
+  TRACE_ENTER2("'%s': Try again event in the Instantiating/Restarting state",
+               comp->name.c_str());
+
+  // only a proxied or contained component can do TRY_AGAIN
+  osafassert(m_AVND_COMP_TYPE_IS_PROXIED(comp) ||
+             m_AVND_COMP_TYPE_IS_CONTAINED(comp));
+
+  /* reset the comp-reg & instantiate params */
+  m_AVND_COMP_CLC_INST_PARAM_RESET(comp);
+
+  /* delete hc-list, cbk-list, pg-list & pm-list */
+  avnd_comp_hc_rec_del_all(cb, comp);
+  avnd_comp_cbq_del(cb, comp, true);
+
+  /* re-using the function to stop all PM started by this comp */
+  avnd_comp_pm_finalize(cb, comp, comp->reg_hdl);
+  avnd_comp_pm_rec_del_all(cb, comp); /* if at all anything is left behind */
+
+  /* no state transition */
+
+  /* cleanup the comp */
+  if (comp->pxy_comp)
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+  else if (m_AVND_COMP_TYPE_IS_CONTAINED(comp))
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
 
   TRACE_LEAVE2("%u", rc);
   return rc;
@@ -1917,9 +1985,18 @@ uint32_t avnd_comp_clc_xxxing_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp) {
         /* start a timer for proxied instantiating timeout duration */
         m_AVND_TMR_PXIED_COMP_INST_START(cb, *comp, rc);
       }
-    } else
+    } else if (comp->contained() == true) {
+      rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_INST, 0, 0);
+      if (NCSCC_RC_SUCCESS == rc) {
+        avnd_comp_pres_state_set(cb, comp, SA_AMF_PRESENCE_INSTANTIATING);
+        m_AVND_TMR_COMP_REG_START(cb, *comp, rc);
+      }
+      clc_info->inst_retry_cnt++;
+      goto done;
+    } else {
       rc = avnd_comp_clc_cmd_execute(cb, comp,
                                      AVND_COMP_CLC_CMD_TYPE_INSTANTIATE);
+    }
 
     if (NCSCC_RC_SUCCESS == rc) {
       /* timestamp the start of this instantiation phase */
@@ -2036,6 +2113,7 @@ uint32_t avnd_comp_clc_inst_term_hdler(AVND_CB *cb, AVND_COMP *comp) {
     avnd_comp_pm_rec_del_all(cb, comp); /*if at all anythnig is left behind */
 
   } else if (m_AVND_COMP_TYPE_IS_SAAWARE(comp) ||
+             (comp->contained() == true) ||
              (m_AVND_COMP_TYPE_IS_PROXIED(comp) &&
               m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))) {
     /* invoke terminate callback */
@@ -2140,6 +2218,8 @@ uint32_t avnd_comp_clc_inst_clean_hdler(AVND_CB *cb, AVND_COMP *comp) {
       /*Send amfd to gracefully remove assignments for thus SU.*/
       su_send_suRestart_recovery_msg(comp->su);
       goto done;
+    } else if (comp->contained() == true) {
+      rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
     } else
       rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
   }
@@ -2181,7 +2261,10 @@ uint32_t avnd_comp_clc_inst_restart_hdler(AVND_CB *cb, AVND_COMP *comp) {
   /* terminate / cleanup the comp */
   if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_COMP_TYPE_IS_PROXIED(comp))
     rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
-  else if (m_AVND_COMP_IS_FAILED(comp)) {
+  else if (m_AVND_COMP_IS_FAILED(comp) && (comp->contained() == true)) {
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
+    m_AVND_COMP_REG_PARAM_RESET(cb, comp);
+  } else if (m_AVND_COMP_IS_FAILED(comp)) {
     rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
     m_AVND_COMP_REG_PARAM_RESET(cb, comp);
   } else {
@@ -2341,6 +2424,8 @@ uint32_t avnd_comp_clc_terming_termfail_hdler(AVND_CB *cb, AVND_COMP *comp) {
   /* cleanup the comp */
   if (m_AVND_COMP_TYPE_IS_PROXIED(comp) && comp->pxy_comp != 0)
     rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+  else if (m_AVND_COMP_TYPE_IS_CONTAINED(comp))
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
   else
     rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
 
@@ -2544,6 +2629,13 @@ uint32_t avnd_comp_clc_restart_inst_hdler(AVND_CB *cb, AVND_COMP *comp) {
       m_AVND_TMR_PXIED_COMP_INST_START(cb, *comp, rc);
     }
     goto done;
+  } else if (comp->contained()) {
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_INST, 0, 0);
+    if (NCSCC_RC_SUCCESS == rc) {
+      m_GET_TIME_STAMP(comp->clc_info.inst_cmd_ts);
+      comp->clc_info.inst_retry_cnt++;
+    }
+    goto done;
   }
 
   rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_INSTANTIATE);
@@ -2609,6 +2701,8 @@ uint32_t avnd_comp_clc_restart_term_hdler(AVND_CB *cb, AVND_COMP *comp) {
   /* cleanup the comp */
   if (m_AVND_COMP_TYPE_IS_PROXIED(comp) && comp->pxy_comp != 0)
     rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+  else if (m_AVND_COMP_TYPE_IS_CONTAINED(comp))
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
   else {
     rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
 
@@ -2687,6 +2781,8 @@ uint32_t avnd_comp_clc_restart_termsucc_hdler(AVND_CB *cb, AVND_COMP *comp) {
            !m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))
     /* proxied non-pre-instantiable comp */
     rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CSI_SET, 0, 0);
+  else if (comp->contained() == true)
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_INST, 0, 0);
   else if (m_AVND_COMP_TYPE_IS_PROXIED(comp))
     ; /* do nothing */
   else
@@ -2723,6 +2819,8 @@ uint32_t avnd_comp_clc_restart_termfail_hdler(AVND_CB *cb, AVND_COMP *comp) {
   /* cleanup the comp */
   if (m_AVND_COMP_TYPE_IS_PROXIED(comp) && comp->pxy_comp != 0)
     rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+  else if (m_AVND_COMP_TYPE_IS_CONTAINED(comp))
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
   else
     rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
 
@@ -2758,6 +2856,8 @@ uint32_t avnd_comp_clc_restart_clean_hdler(AVND_CB *cb, AVND_COMP *comp) {
   /* cleanup the comp */
   if (m_AVND_COMP_TYPE_IS_PROXIED(comp) && comp->pxy_comp != 0)
     rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+  else if (m_AVND_COMP_TYPE_IS_CONTAINED(comp))
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
   else
     rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
   if (NCSCC_RC_SUCCESS == rc) {
@@ -3324,6 +3424,8 @@ static uint32_t avnd_comp_clc_restart_restart_hdler(AVND_CB *cb,
 
   if (m_AVND_COMP_TYPE_IS_PROXIED(comp) && comp->pxy_comp != 0)
     rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+  else if (m_AVND_COMP_TYPE_IS_CONTAINED(comp))
+    rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CONTAINED_COMP_CLEAN, 0, 0);
   else
     rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
 

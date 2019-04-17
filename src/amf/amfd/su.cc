@@ -64,6 +64,7 @@ void AVD_SU::initialize() {
   pend_cbk.invocation = 0;
   pend_cbk.admin_oper = (SaAmfAdminOperationIdT)0;
   surestart = false;
+  wait_for_contained_to_quiesce = false;
 }
 
 AVD_SU::AVD_SU() { initialize(); }
@@ -748,6 +749,23 @@ SaAisErrorT avd_su_config_get(const std::string &sg_name, AVD_SG *sg) {
       error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
+
+    if (su->any_container_comp() == true)  {
+      if (su->container() == false) {
+        LOG_ER("%s: comps of other category mixed with container comp: %u",
+               su->name.c_str(), error);
+        error = SA_AIS_ERR_FAILED_OPERATION;
+        goto done2;
+      }
+    }
+    if (su->any_contained_comp() == true)  {
+      if (su->contained() == false) {
+        LOG_ER("%s: comps of other category mixed with contained comp: %u",
+               su->name.c_str(), error);
+        error = SA_AIS_ERR_FAILED_OPERATION;
+        goto done2;
+      }
+    }
   }
 
   if (rc == SA_AIS_ERR_NOT_EXIST) {
@@ -1120,6 +1138,9 @@ done:
 void AVD_SU::unlock_instantiation(SaImmOiHandleT immoi_handle,
                                   SaInvocationT invocation) {
   AVD_AVND *node = get_node_ptr();
+  bool is_container_ready = true;
+  AVD_SU *container_ptr = nullptr;
+  uint32_t rc;
 
   TRACE_ENTER2("'%s'", name.c_str());
 
@@ -1149,6 +1170,15 @@ void AVD_SU::unlock_instantiation(SaImmOiHandleT immoi_handle,
     goto done;
   }
 
+  if (contained() == true) {
+    container_ptr = get_container_su_on_same_node();
+    if ((container_ptr == nullptr) ||
+        (container_ptr->is_ready_for_contained() == false)) {
+      is_container_ready = false;
+      TRACE("Container su not available or ready.");
+    }
+  }
+
   /* Middleware sus are not enabled until node joins. During
      starting of opensaf, if mw su is locked-in and unlock-in
      command is issued, su should get instantiated. */
@@ -1160,10 +1190,16 @@ void AVD_SU::unlock_instantiation(SaImmOiHandleT immoi_handle,
       ((saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) ||
        (sg_of_su->sg_ncs_spec == true)) &&
       (sg_of_su->pref_inservice_sus() >
-       sg_instantiated_su_count(sg_of_su))) {
+       sg_instantiated_su_count(sg_of_su)) &&
+      (is_container_ready == true)) {
     /* When the SU will instantiate then prescence state change message will
        come and so store the callback parameters to send response later on. */
-    if (avd_snd_presence_msg(avd_cb, this, false) == NCSCC_RC_SUCCESS) {
+    if (contained() == true)
+      rc = avd_instantiate_contained_su(avd_cb, container_ptr, this, false);
+    else
+      rc = avd_snd_presence_msg(avd_cb, this, false);
+
+    if (rc == NCSCC_RC_SUCCESS) {
       set_term_state(false);
       set_admin_state(SA_AMF_ADMIN_LOCKED);
       pend_cbk.admin_oper = SA_AMF_ADMIN_UNLOCK_INSTANTIATION;
@@ -2352,7 +2388,7 @@ AVD_AVND *AVD_SU::get_node_ptr(void) const {
  * @param su
  * @return true if SU can be made in-service
  */
-bool AVD_SU::is_in_service(void) {
+bool AVD_SU::is_in_service(void) const {
   AVD_AVND *node = get_node_ptr();
   const AVD_SG *sg = sg_of_su;
   const AVD_APP *app = sg->app;
@@ -2795,4 +2831,122 @@ uint32_t AVD_SU::count_susi_without_fsm(uint32_t fsm) {
       count++;
   }
   return count;
+}
+
+/**
+ * @brief  Checks if all comps of SU are container comps.
+ * @return true/false
+ */
+bool AVD_SU::container(void) const {
+  if (std::all_of(list_of_comp.begin(), list_of_comp.end(),
+                  [&](AVD_COMP *comp) -> bool {
+                    return comp->container();
+                  })) {
+    return !list_of_comp.empty();
+  } else {
+    return false;
+  }
+}
+/**
+ * @brief  Checks if all comps of SU are contained comps.
+ * @return true/false
+ */
+bool AVD_SU::contained(void) const {
+  if (std::all_of(list_of_comp.begin(), list_of_comp.end(),
+                  [&](AVD_COMP *comp) -> bool {
+                    return comp->contained();
+                  })) {
+    return !list_of_comp.empty();
+  } else {
+    return false;
+  }
+}
+/**
+ * @brief  Checks if any comp of SU is a container comp.
+ * @return true/false
+ */
+bool AVD_SU::any_container_comp(void) const {
+  return (std::any_of(list_of_comp.begin(), list_of_comp.end(),
+                  [&](AVD_COMP *comp) -> bool {
+                    return comp->container();
+                  }));
+
+}
+
+/**
+ * @brief  Checks if any comp of SU is a contained comp.
+ * @return true/false
+ */
+bool AVD_SU::any_contained_comp(void) const {
+  return (std::any_of(list_of_comp.begin(), list_of_comp.end(),
+                  [&](AVD_COMP *comp) -> bool {
+                    return comp->contained();
+                  }));
+}
+
+bool AVD_SU::is_ready_for_contained(void) const {
+  /*
+   * Need to check sg_ncs_spec if using containers for OpenSAF middleware
+   * because SU will not be in service at startup
+   */
+  if ((container() == true) && (list_of_susi != nullptr) &&
+      (is_in_service() == true || (sg_of_su->sg_ncs_spec == true)) &&
+      (any_container_csi_assigned() == true))
+    return true;
+  return false;
+}
+
+void AVD_SU::instantiate_associated_contained_sus(void) {
+  TRACE_ENTER();
+  if (is_ready_for_contained() == false) {
+    TRACE_LEAVE();
+    return;
+  }
+  for (AVD_SU_SI_REL *susi = list_of_susi; susi != nullptr;
+       susi = susi->su_next) {
+     if (susi->fsm != AVD_SU_SI_STATE_ASGND)
+       continue;
+     for (AVD_COMP_CSI_REL *compcsi = susi->list_of_csicomp; compcsi;
+          compcsi = compcsi->susi_csicomp_next) {
+       if (compcsi->csi->is_container_csi() == true) {
+         su_on_node->instantiate_contained_sus(this, compcsi->csi);
+       }
+     }
+  }
+  TRACE_LEAVE();
+}
+
+bool AVD_SU::any_container_csi_assigned(void) const {
+  for (AVD_SU_SI_REL *susi = list_of_susi; susi != nullptr;
+       susi = susi->su_next) {
+    if (susi->fsm != AVD_SU_SI_STATE_ASGND)
+      continue;
+    for (AVD_COMP_CSI_REL *compcsi = susi->list_of_csicomp; compcsi;
+         compcsi = compcsi->susi_csicomp_next) {
+      if (compcsi->csi->is_container_csi() == true)
+        return true;
+     }
+  }
+  return false;
+}
+
+AVD_CSI *AVD_SU::get_container_csi(void) {
+  if (list_of_comp.empty())
+    return nullptr;
+  auto comp = list_of_comp.front();
+  return csi_db->find(comp->saAmfCompContainerCsi);
+}
+
+AVD_SU *AVD_SU::get_container_su_on_same_node(void) {
+  AVD_CSI *container_csi = get_container_csi();
+  if (container_csi != nullptr)  {
+    for (AVD_COMP_CSI_REL *compcsi = container_csi->list_compcsi;
+         compcsi;
+         compcsi = compcsi->csi_csicomp_next) {
+      if (compcsi->comp->su->su_on_node == su_on_node)
+        return compcsi->comp->su;
+    }
+  }
+  //TODO:70: return a higher rank su always. It should match other function.
+  return nullptr;
 }

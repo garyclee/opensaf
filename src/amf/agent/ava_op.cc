@@ -83,6 +83,12 @@ uint32_t ava_avnd_msg_prc(AVA_CB *cb, AVSV_NDA_AVA_MSG *msg) {
     }
   }
 
+  if (cbk_info->type == AVSV_AMF_CONTAINED_COMP_INST) {
+    TRACE("contained comp inst callback for %s",
+          osaf_extended_name_borrow(&cbk_info->param.contained_inst.comp_name));
+    cb->container = true;
+  }
+
   /* retrieve the handle record */
   hdl = cbk_info->hdl;
 

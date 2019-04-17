@@ -26,6 +26,7 @@
 #include "amf/amfd/proc.h"
 
 AmfDb<std::string, AVD_CSI> *csi_db = nullptr;
+std::set<std::string> container_csis;
 
 //
 AVD_COMP *AVD_CSI::find_assigned_comp(
@@ -1669,4 +1670,9 @@ void avd_compcsi_cleanup_imm_object(AVD_CL_CB *cb) {
 
 done:
   TRACE_LEAVE();
+}
+
+bool AVD_CSI::is_container_csi(void) const {
+  auto iter(container_csis.find(name));
+  return (iter != container_csis.end()) ? true : false;
 }
