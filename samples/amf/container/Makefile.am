@@ -19,7 +19,7 @@ include $(top_srcdir)/Makefile.common
 MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = \
-	amf_container_demo_script \
+	amf_container_script \
 	AppConfig-container.xml \
 	AppConfig-contained-2N.xml \
 	README
@@ -31,7 +31,7 @@ amf_container_demo_CPPFLAGS = \
 	$(AM_CPPFLAGS)
 
 amf_container_demo_SOURCES = \
-	amf_container_demo.c
+	amf_container.c
 
 amf_container_demo_LDADD = \
 	@SAF_AIS_AMF_LIBS@
