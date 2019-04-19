@@ -3061,7 +3061,7 @@ that network file server is not responding to FS client and that worse situation
 may last for minutes.
 
 This enhancement introduces two administrative operations to let user inform IMM
-about the availibity of the file system. If the server (IMMND) detects the logical
+about the availability of the file system. If the server (IMMND) detects the logical
 unavailability of file system through this variable, such write requests will get
 the more honest code SA_AIS_ERR_TRY_AGAIN rather than SA_AIS_ERR_TIMEOUT.
 

@@ -13873,9 +13873,6 @@ SaAisErrorT ImmModel::admoImmMngtObject(const ImmsvOmAdminOperationInvoke* req,
   valuep = (ImmAttrValue*)avi->second;
 
   auto fs_attr_iter = immObject->mAttrValueMap.find(saImmFileSystemStatus);
-  osafassert(fs_attr_iter != immObject->mAttrValueMap.end());
-  auto fs_attr_value = fs_attr_iter->second;
-
 
   if (req->operationId == SA_IMM_ADMIN_EXPORT) { /* Standard */
     err = SA_AIS_ERR_NOT_SUPPORTED;
@@ -13900,11 +13897,15 @@ SaAisErrorT ImmModel::admoImmMngtObject(const ImmsvOmAdminOperationInvoke* req,
   } else if (req->operationId == SA_IMM_ADMIN_FS_AVAILABLE) {
     LOG_NO("Received: immadm -o %u safRdn=immManagement,safApp=safImmService",
            SA_IMM_ADMIN_FS_AVAILABLE);
+    osafassert(fs_attr_iter != immObject->mAttrValueMap.end());
+    auto fs_attr_value = fs_attr_iter->second;
     sFileSystemAvailable = true;
     fs_attr_value->setValue_int(1);
   } else if (req->operationId == SA_IMM_ADMIN_FS_UNAVAILABLE) {
     LOG_NO("Received: immadm -o %u safRdn=immManagement,safApp=safImmService",
            SA_IMM_ADMIN_FS_UNAVAILABLE);
+    osafassert(fs_attr_iter != immObject->mAttrValueMap.end());
+    auto fs_attr_value = fs_attr_iter->second;
     sFileSystemAvailable = false;
     fs_attr_value->setValue_int(0);
   } else {
