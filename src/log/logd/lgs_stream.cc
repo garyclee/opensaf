@@ -1043,10 +1043,9 @@ done:
  * This handler shall be used on standby only
  *
  * @param stream
- * @param count
- * @return
+ * @return -1 on error
  */
-static int log_rotation_stb(log_stream_t *stream, size_t count) {
+int log_rotation_stb(log_stream_t *stream) {
   int rc = 0;
   int errno_save;
   int errno_ret;
@@ -1058,8 +1057,6 @@ static int log_rotation_stb(log_stream_t *stream, size_t count) {
 
   TRACE_ENTER();
 
-  stream->stb_curFileSize += count;
-
   /* If active node has rotated files there is a new "logFileCurrent"
    * (check pointed). Standby always follows active rotation.
    *
@@ -1068,85 +1065,83 @@ static int log_rotation_stb(log_stream_t *stream, size_t count) {
    * as described above.
    */
 
-  /* XXX Should be handled...??
-   * If local rotate has been done within one second before active is rotating
+  /* If local rotate has been done within one second before active is rotating
    * the file name in stb_logFileCurrent and logFileCurrent may be the same!
    * This means that a rotation on active when standby is running is not
    * guaranteed. This situation though is very unlikely.
    */
   if (stream->logFileCurrent != stream->stb_prev_actlogFileCurrent) {
     TRACE("Active has rotated (follow active)");
-    /* Active has rotated */
+    // Active has rotated
     stream->stb_prev_actlogFileCurrent = stream->logFileCurrent;
-    /* Use close time from active for renaming of closed file
-     */
-
+    // Use close time from active for renaming of closed file
     current_time_str = lgs_get_time(&stream->act_last_close_timestamp);
     do_rotate = true;
-    /* Use same name as active for new current log file */
+    // Use same name as active for new current log file
     new_current_log_filename = stream->logFileCurrent;
   } else if (stream->stb_curFileSize > stream->maxLogFileSize) {
     TRACE("Standby has rotated (filesize)");
-    /* Standby current log file has reached max limit */
-    /* Use internal time since active has not yet rotated */
+    // Standby current log file has reached max limit */
+    // Use internal time since active has not yet rotated
     current_time_str = lgs_get_time(NULL);
     do_rotate = true;
-    /* Create new name for current log file based on local time */
+    // Create new name for current log file based on local time
     new_current_log_filename = stream->fileName + "_" + current_time_str;
   }
 
   if (do_rotate) {
-    /* Time to use as "close time stamp" and "open time stamp" for new
-     * log file as created by active.
-     */
-
-    /* Close current log file */
-    rc = fileclose_h(*stream->p_fd, &errno_ret);
-    *stream->p_fd = -1;
-    if (rc == -1) {
-      LOG_NO("close FAILED: %s", strerror(errno_ret));
-      goto done;
+    // Close current log file
+    if (*stream->p_fd != -1) {
+      rc = fileclose_h(*stream->p_fd, &errno_ret);
+      *stream->p_fd = -1;
+      if (rc == -1) {
+        LOG_NO("Close log file failed: %s", strerror(errno_ret));
+        return rc;
+      }
     }
 
     std::string emptyStr = "";
-    /* Rename file to give it the "close timestamp" */
+    // Rename file to give it the "close timestamp"
     rc = lgs_file_rename_h(root_path, stream->pathName,
                            stream->stb_logFileCurrent, current_time_str,
                            LGS_LOG_FILE_EXT, &emptyStr);
-    if (rc == -1) goto done;
+    if (rc == -1) {
+      LOG_NO("Rename log file failed");
+      return rc;
+    }
 
-    /* Remove oldest file if needed */
+    // Remove oldest file if needed
     if (rotate_if_needed(stream) == -1) {
       TRACE("Old file removal failed");
     }
-
-    /* Save new name for current log file and open it */
+    // Save new name for current log file and open it
     stream->stb_logFileCurrent = new_current_log_filename;
+    // Reset file size
+    stream->stb_curFileSize = 0;
+
     if ((*stream->p_fd = log_file_open(
              root_path, stream, stream->stb_logFileCurrent, &errno_save)) ==
         -1) {
       LOG_IN("Could not open '%s' - %s", stream->stb_logFileCurrent.c_str(),
              strerror(errno_save));
       rc = -1;
-      goto done;
     }
-
-    stream->stb_curFileSize = 0;
   }
 
-done:
   TRACE_LEAVE();
   return rc;
 }
 
 /**
- * Handle log file rotation. Do rotation if needed
+ * Handle log file rotation in ACTIVE node
+ *
+ * Step1: Close the log file and create a new one.
+ * Step2: If number of files > max number of files, deleting the oldest
  *
  * @param stream
- * @param count
  * @return -1 on error
  */
-static int log_rotation_act(log_stream_t *stream, size_t count) {
+int log_rotation_act(log_stream_t *stream) {
   int rc;
   int errno_save;
   int errno_ret;
@@ -1155,58 +1150,49 @@ static int log_rotation_act(log_stream_t *stream, size_t count) {
       static_cast<const char *>(lgs_cfg_get(LGS_IMM_LOG_ROOT_DIRECTORY));
   std::string emptyStr = "";
 
-  /* If file size > max file size:
-   *  - Close the log file and create a new.
-   *  - If number of files > max number of files delete the oldest
-   */
-  rc = 0;
-  stream->curFileSize += count;
+  TRACE_ENTER();
+  osaf_clock_gettime(CLOCK_REALTIME, &closetime_tspec);
+  time_t closetime = closetime_tspec.tv_sec;
+  char *current_time = lgs_get_time(&closetime);
 
-  if ((stream->curFileSize) > stream->maxLogFileSize) {
-    osaf_clock_gettime(CLOCK_REALTIME, &closetime_tspec);
-    time_t closetime = closetime_tspec.tv_sec;
-    char *current_time = lgs_get_time(&closetime);
-
-    /* Close current log file */
+  // Close current log file
+  if (*stream->p_fd != -1) {
     rc = fileclose_h(*stream->p_fd, &errno_ret);
     *stream->p_fd = -1;
     if (rc == -1) {
-      LOG_NO("close FAILED: %s", strerror(errno_ret));
-      goto done;
-    }
-
-    /* Rename file to give it the "close timestamp" */
-    rc = lgs_file_rename_h(root_path, stream->pathName, stream->logFileCurrent,
-                           current_time, LGS_LOG_FILE_EXT, &emptyStr);
-    if (rc == -1) goto done;
-
-    /* Save time when logFileCurrent was closed */
-    stream->act_last_close_timestamp = closetime;
-
-    /* Invalidate logFileCurrent for this stream */
-    stream->logFileCurrent[0] = 0;
-
-    /* Reset file size for current log file */
-    stream->curFileSize = 0;
-
-    /* Remove oldest file if needed */
-    if (rotate_if_needed(stream) == -1) {
-      TRACE("Old file removal failed");
-    }
-
-    /* Create a new file name that includes "open time stamp" and open the file
-     */
-    stream->logFileCurrent = stream->fileName + "_" + current_time;
-    if ((*stream->p_fd = log_file_open(
-             root_path, stream, stream->logFileCurrent, &errno_save)) == -1) {
-      LOG_IN("Could not open '%s' - %s", stream->logFileCurrent.c_str(),
-             strerror(errno_save));
-      rc = -1;
-      goto done;
+      LOG_NO("Close log file failed: %s", strerror(errno_ret));
+      return rc;
     }
   }
 
-done:
+  // Rename file to give it the "close timestamp"
+  rc = lgs_file_rename_h(root_path, stream->pathName, stream->logFileCurrent,
+                         current_time, LGS_LOG_FILE_EXT, &emptyStr);
+  if (rc == -1) {
+    LOG_NO("Rename log file failed");
+    return rc;
+  }
+
+  // Save time when logFileCurrent was closed
+  stream->act_last_close_timestamp = closetime;
+  // Invalidate logFileCurrent for this stream
+  stream->logFileCurrent[0] = 0;
+  // Reset file size for current log file
+  stream->curFileSize = 0;
+  // Remove oldest file if needed
+  if (rotate_if_needed(stream) == -1)
+    TRACE("Old file removal failed");
+
+  // Create a new file name that includes "open time stamp" and open the file
+  stream->logFileCurrent = stream->fileName + "_" + current_time;
+  if ((*stream->p_fd = log_file_open(
+      root_path, stream, stream->logFileCurrent, &errno_save)) == -1) {
+    LOG_IN("Could not open '%s' - %s", stream->logFileCurrent.c_str(),
+           strerror(errno_save));
+    rc = -1;
+  }
+
+  TRACE_LEAVE();
   return rc;
 }
 
@@ -1328,9 +1314,12 @@ int log_stream_write_h(log_stream_t *stream, const char *buf, size_t count) {
    *       for split file system.
    */
   if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) {
-    rc = log_rotation_act(stream, count);
+    stream->curFileSize += count;
+    if (stream->curFileSize > stream->maxLogFileSize)
+      rc = log_rotation_act(stream);
   } else {
-    rc = log_rotation_stb(stream, count);
+    stream->stb_curFileSize += count;
+    rc = log_rotation_stb(stream);
   }
 
 done:
@@ -1544,6 +1533,8 @@ int log_stream_config_change(bool create_files_f, const std::string &root_path,
       ret = -1;
     }
   }
+
+  rotate_if_needed(stream);
 
   /* Reset file size for new log file */
   stream->curFileSize = 0;

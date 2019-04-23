@@ -81,6 +81,12 @@ static std::vector<std::string> file_path_list;
 /* FUNCTIONS
  * ---------
  */
+static void lgs_admin_change_filter(
+    SaImmOiHandleT immOiHandle, SaInvocationT invocation,
+    SaConstStringT objectName, const SaImmAdminOperationParamsT_2 *parameter);
+static void lgs_admin_rotate_log_file(SaImmOiHandleT immOiHandle,
+                                      SaInvocationT invocation,
+                                      SaConstStringT objectName);
 
 static void report_oi_error(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
                             const char *format, ...)
@@ -127,14 +133,18 @@ static void report_om_error(SaImmOiHandleT immOiHandle,
 
   va_list ap;
   va_start(ap, format);
-  (void)vsnprintf(ao_err_string, 256, format, ap);
+  (void)vsnprintf(ao_err_string, sizeof(ao_err_string), format, ap);
   va_end(ap);
 
   TRACE("%s", ao_err_string);
-  if (saImmOiAdminOperationResult_o2(immOiHandle, invocation,
-                                     SA_AIS_ERR_INVALID_PARAM,
-                                     ao_err_params) == SA_AIS_ERR_BAD_HANDLE) {
+  SaAisErrorT rc = saImmOiAdminOperationResult_o2(immOiHandle, invocation,
+                                                  SA_AIS_ERR_INVALID_PARAM,
+                                                  ao_err_params);
+  if (rc == SA_AIS_ERR_BAD_HANDLE) {
     lgsOiCreateBackground();
+  } else if (rc != SA_AIS_OK) {
+    LOG_ER("immutil_saImmOiAdminOperationResult failed %s", saf_error(rc));
+    osaf_abort(0);
   }
 }
 
@@ -376,122 +386,26 @@ static void adminOperationCallback(
     SaImmOiHandleT immOiHandle, SaInvocationT invocation,
     const SaNameT *objectName, SaImmAdminOperationIdT opId,
     const SaImmAdminOperationParamsT_2 **params) {
-  SaUint32T severityFilter;
   const SaImmAdminOperationParamsT_2 *param = params[0];
-  log_stream_t *stream;
-  SaAisErrorT ais_rc = SA_AIS_OK;
   SaConstStringT objName = osaf_extended_name_borrow(objectName);
 
   TRACE_ENTER2("%s", objName);
 
   if (lgs_cb->ha_state != SA_AMF_HA_ACTIVE) {
     LOG_ER("admin op callback in applier");
-    goto done;
-  }
-
-  if ((stream = log_stream_get_by_name(objName)) == NULL) {
-    report_om_error(immOiHandle, invocation, "Stream %s not found", objName);
-    goto done;
-  }
-
-  if (opId == SA_LOG_ADMIN_CHANGE_FILTER) {
-    /* Only allowed to update runtime objects (application streams) */
-    if (stream->streamType != STREAM_TYPE_APPLICATION_RT) {
-      report_om_error(immOiHandle, invocation,
-                      "Admin op change filter for non app stream");
-      goto done;
+  } else if (opId == SA_LOG_ADMIN_CHANGE_FILTER) {
+    lgs_admin_change_filter(immOiHandle, invocation, objName, param);
+  } else if (opId == SA_LOG_ADMIN_ROTATE_FILE) {
+    if (param != nullptr) {
+        report_om_error(immOiHandle, invocation,
+                        "Admin op rotate log file: parameters is not empty");
+    } else {
+      lgs_admin_rotate_log_file(immOiHandle, invocation, objName);
     }
-
-    /* Not allow perform adm op on configurable app streams */
-    if (stream->isRtStream != SA_TRUE) {
-      ais_rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation,
-                                                   SA_AIS_ERR_NOT_SUPPORTED);
-      // TODO(Lennart) May be relevant to recover OI if BAD HANDLE
-      if (ais_rc != SA_AIS_OK) {
-        LOG_ER("immutil_saImmOiAdminOperationResult failed %s",
-               saf_error(ais_rc));
-        osaf_abort(0);
-      }
-
-      goto done;
-    }
-
-    if (param == NULL) {
-      /* No parameters given in admin op */
-      report_om_error(immOiHandle, invocation,
-                      "Admin op change filter: parameters are missing");
-      goto done;
-    }
-
-    if (strcmp(param->paramName, "saLogStreamSeverityFilter") != 0) {
-      report_om_error(immOiHandle, invocation,
-                      "Admin op change filter, invalid param name");
-      goto done;
-    }
-
-    if (param->paramType != SA_IMM_ATTR_SAUINT32T) {
-      report_om_error(immOiHandle, invocation,
-                      "Admin op change filter: invalid parameter type");
-      goto done;
-    }
-
-    severityFilter = *((SaUint32T *)param->paramBuffer);
-
-    if (severityFilter > 0x7f) { /* not a level, a bitmap */
-      report_om_error(immOiHandle, invocation,
-                      "Admin op change filter: invalid severity");
-      goto done;
-    }
-
-    if (severityFilter == stream->severityFilter) {
-      ais_rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation,
-                                                   SA_AIS_ERR_NO_OP);
-      // TODO(Lennart) May be relevant to recover OI if BAD HANDLE
-      if (ais_rc != SA_AIS_OK) {
-        LOG_ER("immutil_saImmOiAdminOperationResult failed %s",
-               saf_error(ais_rc));
-        osaf_abort(0);
-      }
-
-      goto done;
-    }
-
-    TRACE("Changing severity for stream %s to %u", stream->name.c_str(),
-          severityFilter);
-    stream->severityFilter = severityFilter;
-
-    ais_rc = immutil_update_one_rattr(
-        immOiHandle, objName,
-        const_cast<SaImmAttrNameT>("saLogStreamSeverityFilter"),
-        SA_IMM_ATTR_SAUINT32T, &stream->severityFilter);
-    if (ais_rc != SA_AIS_OK) {
-      LOG_ER("%s: immutil_update_one_rattr failed %s", __FUNCTION__,
-             saf_error(ais_rc));
-      osaf_abort(0);
-    }
-
-    ais_rc =
-        immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
-    // TODO(Lennart) May be relevant to recover OI if BAD HANDLE
-    if (ais_rc != SA_AIS_OK) {
-      LOG_ER("immutil_saImmOiAdminOperationResult failed %s",
-             saf_error(ais_rc));
-      osaf_abort(0);
-    }
-
-    /* Send changed severity filter to clients */
-    lgs_send_severity_filter_to_clients(stream->streamId, severityFilter);
-
-    /* Checkpoint to standby LOG server */
-    ckpt_stream_config(stream);
   } else {
-    report_om_error(
-        immOiHandle, invocation,
-        "Invalid operation ID, should be %d (one) for change filter",
-        SA_LOG_ADMIN_CHANGE_FILTER);
+    report_om_error( immOiHandle, invocation, "Invalid operation ID");
   }
 
-done:
   TRACE_LEAVE();
 }
 
@@ -3400,4 +3314,131 @@ done_fin_Om:
 done:
   TRACE_LEAVE();
   return rc_attr_val;
+}
+
+/**
+ * Handle admin operation that changes the severity filter
+ *
+ * @param immOiHandle
+ * @param invocation
+ * @param objectName
+ * @param stream
+ * @param parameter
+ */
+static void lgs_admin_change_filter(
+    SaImmOiHandleT immOiHandle, SaInvocationT invocation,
+    SaConstStringT objectName, const SaImmAdminOperationParamsT_2 *parameter) {
+  SaAisErrorT rc = SA_AIS_OK;
+  TRACE_ENTER();
+
+  osafassert(objectName != nullptr);
+  log_stream_t *stream = log_stream_get_by_name(objectName);
+
+  if (parameter == nullptr) {
+      // No parameters given in admin op
+      report_om_error(immOiHandle, invocation,
+                      "Admin op change filter: parameters are missing");
+      return;
+  }
+
+  SaUint32T severityFilter =
+        *(reinterpret_cast<SaUint32T *>(parameter->paramBuffer));
+
+  if (stream == nullptr) {
+    report_om_error(immOiHandle, invocation, "Stream %s not found", objectName);
+  } else if (stream->streamType != STREAM_TYPE_APPLICATION_RT) {
+    // Only allowed to update runtime objects (application streams)
+    report_om_error(immOiHandle, invocation,
+                    "Admin op change filter for non runtime app stream");
+  } else if (strcmp(parameter->paramName, "saLogStreamSeverityFilter") != 0) {
+    report_om_error(immOiHandle, invocation,
+                    "Admin op change filter, invalid param name");
+  } else if (parameter->paramType != SA_IMM_ATTR_SAUINT32T) {
+    report_om_error(immOiHandle, invocation,
+                    "Admin op change filter: invalid parameter type");
+  } else if (severityFilter > 0x7f) {
+    report_om_error(immOiHandle, invocation,
+                    "Admin op change filter: invalid severity");
+  } else if (severityFilter == stream->severityFilter) {
+    rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation,
+                                             SA_AIS_ERR_NO_OP);
+    if (rc == SA_AIS_ERR_BAD_HANDLE) {
+      lgsOiCreateBackground();
+    } else if (rc != SA_AIS_OK) {
+      LOG_ER("immutil_saImmOiAdminOperationResult failed %s", saf_error(rc));
+      osaf_abort(0);
+    }
+  } else {
+    TRACE("Changing severity for stream %s to %u",
+          stream->name.c_str(), severityFilter);
+    stream->severityFilter = severityFilter;
+
+    rc = immutil_update_one_rattr(immOiHandle, objectName,
+                       const_cast<SaImmAttrNameT>("saLogStreamSeverityFilter"),
+                       SA_IMM_ATTR_SAUINT32T, &stream->severityFilter);
+    if (rc == SA_AIS_ERR_BAD_HANDLE) {
+      lgsOiCreateBackground();
+    } else if (rc != SA_AIS_OK) {
+      LOG_ER("%s: update_one_rattr failed %s", __FUNCTION__, saf_error(rc));
+      osaf_abort(0);
+    }
+
+    rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation,
+                                             SA_AIS_OK);
+    if (rc == SA_AIS_ERR_BAD_HANDLE) {
+      lgsOiCreateBackground();
+    } else if (rc != SA_AIS_OK) {
+      LOG_ER("immutil_saImmOiAdminOperationResult failed %s", saf_error(rc));
+      osaf_abort(0);
+    }
+
+    // Send changed severity filter to all clients that subscribed the callback
+    lgs_send_severity_filter_to_clients(stream->streamId, severityFilter);
+
+    // Checkpoint to standby LOG server
+    ckpt_stream_config(stream);
+  }
+  TRACE_LEAVE();
+}
+
+/**
+ * Handle admin operation that rotates the log file
+ *
+ * @param immOiHandle
+ * @param invocation
+ * @param objectName
+ */
+static void lgs_admin_rotate_log_file(SaImmOiHandleT immOiHandle,
+                                      SaInvocationT invocation,
+                                      SaConstStringT objectName) {
+  TRACE_ENTER();
+
+  osafassert(objectName != nullptr);
+  log_stream_t *stream = log_stream_get_by_name(objectName);
+
+  if (stream == nullptr) {
+    report_om_error(immOiHandle, invocation, "Stream %s not found", objectName);
+    return;
+  }
+
+  // Rotate log file.
+  // Send the result "FAILED_OPERATION" to admin if the rotation fails
+  SaAisErrorT result = SA_AIS_OK;
+  int ret = log_rotation_act(stream);
+  if (ret == 0)
+    // Checkpoint the stream to standby to rotate the log file
+    // in case the split file system
+    ckpt_stream_config(stream);
+  else
+    result = SA_AIS_ERR_FAILED_OPERATION;
+
+  result = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, result);
+  if (result == SA_AIS_ERR_BAD_HANDLE) {
+    lgsOiCreateBackground();
+  } else if (result != SA_AIS_OK) {
+    LOG_ER("immutil_saImmOiAdminOperationResult failed %s", saf_error(result));
+    osaf_abort(0);
+  }
+
+  TRACE_LEAVE();
 }

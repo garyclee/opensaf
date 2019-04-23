@@ -5479,6 +5479,85 @@ done:
 		       &v_saLogStreamFixedLogRecordSize, SA_IMM_ATTR_SAUINT32T);
 }
 
+//
+// Test case for verifying the admin operation rotates log file is accepted
+// Steps:
+// 1. Create configuration app stream
+// 2. Verify command admin operation rotate log file is ok
+// 3. Delete configuration app stream
+//
+void admin_rotate_log_file(void)
+{
+	int rc = 0;
+	char command[MAX_DATA];
+	const uint64_t kWaitTime10s = 10 * 1000;
+	const char *object_dn =
+			"safLgStrCfg=admin_rotate_file,safApp=safLogService";
+
+	// Create configuration application stream
+	sprintf(command, "immcfg -c SaLogStreamConfig %s "
+			"-a saLogStreamPathName=. "
+			"-a saLogStreamFileName=admin_rotate_file ", object_dn);
+	rc = systemCall(command);
+	if (rc == 0) {
+		// Admin operation rotate log file
+		sprintf(command, "immadm -o 2 %s", object_dn);
+		struct timespec timeout_time;
+		osaf_set_millis_timeout(kWaitTime10s, &timeout_time);
+		do {
+			// Do the retries in case rotate file fail due to
+			// filesystem issue
+			osaf_nanosleep(&kOneSecond);
+			rc = systemCall(command);
+		} while (rc != 0 && !osaf_is_timeout(&timeout_time));
+
+		rc_validate(rc, 0);
+
+		// Delete object
+		sprintf(command, "immcfg -d %s", object_dn);
+		systemCall(command);
+	} else {
+		rc_validate(rc, 0);
+	}
+}
+
+//
+// Test case for verifying the admin operation rotates log file with
+// parameter fails
+// Steps:
+// 1. Create configuration app stream
+// 2. Verify command admin operation rotates log file with parameter fails
+// 3. Delete configuration app stream
+//
+void admin_rotate_log_file_with_param(void)
+{
+	int rc = 0;
+	char command[MAX_DATA];
+	const char *object_dn =
+			"safLgStrCfg=admin_rotate_file1,safApp=safLogService";
+
+	// Create configuration application stream
+	sprintf(command, "immcfg -c SaLogStreamConfig %s"
+			" -a saLogStreamPathName=. "
+			"-a saLogStreamFileName=admin_rotate_file1 ",
+			object_dn);
+	rc = systemCall(command);
+	if (rc == 0) {
+		// Admin operation opId = 2 with parameter
+		sprintf(command, "immadm -o 2 -p "
+				"saLogStreamSeverityFilter:SA_UINT32_T:7 %s >"
+				" /dev/null 2>&1 ", object_dn);
+		rc = system(command);
+		rc_validate(WEXITSTATUS(rc), 1);
+
+		// Delete object
+		sprintf(command, "immcfg -d %s", object_dn);
+		systemCall(command);
+	} else {
+		rc_validate(rc, 0);
+	}
+}
+
 __attribute__((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -5835,4 +5914,8 @@ __attribute__((constructor)) static void saOiOperations_constructor(void)
 	test_case_add(
 	    6, verLogFileRotate,
 	    "Verify that log file is not rotated if file size doesn't reach max file size (ticket1439)");
+	test_case_add(6, admin_rotate_log_file,
+		      "Verify admin operation rotate log file is accepted");
+	test_case_add(6, admin_rotate_log_file_with_param,
+		 "Verify admin operation rotate log file with parameter fails");
 }
