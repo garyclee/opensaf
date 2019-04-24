@@ -4496,8 +4496,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(
 					      info_result->key.vdest_id, req, 0,
 					      info_result->key.adest, pri);
 		if ((svc_cb->subtn_info->prev_ver_sub_count == 0) &&
-		    (tipc_mode_enabled) && (tipc_mcast_enabled) &&
-		    (to_msg.bcast_buff_len < MDS_DIRECT_BUF_MAXSIZE)) {
+		    (tipc_mode_enabled) && (tipc_mcast_enabled)) {
 			m_MDS_LOG_DBG(
 			    "MDTM: Break while(1) prev_ver_sub_count: %d  svc_id =%s(%d)  to_msg.bcast_buff_len: %d ",
 			    svc_cb->subtn_info->prev_ver_sub_count,

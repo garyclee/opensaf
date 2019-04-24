@@ -2856,6 +2856,7 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 	uint16_t frag_val = 0;
 	uint32_t sum_mds_hdr_plus_mdtm_hdr_plus_len;
 	int version = req->msg_arch_word & 0x7;
+	uint32_t ret = NCSCC_RC_SUCCESS;
 
 	if (version > 1) {
 		sum_mds_hdr_plus_mdtm_hdr_plus_len =
@@ -2914,95 +2915,66 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 			frag_val = NO_FRAG_BIT | i;
 		}
 		{
+			uint32_t hdr_plus = (i == 1) ?
+			    sum_mds_hdr_plus_mdtm_hdr_plus_len : MDTM_FRAG_HDR_PLUS_LEN_2;
 			uint8_t *body = NULL;
 			body = calloc(1, len_buf);
+			p8 = (uint8_t *)m_MMGR_DATA_AT_START(usrbuf, len_buf - hdr_plus,
+			    (char *)(body + hdr_plus));
+			if (p8 != (body + hdr_plus))
+				memcpy((body + hdr_plus), p8, len_buf - hdr_plus);
 			if (i == 1) {
-				p8 = (uint8_t *)m_MMGR_DATA_AT_START(
-				    usrbuf,
-				    (len_buf -
-				     sum_mds_hdr_plus_mdtm_hdr_plus_len),
-				    (char
-					 *)(body +
-					    sum_mds_hdr_plus_mdtm_hdr_plus_len));
-
-				if (p8 !=
-				    (body + sum_mds_hdr_plus_mdtm_hdr_plus_len))
-					memcpy(
-					    (body +
-					     sum_mds_hdr_plus_mdtm_hdr_plus_len),
-					    p8,
-					    (len_buf -
-					     sum_mds_hdr_plus_mdtm_hdr_plus_len));
-
 				if (NCSCC_RC_SUCCESS !=
 				    mdtm_add_mds_hdr(body, req)) {
 					m_MDS_LOG_ERR(
 					    "MDTM: frg MDS hdr addition failed\n");
-					free(body);
-					m_MMGR_FREE_BUFR_LIST(usrbuf);
-					return NCSCC_RC_FAILURE;
-				}
-
-				if (NCSCC_RC_SUCCESS !=
-				    mdtm_add_frag_hdr(body, len_buf, seq_num,
-						      frag_val)) {
-					m_MDS_LOG_ERR(
-					    "MDTM: Frag hdr addition failed\n");
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
 					free(body);
 					return NCSCC_RC_FAILURE;
 				}
-				m_MDS_LOG_DBG(
-				    "MDTM:Sending message with Service Seqno=%d, Fragment Seqnum=%d, frag_num=%d, TO Dest_Tipc_id=<0x%08x:%u>",
-				    req->svc_seq_num, seq_num, frag_val,
-				    id.node, id.ref);
-				mdtm_sendto(body, len_buf, id);
-				m_MMGR_REMOVE_FROM_START(
-				    &usrbuf,
-				    len_buf -
-					sum_mds_hdr_plus_mdtm_hdr_plus_len);
-				free(body);
-				len =
-				    len - (len_buf -
-					   sum_mds_hdr_plus_mdtm_hdr_plus_len);
-			} else {
-				p8 = (uint8_t *)m_MMGR_DATA_AT_START(
-				    usrbuf, len_buf - MDTM_FRAG_HDR_PLUS_LEN_2,
-				    (char *)(body + MDTM_FRAG_HDR_PLUS_LEN_2));
-				if (p8 != (body + MDTM_FRAG_HDR_PLUS_LEN_2))
-					memcpy(
-					    (body + MDTM_FRAG_HDR_PLUS_LEN_2),
-					    p8,
-					    len_buf - MDTM_FRAG_HDR_PLUS_LEN_2);
-
-				if (NCSCC_RC_SUCCESS !=
-				    mdtm_add_frag_hdr(body, len_buf, seq_num,
-						      frag_val)) {
-					m_MDS_LOG_ERR(
-					    "MDTM: Frag hde addition failed\n");
-					m_MMGR_FREE_BUFR_LIST(usrbuf);
-					free(body);
-					return NCSCC_RC_FAILURE;
-				}
-				m_MDS_LOG_DBG(
-				    "MDTM:Sending message with Service Seqno=%d, Fragment Seqnum=%d, frag_num=%d, TO Dest_Tipc_id=<0x%08x:%u>",
-				    req->svc_seq_num, seq_num, frag_val,
-				    id.node, id.ref);
-				mdtm_sendto(body, len_buf, id);
-				m_MMGR_REMOVE_FROM_START(
-				    &usrbuf,
-				    (len_buf - MDTM_FRAG_HDR_PLUS_LEN_2));
-				free(body);
-				len =
-				    len - (len_buf - MDTM_FRAG_HDR_PLUS_LEN_2);
-				if (len == 0)
-					break;
 			}
+			if (NCSCC_RC_SUCCESS !=
+			    mdtm_add_frag_hdr(body, len_buf, seq_num,
+					      frag_val)) {
+				m_MDS_LOG_ERR(
+				    "MDTM: Frag hde addition failed\n");
+				m_MMGR_FREE_BUFR_LIST(usrbuf);
+				free(body);
+				return NCSCC_RC_FAILURE;
+			}
+			if (((req->snd_type == MDS_SENDTYPE_RBCAST) ||
+			     (req->snd_type == MDS_SENDTYPE_BCAST)) &&
+			    (version > 0) && (tipc_mcast_enabled)) {
+				m_MDS_LOG_DBG(
+				    "MDTM:Send Multicast message with Service Seqno=%d, Fragment Seqnum=%d, frag_num=%d "
+				    "From svc_id = %s(%d) TO svc_id = %s(%d)",
+				    req->svc_seq_num, seq_num, frag_val,
+				    get_svc_names(req->src_svc_id), req->src_svc_id,
+				    get_svc_names(req->dest_svc_id), req->dest_svc_id);
+				ret = mdtm_mcast_sendto(body, len_buf, req);
+			} else {
+				m_MDS_LOG_DBG(
+				    "MDTM:Sending message with Service Seqno=%d, Fragment Seqnum=%d, frag_num=%d, TO Dest_Tipc_id=<0x%08x:%u>",
+				    req->svc_seq_num, seq_num, frag_val,
+				    id.node, id.ref);
+				ret = mdtm_sendto(body, len_buf, id);
+			}
+			if (ret != NCSCC_RC_SUCCESS) {
+				// Failed to send a fragmented msg, stop sending
+				m_MMGR_FREE_BUFR_LIST(usrbuf);
+				free(body);
+				break;
+			}
+			m_MMGR_REMOVE_FROM_START(&usrbuf, len_buf - hdr_plus);
+			free(body);
+			len = len - (len_buf - hdr_plus);
+			if (len == 0)
+				break;
 		}
 		i++;
 		frag_val = 0;
 	}
-	return NCSCC_RC_SUCCESS;
+	return ret;
 }
 
 /*********************************************************
@@ -3134,6 +3106,8 @@ static uint32_t mdtm_mcast_sendto(void *buffer, size_t size,
 		m_MDS_LOG_INFO("MDTM: Successfully sent message");
 		return NCSCC_RC_SUCCESS;
 	} else {
+		m_MDS_LOG_ERR("MDTM: Failed to send Multicast message err :%s",
+			      strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 }
