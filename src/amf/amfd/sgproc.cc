@@ -478,6 +478,13 @@ static uint32_t sg_su_failover_func(AVD_SU *su) {
     goto done;
   }
 
+  if (su->su_on_node->actv_ctrl_reboot_in_progress) {
+    TRACE("'%s' is already going down, so not doing SU failover",
+          su->name.c_str());
+    rc = NCSCC_RC_SUCCESS;
+    goto done;
+  }
+
   su->set_oper_state(SA_AMF_OPERATIONAL_DISABLED);
   su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
   if (su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED)

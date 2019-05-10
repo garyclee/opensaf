@@ -121,6 +121,7 @@ void AVD_AVND::initialize() {
   clm_pend_inv = {};
   clm_change_start_preceded = {};
   recvr_fail_sw = {};
+  actv_ctrl_reboot_in_progress = {};
   admin_ng = {};
 }
 

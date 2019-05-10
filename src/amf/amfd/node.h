@@ -140,6 +140,7 @@ class AVD_AVND {
                                     CLM completed cb. */
   bool recvr_fail_sw;            /* to indicate there was node reboot because of node
                                     failover/switchover.*/
+  bool actv_ctrl_reboot_in_progress;
   AVD_AMF_NG *admin_ng;          /* points to the nodegroup on which admin operation is
                                     going on.*/
   uint16_t node_up_msg_count;    /* to count of node_up msg that director had

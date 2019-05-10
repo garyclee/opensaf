@@ -1802,6 +1802,9 @@ void avd_d2n_reboot_snd(AVD_AVND *node) {
   if (avd_d2n_msg_snd(avd_cb, node, d2n_msg) != NCSCC_RC_SUCCESS) {
     LOG_ER("%s: snd to %x failed", __FUNCTION__, node->node_info.nodeId);
     d2n_msg_free(d2n_msg);
+  } else if (node->node_info.nodeId == avd_cb->node_id_avd) {
+    TRACE("rebooting active amf director which is ourself");
+    node->actv_ctrl_reboot_in_progress = true;
   }
 }
 
