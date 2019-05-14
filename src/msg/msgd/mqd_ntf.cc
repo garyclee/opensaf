@@ -171,19 +171,6 @@ static void updateQueueGroup(MQD_CB *cb,
   TRACE_LEAVE();
 }
 
-static bool isMSGStateChange(const SaNtfClassIdT &classId) {
-  TRACE_ENTER();
-  bool status(false);
-
-  if (classId.vendorId == SA_NTF_VENDOR_ID_SAF &&
-      classId.majorId == SA_SVC_MSG) {
-    status = true;
-  }
-
-  TRACE_LEAVE2("%i", status);
-  return status;
-}
-
 static void handleMsgObjectStateChangeNotification(
   MQD_CB *cb,
   const SaNtfStateChangeNotificationT& stateChangeNotification) {
@@ -219,22 +206,6 @@ static void handleMsgObjectStateChangeNotification(
   TRACE_LEAVE();
 }
 
-static void handleStateChangeNotification(
-  MQD_CB *cb,
-  const SaNtfStateChangeNotificationT& stateChangeNotification) {
-  TRACE_ENTER();
-
-  if (stateChangeNotification.notificationHeader.notificationClassId &&
-      isMSGStateChange(
-          *stateChangeNotification.notificationHeader.notificationClassId)) {
-    handleMsgObjectStateChangeNotification(cb, stateChangeNotification);
-  } else {
-    TRACE("ignoring non-MSG state change notification");
-  }
-
-  TRACE_LEAVE();
-}
-
 void mqdNtfNotificationCallback(SaNtfSubscriptionIdT subscriptionId,
                                 const SaNtfNotificationsT *notification) {
   TRACE_ENTER();
@@ -257,7 +228,7 @@ void mqdNtfNotificationCallback(SaNtfSubscriptionIdT subscriptionId,
     }
 
     if (notification->notificationType == SA_NTF_TYPE_STATE_CHANGE) {
-      handleStateChangeNotification(
+      handleMsgObjectStateChangeNotification(
           cb,
           notification->notification.stateChangeNotification);
     } else {
@@ -276,11 +247,13 @@ SaAisErrorT mqdInitNtfSubscriptions(SaNtfHandleT ntfHandle) {
   SaAisErrorT rc(SA_AIS_OK);
 
   do {
+    const int numMinorIds(4);
+
     SaNtfStateChangeNotificationFilterT filter;
 
     rc = saNtfStateChangeNotificationFilterAllocate(
       ntfHandle,
-      &filter, 0, 0, 0, 0, 0, 0);
+      &filter, 1, 0, 0, numMinorIds, 0, 0);
 
     if (rc != SA_AIS_OK) {
       LOG_ER("saNtfAttributeChangeNotificationFilterAllocate"
@@ -288,6 +261,18 @@ SaAisErrorT mqdInitNtfSubscriptions(SaNtfHandleT ntfHandle) {
         rc);
       break;
     }
+
+    *filter.notificationFilterHeader.eventTypes = SA_NTF_OBJECT_STATE_CHANGE;
+
+    for (int i(0); i < numMinorIds; i++) {
+      filter.notificationFilterHeader.notificationClassIds[i].vendorId =
+        SA_NTF_VENDOR_ID_SAF;
+      filter.notificationFilterHeader.notificationClassIds[i].majorId =
+        SA_SVC_MSG;
+      filter.notificationFilterHeader.notificationClassIds[i].minorId =
+        i + 0x65;
+    }
+
 
     SaNtfNotificationTypeFilterHandlesT filterHandles = {
       0, 0, filter.notificationFilterHandle, 0, 0
