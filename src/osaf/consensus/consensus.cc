@@ -295,6 +295,7 @@ bool Consensus::ReloadConfiguration() {
       continue;
     }
     int rc;
+    TRACE("Setting '%s' to '%s'", kv.first.c_str(), kv.second.c_str());
     rc = setenv(kv.first.c_str(), kv.second.c_str(), 1);
     osafassert(rc == 0);
   }

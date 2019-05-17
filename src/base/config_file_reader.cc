@@ -36,6 +36,18 @@ static void trim(std::string& str) {
   right_trim(str);
 }
 
+static void strip_quotes(std::string& str) {
+  // trim leading and trailing quotes
+  if (str.front() == '"' ||
+      str.front() == '\'') {
+    str.erase(0, 1);  // delete first char
+  }
+  if (str.back() == '"' ||
+    str.back() == '\'') {
+    str.pop_back();  // delete last char
+  }
+}
+
 ConfigFileReader::SettingsMap ConfigFileReader::ParseFile(
     const std::string& filename) {
   const std::string prefix("export");
@@ -79,6 +91,9 @@ ConfigFileReader::SettingsMap ConfigFileReader::ParseFile(
       trim(key);
       std::string value = line.substr(equal + 1);
       trim(value);
+
+      strip_quotes(key);
+      strip_quotes(value);
 
       map[key] = value;
     }
