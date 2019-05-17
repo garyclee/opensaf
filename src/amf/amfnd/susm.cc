@@ -2117,6 +2117,7 @@ uint32_t avnd_su_pres_uninst_suinst_hdler(AVND_CB *cb, AVND_SU *su,
                      curr_comp->name.c_str());
               goto done;
             }
+            break;
           } else {
             TRACE("no active container available; not instantiating contained");
             goto done;
