@@ -116,12 +116,13 @@ uint32_t avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt) {
       avnd_diq_rec_del(cb, rec);
       continue;
     } else {
+      if ((rcv_id + 1) == (*((uint32_t *)(&rec->msg.info.avd->msg_info)))) {
+        msg_found = true;
+      }
       avnd_diq_rec_send(cb, rec);
 
       TRACE_1("AVND record %u sent, upon fail-over",
               *((uint32_t *)(&rec->msg.info.avd->msg_info)));
-
-      msg_found = true;
     }
     ++iter;
   }
@@ -131,7 +132,11 @@ uint32_t avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt) {
     LOG_EM(
         "AVND record not found, after failover, snd_msg_id = %u, receive id = %u",
         cb->snd_msg_id, info->rcv_id_cnt);
-    return NCSCC_RC_FAILURE;
+    opensaf_reboot(
+        avnd_cb->node_info.nodeId,
+        osaf_extended_name_borrow(&avnd_cb->node_info.executionEnvironment),
+        "AVND record not found, after failover");
+    exit(0);
   }
 
   /*
