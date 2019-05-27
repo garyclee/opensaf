@@ -215,6 +215,18 @@ timespec* Role::Poll(timespec* ts) {
                     is_candidate).detach();
       }
     }
+  } else if (role_ == PCS_RDA_ACTIVE) {
+    RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+    if (cb->consensus_service_state == ConsensusState::kUnknown ||
+        cb->consensus_service_state == ConsensusState::kDisconnected) {
+      // consensus service was previously disconnected, refresh state
+      Consensus consensus_service;
+      if (consensus_service.IsEnabled() == true &&
+        cb->state_refresh_thread_started == false) {
+        cb->state_refresh_thread_started = true;
+        std::thread(&Role::RefreshConsensusState, this, cb).detach();
+      }
+    }
   }
   return timeout;
 }
@@ -350,4 +362,16 @@ void Role::PromoteNodeLate() {
   std::thread(&Role::PromoteNode,
               this, cb->cluster_members.size(),
               true).detach();
+}
+
+void Role::RefreshConsensusState(RDE_CONTROL_BLOCK* cb) {
+  TRACE_ENTER();
+
+  Consensus consensus_service;
+  if (consensus_service.IsWritable() == true) {
+    LOG_NO("Connectivity to consensus service established");
+    cb->consensus_service_state = ConsensusState::kConnected;
+  }
+
+  cb->state_refresh_thread_started = false;
 }

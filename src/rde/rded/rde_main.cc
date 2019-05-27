@@ -178,6 +178,19 @@ static void handle_mbx_event() {
     case RDE_MSG_CONTROLLER_DOWN:
       rde_cb->peer_controllers.erase(msg->fr_node_id);
       TRACE("peer_controllers: size %zu", rde_cb->peer_controllers.size());
+      if (role->role() == PCS_RDA_ACTIVE) {
+        Consensus consensus_service;
+        if (consensus_service.IsEnabled() == true &&
+            rde_cb->consensus_service_state == ConsensusState::kDisconnected &&
+            consensus_service.IsRelaxedNodePromotionEnabled() == true &&
+            role->IsPeerPresent() == false) {
+            LOG_NO("Lost connectivity to consensus service. No peer present");
+            if (consensus_service.IsRemoteFencingEnabled() == false) {
+                opensaf_quick_reboot("Lost connectivity to consensus service. "
+                                     "Rebooting this node");
+            }
+        }
+      }
       break;
     case RDE_MSG_TAKEOVER_REQUEST_CALLBACK: {
       rde_cb->monitor_takeover_req_thread_running = false;
@@ -214,7 +227,7 @@ static void handle_mbx_event() {
           if (consensus_service.IsRelaxedNodePromotionEnabled() == true) {
               if (rde_cb->state == State::kActiveElected) {
                 TRACE("Relaxed mode is enabled");
-                TRACE(" No peer SC yet seen, ignore consensus service failure");
+                TRACE("No peer SC yet seen, ignore consensus service failure");
                 // if relaxed node promotion is enabled, and we have yet to see
                 // a peer SC after being promoted, tolerate consensus service
                 // not working
@@ -227,13 +240,14 @@ static void handle_mbx_event() {
                 // we have seen the peer, and peer is still connected, tolerate
                 // consensus service not working
                 fencing_required = false;
+                rde_cb->consensus_service_state = ConsensusState::kDisconnected;
               }
           }
           if (fencing_required == true) {
             LOG_NO("Lost connectivity to consensus service");
             if (consensus_service.IsRemoteFencingEnabled() == false) {
                 opensaf_quick_reboot("Lost connectivity to consensus service. "
-                               "Rebooting this node");
+                                     "Rebooting this node");
             }
           }
         }
