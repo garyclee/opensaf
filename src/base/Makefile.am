@@ -157,6 +157,7 @@ noinst_HEADERS += \
 	src/base/saf_error.h \
 	src/base/saf_mem.h \
 	src/base/sprr_dl_api.h \
+	src/base/statistics.h \
 	src/base/string_parse.h \
 	src/base/sysf_exc_scr.h \
 	src/base/sysf_ipc.h \

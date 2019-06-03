@@ -46,8 +46,12 @@ lib_libopensaf_core_la_SOURCES += \
 	src/mds/ncs_vda.c
 
 if ENABLE_TIPC_TRANSPORT
-noinst_HEADERS += src/mds/mds_dt_tipc.h
-lib_libopensaf_core_la_SOURCES += src/mds/mds_dt_tipc.c
+noinst_HEADERS += src/mds/mds_dt_tipc.h \
+	src/mds/mds_tipc_recvq_stats.h \
+	src/mds/mds_tipc_recvq_stats_impl.h
+lib_libopensaf_core_la_SOURCES += src/mds/mds_dt_tipc.c \
+	src/mds/mds_tipc_recvq_stats.cc \
+	src/mds/mds_tipc_recvq_stats_impl.cc
 endif
 
 if ENABLE_TESTS

@@ -47,6 +47,7 @@
 #include "mds_dt_tipc.h"
 #include "mds_dt_tcp_disc.h"
 #include "mds_core.h"
+#include "mds_tipc_recvq_stats.h"
 #include "base/osaf_utility.h"
 #include "base/osaf_poll.h"
 
@@ -365,6 +366,8 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 		m_MDS_LOG_NOTIFY(
 		    "MDTM: Successfully set TIPC_DEST_DROPPABLE to zero");
 	}
+
+	mds_tipc_recvq_stats(tipc_cb.BSRsock);
 
 	return NCSCC_RC_SUCCESS;
 }
