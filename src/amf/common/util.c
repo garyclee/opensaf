@@ -240,12 +240,12 @@ void avsv_create_association_class_dn(const SaNameT *child_dn,
 	}
 
 	if (dn) {
+		TRACE("dn: %s", buf);
 		osaf_extended_name_steal(buf, dn);
 	}
-	TRACE_LEAVE2("child_dn: %s parent_dn: %s dn: %s",
+	TRACE_LEAVE2("child_dn: %s parent_dn: %s",
 			child_dn_ptr ? child_dn_ptr : "no child dn",
-			parent_dn_ptr ? parent_dn_ptr : "no parent dn",
-			buf);
+			parent_dn_ptr ? parent_dn_ptr : "no parent dn");
 }
 
 void avsv_sanamet_init_from_association_dn(const SaNameT *haystack, SaNameT *dn,

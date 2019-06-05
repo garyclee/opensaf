@@ -428,8 +428,10 @@ uint32_t avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt) {
          entry from the cbk list and delete the cbq */
       m_AVND_COMP_CBQ_INV_GET(comp, comp->term_cbq_inv_value, cbk_rec);
       comp->term_cbq_inv_value = 0;
+      uint32_t opq_hdl = 0;
+      if (cbk_rec) opq_hdl = cbk_rec->opq_hdl;
       rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC);
-      if (cbk_rec) avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec->opq_hdl, false);
+      if (cbk_rec) avnd_comp_cbq_rec_pop_and_del(cb, comp, opq_hdl, false);
       goto done;
     }
     /* found the matching comp; trigger error processing */
@@ -2228,9 +2230,7 @@ uint32_t avnd_amf_resp_send(AVND_CB *cb, AVSV_AMF_API_TYPE type,
   AVND_MSG msg;
   AVSV_ND2ND_AVND_MSG *avnd_msg;
   uint32_t rc = NCSCC_RC_SUCCESS;
-  MDS_DEST i_to_dest;
   AVSV_NDA_AVA_MSG *temp_ptr = nullptr;
-  NODE_ID node_id = 0;
   MDS_SYNC_SND_CTXT temp_ctxt;
   TRACE_ENTER();
 
@@ -2267,8 +2267,8 @@ uint32_t avnd_amf_resp_send(AVND_CB *cb, AVSV_AMF_API_TYPE type,
     msg.info.avnd->type = AVND_AVND_AVA_MSG;
     msg.type = AVND_MSG_AVND;
     /* Send it to AvND */
-    node_id = m_NCS_NODE_ID_FROM_MDS_DEST(*dest);
-    i_to_dest = avnd_get_mds_dest_from_nodeid(cb, node_id);
+    NODE_ID node_id = m_NCS_NODE_ID_FROM_MDS_DEST(*dest);
+    MDS_DEST i_to_dest = avnd_get_mds_dest_from_nodeid(cb, node_id);
     rc = avnd_avnd_mds_send(cb, i_to_dest, &msg);
   } else {
     /* now send the response */
@@ -2646,7 +2646,8 @@ void avnd_comp_cmplete_all_assignment(AVND_CB *cb, AVND_COMP *comp) {
          */
         temp_csi = m_AVND_COMPDB_REC_CSI_GET_FIRST(*comp);
 
-        if (cbk->cbk_info->param.csi_set.ha != temp_csi->si->curr_state) {
+        if (temp_csi &&
+		(cbk->cbk_info->param.csi_set.ha != temp_csi->si->curr_state)) {
           avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk->opq_hdl, true);
           continue;
         }
@@ -2788,7 +2789,7 @@ uint32_t comp_restart_initiate(AVND_COMP *comp) {
         rc = avnd_comp_curr_info_del(cb, it.second);
         if (NCSCC_RC_SUCCESS != rc) goto done;
 
-	// unregister the contained comp
+        // unregister the contained comp
         rc = avnd_comp_unregister_contained(cb, it.second);
         if (NCSCC_RC_SUCCESS != rc) goto done;
 
@@ -2956,7 +2957,7 @@ void avnd_comp_pres_state_set(const AVND_CB *cb, AVND_COMP *comp,
          (SA_AMF_PRESENCE_ORPHANED == prv_st)))) {
     if (cb->is_avd_down == false) {
       avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompPresenceState_ID,
-                             comp->name.c_str(), comp->pres);
+                             comp->name, comp->pres);
     }
   }
 
