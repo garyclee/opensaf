@@ -695,7 +695,7 @@ done_free:
   free(namelist);
 
 done_exit:
-  TRACE_LEAVE();
+  TRACE_LEAVE2("rc = %d", rc);
   return rc;
 }
 
@@ -784,20 +784,30 @@ int get_number_of_cfg_files_hdl(void *indata, void *outdata,
       goto done_log_free;
     }
 
+    // Get the oldest cfg file
     while (n--) {
       if (check_cfg_oldest(cfg_namelist[n]->d_name, params_in->file_name,
                            strlen(params_in->file_name), &cfg_old_date,
                            &cfg_old_time)) {
         old_ind = n;
       } else {
-        failed++; /* wrong format */
+        const std::string current_cfg_name =
+            std::string(params_in->file_name) + ".cfg";
+        if (strncmp(cfg_namelist[n]->d_name, current_cfg_name.c_str(),
+                    current_cfg_name.size()) != 0) {
+          failed++;   // wrong format
+        }
       }
     }
 
-    if ((old_ind != -1) && (cfg_old_date == log_old_date) &&
-        (cfg_old_time <= log_old_time)) {
-      TRACE_1(" (cfg_old_date:%d == log_old_date:%d) &&"
-              " (cfg_old_time:%d <= log_old_time:%d )",
+    if (old_ind == -1) goto done_log_free;
+
+    // If the oldest cfg file is older than the oldest log file, the output
+    // is returned with oldest cfg file. Otherwise the output is returned empty
+    if (((cfg_old_date == log_old_date) && (cfg_old_time <= log_old_time)) ||
+        (cfg_old_date < log_old_date)) {
+      TRACE_1(" (cfg_old_date:%d - log_old_date:%d) -"
+              " (cfg_old_time:%d - log_old_time:%d )",
               cfg_old_date, log_old_date, cfg_old_time, log_old_time);
       TRACE_1("oldest: %s", cfg_namelist[old_ind]->d_name);
       n = snprintf(oldest_file, max_outsize, "%s/%s", path.c_str(),
@@ -828,7 +838,7 @@ done_log_free:
   }
 
 done_exit:
-  TRACE_LEAVE();
+  TRACE_LEAVE2("rc = %d", rc);
   return rc;
 }
 

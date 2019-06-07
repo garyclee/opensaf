@@ -5558,6 +5558,60 @@ void admin_rotate_log_file_with_param(void)
 	}
 }
 
+// Verify that log and cfg files are rotated when the number of log/cfg files
+// reach the "saLogStreamMaxFilesRotated" value (ticket #3045)
+//
+// Step1: Create and delete the app stream with (saLogStreamMaxFilesRotated = 2)
+// 4 times
+// Step2: Verify that total is 4 cfg and log files (2 log files and 2 cfg files)
+void verRotatedLogCfgFile(void)
+{
+  char command1[MAX_DATA], command2[MAX_DATA];
+  const char *object_dn =
+      "safLgStrCfg=verRotatedFile,safApp=safLogService";
+  const uint32_t max_file = 2;
+  char num_files_c[10];
+  uint32_t num_files = 0;
+
+  // Command to create configuration application stream
+  sprintf(command1, "immcfg -c SaLogStreamConfig %s -a saLogStreamPathName=. "
+      "-a saLogStreamFileName=verRotatedFile -a saLogStreamMaxFilesRotated=%d",
+      object_dn, max_file);
+  // Command to delete configuration application stream
+  sprintf(command2, "immcfg -d %s", object_dn);
+
+  // Create and delete the app stream 4 times.
+  // Log/cfg are created during creating stream.
+  for (int i = 0; i < max_file + 1; ++i) {
+    int rc = systemCall(command1);
+    if (rc == 0) {
+      osaf_nanosleep(&kHundredMilliseconds);
+      rc = systemCall(command2);
+      osaf_nanosleep(&kOneSecond);
+    }
+    if (rc != 0) {
+      rc_validate(rc, 0);
+      return;
+    }
+  }
+  // Command to count number of log/cfg files on disk
+  sprintf(command1,"find %s -type f -mmin -1 "
+      "| egrep '%s(_.*)\\.[log$\\|cfg$]' "
+      "| wc -l | awk '{printf $1}'",
+      log_root_path, "verRotatedFile");
+
+  FILE *fp = popen(command1, "r");
+
+  // Get number of cfg and log file
+  while (fgets(num_files_c, sizeof(num_files_c) - 1, fp) != NULL) {};
+  pclose(fp);
+
+  // Verify cfg/log files are rotated by checking
+  // that total is 4 cfg and log files
+  num_files = atoi(num_files_c);
+  rc_validate(num_files, max_file * 2);
+}
+
 __attribute__((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -5918,4 +5972,6 @@ __attribute__((constructor)) static void saOiOperations_constructor(void)
 		      "Verify admin operation rotate log file is accepted");
 	test_case_add(6, admin_rotate_log_file_with_param,
 		 "Verify admin operation rotate log file with parameter fails");
+  test_case_add(6, verRotatedLogCfgFile,
+     "Verify that both log and cfg files are rotated");
 }

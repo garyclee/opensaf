@@ -270,69 +270,58 @@ static int delete_config_file(log_stream_t *stream) {
 
 /**
  * Remove oldest log file until there are 'maxFilesRotated' - 1 files left
+ * The oldest cfg files are also removed
  *
  * @param stream
- * @return -1 on error
+ * @return true/false
  */
-static int rotate_if_needed(log_stream_t *stream) {
+static bool rotate_if_needed(log_stream_t *stream) {
   char oldest_log_file[PATH_MAX];
   char oldest_cfg_file[PATH_MAX];
-  int rc = 0;
-  int log_file_cnt, cfg_file_cnt;
-  bool oldest_cfg = false;
+  const int max_files_rotated = static_cast<int>(stream->maxFilesRotated);
 
   TRACE_ENTER();
 
-  /* Rotate out log files from previous lifes */
-  if ((log_file_cnt = get_number_of_log_files_h(stream, oldest_log_file)) ==
-      -1) {
-    rc = -1;
-    goto done;
+  // Get number of log files and the oldest log file
+  int log_file_cnt = get_number_of_log_files_h(stream, oldest_log_file);
+  while (log_file_cnt >= max_files_rotated) {
+    TRACE("Delete oldest_log_file %s", oldest_log_file);
+    if (file_unlink_h(oldest_log_file) == -1) {
+      LOG_NO("Delete log file fail: %s - %s", oldest_log_file, strerror(errno));
+      return false;
+    }
+    log_file_cnt = get_number_of_log_files_h(stream, oldest_log_file);
   }
+  if (log_file_cnt == -1) return false;
 
-  /* Rotate out cfg files from previous lifes */
-  if (!((cfg_file_cnt = get_number_of_cfg_files_h(stream, oldest_cfg_file)) ==
-        -1)) {
-    oldest_cfg = true;
-  }
-
-  TRACE("delete oldest_cfg_file: %s oldest_log_file %s", oldest_cfg_file,
-        oldest_log_file);
-
-  /*
-  ** Remove until we have one less than allowed, we are just about to
-  ** create a new one again.
-  */
-  while (log_file_cnt >= static_cast<int>(stream->maxFilesRotated)) {
-    if ((rc = file_unlink_h(oldest_log_file)) == -1) {
-      LOG_NO("Could not log delete: %s - %s", oldest_log_file, strerror(errno));
-      goto done;
+  // Housekeeping for cfg files
+  int number_deleted_files = 0;
+  int cfg_file_cnt = get_number_of_cfg_files_h(stream, oldest_cfg_file);
+  while (cfg_file_cnt >= max_files_rotated) {
+    TRACE("Delete oldest_cfg_file %s", oldest_cfg_file);
+    if (file_unlink_h(oldest_cfg_file) == -1) {
+      LOG_NO("Delete cfg file fail: %s - %s", oldest_cfg_file, strerror(errno));
+      return false;
     }
+    ++number_deleted_files;
+    cfg_file_cnt = get_number_of_cfg_files_h(stream, oldest_cfg_file);
 
-    if (oldest_cfg == true) {
-      oldest_cfg = false;
-      if ((rc = file_unlink_h(oldest_cfg_file)) == -1) {
-        LOG_NO("Could not cfg  delete: %s - %s", oldest_cfg_file,
-               strerror(errno));
-        goto done;
-      }
-    }
-
-    if ((log_file_cnt = get_number_of_log_files_h(stream, oldest_log_file)) ==
-        -1) {
-      rc = -1;
-      goto done;
-    }
-
-    if (!((cfg_file_cnt = get_number_of_cfg_files_h(stream, oldest_cfg_file)) ==
-          -1)) {
-      oldest_cfg = true;
+    // If there is too much cfg files that the rotation hasn't deleted them
+    // in previous, lgs should limit the deleting to avoid main thread is hung
+    // due to the deleting huge number of cfg files will take long times.
+    // The workaround here is that hard-code to delete max 100 cfg files
+    // in one time. Next rotation will continue to delete them
+    // It is useful when upgrading system and there are huge number of cfg
+    // files on disk
+    if (number_deleted_files > 100) {
+      LOG_NO("There are huge number of cfg file on disk. "
+             "Limit deleting the number of cfg files (100)");
+      break;
     }
   }
 
-done:
-  TRACE_LEAVE2("rc = %d", rc);
-  return rc;
+  TRACE_LEAVE();
+  return (cfg_file_cnt != -1);
 }
 
 /**
@@ -362,7 +351,7 @@ void log_initiate_stream_files(log_stream_t *stream) {
   (void)delete_config_file(stream);
 
   /* Remove files from a previous life if needed */
-  if (rotate_if_needed(stream) == -1) {
+  if (rotate_if_needed(stream) == false) {
     TRACE("%s - rotate_if_needed() FAIL", __FUNCTION__);
     goto done;
   }
@@ -1111,7 +1100,7 @@ int log_rotation_stb(log_stream_t *stream) {
     }
 
     // Remove oldest file if needed
-    if (rotate_if_needed(stream) == -1) {
+    if (rotate_if_needed(stream) == false) {
       TRACE("Old file removal failed");
     }
     // Save new name for current log file and open it
@@ -1180,7 +1169,7 @@ int log_rotation_act(log_stream_t *stream) {
   // Reset file size for current log file
   stream->curFileSize = 0;
   // Remove oldest file if needed
-  if (rotate_if_needed(stream) == -1)
+  if (rotate_if_needed(stream) == false)
     TRACE("Old file removal failed");
 
   // Create a new file name that includes "open time stamp" and open the file
