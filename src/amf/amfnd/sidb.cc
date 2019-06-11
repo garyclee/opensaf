@@ -521,11 +521,7 @@ AVND_SU_SI_REC *avnd_su_si_rec_modify(AVND_CB *cb, AVND_SU *su,
                                      AVND_SU_SI_ASSIGN_STATE_UNASSIGNED);
 
   /* now modify the csi records */
-  *rc = avnd_su_si_csi_rec_modify(cb, su, si_rec,
-                                  ((SA_AMF_HA_QUIESCED == param->ha_state) ||
-                                   (SA_AMF_HA_QUIESCING == param->ha_state))
-                                      ? 0
-                                      : param->list);
+  *rc = avnd_su_si_csi_rec_modify(cb, su, si_rec, param->list);
   if (*rc != NCSCC_RC_SUCCESS) goto err;
   TRACE_LEAVE();
   return si_rec;
@@ -551,11 +547,13 @@ err:
 ******************************************************************************/
 uint32_t avnd_su_si_csi_rec_modify(AVND_CB *cb, AVND_SU *su,
                                    AVND_SU_SI_REC *si_rec,
-                                   AVND_COMP_CSI_PARAM *param) {
+                                   AVND_COMP_CSI_PARAM *csi_param) {
   AVND_COMP_CSI_PARAM *curr_param = 0;
   AVND_COMP_CSI_REC *curr_csi = 0;
   uint32_t rc = NCSCC_RC_SUCCESS;
-
+  AVND_COMP_CSI_PARAM *param((SA_AMF_HA_QUIESCED == si_rec->curr_state ||
+                              SA_AMF_HA_QUIESCING == si_rec->curr_state) ?
+		                0 : csi_param);
   TRACE_ENTER2("%p", param);
   /* pick up all the csis belonging to the si & modify them */
   if (!param) {
@@ -565,6 +563,12 @@ uint32_t avnd_su_si_csi_rec_modify(AVND_CB *cb, AVND_SU *su,
              (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si_rec->csi_list);
          curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(
                        &curr_csi->si_dll_node)) {
+      if (csi_param) {
+        curr_csi->act_comp_name = Amf::to_string(&csi_param->active_comp_name);
+        curr_csi->trans_desc    = csi_param->active_comp_dsc;
+        curr_csi->standby_rank  = csi_param->stdby_rank;
+      }
+
       /* store the prv assign-state & update the new assign-state */
       curr_csi->prv_assign_state = curr_csi->curr_assign_state;
       m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(
@@ -642,7 +646,7 @@ uint32_t avnd_su_si_all_modify(AVND_CB *cb, AVND_SU *su,
            ha_state[param->ha_state], su->name.c_str());
 
   /* now modify the comp-csi records */
-  rc = avnd_su_si_csi_all_modify(cb, su, 0);
+  rc = avnd_su_si_csi_all_modify(cb, su, param->list);
 
   TRACE_LEAVE();
   return rc;
@@ -666,76 +670,34 @@ uint32_t avnd_su_si_all_modify(AVND_CB *cb, AVND_SU *su,
 ******************************************************************************/
 uint32_t avnd_su_si_csi_all_modify(AVND_CB *cb, AVND_SU *su,
                                    AVND_COMP_CSI_PARAM *param) {
-  AVND_COMP_CSI_PARAM *curr_param = 0;
   AVND_COMP_CSI_REC *curr_csi = 0;
   AVND_SU_SI_REC *curr_si = 0;
-  AVND_COMP *curr_comp = 0;
   uint32_t rc = NCSCC_RC_SUCCESS;
 
   TRACE_ENTER2("%p", param);
   /* pick up all the csis belonging to all the sis & modify them */
-  if (!param) {
-    TRACE("Marking curr assigned state all CSIs in SIs of '%s' unassigned.",
+  TRACE("Marking curr assigned state all CSIs in SIs of '%s' unassigned.",
           su->name.c_str());
-    for (curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
-         curr_si; curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(
-                      &curr_si->su_dll_node)) {
-      for (curr_csi =
-               (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&curr_si->csi_list);
-           curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(
-                         &curr_csi->si_dll_node)) {
-        /* store the prv assign-state & update the new assign-state */
-        curr_csi->prv_assign_state = curr_csi->curr_assign_state;
-        m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(
-            curr_csi, AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED);
-      } /* for */
-    }   /* for */
-  }
+  for (curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
+       curr_si; curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(
+                    &curr_si->su_dll_node)) {
+    for (curr_csi =
+             (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&curr_si->csi_list);
+         curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(
+                       &curr_csi->si_dll_node)) {
+      if (param) {
+        curr_csi->act_comp_name = Amf::to_string(&param->active_comp_name);
+        curr_csi->trans_desc    = param->active_comp_dsc;
+        curr_csi->standby_rank  = param->stdby_rank;
+      }
 
-  /* pick up all the csis belonging to the comps specified in the param-list */
-  for (curr_param = param; curr_param; curr_param = curr_param->next) {
-    /* get the comp */
-    curr_comp =
-        avnd_compdb_rec_get(cb->compdb, Amf::to_string(&curr_param->comp_name));
-    if (!curr_comp || (curr_comp->su != su)) {
-      rc = NCSCC_RC_FAILURE;
-      goto done;
-    }
-    curr_comp->assigned_flag = false;
-  }
+      /* store the prv assign-state & update the new assign-state */
+      curr_csi->prv_assign_state = curr_csi->curr_assign_state;
+      m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(
+          curr_csi, AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED);
+    } /* for */
+  }   /* for */
 
-  /* pick up all the csis belonging to the comps specified in the param-list */
-  for (curr_param = param; curr_param; curr_param = curr_param->next) {
-    /* get the comp */
-    curr_comp =
-        avnd_compdb_rec_get(cb->compdb, Amf::to_string(&curr_param->comp_name));
-    if (!curr_comp || (curr_comp->su != su)) {
-      rc = NCSCC_RC_FAILURE;
-      goto done;
-    }
-    if (false == curr_comp->assigned_flag) {
-      /* modify all the csi-records */
-      TRACE("Marking curr assigned state all CSIs assigned to '%s' unassigned.",
-            curr_comp->name.c_str());
-      for (curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
-               m_NCS_DBLIST_FIND_FIRST(&curr_comp->csi_list));
-           curr_csi; curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
-                         m_NCS_DBLIST_FIND_NEXT(&curr_csi->comp_dll_node))) {
-        /* update the assignment related parameters */
-        curr_csi->act_comp_name = Amf::to_string(&curr_param->active_comp_name);
-        curr_csi->trans_desc = curr_param->active_comp_dsc;
-        curr_csi->standby_rank = curr_param->stdby_rank;
-
-        /* store the prv assign-state & update the new assign-state */
-        curr_csi->prv_assign_state = curr_csi->curr_assign_state;
-        m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(
-            curr_csi, AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED);
-      } /* for */
-      curr_comp->assigned_flag = true;
-    }
-  } /* for */
-
-done:
   TRACE_LEAVE();
   return rc;
 }

@@ -120,6 +120,10 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 	switch (ha_state) {
 	case SA_AMF_HA_ACTIVE:
 		status = foo_activate();
+		syslog(LOG_INFO,
+			"active trans desc: %i active comp: %s",
+			csi_desc.csiStateDescriptor.activeDescriptor.transitionDescriptor,
+			saAisNameBorrow(&csi_desc.csiStateDescriptor.activeDescriptor.activeCompName));
 		break;
 	case SA_AMF_HA_STANDBY:
 		/*
@@ -129,6 +133,11 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 		 * etc.
 		 */
 		status = 0;
+		syslog(LOG_INFO,
+			"standby active comp: %s standby rank: %i",
+			saAisNameBorrow(&csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName),
+			csi_desc.csiStateDescriptor.standbyDescriptor.standbyRank);
+
 		break;
 	case SA_AMF_HA_QUIESCED:
 		/* the effect of admin op lock on SU or node or ... */
