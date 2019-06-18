@@ -269,35 +269,50 @@ static int delete_config_file(log_stream_t *stream) {
 }
 
 /**
- * Remove oldest log file until there are 'maxFilesRotated' - 1 files left
- * The oldest cfg files are also removed
+ * Remove oldest log and cfg files on disk.
+ * If the parameter @number_files_to_remove is zero, remove older log and cfg
+ * files until there are "maxFilesRotated" - 1 files left on disk.
  *
  * @param stream
+ * @param number_files_to_remove
  * @return true/false
  */
-static bool rotate_if_needed(log_stream_t *stream) {
+bool remove_oldest_log_files(log_stream_t *stream,
+                             int number_files_to_remove) {
   char oldest_log_file[PATH_MAX];
   char oldest_cfg_file[PATH_MAX];
-  const int max_files_rotated = static_cast<int>(stream->maxFilesRotated);
+  int max_files_rotated = static_cast<int>(stream->maxFilesRotated) - 1;
 
-  TRACE_ENTER();
+  TRACE_ENTER2("num: %d", number_files_to_remove);
 
   // Get number of log files and the oldest log file
   int log_file_cnt = get_number_of_log_files_h(stream, oldest_log_file);
-  while (log_file_cnt >= max_files_rotated) {
+  if (log_file_cnt == -1) return false;
+
+  if (number_files_to_remove != 0) {
+    // If there are not enough number of log file to remove, return true
+    if (log_file_cnt <= number_files_to_remove) {
+      LOG_WA("No (%d) older log files to remove on disk",
+             number_files_to_remove);
+      return true;
+    }
+    max_files_rotated = log_file_cnt - number_files_to_remove;
+  }
+
+  while (log_file_cnt > max_files_rotated) {
     TRACE("Delete oldest_log_file %s", oldest_log_file);
     if (file_unlink_h(oldest_log_file) == -1) {
       LOG_NO("Delete log file fail: %s - %s", oldest_log_file, strerror(errno));
       return false;
     }
     log_file_cnt = get_number_of_log_files_h(stream, oldest_log_file);
+    if (log_file_cnt == -1) return false;
   }
-  if (log_file_cnt == -1) return false;
 
   // Housekeeping for cfg files
   int number_deleted_files = 0;
   int cfg_file_cnt = get_number_of_cfg_files_h(stream, oldest_cfg_file);
-  while (cfg_file_cnt >= max_files_rotated) {
+  while (cfg_file_cnt > max_files_rotated) {
     TRACE("Delete oldest_cfg_file %s", oldest_cfg_file);
     if (file_unlink_h(oldest_cfg_file) == -1) {
       LOG_NO("Delete cfg file fail: %s - %s", oldest_cfg_file, strerror(errno));
@@ -351,8 +366,8 @@ void log_initiate_stream_files(log_stream_t *stream) {
   (void)delete_config_file(stream);
 
   /* Remove files from a previous life if needed */
-  if (rotate_if_needed(stream) == false) {
-    TRACE("%s - rotate_if_needed() FAIL", __FUNCTION__);
+  if (remove_oldest_log_files(stream) == false) {
+    TRACE("%s - remove_oldest_log_files() FAIL", __FUNCTION__);
     goto done;
   }
 
@@ -1100,7 +1115,7 @@ int log_rotation_stb(log_stream_t *stream) {
     }
 
     // Remove oldest file if needed
-    if (rotate_if_needed(stream) == false) {
+    if (remove_oldest_log_files(stream) == false) {
       TRACE("Old file removal failed");
     }
     // Save new name for current log file and open it
@@ -1169,7 +1184,7 @@ int log_rotation_act(log_stream_t *stream) {
   // Reset file size for current log file
   stream->curFileSize = 0;
   // Remove oldest file if needed
-  if (rotate_if_needed(stream) == false)
+  if (remove_oldest_log_files(stream) == false)
     TRACE("Old file removal failed");
 
   // Create a new file name that includes "open time stamp" and open the file
@@ -1523,7 +1538,7 @@ int log_stream_config_change(bool create_files_f, const std::string &root_path,
     }
   }
 
-  rotate_if_needed(stream);
+  remove_oldest_log_files(stream);
 
   /* Reset file size for new log file */
   stream->curFileSize = 0;

@@ -5521,43 +5521,6 @@ void admin_rotate_log_file(void)
 	}
 }
 
-//
-// Test case for verifying the admin operation rotates log file with
-// parameter fails
-// Steps:
-// 1. Create configuration app stream
-// 2. Verify command admin operation rotates log file with parameter fails
-// 3. Delete configuration app stream
-//
-void admin_rotate_log_file_with_param(void)
-{
-	int rc = 0;
-	char command[MAX_DATA];
-	const char *object_dn =
-			"safLgStrCfg=admin_rotate_file1,safApp=safLogService";
-
-	// Create configuration application stream
-	sprintf(command, "immcfg -c SaLogStreamConfig %s"
-			" -a saLogStreamPathName=. "
-			"-a saLogStreamFileName=admin_rotate_file1 ",
-			object_dn);
-	rc = systemCall(command);
-	if (rc == 0) {
-		// Admin operation opId = 2 with parameter
-		sprintf(command, "immadm -o 2 -p "
-				"saLogStreamSeverityFilter:SA_UINT32_T:7 %s >"
-				" /dev/null 2>&1 ", object_dn);
-		rc = system(command);
-		rc_validate(WEXITSTATUS(rc), 1);
-
-		// Delete object
-		sprintf(command, "immcfg -d %s", object_dn);
-		systemCall(command);
-	} else {
-		rc_validate(rc, 0);
-	}
-}
-
 // Verify that log and cfg files are rotated when the number of log/cfg files
 // reach the "saLogStreamMaxFilesRotated" value (ticket #3045)
 //
@@ -5566,50 +5529,193 @@ void admin_rotate_log_file_with_param(void)
 // Step2: Verify that total is 4 cfg and log files (2 log files and 2 cfg files)
 void verRotatedLogCfgFile(void)
 {
-  char command1[MAX_DATA], command2[MAX_DATA];
-  const char *object_dn =
-      "safLgStrCfg=verRotatedFile,safApp=safLogService";
-  const uint32_t max_file = 2;
-  char num_files_c[10];
-  uint32_t num_files = 0;
+	char command1[MAX_DATA], command2[MAX_DATA];
+	const char *object_dn =
+			"safLgStrCfg=verRotatedFile,safApp=safLogService";
+	const int max_file = 2;
+	char num_files_c[10];
+	uint32_t num_files = 0;
 
-  // Command to create configuration application stream
-  sprintf(command1, "immcfg -c SaLogStreamConfig %s -a saLogStreamPathName=. "
-      "-a saLogStreamFileName=verRotatedFile -a saLogStreamMaxFilesRotated=%d",
-      object_dn, max_file);
-  // Command to delete configuration application stream
-  sprintf(command2, "immcfg -d %s", object_dn);
+	// Command to create configuration application stream
+	sprintf(command1, "immcfg -c SaLogStreamConfig %s "
+			  "-a saLogStreamPathName=. "
+			  "-a saLogStreamFileName=verRotatedFile"
+			  " -a saLogStreamMaxFilesRotated=%d",
+			  object_dn, max_file);
+	// Command to delete configuration application stream
+	sprintf(command2, "immcfg -d %s", object_dn);
 
-  // Create and delete the app stream 4 times.
-  // Log/cfg are created during creating stream.
-  for (int i = 0; i < max_file + 1; ++i) {
-    int rc = systemCall(command1);
-    if (rc == 0) {
-      osaf_nanosleep(&kHundredMilliseconds);
-      rc = systemCall(command2);
-      osaf_nanosleep(&kOneSecond);
-    }
-    if (rc != 0) {
-      rc_validate(rc, 0);
-      return;
-    }
-  }
-  // Command to count number of log/cfg files on disk
-  sprintf(command1,"find %s -type f -mmin -1 "
-      "| egrep '%s(_.*)\\.[log$\\|cfg$]' "
-      "| wc -l | awk '{printf $1}'",
-      log_root_path, "verRotatedFile");
+	// Create and delete the app stream 4 times.
+	// Log/cfg are created during creating stream.
+	for (int i = 0; i < max_file + 1; ++i) {
+		int rc = systemCall(command1);
+		if (rc == 0) {
+			osaf_nanosleep(&kHundredMilliseconds);
+			rc = systemCall(command2);
+			osaf_nanosleep(&kOneSecond);
+		}
+		if (rc != 0) {
+			rc_validate(rc, 0);
+			return;
+		}
+	}
+	// Command to count number of log/cfg files on disk
+	sprintf(command1, "find %s -type f -mmin -1 "
+			  "| egrep '%s.*\\.[log$\\|cfg$]' "
+			  "| wc -l | awk '{printf $1}'",
+			  log_root_path, "verRotatedFile");
 
-  FILE *fp = popen(command1, "r");
+	FILE *fp = popen(command1, "r");
 
-  // Get number of cfg and log file
-  while (fgets(num_files_c, sizeof(num_files_c) - 1, fp) != NULL) {};
-  pclose(fp);
+	// Get number of cfg and log file
+	while (fgets(num_files_c, sizeof(num_files_c) - 1, fp) != NULL) {};
+	pclose(fp);
 
-  // Verify cfg/log files are rotated by checking
-  // that total is 4 cfg and log files
-  num_files = atoi(num_files_c);
-  rc_validate(num_files, max_file * 2);
+	// Verify cfg/log files are rotated by checking
+	// that there are totally 4 cfg and log files
+	num_files = atoi(num_files_c);
+	rc_validate(num_files, max_file * 2);
+}
+
+// Verify that log file is rotated via admin operation with admin id = 2
+// and no parameter
+//
+// Step1: Create and delete the app stream with (saLogStreamMaxFilesRotated = 2)
+// step2: Do admin operation 2 times to rotate log file.
+//        Two new log file are created
+// step3: Verify log file is rotated via admin operation by checking that
+//        there are 2 log files on disk
+void verRotatedLogCfgFile2(void)
+{
+	int rc;
+	char command[MAX_DATA];
+	const char *object_dn =
+			"safLgStrCfg=verRotatedFile2,safApp=safLogService";
+	char num_files_c[10];
+	uint32_t num_files = 0;
+
+	// Command to create configuration application stream
+	sprintf(command, "immcfg -c SaLogStreamConfig %s "
+			 " -a saLogStreamPathName=. "
+			 "-a saLogStreamFileName=verRotatedFile2"
+			 " -a saLogStreamMaxFilesRotated=2",
+			 object_dn);
+	// Create  the app stream.
+	rc = systemCall(command);
+	if (rc != 0) {
+		rc_validate(rc, 0);
+		return;
+	}
+
+	// Do admin operation to rotate log file without the parameter
+	// Two new log files are created. One oldest file is removed.
+	sprintf(command, "immadm -o 2 %s", object_dn);
+	for (int i = 0; i < 2; ++i) {
+		osaf_nanosleep(&kOneSecond);
+		rc = systemCall(command);
+		if (rc != 0) {
+			rc_validate(rc, 0);
+			return;
+		}
+	}
+
+	// Command to count number of log files on disk
+	sprintf(command, "find %s -type f -mmin -1 "
+			 "| egrep '%s.*\\.log$' "
+			 "| wc -l | awk '{printf $1}'",
+			 log_root_path, "verRotatedFile2");
+	FILE *fp = popen(command, "r");
+	// Get number of log files
+	while (fgets(num_files_c, sizeof(num_files_c) - 1, fp) != NULL) {};
+	pclose(fp);
+
+	// Command to delete configuration application stream
+	sprintf(command, "immcfg -d %s", object_dn);
+	// Close the application stream
+	rc = systemCall(command);
+ 	if (rc != 0) {
+ 		rc_validate(rc, 0);
+ 		return;
+ 	}
+
+ 	// Verify log file is rotated by checking that
+ 	// there are totally 4 log files on disk
+ 	num_files = atoi(num_files_c);
+ 	rc_validate(num_files, 2);
+}
+
+// Verify that oldest log and cfg files are removed via admin operation with
+// admin id = 2 and parameter exist
+//
+// Step1: Create and delete the app stream with (saLogStreamMaxFilesRotated = 4)
+//        (There are two log files exists during create stream 2 times)
+// step2: Do admin operation to remove 1 oldest log files
+// step3: Verify 1 oldest log file is removed by checking that
+//        there are 1 log files on disk
+void verRotatedLogCfgFile3(void)
+{
+	int rc;
+	char command1[MAX_DATA], command2[MAX_DATA];
+	const char *object_dn =
+			"safLgStrCfg=verRotatedFile3,safApp=safLogService";
+	char num_files_c[10];
+	uint32_t num_files = 0;
+
+	// Command to create configuration application stream
+	sprintf(command1, "immcfg -c SaLogStreamConfig %s "
+			  "-a saLogStreamPathName=. "
+			  "-a saLogStreamFileName=verRotatedFile3"
+			  " -a saLogStreamMaxFilesRotated=4",
+			  object_dn);
+	// Command to delete configuration application stream
+	sprintf(command2, "immcfg -d %s", object_dn);
+
+	// Create and delete the app stream.
+	// 2 log are created during creating stream.
+	for (int i = 0; i < 2; ++i) {
+		rc = systemCall(command1);
+		if (rc == 0) {
+			osaf_nanosleep(&kHundredMilliseconds);
+			if (i == 1) break;  // Keep opened stream at last turn
+			rc = systemCall(command2);
+			osaf_nanosleep(&kOneSecond);
+		}
+		if (rc != 0) {
+			rc_validate(rc, 0);
+			return;
+		}
+	}
+
+	// Admin operation to remove 1 oldest log files
+	sprintf(command1, "immadm -o 2 -p numberOfFilesToRemove:SA_UINT32_T:1 "
+			  "%s", object_dn);
+	rc = systemCall(command1);
+	if (rc != 0) {
+		rc_validate(rc, 0);
+		return;
+	}
+
+	// Command to count number of log/cfg files on disk
+	sprintf(command1, "find %s -type f -mmin -1 "
+			  "| egrep \"%s_([0-9]{8}_[0-9]{6}\\.log$)\" "
+			  "| wc -l | awk '{printf $1}'",
+			  log_root_path, "verRotatedFile3");
+	FILE *fp = popen(command1, "r");
+	// Get number of cfg and log file
+	while (fgets(num_files_c, sizeof(num_files_c) - 1, fp) != NULL) {};
+	pclose(fp);
+
+	// Close the application stream
+	rc = systemCall(command2);
+	if (rc != 0) {
+		rc_validate(rc, 0);
+		return;
+	}
+
+	// Verify 1 oldest cfg/log files are removed
+	// by checking that there is 1 log files on disk
+	num_files = atoi(num_files_c);
+	rc_validate(num_files, 1);
 }
 
 __attribute__((constructor)) static void saOiOperations_constructor(void)
@@ -5969,9 +6075,13 @@ __attribute__((constructor)) static void saOiOperations_constructor(void)
 	    6, verLogFileRotate,
 	    "Verify that log file is not rotated if file size doesn't reach max file size (ticket1439)");
 	test_case_add(6, admin_rotate_log_file,
-		      "Verify admin operation rotate log file is accepted");
-	test_case_add(6, admin_rotate_log_file_with_param,
-		 "Verify admin operation rotate log file with parameter fails");
-  test_case_add(6, verRotatedLogCfgFile,
-     "Verify that both log and cfg files are rotated");
+	     "Verify admin operation rotate log file is accepted");
+	test_case_add(6, verRotatedLogCfgFile,
+	      "Verify that both log and cfg files are rotated");
+	test_case_add(6, verRotatedLogCfgFile2,
+	      "Verify log file is rotated via admin operation "
+	      "without parameter");
+	test_case_add(6, verRotatedLogCfgFile3,
+	      "Verify oldest log files are removed via admin operation "
+	      "with parameter");
 }

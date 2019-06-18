@@ -84,9 +84,11 @@ static std::vector<std::string> file_path_list;
 static void lgs_admin_change_filter(
     SaImmOiHandleT immOiHandle, SaInvocationT invocation,
     SaConstStringT objectName, const SaImmAdminOperationParamsT_2 *parameter);
-static void lgs_admin_rotate_log_file(SaImmOiHandleT immOiHandle,
-                                      SaInvocationT invocation,
-                                      SaConstStringT objectName);
+static void lgs_admin_log_file(
+    SaImmOiHandleT immOiHandle,
+    SaInvocationT invocation,
+    SaConstStringT objectName,
+    const SaImmAdminOperationParamsT_2 *parameter);
 
 static void report_oi_error(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
                             const char *format, ...)
@@ -396,12 +398,7 @@ static void adminOperationCallback(
   } else if (opId == SA_LOG_ADMIN_CHANGE_FILTER) {
     lgs_admin_change_filter(immOiHandle, invocation, objName, param);
   } else if (opId == SA_LOG_ADMIN_ROTATE_FILE) {
-    if (param != nullptr) {
-        report_om_error(immOiHandle, invocation,
-                        "Admin op rotate log file: parameters is not empty");
-    } else {
-      lgs_admin_rotate_log_file(immOiHandle, invocation, objName);
-    }
+    lgs_admin_log_file(immOiHandle, invocation, objName, param);
   } else {
     report_om_error( immOiHandle, invocation, "Invalid operation ID");
   }
@@ -3402,15 +3399,68 @@ static void lgs_admin_change_filter(
 }
 
 /**
- * Handle admin operation that rotates the log file
+ * Get number of files to remove from parameter in the invoked admin operation
+ *
+ * @param immOiHandle
+ * @param invocation
+ * @param parameter
+ * @return -1 if invalid parameter
+ *          0 if parameter is null
+ *        > 0 number of files to remove
+ */
+static int get_number_of_files_to_remove(
+    SaImmOiHandleT immOiHandle,
+    SaInvocationT invocation,
+    log_stream_t *stream,
+    const SaImmAdminOperationParamsT_2 *parameter) {
+  TRACE_ENTER();
+  int result;
+  if (parameter == nullptr) {
+    result = 0;
+  } else if (strcmp(parameter->paramName, "numberOfFilesToRemove") != 0) {
+    report_om_error(immOiHandle, invocation,
+                    "Admin op remove oldest log files, invalid param name. "
+                    "Should be 'numberOfFilesToRemove'");
+    result = -1;
+  } else if (parameter->paramType != SA_IMM_ATTR_SAUINT32T) {
+    report_om_error(immOiHandle, invocation,
+                    "Admin op remove oldest log files: invalid parameter type. "
+                    "Should be 'SA_UINT32_T'");
+    result = -1;
+  } else {
+    SaUint32T number_files_to_remove =
+        *(reinterpret_cast<SaUint32T *>(parameter->paramBuffer));
+
+    if (number_files_to_remove < 1 ||
+          number_files_to_remove >= stream->maxFilesRotated) {
+       report_om_error(immOiHandle, invocation,
+                       "Admin op remove oldest log files: Out of range "
+                       "(min:1 - max:%d)", stream->maxFilesRotated - 1);
+       result = -1;
+    } else {
+      result = number_files_to_remove;
+    }
+  }
+
+  TRACE_LEAVE2("num: %d", result);
+  return result;
+}
+
+/**
+ * Handle admin operation to rotate or delete log files
+ *  - If the parameter is omitted, log/cfg file is rotated
+ *  - If the parameter exists, remove the oldest log/cfg files
  *
  * @param immOiHandle
  * @param invocation
  * @param objectName
+ * @param parameter
  */
-static void lgs_admin_rotate_log_file(SaImmOiHandleT immOiHandle,
-                                      SaInvocationT invocation,
-                                      SaConstStringT objectName) {
+static void lgs_admin_log_file(
+    SaImmOiHandleT immOiHandle,
+    SaInvocationT invocation,
+    SaConstStringT objectName,
+    const SaImmAdminOperationParamsT_2 *parameter) {
   TRACE_ENTER();
 
   osafassert(objectName != nullptr);
@@ -3421,16 +3471,26 @@ static void lgs_admin_rotate_log_file(SaImmOiHandleT immOiHandle,
     return;
   }
 
-  // Rotate log file.
-  // Send the result "FAILED_OPERATION" to admin if the rotation fails
+  // Send the result "FAILED_OPERATION" to admin if the rotation/deletion fails
   SaAisErrorT result = SA_AIS_OK;
-  int ret = log_rotation_act(stream);
-  if (ret == 0)
-    // Checkpoint the stream to standby to rotate the log file
-    // in case the split file system
-    ckpt_stream_config(stream);
-  else
-    result = SA_AIS_ERR_FAILED_OPERATION;
+
+  int number_of_files_to_remove =
+      get_number_of_files_to_remove(immOiHandle, invocation, stream, parameter);
+
+  if (number_of_files_to_remove == -1) return;
+  if (number_of_files_to_remove == 0) {
+    // Rotate log file.
+    if (log_rotation_act(stream) == 0)
+      // Checkpoint the stream to standby to rotate the log file
+      // in case the split file system
+      ckpt_stream_config(stream);
+    else
+      result = SA_AIS_ERR_FAILED_OPERATION;
+  } else {
+    // Remove the oldest log files
+    if (remove_oldest_log_files(stream, number_of_files_to_remove) == false)
+      result = SA_AIS_ERR_FAILED_OPERATION;
+  }
 
   result = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, result);
   if (result == SA_AIS_ERR_BAD_HANDLE) {

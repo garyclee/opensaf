@@ -552,7 +552,7 @@ static int check_log_oldest(char *line, char *fname_prefix,
       *old_date = date;
       *old_time = time;
       return 1;
-    } else if ((date == *old_date) && (time < *old_time)) {
+    } else if ((date == *old_date) && (time <= *old_time)) {
       *old_date = date;
       *old_time = time;
       return 1;
@@ -800,7 +800,7 @@ int get_number_of_cfg_files_hdl(void *indata, void *outdata,
       }
     }
 
-    if (old_ind == -1) goto done_log_free;
+    if (old_ind == -1) goto done_cfg_free;
 
     // If the oldest cfg file is older than the oldest log file, the output
     // is returned with oldest cfg file. Otherwise the output is returned empty
