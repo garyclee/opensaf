@@ -12189,6 +12189,10 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 			cb->mIntroduced = 2;
 			LOG_WA("SC Absence IS allowed:%u IMMD service is DOWN",
 			       cb->mScAbsenceAllowed);
+			if (cb->mState < IMM_SERVER_SYNC_SERVER) {
+				immnd_ackToNid(NCSCC_RC_FAILURE);
+				exit(1);
+			}
 			if (cb->mIsCoord) {
 				cb->mIsCoord = false;
 
