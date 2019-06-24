@@ -3175,6 +3175,9 @@ void SG_2N::node_fail_su_oper(AVD_SU *su) {
         }
 
         su->sg_of_su->set_fsm_state(AVD_SG_FSM_SG_REALIGN);
+      } else {
+        avd_sg_su_si_del_snd(cb, su_oper_list.front());
+        su->sg_of_su->set_fsm_state(AVD_SG_FSM_SG_REALIGN);
       }
 
       AVD_SU *su_at_head = su_oper_list.front();
