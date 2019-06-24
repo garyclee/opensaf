@@ -926,6 +926,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp,
   AVND_SU_PRES_FSM_EV ev = AVND_SU_PRES_FSM_EV_MAX;
   AVND_COMP_CSI_REC *csi = 0;
   bool is_en;
+  bool pi_comp_recover = false;
   uint32_t rc = NCSCC_RC_SUCCESS;
   TRACE_ENTER2("Comp '%s', Prv_state '%s', Final_state '%s'",
                comp->name.c_str(), presence_state[prv_st],
@@ -947,6 +948,13 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp,
                              comp->name, comp->err_info.restart_cnt);
     }
   }
+
+  if ((comp->admin_oper == false) &&
+      (prv_st == SA_AMF_PRESENCE_RESTARTING) &&
+      m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
+    pi_comp_recover = true;
+  }
+
   /* reset the admin-oper flag to false */
   if ((comp->admin_oper == true) &&
       (final_st == SA_AMF_PRESENCE_INSTANTIATED)) {
@@ -1487,7 +1495,8 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp,
              (SA_AMF_PRESENCE_ORPHANED != prv_st) &&
              ((prv_st == SA_AMF_PRESENCE_INSTANTIATING) ||
               (prv_st == SA_AMF_PRESENCE_TERMINATING) ||
-              (comp->su->admin_op_Id == SA_AMF_ADMIN_RESTART)))
+              (comp->su->admin_op_Id == SA_AMF_ADMIN_RESTART) ||
+              pi_comp_recover))
       ev = AVND_SU_PRES_FSM_EV_COMP_INSTANTIATED;
     else if (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)
       ev = AVND_SU_PRES_FSM_EV_COMP_INST_FAIL;
