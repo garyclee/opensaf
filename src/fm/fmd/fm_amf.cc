@@ -34,6 +34,12 @@
 ******************************************************************************/
 
 #include "fm.h"
+#include "tipc_server.h"
+
+namespace {
+TIPCServer tipc_srv;
+}
+
 extern uint32_t gl_fm_hdl;
 
 uint32_t fm_amf_init(FM_AMF_CB *fm_amf_cb);
@@ -151,6 +157,11 @@ void fm_saf_CSI_set_callback(SaInvocationT invocation, const SaNameT *compName,
     } else {
       fm_cb->amf_state = new_haState;
       fm_cb->csi_assigned = true;
+      if (new_haState == SA_AMF_HA_ACTIVE) {
+        tipc_srv.publish();
+      } else {
+        tipc_srv.unpublish();
+      }
     }
     error = saAmfResponse(fm_amf_cb->amf_hdl, invocation, error);
   }
@@ -300,6 +311,9 @@ uint32_t fm_amf_init(FM_AMF_CB *fm_amf_cb) {
   SaNameT sname;
   uint32_t rc = NCSCC_RC_SUCCESS;
   TRACE_ENTER();
+
+  tipc_srv.init();
+
   memset(&amfCallbacks, 0, sizeof(SaAmfCallbacksT));
   if (fm_amf_cb->nid_started &&
       amf_comp_name_get_set_from_file("FM_COMP_NAME_FILE", &sname) !=
