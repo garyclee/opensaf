@@ -319,13 +319,16 @@ static void app_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
     }
     case CCBUTIL_DELETE:
       app = app_db->find(Amf::to_string(&opdata->objectName));
-      /* by this time all the SGs and SIs under this
-       * app object should have been *DELETED* just
-       * do a sanity check here
-       */
-      osafassert(app->list_of_sg == nullptr);
-      osafassert(app->list_of_si == nullptr);
-      avd_app_delete(app);
+      if ((app != nullptr) || (avd_cb->is_active() == true)) {
+        /* by this time all the SGs and SIs under this
+         * app object should have been *DELETED* just
+         * do a sanity check here
+         */
+        osafassert(app);
+        osafassert(app->list_of_sg == nullptr);
+        osafassert(app->list_of_si == nullptr);
+        avd_app_delete(app);
+      }
       break;
     default:
       osafassert(0);

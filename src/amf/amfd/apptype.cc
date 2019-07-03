@@ -155,6 +155,12 @@ static SaAisErrorT apptype_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
       break;
     case CCBUTIL_DELETE:
       app_type = avd_apptype_get(object_name);
+      if (app_type == nullptr && avd_cb->is_active() == false) {
+        opdata->userData = nullptr;
+        rc = SA_AIS_OK;
+        break;
+      }
+      osafassert(app_type);
       if (nullptr != app_type->list_of_app) {
         /* check whether there exists a delete operation for
          * each of the App in the app_type list in the current CCB
@@ -201,8 +207,11 @@ static void apptype_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
       apptype_add_to_model(app_type);
       break;
     case CCBUTIL_DELETE:
-      app_type = static_cast<AVD_APP_TYPE *>(opdata->userData);
-      apptype_delete(&app_type);
+      if ((opdata->userData != nullptr) || (avd_cb->is_active() == true)) {
+        app_type = static_cast<AVD_APP_TYPE *>(opdata->userData);
+        osafassert(app_type);
+        apptype_delete(&app_type);
+      }
       break;
     default:
       osafassert(0);

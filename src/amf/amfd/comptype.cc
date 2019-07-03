@@ -630,7 +630,9 @@ static void comptype_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
       comptype_db_add(comp_type);
       break;
     case CCBUTIL_DELETE:
-      comptype_delete(static_cast<AVD_COMP_TYPE *>(opdata->userData));
+      if ((opdata->userData != nullptr) || (avd_cb->is_active() == true)) {
+        comptype_delete(static_cast<AVD_COMP_TYPE *>(opdata->userData));
+      }
       break;
     case CCBUTIL_MODIFY:
       ccb_apply_modify_hdlr(opdata);
@@ -802,6 +804,12 @@ static SaAisErrorT comptype_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
       break;
     case CCBUTIL_DELETE:
       comp_type = comptype_db->find(Amf::to_string(&opdata->objectName));
+      if (comp_type == nullptr && avd_cb->is_active() == false) {
+        rc = SA_AIS_OK;
+        opdata->userData = nullptr;
+        break;
+      }
+      osafassert(comp_type);
       if (nullptr != comp_type->list_of_comp) {
         /* check whether there exists a delete operation for
          * each of the Comp in the comp_type list in the current CCB
