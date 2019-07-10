@@ -582,7 +582,6 @@ static uint32_t initialize(void) {
   }
   cb->minimum_cluster_size =
       base::GetEnv("OSAF_AMF_MIN_CLUSTER_SIZE", uint32_t{2});
-  cb->fmd_conf_file = base::GetEnv("FMS_CONF_FILE", "");
 
   node_list_db = new AmfDb<uint32_t, AVD_FAIL_OVER_NODE>;
   amfnd_svc_db = new std::set<uint32_t>;

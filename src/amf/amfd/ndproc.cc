@@ -1277,6 +1277,25 @@ void avd_node_failover(AVD_AVND *node, const bool mw_only) {
   TRACE_LEAVE();
 }
 
+bool delay_failover(const AVD_CL_CB *cb, const SaClmNodeIdT node_id) {
+  TRACE_ENTER();
+  Consensus consensus_service;
+  bool delay = false;
+
+  if (cb->node_failover_delay > 0) {
+      delay = true;
+  } else if (node_id == cb->node_id_avd_other &&
+             consensus_service.IsEnabled() == true &&
+             consensus_service.IsRemoteFencingEnabled() == false) {
+    // even though node failover delay is set to 0,
+    // the peer SC will still take some time to self-fence,
+    // we should wait FMS_TAKEOVER_REQUEST_VALID_TIME
+    delay = true;
+  }
+
+  return delay;
+}
+
 void check_quorum(AVD_CL_CB *cb) {
   TRACE_ENTER();
 

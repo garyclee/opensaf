@@ -22,6 +22,8 @@ class NodeStateMachine {
   void SetState(uint32_t state);
   uint32_t GetState();
 
+  SaTimeT FailoverDelay() const;
+
   std::shared_ptr<AVD_TMR> timer_;
   std::shared_ptr<NodeState> state_;
 

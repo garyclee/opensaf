@@ -1,4 +1,5 @@
 #include "base/logtrace.h"
+#include "osaf/consensus/consensus.h"
 #include "amf/amfd/amfd.h"
 #include "amf/amfd/node_state_machine.h"
 
@@ -91,6 +92,24 @@ void NodeStateMachine::SetState(uint32_t state) {
 
 uint32_t NodeStateMachine::GetState() {
   return state_->GetInt();
+}
+
+SaTimeT NodeStateMachine::FailoverDelay() const {
+  TRACE_ENTER();
+
+  SaTimeT delay;
+  if (node_id_ == cb_->node_id_avd_other) {
+    // If peer SC, it's guaranteed to fence after this amount of time
+    // (2 * FMS_TAKEOVER_REQUEST_VALID_TIME).
+    // This may be smaller than node_failover_delay.
+    Consensus consensus_service;
+    delay = 2 * consensus_service.TakeoverValidTime();
+  } else {
+    delay = cb_->node_failover_delay;
+  }
+
+  TRACE("delay is %llu", delay);
+  return delay * SA_TIME_ONE_SECOND;
 }
 
 bool NodeStateMachine::Active() {
