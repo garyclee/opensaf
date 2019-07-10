@@ -62,6 +62,8 @@ class Consensus {
 
   bool PrioritisePartitionSize() const;
 
+  uint32_t TakeoverValidTime() const;
+
   // Determine if plugin is telling us to self-fence due to loss
   // of connectivity to the KV store
   bool SelfFence(const std::string& request) const;

@@ -207,6 +207,10 @@ bool Consensus::PrioritisePartitionSize() const {
   return prioritise_partition_size_;
 }
 
+uint32_t Consensus::TakeoverValidTime() const {
+  return takeover_valid_time_;
+}
+
 std::string Consensus::CurrentActive() const {
   TRACE_ENTER();
   if (use_consensus_ == false) {
