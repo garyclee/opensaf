@@ -75,7 +75,9 @@ void promote_node(FM_CB *fm_cb) {
     // be processing MDS down events and updating cluster_size concurrently.
     // We need cluster_size to be as accurate as possible, without waiting
     // too long for node down events.
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(
+      std::chrono::seconds(
+        consensus_service.PrioritisePartitionSizeWaitTime()));
   }
 
   uint32_t rc;

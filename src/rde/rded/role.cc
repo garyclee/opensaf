@@ -83,7 +83,9 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
         consensus_service.PrioritisePartitionSize() == true) {
       // don't send this to the main thread straight away, as it will
       // need some time to process topology changes.
-      std::this_thread::sleep_for(std::chrono::seconds(4));
+      std::this_thread::sleep_for(
+        std::chrono::seconds(
+          consensus_service.PrioritisePartitionSizeWaitTime()));
     }
   } else {
     msg->type = RDE_MSG_NEW_ACTIVE_CALLBACK;
