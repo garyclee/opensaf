@@ -59,7 +59,8 @@ static uint32_t fm_get_args(FM_CB *);
 static uint32_t fms_fms_exchange_node_info(FM_CB *);
 static uint32_t fms_fms_inform_terminating(FM_CB *fm_cb);
 static uint32_t fm_nid_notify(uint32_t);
-static uint32_t fm_tmr_start(FM_TMR *, SaTimeT);
+uint32_t fm_tmr_start(FM_TMR *, SaTimeT);
+void fm_tmr_stop(FM_TMR *tmr);
 static SaAisErrorT get_peer_clm_node_name(NODE_ID);
 static SaAisErrorT fm_clm_init();
 static void fm_mbx_msg_handler(FM_CB *, FM_EVT *);
@@ -449,6 +450,8 @@ static uint32_t fm_get_args(FM_CB *fm_cb) {
   /* Set timer variables */
   fm_cb->promote_active_tmr.type = FM_TMR_PROMOTE_ACTIVE;
   fm_cb->activation_supervision_tmr.type = FM_TMR_ACTIVATION_SUPERVISION;
+  fm_cb->consensus_service_supervision_tmr.type =
+    FM_TMR_CONSENSUS_SERVICE_SUPERVISION;
 
   char *node_isolation_timeout = getenv("FMS_NODE_ISOLATION_TIMEOUT");
   if (node_isolation_timeout != NULL) {
@@ -704,6 +707,11 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt) {
                        "Activation timer supervision "
                        "expired: no ACTIVE assignment received "
                        "within the time limit");
+      } else if (fm_mbx_evt->info.fm_tmr->type ==
+                 FM_TMR_CONSENSUS_SERVICE_SUPERVISION) {
+        opensaf_quick_reboot("Consensus service supervision "
+                             "expired: controller was not promoted "
+                             "within the time limit");
       }
       break;
 
@@ -728,6 +736,10 @@ static void fm_evt_proc_rda_callback(FM_CB *cb, FM_EVT *evt) {
   uint32_t rc = NCSCC_RC_SUCCESS;
 
   TRACE_ENTER2("%d", (int)evt->info.rda_info.role);
+  if (evt->info.rda_info.role == PCS_RDA_ACTIVE) {
+    LOG_NO("Controller promoted. Stop supervision timer");
+    fm_tmr_stop(&fm_cb->consensus_service_supervision_tmr);
+  }
   if (evt->info.rda_info.role != PCS_RDA_ACTIVE &&
       cb->activation_supervision_tmr.status == FM_TMR_RUNNING) {
     fm_tmr_stop(&cb->activation_supervision_tmr);
