@@ -5180,7 +5180,7 @@ SaAisErrorT ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard,
 
           if (fs_attr_it == immObject->mAttrValueMap.end()) {
             LOG_NO("protocol51906 is not set for opensafImmNostdFlags because "
-                   "the new OpenSAF 5.19.06 attribute is not added to "
+                   "the new OpenSAF 5.19.07 attribute is not added to "
                    "SaImmMngt class");
           } else {
             noStdFlags |= OPENSAF_IMM_FLAG_PRT51906_ALLOW;

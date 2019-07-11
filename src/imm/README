@@ -3096,7 +3096,7 @@ In summary:
  Bit 8 controls OpenSAF5.0 protocols allowed or not (normally on/1).
  Bit 9 controls OpenSAF5.1 protocols allowed or not (normally on/1).
  Bit 10 controls OpenSAF5.17.11 protocols allowed or not (normally on/1).
- Bit 11 controls OpenSAF5.19.06 protocols allowed or not (normally on/1).
+ Bit 11 controls OpenSAF5.19.07 protocols allowed or not (normally on/1).
 
 ----------------------------------------
 DEPENDENCIES
