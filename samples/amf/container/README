@@ -36,8 +36,8 @@ Some steps to follow:
 3. Build a container with amf_contained in it to execute when the container is
    started
 4. Load configuration:
-	immcfg -f AppConfig-contained-2N.xml
 	immcfg -f AppConfig-container.xml
+	immcfg -f AppConfig-contained-2N.xml
 5. Unlock instantiation and unlock container:
 	amf-adm unlock-in safSu=SU1,safSg=Container,safApp=Container
 	amf-adm unlock-in safSu=SU2,safSg=Container,safApp=Container

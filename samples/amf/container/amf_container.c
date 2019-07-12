@@ -355,8 +355,8 @@ static void contained_component_instantiate_callback(SaInvocationT invocation,
 		response = SA_AIS_ERR_TRY_AGAIN;
 		syslog(LOG_INFO, "responding with TRY_AGAIN");
 	} else {
-		char command[350] = { 0 };
-		sprintf(command, "docker run -dit -e SA_AMF_COMPONENT_NAME='%s' --privileged -v /var/lib/opensaf/node_id:/var/lib/opensaf/node_id -v /var/lib/opensaf/osaf_dtm_intra_server:/var/lib/opensaf/osaf_dtm_intra_server -v /var/lib/opensaf/immnd.sock:/var/lib/opensaf/immnd.sock opensaf-payload", saAisNameBorrow(containedCompName));
+		char command[500] = { 0 };
+		sprintf(command, "docker run -dit -e SA_AMF_COMPONENT_NAME='%s' --privileged -v /var/lib/opensaf/node_id:/var/lib/opensaf/node_id -v /var/lib/opensaf/osaf_dtm_intra_server:/var/lib/opensaf/osaf_dtm_intra_server -v /var/lib/opensaf/immnd.sock:/var/lib/opensaf/immnd.sock -v /etc/opensaf/node_name:/etc/opensaf/node_name -v /var/lib/opensaf/osaf_log.sock:/var/lib/opensaf/osaf_log.sock opensaf-payload", saAisNameBorrow(containedCompName));
 		FILE *f = popen(command, "r");
 
 		fread(contained_id, 64, 1, f);
