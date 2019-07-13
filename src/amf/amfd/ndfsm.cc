@@ -800,13 +800,6 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       daemon_exit();
     }
 
-    if (node->node_state == AVD_AVND_STATE_ABSENT) {
-      TRACE("Ignore '%s' amfnd down event since node state absent",
-            node->node_name.c_str());
-      TRACE_LEAVE();
-      return;
-    }
-
     if (cb->failover_list.find(evt->info.node_id) != cb->failover_list.end()) {
       std::shared_ptr<NodeStateMachine> failed_node =
         cb->failover_list.at(evt->info.node_id);
