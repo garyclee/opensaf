@@ -3614,6 +3614,7 @@ void tet_just_send_tp_12()
 			FAIL = 1;
 		}
 
+		sleep(1);
 		if (vdest_change_role(200, V_DEST_RL_STANDBY) !=
 		    NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
@@ -3689,6 +3690,7 @@ void tet_just_send_tp_13()
 			FAIL = 1;
 		}
 
+		sleep(1);
 		if (vdest_change_role(200, V_DEST_RL_QUIESCED) !=
 		    NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
@@ -4423,6 +4425,7 @@ void tet_send_ack_tp_12()
 		mesg->send_len = sizeof(tmp);
 		printf(
 		    "Test Case 12: While Await Active timer is On: send_ack a message to Svc EXTMIN Vdest=200\n");
+		sleep(1);
 		if (vdest_change_role(200, V_DEST_RL_STANDBY) !=
 		    NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
@@ -4481,6 +4484,7 @@ void tet_send_ack_tp_13()
 		mesg->send_len = sizeof(tmp);
 		printf(
 		    "Test Case 13: Send_ack a message to Svc EXTMIN on QUIESCED Vdest=200\n");
+		sleep(1);
 		if (vdest_change_role(200, V_DEST_RL_QUIESCED) !=
 		    NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
@@ -8375,6 +8379,7 @@ void tet_direct_just_send_tp_12()
 		}
 		printf(
 		    "\nTest Case 12: While Await Active Timer ON: Direct send a Low Priority message to Svc EXTMIN on Vdest=200\n");
+		sleep(1);
 		if (vdest_change_role(200, V_DEST_RL_STANDBY) !=
 		    NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
@@ -8444,6 +8449,7 @@ void tet_direct_just_send_tp_13()
 		printf(
 		    "\nTest Case 13: Direct send a Medium Priority message to Svc EXTMIN on QUIESCED Vdest=200\n");
 		printf("\ntet_direct_just_send_tp_13\n");
+		sleep(1);
 		if (vdest_change_role(200, V_DEST_RL_QUIESCED) !=
 		    NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
