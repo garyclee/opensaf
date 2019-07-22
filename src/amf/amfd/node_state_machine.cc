@@ -43,6 +43,8 @@ void NodeStateMachine::SetState(std::shared_ptr<NodeState> state) {
   AVD_AVND *node = avd_node_find_nodeid(node_id_);
   osafassert(node != nullptr);
   m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb_, node, AVSV_CKPT_NODE_FAILOVER_STATE);
+  // used for cold sync
+  node->failover_state = state_->GetInt();
 
   if (state->GetInt() == NodeState::kEnd) {
     cb_->failover_list.erase(node_id_);

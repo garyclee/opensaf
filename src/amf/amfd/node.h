@@ -115,6 +115,9 @@ class AVD_AVND {
                               * Checkpointing - Sent independent update
                               */
 
+  // used for cold sync only
+  uint32_t failover_state{NodeState::NodeStates::kUndefined};
+
   std::vector<AVD_SU *> list_of_ncs_su; /* the list of NCS service units on
                                          * this node.
                                          */

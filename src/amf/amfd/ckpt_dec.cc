@@ -178,6 +178,31 @@ const AVSV_DECODE_COLD_SYNC_RSP_DATA_FUNC_PTR dec_cs_data_func_list[] = {
     dec_cs_comp_config, dec_cs_comp_cs_type_config, dec_cs_siass,
     dec_cs_si_trans,    dec_cs_async_updt_cnt};
 
+void set_node_failover_state(AVD_CL_CB *cb, const SaClmNodeIdT node_id,
+        const uint32_t state) {
+  TRACE_ENTER();
+
+  if (state == NodeState::NodeStates::kUndefined) {
+    // not in failover list
+    return;
+  }
+
+  auto failed_node = cb->failover_list.find(node_id);
+  if (failed_node != cb->failover_list.end()) {
+    failed_node->second->SetState(state);
+  } else {
+    LOG_NO("Node '%u' not found in failover_list. Create new entry",
+            node_id);
+    auto new_node = std::make_shared<NodeStateMachine>(cb, node_id);
+    // node must be added to failover_list before SetState() is called.
+    // If the state is 'end', then it will be deleted by SetState().
+    // Otherwise, we will leave a node in 'End' state mistakenly in
+    // failover_list.
+    cb->failover_list[node_id] = new_node;
+    new_node->SetState(state);
+  }
+}
+
 void decode_cb(NCS_UBAID *ub, AVD_CL_CB *cb, const uint16_t peer_version) {
   osaf_decode_uint32(ub, reinterpret_cast<uint32_t *>(&cb->init_state));
   osaf_decode_satimet(ub, &cb->cluster_init_time);
@@ -254,6 +279,9 @@ void decode_node_config(NCS_UBAID *ub, AVD_AVND *avnd,
   osaf_decode_uint32(ub, &avnd->rcv_msg_id);
   osaf_decode_uint32(ub, &avnd->snd_msg_id);
   osaf_extended_name_free(&node_name);
+  if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_10) {
+    osaf_decode_uint32(ub, &avnd->failover_state);
+  }
   TRACE_LEAVE();
 }
 
@@ -585,7 +613,7 @@ void decode_siass(NCS_UBAID *ub, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt,
     su_si_ckpt->csi_add_rem = static_cast<SaBoolT>(csi_add_rem);
     osaf_decode_sanamet(ub, &su_si_ckpt->comp_name);
     osaf_decode_sanamet(ub, &su_si_ckpt->csi_name);
-  };
+  }
 }
 
 /****************************************************************************\
@@ -2199,6 +2227,7 @@ static uint32_t dec_cs_node_config(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec,
   for (count = 0; count < num_of_obj; count++) {
     decode_node_config(&dec->i_uba, &avnd, dec->i_peer_version);
     status = avd_ckpt_node(cb, &avnd, dec->i_action);
+    set_node_failover_state(cb, avnd.node_info.nodeId, avnd.failover_state);
     osafassert(status == NCSCC_RC_SUCCESS);
   }
 
@@ -2552,14 +2581,23 @@ static uint32_t dec_cs_async_updt_cnt(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec,
   /*
    * Decode and send async update counts for all the data structures.
    */
-  if (dec->i_peer_version >= AVD_MBCSV_SUB_PART_VERSION_7) {
+  if (dec->i_peer_version >= AVD_MBCSV_SUB_PART_VERSION_10) {
     TRACE(
-        "Peer AMFD version is >= AVD_MBCSV_SUB_PART_VERSION_7,"
+        "Peer AMFD version is >= AVD_MBCSV_SUB_PART_VERSION_10,"
         "peer ver:%d",
         avd_cb->avd_peer_ver);
     status = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_async_updt_cnt,
                                 &dec->i_uba, EDP_OP_TYPE_DEC, &updt_cnt,
                                 &ederror, dec->i_peer_version);
+  } else if (dec->i_peer_version >= AVD_MBCSV_SUB_PART_VERSION_7) {
+    TRACE(
+        "Peer AMFD version is >= AVD_MBCSV_SUB_PART_VERSION_7,"
+        "peer ver:%d",
+        avd_cb->avd_peer_ver);
+    status = m_NCS_EDU_SEL_VER_EXEC(
+        &cb->edu_hdl, avsv_edp_ckpt_msg_async_updt_cnt, &dec->i_uba,
+        EDP_OP_TYPE_DEC, &updt_cnt, &ederror, dec->i_peer_version, 14, 1, 2, 3,
+        4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
   } else {
     TRACE(
         "Peer AMFD version is <AVD_MBCSV_SUB_PART_VERSION_7,"
@@ -2607,15 +2645,21 @@ uint32_t avd_dec_warm_sync_rsp(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
    * Decode latest async update counts. (In the same manner we received
    * in the last message of the cold sync response.
    */
-  if (dec->i_peer_version >= AVD_MBCSV_SUB_PART_VERSION_7)
+  if (dec->i_peer_version >= AVD_MBCSV_SUB_PART_VERSION_10) {
     status = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_async_updt_cnt,
                                 &dec->i_uba, EDP_OP_TYPE_DEC, &updt_cnt,
                                 &ederror, dec->i_peer_version);
-  else
+  } else if (dec->i_peer_version >= AVD_MBCSV_SUB_PART_VERSION_7) {
+    status = m_NCS_EDU_SEL_VER_EXEC(
+        &cb->edu_hdl, avsv_edp_ckpt_msg_async_updt_cnt, &dec->i_uba,
+        EDP_OP_TYPE_DEC, &updt_cnt, &ederror, dec->i_peer_version, 14, 1, 2, 3,
+        4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
+  } else {
     status = m_NCS_EDU_SEL_VER_EXEC(
         &cb->edu_hdl, avsv_edp_ckpt_msg_async_updt_cnt, &dec->i_uba,
         EDP_OP_TYPE_DEC, &updt_cnt, &ederror, dec->i_peer_version, 13, 1, 2, 3,
         4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
+  }
 
   if (status != NCSCC_RC_SUCCESS)
     LOG_ER("%s: decode failed, ederror=%u", __FUNCTION__, ederror);
@@ -2677,6 +2721,9 @@ uint32_t avd_dec_warm_sync_rsp(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
     if (updt_cnt->ng_updt != cb->async_updt_cnt.ng_updt)
       LOG_ER("ng_updt counters mismatch: Active: %u Standby: %u",
              updt_cnt->ng_updt, cb->async_updt_cnt.ng_updt);
+    if (updt_cnt->failover_updt != cb->async_updt_cnt.failover_updt)
+      LOG_ER("failover_updt counters mismatch: Active: %u Standby: %u",
+             updt_cnt->failover_updt, cb->async_updt_cnt.failover_updt);
 
     LOG_ER("Out of sync detected in warm sync response, exiting");
     osafassert(0);
@@ -2982,20 +3029,10 @@ static uint32_t dec_node_failover_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
   osaf_decode_uint32(&dec->i_uba,
                      reinterpret_cast<uint32_t *>(&state));
 
-  auto failed_node = cb->failover_list.find(node->node_info.nodeId);
-  if (failed_node != cb->failover_list.end()) {
-    failed_node->second->SetState(state);
-  } else {
-    LOG_NO("Node '%s' not found in failover_list. Create new entry",
-            node->node_name.c_str());
-    auto new_node = std::make_shared<NodeStateMachine>(cb,
-      node->node_info.nodeId);
-    // node must be added to failover_list before SetState() is called.
-    // If the state is 'end', then it will be deleted by SetState().
-    // Otherwise, we will leave a node in 'End' state mistakenly in
-    // failover_list.
-    cb->failover_list[node->node_info.nodeId] = new_node;
-    new_node->SetState(state);
+  set_node_failover_state(cb, node->node_info.nodeId, state);
+
+  if (dec->i_peer_version >= AVD_MBCSV_SUB_PART_VERSION_10) {
+    cb->async_updt_cnt.failover_updt++;
   }
 
   return NCSCC_RC_SUCCESS;

@@ -1359,6 +1359,7 @@ int amfd_file_dump(const char *filename) {
   fprintf(f, "  compcstype_updt:%d\n", avd_cb->async_updt_cnt.compcstype_updt);
   fprintf(f, "  si_trans_updt:%d\n", avd_cb->async_updt_cnt.si_trans_updt);
   fprintf(f, "  ng_updt:%d\n", avd_cb->async_updt_cnt.ng_updt);
+  fprintf(f, "  failover_updt:%d\n", avd_cb->async_updt_cnt.failover_updt);
 
   fprintf(f, "nodes:\n");
   for (const auto &value : *node_id_db) {

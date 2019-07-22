@@ -265,6 +265,9 @@ void encode_node_config(NCS_UBAID *ub, const AVD_AVND *avnd,
   osaf_encode_uint32(ub, AVSV_AVND_CARD_SYS_CON);
   osaf_encode_uint32(ub, avnd->rcv_msg_id);
   osaf_encode_uint32(ub, avnd->snd_msg_id);
+  if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_10) {
+    osaf_encode_uint32(ub, avnd->failover_state);
+  }
 }
 
 /****************************************************************************\
@@ -616,7 +619,7 @@ void encode_siass(NCS_UBAID *ub, const AVD_SU_SI_REL *susi,
     osaf_encode_bool(ub, static_cast<bool>(susi->csi_add_rem));
     osaf_encode_sanamet_o2(ub, susi->comp_name.c_str());
     osaf_encode_sanamet_o2(ub, susi->csi_name.c_str());
-  };
+  }
 }
 
 /****************************************************************************\
