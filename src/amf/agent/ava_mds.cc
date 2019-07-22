@@ -932,6 +932,22 @@ uint32_t ava_mds_flat_dec(AVA_CB *cb, MDS_CALLBACK_DEC_FLAT_INFO *dec_info) {
         case AVSV_AMF_SC_STATUS_CHANGE: {
         } break;
 
+        case AVSV_AMF_CONTAINED_COMP_INST: {
+          AVSV_AMF_CONTAINED_COMP_INST_PARAM *info =
+              &msg->info.cbk_info->param.contained_inst;
+
+          if (osaf_is_an_extended_name(&info->comp_name))
+            osaf_decode_sanamet(dec_info->io_uba, &info->comp_name);
+        } break;
+
+        case AVSV_AMF_CONTAINED_COMP_CLEAN: {
+          AVSV_AMF_CONTAINED_COMP_CLEAN_PARAM *info =
+              &msg->info.cbk_info->param.contained_clean;
+
+          if (osaf_is_an_extended_name(&info->comp_name))
+            osaf_decode_sanamet(dec_info->io_uba, &info->comp_name);
+        } break;
+
         default:
           osafassert(0);
       } /* switch */
@@ -1267,7 +1283,8 @@ void ava_fill_finalize_msg(AVSV_NDA_AVA_MSG *msg, MDS_DEST dst,
 
 void ava_fill_comp_reg_msg(AVSV_NDA_AVA_MSG *msg, MDS_DEST dst,
                            SaAmfHandleT hdl, SaNameT comp_name,
-                           SaNameT proxy_comp_name, SaVersionT *version) {
+                           SaNameT proxy_comp_name, SaVersionT *version,
+                           const OsafAmfCallbacksT *callbacks) {
   msg->type = AVSV_AVA_API_MSG;
   msg->info.api_info.type = AVSV_AMF_COMP_REG;
   msg->info.api_info.dest = dst;
@@ -1277,6 +1294,21 @@ void ava_fill_comp_reg_msg(AVSV_NDA_AVA_MSG *msg, MDS_DEST dst,
   osaf_extended_name_alloc(osaf_extended_name_borrow(&proxy_comp_name),
                            &msg->info.api_info.param.reg.proxy_comp_name);
   msg->info.api_info.param.reg.version = *version;
+
+  if (callbacks->saAmfComponentTerminateCallback)
+    msg->info.api_info.param.reg.callbacks |= AVSV_AMF_CALLBACK_TERMINATE;
+  if (callbacks->saAmfCSISetCallback)
+    msg->info.api_info.param.reg.callbacks |= AVSV_AMF_CALLBACK_CSI_SET;
+  if (callbacks->saAmfCSIRemoveCallback)
+    msg->info.api_info.param.reg.callbacks |= AVSV_AMF_CALLBACK_CSI_REMOVE;
+  if (callbacks->saAmfContainedComponentInstantiateCallback)
+    msg->info.api_info.param.reg.callbacks |= AVSV_AMF_CALLBACK_CONTAINED_INST;
+  if (callbacks->saAmfContainedComponentCleanupCallback)
+    msg->info.api_info.param.reg.callbacks |= AVSV_AMF_CALLBACK_CONTAINED_CLEAN;
+  if (callbacks->saAmfProxiedComponentInstantiateCallback)
+    msg->info.api_info.param.reg.callbacks |= AVSV_AMF_CALLBACK_PROXIED_INST;
+  if (callbacks->saAmfProxiedComponentCleanupCallback)
+    msg->info.api_info.param.reg.callbacks |= AVSV_AMF_CALLBACK_PROXIED_CLEAN;
 }
 
 void ava_fill_comp_unreg_msg(AVSV_NDA_AVA_MSG *msg, MDS_DEST dst,

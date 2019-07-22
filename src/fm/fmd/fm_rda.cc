@@ -23,6 +23,8 @@
 #include "osaf/consensus/consensus.h"
 #include "rde/agent/rda_papi.h"
 
+extern uint32_t fm_tmr_start(FM_TMR *tmr, SaTimeT period);
+extern void fm_tmr_stop(FM_TMR *tmr);
 extern void rda_cb(uint32_t cb_hdl, PCS_RDA_CB_INFO *cb_info,
                    PCSRDA_RETURN_CODE error_code);
 /****************************************************************************
@@ -64,6 +66,49 @@ done:
   return rc;
 }
 
+void promote_node(FM_CB *fm_cb) {
+  TRACE_ENTER();
+
+  Consensus consensus_service;
+  if (consensus_service.PrioritisePartitionSize() == true) {
+    // Allow topology events to be processed first. The MDS thread may
+    // be processing MDS down events and updating cluster_size concurrently.
+    // We need cluster_size to be as accurate as possible, without waiting
+    // too long for node down events.
+    std::this_thread::sleep_for(
+      std::chrono::seconds(
+        consensus_service.PrioritisePartitionSizeWaitTime()));
+  }
+
+  uint32_t rc;
+  rc = consensus_service.PromoteThisNode(true, fm_cb->cluster_size);
+  if (rc != SA_AIS_OK && rc != SA_AIS_ERR_EXIST) {
+    LOG_ER("Unable to set active controller in consensus service");
+    opensaf_quick_reboot("Unable to set active controller "
+      "in consensus service");
+  } else if (rc == SA_AIS_ERR_EXIST) {
+    // @todo if we don't reboot, we don't seem to recover from this. Can we
+    // improve?
+    LOG_ER(
+        "A controller is already active. We were separated from the "
+        "cluster?");
+    opensaf_quick_reboot("A controller is already active. We were separated "
+                         "from the cluster?");
+  }
+
+  PCS_RDA_REQ rda_req;
+
+  /* set the RDA role to active */
+  memset(&rda_req, 0, sizeof(PCS_RDA_REQ));
+  rda_req.req_type = PCS_RDA_SET_ROLE;
+  rda_req.info.io_role = PCS_RDA_ACTIVE;
+
+  rc = pcs_rda_request(&rda_req);
+  if (rc != PCSRDA_RC_SUCCESS) {
+    LOG_ER("pcs_rda_request() failed)");
+  }
+}
+
 /****************************************************************************
  * Name          : fm_rda_set_role
  *
@@ -79,40 +124,28 @@ uint32_t fm_rda_set_role(FM_CB *fm_cb, PCS_RDA_ROLE role) {
   PCS_RDA_REQ rda_req;
   uint32_t rc;
   TRACE_ENTER();
-  /* set the RDA role to active */
-  memset(&rda_req, 0, sizeof(PCS_RDA_REQ));
-  rda_req.req_type = PCS_RDA_SET_ROLE;
-  rda_req.info.io_role = role;
 
   osafassert(role == PCS_RDA_ACTIVE);
 
   Consensus consensus_service;
   if (consensus_service.IsEnabled() == true) {
-    if (consensus_service.PrioritisePartitionSize() == true) {
-      // Allow topology events to be processed first. The MDS thread may
-      // be processing MDS down events and updating cluster_size concurrently.
-      // We need cluster_size to be as accurate as possible, without waiting
-      // too long for node down events.
-      std::this_thread::sleep_for(std::chrono::seconds(4));
-    }
+    // Start supervision timer, make sure we obtain lock within
+    // 2* FMS_TAKEOVER_REQUEST_VALID_TIME, otherwise reboot the node.
+    // This is needed in case we are in a split network situation
+    // the current active will fail-over work running on this node.
+    LOG_NO("Starting consensus service supervision: %u s",
+           consensus_service.TakeoverValidTime());
+    fm_tmr_start(&fm_cb->consensus_service_supervision_tmr,
+                 200 * consensus_service.TakeoverValidTime());
 
-    rc = consensus_service.PromoteThisNode(true, fm_cb->cluster_size);
-    if (rc != SA_AIS_OK && rc != SA_AIS_ERR_EXIST) {
-      LOG_ER("Unable to set active controller in consensus service");
-      opensaf_quick_reboot("Unable to set active controller "
-          "in consensus service");
-      return NCSCC_RC_FAILURE;
-    } else if (rc == SA_AIS_ERR_EXIST) {
-      // @todo if we don't reboot, we don't seem to recover from this. Can we
-      // improve?
-      LOG_ER(
-          "A controller is already active. We were separated from the "
-          "cluster?");
-      opensaf_quick_reboot("A controller is already active. We were separated "
-                           "from the cluster?");
-      return NCSCC_RC_FAILURE;
-    }
+    std::thread(&promote_node, fm_cb).detach();
+    return NCSCC_RC_SUCCESS;
   }
+
+  /* set the RDA role to active */
+  memset(&rda_req, 0, sizeof(PCS_RDA_REQ));
+  rda_req.req_type = PCS_RDA_SET_ROLE;
+  rda_req.info.io_role = role;
 
   rc = pcs_rda_request(&rda_req);
   if (rc != PCSRDA_RC_SUCCESS) {

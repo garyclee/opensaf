@@ -3822,8 +3822,17 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 
 	case IMMND_EVT_A2ND_IMM_ADMOP:
 	case IMMND_EVT_A2ND_IMM_ADMOP_ASYNC:
-		/* No restrictions at cluster level. */
+	{
+		IMMSV_OM_ADMIN_OP_INVOKE *adm = &frwrd_evt.info.immnd.info.admOpReq;
+		bool fs_op = (adm->operationId == SA_IMM_ADMIN_FS_AVAILABLE ||
+			      adm->operationId == SA_IMM_ADMIN_FS_UNAVAILABLE);
+		if (!immModel_protocol51906Allowed(cb) && fs_op &&
+		    strcmp(adm->objectName.buf,
+			"safRdn=immManagement,safApp=safImmService") == 0) {
+			error = SA_AIS_ERR_TRY_AGAIN;
+		}
 		break;
+	}
 
 	case IMMND_EVT_A2ND_CLASS_CREATE:
 		if (fevsReq->sender_count != 0x1) {
@@ -12180,6 +12189,10 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 			cb->mIntroduced = 2;
 			LOG_WA("SC Absence IS allowed:%u IMMD service is DOWN",
 			       cb->mScAbsenceAllowed);
+			if (cb->mState < IMM_SERVER_SYNC_SERVER) {
+				immnd_ackToNid(NCSCC_RC_FAILURE);
+				exit(1);
+			}
 			if (cb->mIsCoord) {
 				cb->mIsCoord = false;
 

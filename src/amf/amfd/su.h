@@ -37,6 +37,7 @@
 #include "amf/common/amf_db_template.h"
 
 class AVD_SG;
+class AVD_CSI;
 class AVD_SUTYPE;
 
 /**
@@ -88,6 +89,8 @@ class AVD_SU {
 
   int su_act_state;  // not used, kept for EDU, remove later
 
+  bool wait_for_contained_to_quiesce;
+
   AVD_SG *sg_of_su;     /* the service group of this SU */
   AVD_AVND *su_on_node; /*  the node on which this SU resides */
   struct avd_su_si_rel_tag
@@ -122,7 +125,7 @@ class AVD_SU {
   void remove_from_model();
   void set_su_switch(SaToggleState state, bool wrt_to_imm = true);
   AVD_AVND *get_node_ptr(void) const;
-  bool is_in_service(void);
+  bool is_in_service(void) const;
   bool is_instantiable(void);
   void reset_all_comps_assign_flag();
   AVD_COMP *find_unassigned_comp_that_provides_cstype(
@@ -156,6 +159,16 @@ class AVD_SU {
   void set_surestart(bool state);
   bool get_surestart() const;
   void update_susis_in_imm_and_ntf(SaAmfHAStateT ha_state) const;
+  bool any_container_comp(void) const;
+  bool any_contained_comp(void) const;
+  bool container(void) const;
+  bool contained(void) const;
+  void instantiate_associated_contained_sus(void);
+  bool is_ready_for_contained(void) const;
+  bool any_container_csi_assigned(void) const;
+  AVD_CSI *get_container_csi(void);
+  AVD_SU *get_container_su_on_same_node(void);
+
 
  private:
   void initialize();

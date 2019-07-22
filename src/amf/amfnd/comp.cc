@@ -106,7 +106,7 @@ uint32_t avnd_evt_ava_finalize_evh(AVND_CB *cb, AVND_EVT *evt) {
     m_AVND_COMP_CBQ_INV_GET(comp, comp->term_cbq_inv_value, cbk_rec);
     comp->term_cbq_inv_value = 0;
     rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC);
-    if (cbk_rec) avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec, false);
+    if (cbk_rec) avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec->opq_hdl, false);
   }
 
   /* npi comps dont interact with amf */
@@ -412,9 +412,9 @@ uint32_t avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt) {
     name = comp->name;
     if (0 == memcmp(&comp->reg_dest, &mds_evt->mds_dest, sizeof(MDS_DEST))) {
       /* proxied component can't have mds down event */
-      if (m_AVND_COMP_TYPE_IS_PROXIED(comp))
+      if (m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
         continue;
-      else
+      } else
         break;
     } else {
       comp = nullptr;
@@ -428,8 +428,10 @@ uint32_t avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt) {
          entry from the cbk list and delete the cbq */
       m_AVND_COMP_CBQ_INV_GET(comp, comp->term_cbq_inv_value, cbk_rec);
       comp->term_cbq_inv_value = 0;
+      uint32_t opq_hdl = 0;
+      if (cbk_rec) opq_hdl = cbk_rec->opq_hdl;
       rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC);
-      if (cbk_rec) avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec, false);
+      if (cbk_rec) avnd_comp_cbq_rec_pop_and_del(cb, comp, opq_hdl, false);
       goto done;
     }
     /* found the matching comp; trigger error processing */
@@ -629,6 +631,25 @@ proceed_next:
     if (!m_AVND_COMP_IS_REG(*o_pxy_comp)) {
       *o_amf_rc = SA_AIS_ERR_NOT_EXIST;
       return;
+    }
+  }
+
+  // check if the correct callbacks have been registered
+  if (m_AVND_COMP_TYPE_IS_CONTAINER(*o_comp)) {
+    if (!(reg->callbacks & AVSV_AMF_CALLBACK_TERMINATE) ||
+        !(reg->callbacks & AVSV_AMF_CALLBACK_CSI_SET) ||
+        !(reg->callbacks & AVSV_AMF_CALLBACK_CSI_REMOVE) ||
+        !(reg->callbacks & AVSV_AMF_CALLBACK_CONTAINED_INST) ||
+        !(reg->callbacks & AVSV_AMF_CALLBACK_CONTAINED_CLEAN)) {
+      *o_amf_rc = SA_AIS_ERR_INIT;
+      return;
+    }
+  } else if (m_AVND_COMP_TYPE_IS_CONTAINED(*o_comp)) {
+    if (!(reg->callbacks & AVSV_AMF_CALLBACK_TERMINATE) ||
+        !(reg->callbacks & AVSV_AMF_CALLBACK_CSI_SET) ||
+        !(reg->callbacks & AVSV_AMF_CALLBACK_CSI_REMOVE)) {
+      *o_amf_rc = SA_AIS_ERR_INIT;
+      return ;
     }
   }
 
@@ -2018,7 +2039,7 @@ uint32_t avnd_comp_cbk_send(AVND_CB *cb, AVND_COMP *comp,
    * cbk is an exception)
    */
   if ((AVSV_AMF_HC != type) && !m_AVND_COMP_IS_REG(comp) &&
-      !m_AVND_COMP_PRES_STATE_IS_ORPHANED(comp))
+      !comp->contained() && !m_AVND_COMP_PRES_STATE_IS_ORPHANED(comp))
     goto done;
 
   /* allocate cbk-info memory */
@@ -2142,6 +2163,22 @@ uint32_t avnd_comp_cbk_send(AVND_CB *cb, AVND_COMP *comp,
       set_params_for_csi_attr_change_cbk(cbk_info, comp, csi_rec);
       per = comp->csi_set_cbk_timeout;
       break;
+    case AVSV_AMF_CONTAINED_COMP_INST: {
+        AVND_COMP *container(get_associated_container_comp(cb, comp));
+        avnd_amf_contained_comp_inst_cbk_fill(cbk_info, comp->name);
+        per = comp->pxied_inst_cbk_timeout;
+        dest = &container->reg_dest;
+        hdl = container->reg_hdl;
+      }
+      break;
+    case AVSV_AMF_CONTAINED_COMP_CLEAN: {
+        AVND_COMP *container(get_associated_container_comp(cb, comp));
+        avnd_amf_contained_comp_clean_cbk_fill(cbk_info, comp->name);
+        per = comp->pxied_clean_cbk_timeout;
+        dest = &container->reg_dest;
+        hdl = container->reg_hdl;
+      }
+      break;
     case AVSV_AMF_PG_TRACK:
     default:
       osafassert(0);
@@ -2193,9 +2230,7 @@ uint32_t avnd_amf_resp_send(AVND_CB *cb, AVSV_AMF_API_TYPE type,
   AVND_MSG msg;
   AVSV_ND2ND_AVND_MSG *avnd_msg;
   uint32_t rc = NCSCC_RC_SUCCESS;
-  MDS_DEST i_to_dest;
   AVSV_NDA_AVA_MSG *temp_ptr = nullptr;
-  NODE_ID node_id = 0;
   MDS_SYNC_SND_CTXT temp_ctxt;
   TRACE_ENTER();
 
@@ -2232,8 +2267,8 @@ uint32_t avnd_amf_resp_send(AVND_CB *cb, AVSV_AMF_API_TYPE type,
     msg.info.avnd->type = AVND_AVND_AVA_MSG;
     msg.type = AVND_MSG_AVND;
     /* Send it to AvND */
-    node_id = m_NCS_NODE_ID_FROM_MDS_DEST(*dest);
-    i_to_dest = avnd_get_mds_dest_from_nodeid(cb, node_id);
+    NODE_ID node_id = m_NCS_NODE_ID_FROM_MDS_DEST(*dest);
+    MDS_DEST i_to_dest = avnd_get_mds_dest_from_nodeid(cb, node_id);
     rc = avnd_avnd_mds_send(cb, i_to_dest, &msg);
   } else {
     /* now send the response */
@@ -2611,19 +2646,20 @@ void avnd_comp_cmplete_all_assignment(AVND_CB *cb, AVND_COMP *comp) {
          */
         temp_csi = m_AVND_COMPDB_REC_CSI_GET_FIRST(*comp);
 
-        if (cbk->cbk_info->param.csi_set.ha != temp_csi->si->curr_state) {
-          avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk, true);
+        if (temp_csi &&
+		(cbk->cbk_info->param.csi_set.ha != temp_csi->si->curr_state)) {
+          avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk->opq_hdl, true);
           continue;
         }
       } else if (cbk->cbk_info->param.csi_set.ha != csi->si->curr_state) {
         /* if assignment was overriden by new one */
-        avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk, true);
+        avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk->opq_hdl, true);
         continue;
       } else if (m_AVND_COMP_IS_ALL_CSI(comp)) {
         /* if both target all and target one operation are
          * pending, we need not respond for target one
          */
-        avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk, true);
+        avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk->opq_hdl, true);
         continue;
       }
 
@@ -2639,11 +2675,11 @@ void avnd_comp_cmplete_all_assignment(AVND_CB *cb, AVND_COMP *comp) {
         rc = avnd_comp_csi_remove_done(cb, comp, csi);
         if ((!csi) || (NCSCC_RC_SUCCESS != rc)) break;
       } else {
-        avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk, true);
+        avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk->opq_hdl, true);
       }
     } else {
       /* pop this rec */
-      m_AVND_COMP_CBQ_REC_POP(comp, cbk, found);
+      avnd_comp_cbq_rec_pop(comp, cbk->opq_hdl, found);
       if (!found) {
         LOG_ER("Comp callback record not found: '%s'", comp->name.c_str());
         break;
@@ -2740,6 +2776,39 @@ uint32_t comp_restart_initiate(AVND_COMP *comp) {
 
   rc = avnd_comp_curr_info_del(cb, comp);
   if (NCSCC_RC_SUCCESS != rc) goto done;
+
+  if (comp->container()) {
+    // reset contained comps for this container
+    AVND_COMP_CSI_REC *curr_csi(m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
+      m_NCS_DBLIST_FIND_FIRST(&comp->csi_list)));
+    const std::string& containerCsi(curr_csi->name);
+
+    for (auto &it : cb->compdb) {
+      if (it.second->contained() &&
+          it.second->saAmfCompContainerCsi == containerCsi) {
+        rc = avnd_comp_curr_info_del(cb, it.second);
+        if (NCSCC_RC_SUCCESS != rc) goto done;
+
+        // unregister the contained comp
+        rc = avnd_comp_unregister_contained(cb, it.second);
+        if (NCSCC_RC_SUCCESS != rc) goto done;
+
+        /*
+         * Abruptly terminate the contained components if the container has not
+         * failed. If container failed, then assume the contained got cleaned
+         * up. See 6.3 of AMF 4.1 spec.
+         */
+        if (!m_AVND_COMP_IS_FAILED(comp)) {
+          rc = avnd_comp_clc_fsm_run(cb, it.second,
+                                     AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
+          if (NCSCC_RC_SUCCESS != rc) goto done;
+        }
+
+        avnd_su_pres_state_set(cb, it.second->su, SA_AMF_PRESENCE_UNINSTANTIATED);
+        avnd_comp_pres_state_set(cb, it.second, SA_AMF_PRESENCE_UNINSTANTIATED);
+      }
+    }
+  }
 
   if (!comp->su->suMaintenanceCampaign.empty() && !comp->admin_oper) {
     LOG_NO("not restarting comp because maintenance campaign is set: %s",
@@ -2888,7 +2957,7 @@ void avnd_comp_pres_state_set(const AVND_CB *cb, AVND_COMP *comp,
          (SA_AMF_PRESENCE_ORPHANED == prv_st)))) {
     if (cb->is_avd_down == false) {
       avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompPresenceState_ID,
-                             comp->name.c_str(), comp->pres);
+                             comp->name, comp->pres);
     }
   }
 
@@ -3058,6 +3127,18 @@ void avnd_amf_pxied_comp_clean_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
   osaf_extended_name_alloc(cn.c_str(), &cbk->param.comp_term.comp_name);
 }
 
+void avnd_amf_contained_comp_inst_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
+                                           const std::string &cn) {
+  cbk->type = AVSV_AMF_CONTAINED_COMP_INST;
+  osaf_extended_name_alloc(cn.c_str(), &cbk->param.contained_inst.comp_name);
+}
+
+void avnd_amf_contained_comp_clean_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
+                                            const std::string &cn) {
+  cbk->type = AVSV_AMF_CONTAINED_COMP_CLEAN;
+  osaf_extended_name_alloc(cn.c_str(), &cbk->param.contained_clean.comp_name);
+}
+
 /**
  * @brief  This event is for remembering MDS dest and version of agent.
  * @param  ptr to AVND_CB
@@ -3072,4 +3153,53 @@ uint32_t avnd_amfa_mds_info_evh(AVND_CB *cb, AVND_EVT *evt) {
       evt->info.amfa_mds_info.mds_version;
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
+}
+
+bool AVND_COMP::container (void) const {
+  return (flag & AVND_COMP_TYPE_CONTAINER);
+}
+
+bool AVND_COMP::contained (void) const {
+  return (flag & AVND_COMP_TYPE_CONTAINED);
+}
+
+AVND_COMP * avnd_get_comp_from_csi(AVND_CB *cb, const std::string& csi) {
+  AVND_COMP *acomp(0);
+
+  for (AVND_COMP *comp(avnd_compdb_rec_get_next(cb->compdb, ""));
+       comp != nullptr;
+       comp = avnd_compdb_rec_get_next(cb->compdb, comp->name)) {
+    const AVND_COMP_CSI_REC *csi_rec(avnd_compdb_csi_rec_get(cb, comp->name,
+                                                             csi));
+
+    if (csi_rec) {
+      acomp = comp;
+      TRACE("found associated comp: %s", acomp->name.c_str());
+      break;
+    }
+  }
+
+  return acomp;
+}
+
+uint32_t avnd_comp_unregister_contained(AVND_CB *cb, AVND_COMP *comp) {
+  TRACE_ENTER();
+
+  uint32_t rc(NCSCC_RC_SUCCESS);
+
+  /* reset the comp register params */
+  m_AVND_COMP_REG_PARAM_RESET(cb, comp);
+
+  /* process comp unregistration */
+  if (m_AVND_COMP_PRES_STATE_IS_INSTANTIATED(comp)) {
+    /* finish off csi assignment */
+    avnd_comp_unreg_cbk_process(cb, comp);
+
+    /* update comp oper state */
+    m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
+    rc = avnd_comp_oper_state_avd_sync(cb, comp);
+  }
+
+  TRACE_LEAVE();
+  return rc;
 }

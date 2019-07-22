@@ -36,7 +36,7 @@ uid=$(id -u)
 byte1=2
 byte2=0
 byte3=0
-if [ "$OSAF_UML_DYNAMIC_MAC" -eq "1" ]; then
+if [ "$OSAF_UML_DYNAMIC_MAC" = "1" ]; then
   byte4=$(echo $(od -N1 -An -tx1 /dev/urandom))
 else
   byte4=1

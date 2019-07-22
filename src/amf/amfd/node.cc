@@ -121,6 +121,7 @@ void AVD_AVND::initialize() {
   clm_pend_inv = {};
   clm_change_start_preceded = {};
   recvr_fail_sw = {};
+  actv_ctrl_reboot_in_progress = {};
   admin_ng = {};
 }
 
@@ -1659,5 +1660,34 @@ void avd_check_nodes_after_reinit_imm() {
     }
   }
 
+  TRACE_LEAVE();
+}
+
+void AVD_AVND::instantiate_contained_sus(AVD_SU *container_su,
+                                         const AVD_CSI *container_csi) {
+  TRACE_ENTER();
+  for (auto &su : ((container_su->sg_of_su->sg_ncs_spec == true) ?
+         list_of_ncs_su : list_of_su)) {
+    if (su == container_su)
+      continue;
+    if ((su->contained() == false) ||
+        (su->list_of_comp.empty() == true) ||
+        (su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED))
+      continue;
+    if (su->list_of_comp.front()->saAmfCompContainerCsi == container_csi->name) {
+      if (((su->su_on_node->node_state == AVD_AVND_STATE_PRESENT) ||
+           (su->su_on_node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
+           (su->su_on_node->node_state == AVD_AVND_STATE_NCS_INIT)) &&
+          ((su->su_on_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+           (su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) &&
+          (su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+          (su->sg_of_su->saAmfSGNumPrefInserviceSUs >
+           sg_instantiated_su_count(su->sg_of_su))) {
+        if (avd_instantiate_contained_su(avd_cb, container_su, su, false) == NCSCC_RC_SUCCESS) {
+          su->set_term_state(false);
+        }
+      }
+    }
+  }
   TRACE_LEAVE();
 }

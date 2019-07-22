@@ -72,6 +72,7 @@ extern const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX] = {
     avnd_evt_avd_hb_evh,                   /* AVND_EVT_AVD_HEARTBEAT_MSG */
     avnd_evt_avd_reboot_evh,               /* /AVND_EVT_AVD_REBOOT_MSG */
     avnd_evt_avd_compcsi_evh,              // AVND_EVT_AVD_COMPCSI_ASSIGN_MSG
+    avnd_evt_avd_contained_su_evh,         // AVND_EVT_AVD_CONTAINED_SU_MSG
 
     /* AvA event types */
     avnd_evt_ava_finalize_evh,            /* AVND_EVT_AVA_AMF_FINALIZE */

@@ -53,6 +53,7 @@ typedef enum avnd_evt_type {
   AVND_EVT_AVD_HEARTBEAT_MSG,
   AVND_EVT_AVD_REBOOT_MSG,
   AVND_EVT_AVD_COMPCSI_ASSIGN_MSG,
+  AVND_EVT_AVD_CONTAINED_SU_MSG,
   AVND_EVT_AVD_MAX,
 
   /* AvA event types */

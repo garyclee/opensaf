@@ -194,6 +194,7 @@ void avsv_create_association_class_dn(const SaNameT *child_dn,
 	SaConstStringT parent_dn_ptr = 0;
 	int num_of_commas_in_child_dn = 0;
 
+	TRACE_ENTER();
 	if (child_dn) {
 		child_dn_len = osaf_extended_name_length(child_dn);
 		child_dn_ptr = osaf_extended_name_borrow(child_dn);
@@ -239,8 +240,12 @@ void avsv_create_association_class_dn(const SaNameT *child_dn,
 	}
 
 	if (dn) {
+		TRACE("dn: %s", buf);
 		osaf_extended_name_steal(buf, dn);
 	}
+	TRACE_LEAVE2("child_dn: %s parent_dn: %s",
+			child_dn_ptr ? child_dn_ptr : "no child dn",
+			parent_dn_ptr ? parent_dn_ptr : "no parent dn");
 }
 
 void avsv_sanamet_init_from_association_dn(const SaNameT *haystack, SaNameT *dn,
@@ -295,6 +300,30 @@ avsv_amfcompcategory_to_avsvcomptype(SaAmfCompCategoryT saf_comp_category)
 {
 	AVSV_COMP_TYPE_VAL avsv_comp_type = AVSV_COMP_TYPE_INVALID;
 
+	/* proxy is currently not supported */
+
+	if (saf_comp_category & SA_AMF_COMP_CONTAINER) {
+		/* proxy and container not currently supported */
+		if (saf_comp_category & SA_AMF_COMP_PROXY ||
+			saf_comp_category & SA_AMF_COMP_PROXIED ||
+			saf_comp_category & SA_AMF_COMP_CONTAINED ||
+			saf_comp_category & SA_AMF_COMP_PROXIED_NPI) {
+			return AVSV_COMP_TYPE_INVALID;
+		} else
+			return AVSV_COMP_TYPE_CONTAINER;
+	}
+
+	if (saf_comp_category & SA_AMF_COMP_CONTAINED) {
+		/* proxy and container not currently supported */
+		if (saf_comp_category & SA_AMF_COMP_PROXY ||
+			saf_comp_category & SA_AMF_COMP_PROXIED ||
+			saf_comp_category & SA_AMF_COMP_CONTAINER ||
+			saf_comp_category & SA_AMF_COMP_PROXIED_NPI) {
+			return AVSV_COMP_TYPE_INVALID;
+		} else
+			return AVSV_COMP_TYPE_CONTAINED;
+	}
+
 	if (saf_comp_category & SA_AMF_COMP_SA_AWARE) {
 		if ((saf_comp_category &
 		     ~(SA_AMF_COMP_SA_AWARE | SA_AMF_COMP_LOCAL)) == 0)
@@ -347,9 +376,6 @@ avsv_amfcompcategory_to_avsvcomptype(SaAmfCompCategoryT saf_comp_category)
 		else
 			return AVSV_COMP_TYPE_EXTERNAL_NON_PRE_INSTANTIABLE;
 	}
-
-	/* Container type not yet supported, will return AVSV_COMP_TYPE_INVALID
-	 */
 
 	return avsv_comp_type;
 }

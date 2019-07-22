@@ -17,7 +17,7 @@ Start::Start(NodeStateMachine *fsm) :
 }
 
 void Start::TimerExpired() {
-  LOG_ER("unexpected timer event");
+  LOG_WA("unexpected timer event");
 }
 
 void Start::MdsUp() {
@@ -62,8 +62,9 @@ Lost::Lost(NodeStateMachine *fsm) :
   NodeState(fsm) {
   avd_stop_tmr(fsm_->cb_, fsm_->timer_.get());
   LOG_NO("Start timer for '%x'", fsm_->node_id_);
+
   avd_start_tmr(fsm_->cb_, fsm_->timer_.get(),
-                fsm_->cb_->node_failover_delay * SA_TIME_ONE_SECOND);
+                fsm_->FailoverDelay());
 }
 
 void Lost::TimerExpired() {
@@ -85,7 +86,7 @@ void Lost::TimerExpired() {
     // wait for checkpoint to transition state
     // meanwhile, restart timer in case a SC failover to this node occurs
     avd_start_tmr(fsm_->cb_, fsm_->timer_.get(),
-                  fsm_->cb_->node_failover_delay * SA_TIME_ONE_SECOND);
+                  fsm_->FailoverDelay());
   }
 }
 
@@ -98,12 +99,12 @@ void Lost::MdsUp() {
 
 void Lost::MdsDown() {
   if (fsm_->Active() == true) {
-    LOG_ER("unexpected MDS down event");
+    LOG_WA("unexpected MDS down event");
   }
 }
 
 void Lost::NodeUp() {
-  LOG_ER("unexpected node up event");
+  LOG_WA("unexpected node up event");
 }
 
 // state 'LostFound'
@@ -149,7 +150,7 @@ void LostFound::TimerExpired() {
 
 void LostFound::MdsUp() {
   if (fsm_->Active() == true) {
-    LOG_ER("unexpected MDS up event");
+    LOG_WA("unexpected MDS up event");
   }
 }
 
@@ -172,7 +173,7 @@ void LostFound::NodeUp() {
   } else {
     // wait for checkpoint to transition state
     // we are standby and shouldn't get node up
-    LOG_ER("unexpected node up event");
+    LOG_WA("unexpected node up event");
   }
 }
 
@@ -209,7 +210,7 @@ void LostRebooting::TimerExpired() {
 
 void LostRebooting::MdsUp() {
   if (fsm_->Active() == true) {
-    LOG_ER("unexpected MDS up event");
+    LOG_WA("unexpected MDS up event");
   }
 }
 
@@ -234,7 +235,7 @@ void LostRebooting::MdsDown() {
 }
 
 void LostRebooting::NodeUp() {
-  LOG_ER("unexpected node up event");
+  LOG_WA("unexpected node up event");
 }
 
 // state 'Failed'
@@ -245,7 +246,7 @@ Failed::Failed(NodeStateMachine *fsm) :
 }
 
 void Failed::TimerExpired() {
-  LOG_ER("unexpected timer event");
+  LOG_WA("unexpected timer event");
 }
 
 void Failed::MdsUp() {
@@ -305,7 +306,7 @@ void FailedFound::TimerExpired() {
 
 void FailedFound::MdsUp() {
   if (fsm_->Active() == true) {
-    LOG_ER("unexpected MDS up event");
+    LOG_WA("unexpected MDS up event");
   }
 }
 

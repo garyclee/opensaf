@@ -804,7 +804,7 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       std::shared_ptr<NodeStateMachine> failed_node =
         cb->failover_list.at(evt->info.node_id);
       failed_node->MdsDown();
-    } else if (cb->node_failover_delay > 0) {
+    } else if (delay_failover(cb, evt->info.node_id) == true) {
       LOG_NO("Node '%s' is down. Start failover delay timer",
               node->node_name.c_str());
 
@@ -814,10 +814,10 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
     }
 
     if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
-      if (cb->node_failover_delay == 0) {
+      check_quorum(cb);
+      if (delay_failover(cb, evt->info.node_id) == false) {
         avd_node_failover(node);
       }
-      check_quorum(cb);
       node->node_info.member = SA_FALSE;
       // Update standby out of sync if standby sc goes down
       if (avd_cb->node_id_avd_other == node->node_info.nodeId) {
@@ -826,7 +826,7 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
         m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node,
                                          AVSV_CKPT_AVD_NODE_CONFIG);
       }
-    } else if (cb->node_failover_delay == 0) {
+    } else if (delay_failover(cb, evt->info.node_id) == false) {
       /* Remove dynamic info for node but keep in nodeid tree.
        * Possibly used at the end of controller failover to
        * to failover payload nodes.

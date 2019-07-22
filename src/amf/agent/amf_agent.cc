@@ -120,6 +120,8 @@ SaAisErrorT AmfAgent::Initialize(SaAmfHandleT *o_hdl,
   cb->version.majorVersion = io_ver->majorVersion;
   cb->version.minorVersion = io_ver->minorVersion;
 
+  cb->container = false;
+
   /* get the ptr to the hdl db */
   hdl_db = &cb->hdl_db;
   memset(&osaf_cbks, 0, sizeof(OsafAmfCallbacksT));
@@ -497,8 +499,9 @@ SaAisErrorT AmfAgent::ComponentRegister(SaAmfHandleT hdl,
   if (cb) ncshm_give_hdl(gl_ava_hdl);
 
   /* non-proxied, component Length part of component name should be OK */
-  if (!proxy_comp_name && (osaf_extended_name_length(comp_name) !=
-                           osaf_extended_name_length(&cb->comp_name))) {
+  if (!proxy_comp_name && !cb->container &&
+      (osaf_extended_name_length(comp_name) !=
+      osaf_extended_name_length(&cb->comp_name))) {
     rc = SA_AIS_ERR_INVALID_PARAM;
     goto done;
   }
@@ -511,9 +514,10 @@ SaAisErrorT AmfAgent::ComponentRegister(SaAmfHandleT hdl,
   }
 
   /* non-proxied component should not forge its name while registering */
-  if (!proxy_comp_name && strncmp(osaf_extended_name_borrow(comp_name),
-                                  osaf_extended_name_borrow(&cb->comp_name),
-                                  osaf_extended_name_length(comp_name))) {
+  if (!proxy_comp_name && !cb->container &&
+      strncmp(osaf_extended_name_borrow(comp_name),
+              osaf_extended_name_borrow(&cb->comp_name),
+              osaf_extended_name_length(comp_name))) {
     rc = SA_AIS_ERR_BAD_OPERATION;
     goto done;
   }
@@ -553,7 +557,7 @@ SaAisErrorT AmfAgent::ComponentRegister(SaAmfHandleT hdl,
   else
     memset(&pcomp_name, 0, sizeof(SaNameT));
   ava_fill_comp_reg_msg(&msg, cb->ava_dest, hdl, *comp_name, pcomp_name,
-                        &cb->version);
+                        &cb->version, &hdl_rec->reg_cbk);
 
   rc = static_cast<SaAisErrorT>(ava_mds_send(cb, &msg, &msg_rsp));
   if (NCSCC_RC_SUCCESS == rc) {
@@ -564,12 +568,6 @@ SaAisErrorT AmfAgent::ComponentRegister(SaAmfHandleT hdl,
     rc = SA_AIS_ERR_TRY_AGAIN;
   else if (NCSCC_RC_REQ_TIMOUT == rc)
     rc = SA_AIS_ERR_TIMEOUT;
-
-/* TODO: msg_resp should include info regarding comp category.
- * Then check supplied callbacks (different req depending on comp cat, check
- * spec) during init and send SA_AIS_ERR_UNAIVALABLE if not the correct
- * callbacks are supplied.
- */
 
 done:
   /* release cb read lock and return handles */
@@ -2024,10 +2022,11 @@ SaAisErrorT AmfAgent::Response(SaAmfHandleT hdl, SaInvocationT inv,
   AVA_PEND_CBK_REC *rec = 0;
   SaAisErrorT rc = SA_AIS_OK;
   AVSV_NDA_AVA_MSG *msg_rsp = NULL;
+  SaNameT *comp(0);
 
   TRACE_ENTER2("SaAmfHandleT passed is %llx", hdl);
 
-  if ((!m_AVA_AMF_RESP_ERR_CODE_IS_VALID(error)) || (!inv)) {
+  if (!inv) {
     TRACE_LEAVE2("Incorrect argument specified for SaAisErrorT");
     return SA_AIS_ERR_INVALID_PARAM;
   }
@@ -2071,8 +2070,38 @@ SaAisErrorT AmfAgent::Response(SaAmfHandleT hdl, SaInvocationT inv,
     goto done;
   }
 
+  // B.04.01 accepts any error code
+  if (ava_B4_ver_used(cb)) {
+    if (rec->cbk_info->type == AVSV_AMF_PXIED_COMP_INST ||
+        rec->cbk_info->type == AVSV_AMF_CONTAINED_COMP_INST) {
+      if (!m_AVA_AMF_RESP_ERR_CODE_IS_VALID(error) &&
+         error != SA_AIS_ERR_TRY_AGAIN) {
+        error = SA_AIS_ERR_FAILED_OPERATION;
+      }
+    } else if (!m_AVA_AMF_RESP_ERR_CODE_IS_VALID(error))
+      error = SA_AIS_ERR_FAILED_OPERATION;
+  } else {
+    if (!m_AVA_AMF_RESP_ERR_CODE_IS_VALID(error)) {
+      rc = SA_AIS_ERR_INVALID_PARAM;
+      goto done;
+    }
+  }
+
+  comp = &cb->comp_name;
+
+  if (rec->cbk_info->type == AVSV_AMF_CONTAINED_COMP_INST)
+    comp = &rec->cbk_info->param.contained_inst.comp_name;
+  else if (rec->cbk_info->type == AVSV_AMF_CONTAINED_COMP_CLEAN)
+    comp = &rec->cbk_info->param.contained_clean.comp_name;
+  else if (rec->cbk_info->type == AVSV_AMF_CSI_SET && cb->container)
+    comp = &rec->cbk_info->param.csi_set.comp_name;
+  else if (rec->cbk_info->type == AVSV_AMF_CSI_REM && cb->container)
+    comp = &rec->cbk_info->param.csi_rem.comp_name;
+  else if (rec->cbk_info->type == AVSV_AMF_COMP_TERM && cb->container)
+    comp = &rec->cbk_info->param.comp_term.comp_name;
+
   /* populate & send the 'AMF response' message */
-  ava_fill_response_msg(&msg, cb->ava_dest, hdl, inv, error, cb->comp_name);
+  ava_fill_response_msg(&msg, cb->ava_dest, hdl, inv, error, *comp);
 
   if (rec->cbk_info->type == AVSV_AMF_COMP_TERM)
     rc = static_cast<SaAisErrorT>(ava_mds_send(cb, &msg, &msg_rsp));
@@ -2228,22 +2257,6 @@ SaAisErrorT AmfAgent::Initialize_4(SaAmfHandleT *o_hdl,
 
   /* get the ptr to the hdl db */
   hdl_db = &cb->hdl_db;
-
-  /* create the hdl record & store the callbacks */
-
-  /* TODO: This cast will remove possibilities for container comp callbacks(last
-   * two in SaAmfCallbacksT_4 struct). But on the other hand they are not
-   * supported in ava_hdl_cbk_rec_prc, message from avnd.SaAmfCallbacksT should
-   * be replaced with SaAmfCallbacksT_4 everywhere in ava when SaAmfCallbacksT_4
-   * messages are supported from avnd.
-   */
-  if ((reg_cbks != NULL) &&
-      ((reg_cbks->saAmfContainedComponentCleanupCallback != 0) ||
-       (reg_cbks->saAmfContainedComponentInstantiateCallback != 0))) {
-    TRACE_4("SA_AIS_ERR_NOT_SUPPORTED: unsupported callbacks");
-    rc = SA_AIS_ERR_NOT_SUPPORTED;
-    goto done;
-  }
 
   memset(&osaf_cbks, 0, sizeof(OsafAmfCallbacksT));
   if (reg_cbks != NULL)

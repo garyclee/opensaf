@@ -168,6 +168,10 @@ typedef struct avnd_su_tag {
   bool avnd_su_check_sis_previous_assign_state(
       const AVND_SU_SI_ASSIGN_STATE prev_state) const;
 
+  //Members related to container and containd functionality.
+  std::string container_su_name; /* su name */
+  bool contained(void) const;
+  void update_container_comp(void);
 } AVND_SU;
 
 #define AVND_SU_NULL ((AVND_SU *)0)

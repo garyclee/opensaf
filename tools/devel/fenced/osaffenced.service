@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenSAF Fencing daemon
+After=remote-fs.target local-fs.target syslog.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/opensaf/osaffenced
+EnvironmentFile=/etc/opensaf/fenced.conf
+WatchdogSec=10s
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1359,6 +1359,7 @@ int amfd_file_dump(const char *filename) {
   fprintf(f, "  compcstype_updt:%d\n", avd_cb->async_updt_cnt.compcstype_updt);
   fprintf(f, "  si_trans_updt:%d\n", avd_cb->async_updt_cnt.si_trans_updt);
   fprintf(f, "  ng_updt:%d\n", avd_cb->async_updt_cnt.ng_updt);
+  fprintf(f, "  failover_updt:%d\n", avd_cb->async_updt_cnt.failover_updt);
 
   fprintf(f, "nodes:\n");
   for (const auto &value : *node_id_db) {
@@ -1802,6 +1803,9 @@ void avd_d2n_reboot_snd(AVD_AVND *node) {
   if (avd_d2n_msg_snd(avd_cb, node, d2n_msg) != NCSCC_RC_SUCCESS) {
     LOG_ER("%s: snd to %x failed", __FUNCTION__, node->node_info.nodeId);
     d2n_msg_free(d2n_msg);
+  } else if (node->node_info.nodeId == avd_cb->node_id_avd) {
+    TRACE("rebooting active amf director which is ourself");
+    node->actv_ctrl_reboot_in_progress = true;
   }
 }
 
@@ -2121,5 +2125,44 @@ uint32_t avd_send_reboot_msg_directly(AVD_AVND *node) {
   }
 done:
   delete d2n_msg;
+  return rc;
+}
+
+uint32_t avd_instantiate_contained_su(AVD_CL_CB *cb, AVD_SU *container_su,
+                                      AVD_SU *contained_su, bool term_state) {
+  uint32_t rc = NCSCC_RC_FAILURE;
+  AVD_DND_MSG *d2n_msg;
+  AVD_AVND *node = container_su->get_node_ptr();
+
+  TRACE_ENTER2("%s '%s'", (term_state == true) ? "Terminate" : "Instantiate",
+               contained_su->name.c_str());
+
+  /* prepare the node update message. */
+  d2n_msg = new AVSV_DND_MSG();
+  SaNameT container_su_name, contained_su_name;
+  osaf_extended_name_alloc(container_su->name.c_str(), &container_su_name);
+  osaf_extended_name_alloc(contained_su->name.c_str(), &contained_su_name);
+
+  /* prepare the SU presence state change notification message */
+  d2n_msg->msg_type = AVSV_D2N_CONTAINED_SU_MSG;
+  d2n_msg->msg_info.d2n_contained_su_msg_info.msg_id = ++(node->snd_msg_id);
+  d2n_msg->msg_info.d2n_contained_su_msg_info.node_id = node->node_info.nodeId;
+  d2n_msg->msg_info.d2n_contained_su_msg_info.container_su_name = container_su_name;
+  d2n_msg->msg_info.d2n_contained_su_msg_info.contained_su_name = contained_su_name;
+  d2n_msg->msg_info.d2n_contained_su_msg_info.term_state = term_state;
+
+  TRACE("Sending %u to %x", AVSV_D2N_CONTAINED_SU_MSG, node->node_info.nodeId);
+
+  if (avd_d2n_msg_snd(cb, node, d2n_msg) != NCSCC_RC_SUCCESS) {
+    LOG_ER("%s: snd to %x failed", __FUNCTION__, node->node_info.nodeId);
+    d2n_msg_free(d2n_msg);
+    --(node->snd_msg_id);
+    goto done;
+  }
+
+  m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, (node), AVSV_CKPT_AVND_SND_MSG_ID);
+  rc = NCSCC_RC_SUCCESS;
+done:
+  TRACE_LEAVE2("%u", rc);
   return rc;
 }

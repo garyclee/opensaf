@@ -19,5 +19,5 @@ include $(top_srcdir)/Makefile.common
 
 MAINTAINERCLEANFILES = Makefile.in
 
-SUBDIRS = sa_aware non_sa_aware wrapper proxy api_demo
+SUBDIRS = sa_aware non_sa_aware wrapper proxy api_demo container
 

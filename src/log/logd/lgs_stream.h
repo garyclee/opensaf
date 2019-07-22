@@ -147,4 +147,8 @@ void log_stream_form_dest_names(log_stream_t *stream);
 
 void lgs_ckpt_stream_open(log_stream_t *stream, uint32_t client_id);
 
+int log_rotation_act(log_stream_t *stream);
+int log_rotation_stb(log_stream_t *stream);
+bool remove_oldest_log_files(log_stream_t *stream,
+                             int number_files_to_remove = 0);
 #endif  // LOG_LOGD_LGS_STREAM_H_

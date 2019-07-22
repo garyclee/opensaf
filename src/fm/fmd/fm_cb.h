@@ -39,6 +39,7 @@ typedef enum {
   FM_TMR_TYPE_MIN,
   FM_TMR_PROMOTE_ACTIVE,
   FM_TMR_ACTIVATION_SUPERVISION,
+  FM_TMR_CONSENSUS_SERVICE_SUPERVISION,
   FM_TMR_TYPE_MAX
 } FM_TMR_TYPE;
 
@@ -83,6 +84,7 @@ struct FM_CB {
   /* Timers */
   FM_TMR promote_active_tmr{};
   FM_TMR activation_supervision_tmr{};
+  FM_TMR consensus_service_supervision_tmr{};
 
   /* Time in terms of one hundredth of seconds (500 for 5 secs.) */
   uint32_t active_promote_tmr_val{};

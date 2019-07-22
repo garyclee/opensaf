@@ -1,4 +1,5 @@
 #include "base/logtrace.h"
+#include "osaf/consensus/consensus.h"
 #include "amf/amfd/amfd.h"
 #include "amf/amfd/node_state_machine.h"
 
@@ -42,6 +43,8 @@ void NodeStateMachine::SetState(std::shared_ptr<NodeState> state) {
   AVD_AVND *node = avd_node_find_nodeid(node_id_);
   osafassert(node != nullptr);
   m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb_, node, AVSV_CKPT_NODE_FAILOVER_STATE);
+  // used for cold sync
+  node->failover_state = state_->GetInt();
 
   if (state->GetInt() == NodeState::kEnd) {
     cb_->failover_list.erase(node_id_);
@@ -91,6 +94,24 @@ void NodeStateMachine::SetState(uint32_t state) {
 
 uint32_t NodeStateMachine::GetState() {
   return state_->GetInt();
+}
+
+SaTimeT NodeStateMachine::FailoverDelay() const {
+  TRACE_ENTER();
+
+  SaTimeT delay;
+  if (node_id_ == cb_->node_id_avd_other) {
+    // If peer SC, it's guaranteed to fence after this amount of time
+    // (2 * FMS_TAKEOVER_REQUEST_VALID_TIME).
+    // This may be smaller than node_failover_delay.
+    Consensus consensus_service;
+    delay = 2 * consensus_service.TakeoverValidTime();
+  } else {
+    delay = cb_->node_failover_delay;
+  }
+
+  TRACE("delay is %llu", delay);
+  return delay * SA_TIME_ONE_SECOND;
 }
 
 bool NodeStateMachine::Active() {

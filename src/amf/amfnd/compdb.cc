@@ -990,7 +990,9 @@ static amf_comp_type_t *avnd_comptype_create(SaImmHandleT immOmHandle,
   }
 
   if ((IS_COMP_SAAWARE(compt->saAmfCtCompCategory) ||
-       IS_COMP_PROXIED_PI(compt->saAmfCtCompCategory)) &&
+       IS_COMP_PROXIED_PI(compt->saAmfCtCompCategory) ||
+       IS_COMP_CONTAINER(compt->saAmfCtCompCategory) ||
+       IS_COMP_CONTAINED(compt->saAmfCtCompCategory)) &&
       (immutil_getAttr(
            const_cast<SaImmAttrNameT>("saAmfCtDefQuiescingCompleteTimeout"),
            attributes, 0,
@@ -1032,6 +1034,20 @@ static void init_comp_category(AVND_COMP *comp, SaAmfCompCategoryT category) {
   osafassert(comptype != AVSV_COMP_TYPE_INVALID);
 
   switch (comptype) {
+    case AVSV_COMP_TYPE_CONTAINER:
+      m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_CONTAINER);
+      m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_LOCAL);
+      m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_SAAWARE);
+      m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_PREINSTANTIABLE);
+      break;
+
+    case AVSV_COMP_TYPE_CONTAINED:
+      m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_CONTAINED);
+      m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_LOCAL);
+      m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_SAAWARE);
+      m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_PREINSTANTIABLE);
+      break;
+
     case AVSV_COMP_TYPE_SA_AWARE:
       m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_LOCAL);
       m_AVND_COMP_TYPE_SET(comp, AVND_COMP_TYPE_SAAWARE);
@@ -1280,7 +1296,7 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes) {
   SaImmHandleT immOmHandle;
   SaVersionT immVersion = {'A', 2, 15};
   SaNameT node_name;
-  SaNameT saAmfCtSwBundle;
+  SaNameT saAmfCtSwBundle, container_csi;
   SaAisErrorT error;
 
   TRACE_ENTER2("%s", comp->name.c_str());
@@ -1306,6 +1322,12 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes) {
   (void)get_string_attr_from_imm(
       immOmHandle, const_cast<SaImmAttrNameT>("saAmfNodeSwBundlePathPrefix"),
       Amf::to_string(&nodeswbundle_name), &path_prefix);
+
+  if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompContainerCsi"),
+                      attributes, 0, &container_csi) == SA_AIS_OK) {
+    comp->saAmfCompContainerCsi = Amf::to_string(&container_csi);
+    container_csis.insert(comp->saAmfCompContainerCsi);
+  }
 
   if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompInstantiationLevel"),
                       attributes, 0, &comp->inst_level) != SA_AIS_OK) {

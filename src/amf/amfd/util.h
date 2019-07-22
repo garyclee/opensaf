@@ -122,5 +122,7 @@ uint32_t avd_snd_compcsi_msg(AVD_COMP *comp, AVD_CSI *csi,
                              avd_comp_csi_rel_tag *compcsi,
                              AVSV_COMPCSI_ACT act);
 uint32_t avd_send_reboot_msg_directly(AVD_AVND *node);
+uint32_t avd_instantiate_contained_su(AVD_CL_CB *cb, AVD_SU *container_su,
+                                      AVD_SU *contained_su, bool term_state);
 
 #endif  // AMF_AMFD_UTIL_H_

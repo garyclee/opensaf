@@ -30,6 +30,8 @@ namespace base {
 class Process;
 }
 
+struct RDE_CONTROL_BLOCK;
+
 class Role {
  public:
   explicit Role(NODE_ID own_node_id);
@@ -45,6 +47,7 @@ class Role {
                               const std::string& new_value, SYSF_MBX mbx);
   void NodePromoted();
   void PromoteNodeLate();
+  void RefreshConsensusState(RDE_CONTROL_BLOCK* cb);
 
  private:
   static const uint64_t kDefaultDiscoverPeerTimeout = 2000;

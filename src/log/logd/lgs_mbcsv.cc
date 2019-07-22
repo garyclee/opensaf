@@ -2316,6 +2316,7 @@ static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, void *data) {
   char *dest_names = nullptr;
   SaUint32T severityFilter;
   char *logFileCurrent;
+  bool new_cfg_file_needed = false;
 
   TRACE_ENTER();
 
@@ -2370,9 +2371,16 @@ static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, void *data) {
     goto done;
   }
 
+  if ((stream->maxLogFileSize != maxLogFileSize) ||
+      (stream->fixedLogRecordSize != fixedLogRecordSize) ||
+      (stream->logFullAction != logFullAction) ||
+      (stream->maxFilesRotated != maxFilesRotated) ||
+      (strcmp(stream->logFileFormat, logFileFormat) != 0) ||
+      (stream->fileName != fileName))
+    new_cfg_file_needed = true;
+
   TRACE("config stream %s, id: %u", stream->name.c_str(), stream->streamId);
   stream->act_last_close_timestamp = closetime; /* Not used if ver 1 */
-  stream->fileName = fileName;
   stream->maxLogFileSize = maxLogFileSize;
   stream->fixedLogRecordSize = fixedLogRecordSize;
   stream->logFullAction = logFullAction;
@@ -2408,22 +2416,43 @@ static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, void *data) {
     }
   }
 
-  /* If split file mode, update standby files */
+  // If split file system mode, update standby files
   if (lgs_is_split_file_system()) {
-    int rc = 0;
     std::string root_path =
         static_cast<const char *>(lgs_cfg_get(LGS_IMM_LOG_ROOT_DIRECTORY));
-    if ((rc = log_stream_config_change(LGS_STREAM_CREATE_FILES, root_path,
-                                       stream, stream->stb_logFileCurrent,
-                                       &closetime)) != 0) {
-      LOG_WA("log_stream_config_change failed: %d", rc);
+    if (new_cfg_file_needed) {
+      int rc = 0;
+      // Change config file if need
+      if ((rc = log_stream_config_change(!LGS_STREAM_CREATE_FILES, root_path,
+                                         stream, stream->stb_logFileCurrent,
+                                         &closetime)) != 0)
+        LOG_WA("log_stream_config_change failed: %d", rc);
+
+      stream->fileName = fileName;
+
+      if ((rc = lgs_create_config_file_h(root_path, stream)) != 0)
+        LOG_WA("lgs_create_config_file_h failed: %d", rc);
+
+      stream->stb_logFileCurrent = stream->logFileCurrent;
+
+      // Create the new log file based on updated configuration
+      *stream->p_fd = log_file_open(root_path, stream,
+                                    stream->stb_logFileCurrent, NULL);
+      if (*stream->p_fd == -1)
+        LOG_WA("New log file could not be created for stream: %s",
+               stream->name.c_str());
+    } else if (stream->stb_prev_actlogFileCurrent != logFileCurrent) {
+      // If there is no changed attributes that needs to change cfg file
+      // but the current log file has already changed in ACTIVE, the log file
+      // has already rotated in ACTIVE. Should also rotate in STANDBY
+      if (log_rotation_stb(stream) != 0)
+        LOG_WA("Rotate log file fails");
     }
 
-    /* When modifying old files are closed and new are opened meaning that
-     * we have a new  standby current log-file
-     */
     stream->stb_prev_actlogFileCurrent = stream->logFileCurrent;
-    stream->stb_logFileCurrent = stream->logFileCurrent;
+  } else {
+    stream->fileName = fileName;
+    stream->logFileCurrent = logFileCurrent;
   }
 
 done:

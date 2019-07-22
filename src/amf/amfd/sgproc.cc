@@ -41,6 +41,8 @@
 #include "amf/amfd/si_dep.h"
 #include "amf/amfd/cluster.h"
 
+extern bool all_assignments_done(const AVD_SU *);
+
 /**
  * @brief       While creating compcsi relationship in SUSI, AMF may assign
  *              a dependent csi to a component in the SU when its one or more
@@ -472,6 +474,13 @@ static uint32_t sg_su_failover_func(AVD_SU *su) {
 
   if (su->list_of_susi == AVD_SU_SI_REL_NULL) {
     TRACE("'%s' has no assignments", su->name.c_str());
+    rc = NCSCC_RC_SUCCESS;
+    goto done;
+  }
+
+  if (su->su_on_node->actv_ctrl_reboot_in_progress) {
+    TRACE("'%s' is already going down, so not doing SU failover",
+          su->name.c_str());
     rc = NCSCC_RC_SUCCESS;
     goto done;
   }
@@ -1134,6 +1143,54 @@ void process_su_si_response_for_surestart_admin_op(AVD_SU *su) {
   }
   TRACE_LEAVE();
 }
+
+static void process_su_si_response_for_container_contained(
+  AVD_CL_CB *cb, AVD_SU *su, SaAmfHAStateT state, AVSV_SUSI_ACT msg_act) {
+  TRACE_ENTER();
+
+  if (su->container() || su->contained()) {
+    TRACE("su: %s state: %i msg_act: %i", su->name.c_str(), state, msg_act);
+
+    if (su->contained() &&
+        ((state == SA_AMF_HA_QUIESCED && msg_act == AVSV_SUSI_ACT_DEL) ||
+        (state == SA_AMF_HA_STANDBY && msg_act == AVSV_SUSI_ACT_DEL))) {
+      // notify container su that contained has quiesced and removed
+      AVD_SU *container_su(su->get_container_su_on_same_node());
+
+      TRACE("container: %s wait: %i",
+            container_su->name.c_str(),
+            container_su->wait_for_contained_to_quiesce);
+
+      if (container_su->wait_for_contained_to_quiesce) {
+        // contained SU has been removed, now terminate it
+        if (avd_snd_presence_msg(avd_cb, su, true) == NCSCC_RC_SUCCESS)
+          su->set_term_state(true);
+
+        /*
+         * If all the contained SUs are done change the admin state of the
+         * contained SG back to unlocked.
+         */
+        bool all_unassigned(true);
+        for (const auto &iter : su->sg_of_su->list_of_su) {
+          if (iter->list_of_susi != AVD_SU_SI_REL_NULL) {
+            all_unassigned = false;
+            break;
+          }
+        }
+
+        if (container_su->sg_of_su->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED &&
+            all_unassigned) {
+          su->sg_of_su->saAmfSGAdminState = SA_AMF_ADMIN_UNLOCKED;
+        }
+      }
+    } else if (su->container() && state == SA_AMF_HA_ACTIVE)
+      su->instantiate_associated_contained_sus();
+  }
+
+  TRACE_LEAVE();
+  return;
+}
+
 /*****************************************************************************
  * Function: avd_su_si_assign_func
  *
@@ -1247,6 +1304,14 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
     TRACE("%u", n2d_msg->msg_info.n2d_su_si_assign.msg_act);
     switch (n2d_msg->msg_info.n2d_su_si_assign.msg_act) {
       case AVSV_SUSI_ACT_DEL:
+        if (su->contained()) {
+          AVD_SU *container_su(su->get_container_su_on_same_node());
+          if (container_su->wait_for_contained_to_quiesce &&
+              container_su->sg_of_su->saAmfSGAdminState ==
+                SA_AMF_ADMIN_LOCKED) {
+              avd_sg_su_oper_list_del(cb, su, false);
+          }
+        }
         break;
 
       case AVSV_SUSI_ACT_MOD:
@@ -1724,6 +1789,12 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
         su->su_on_node->clm_pend_inv = 0;
       } /* else wait for some more time */
     }
+
+    process_su_si_response_for_container_contained(
+      cb,
+      su,
+      n2d_msg->msg_info.n2d_su_si_assign.ha_state,
+      n2d_msg->msg_info.n2d_su_si_assign.msg_act);
   }
 
   /* Check whether the node belonging to this su is disable and susi of all su
@@ -1815,7 +1886,8 @@ void avd_sg_app_node_su_inst_func(AVD_CL_CB *cb, AVD_AVND *avnd) {
 
   if (cb->init_state == AVD_INIT_DONE) {
     for (const auto &i_su : avnd->list_of_su) {
-      if ((i_su->term_state == false) &&
+      if (!i_su->contained() && // contained sus are instantiated by container
+          (i_su->term_state == false) &&
           (i_su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) &&
           (i_su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
           (i_su->sg_of_su->saAmfSGAdminState !=
@@ -2039,8 +2111,22 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg) {
             if (sg->find_instantiable_same_rank_su(i_su))
               continue;
           }
-          if (avd_snd_presence_msg(cb, i_su, false) == NCSCC_RC_SUCCESS) {
-            num_try_insvc_su++;
+
+          if (i_su->contained() == true) {
+            AVD_SU *container_su(i_su->get_container_su_on_same_node());
+
+            if (!container_su || !container_su->is_ready_for_contained()) {
+              TRACE("container not ready to instantiate contained");
+              continue;
+            }
+            if (avd_instantiate_contained_su(cb, container_su, i_su, false) ==
+                  NCSCC_RC_SUCCESS) {
+              num_try_insvc_su++;
+            }
+          } else {
+            if (avd_snd_presence_msg(cb, i_su, false) == NCSCC_RC_SUCCESS) {
+              num_try_insvc_su++;
+            }
           }
         } else {
           /* Check whether in-serv su are sufficient. */
@@ -2445,6 +2531,76 @@ done:
   return rc;
 }
 
+static uint32_t shutdown_contained_sus(AVD_CL_CB *cb, AVD_SU *container_su,
+                                       SaAmfHAStateT state) {
+  TRACE_ENTER();
+
+  uint32_t rc(NCSCC_RC_NO_OBJECT);
+
+  // get the container csi
+  AVD_COMP_CSI_REL *container_csi_rel(nullptr);
+
+  for (const auto &comp : container_su->list_of_comp) {
+    if (comp->container()) {
+      for (const auto &si : container_su->sg_of_su->list_of_si) {
+        for (AVD_CSI *csi = si->list_of_csi; csi; csi = csi->si_list_of_csi_next) {
+          for (AVD_COMP_CSI_REL *compcsi = csi->list_compcsi; compcsi;
+               compcsi = compcsi->csi_csicomp_next) {
+            if (compcsi->comp == comp) {
+              TRACE("found container csi: %s", compcsi->csi->name.c_str());
+              container_csi_rel = compcsi;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const std::string& container_csi(container_csi_rel->csi->name);
+
+  for (auto &su : container_su->su_on_node->list_of_su) {
+    if (su == container_su)
+      continue;
+    if ((su->contained() == false) ||
+        (su->list_of_comp.empty() == true))
+      continue;
+    if (su->list_of_comp.front()->saAmfCompContainerCsi == container_csi) {
+      su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
+
+      if (!su->list_of_susi) {
+        // nothing to do
+        continue;
+      }
+
+      if (su->list_of_susi->state == SA_AMF_HA_ACTIVE)
+        rc = avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED);
+      else
+        rc = avd_sg_su_si_del_snd(cb, su);
+
+      if (rc != NCSCC_RC_SUCCESS)
+        goto done;
+
+      if (container_su->sg_of_su->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED) {
+        // this is dangerous...
+        // XXX use ng_using_saAmfSGAdminState
+        su->sg_of_su->saAmfSGAdminState = SA_AMF_ADMIN_LOCKED;
+
+        su->sg_of_su->set_fsm_state(AVD_SG_FSM_SG_ADMIN);
+      } else {
+        su->sg_of_su->set_fsm_state(AVD_SG_FSM_SU_OPER);
+      }
+
+      avd_sg_su_oper_list_add(cb, su, false);
+    }
+  }
+
+done:
+  return rc;
+
+  TRACE_LEAVE();
+}
+
 /*****************************************************************************
  * Function: avd_sg_su_si_mod_snd
  *
@@ -2476,6 +2632,19 @@ uint32_t avd_sg_su_si_mod_snd(AVD_CL_CB *cb, AVD_SU *su, SaAmfHAStateT state) {
   if (su->any_susi_fsm_in(AVD_SU_SI_STATE_ABSENT)) {
     rc = NCSCC_RC_SUCCESS;
     goto done;
+  }
+
+  if (su->container() && !su->wait_for_contained_to_quiesce) {
+    TRACE("this is a container su; need to shut down contained sus");
+    rc = shutdown_contained_sus(cb, su, state);
+
+    if (rc == NCSCC_RC_NO_OBJECT) {
+      // there were no contained sus to shutdown
+    }
+    else {
+      su->wait_for_contained_to_quiesce = true;
+      goto done;
+    }
   }
 
   /* change the state for all assignments to the specified state. */

@@ -826,6 +826,15 @@ uint32_t mbcsv_process_peer_up_info(MBCSV_EVT *msg, CKPT_INST *ckpt,
 			memcpy(evt, msg, sizeof(MBCSV_EVT));
 
 			TRACE_4("Still RED_UP event not arrived of the peer");
+			if (evt->hops < 255) {
+				++evt->hops;
+			} else {
+				LOG_WA("RED_UP missing, discarding peer up");
+				m_NCS_UNLOCK(&mbcsv_cb.peer_list_lock,
+					NCS_LOCK_WRITE);
+				m_MMGR_FREE_MBCSV_EVT(evt);
+				return NCSCC_RC_FAILURE;
+			}
 
 			/* Again post the event, till RED_UP event arrives */
 			if (NCSCC_RC_SUCCESS !=
@@ -833,6 +842,7 @@ uint32_t mbcsv_process_peer_up_info(MBCSV_EVT *msg, CKPT_INST *ckpt,
 				TRACE_LEAVE2("ipc send failed");
 				m_NCS_UNLOCK(&mbcsv_cb.peer_list_lock,
 					     NCS_LOCK_WRITE);
+				m_MMGR_FREE_MBCSV_EVT(evt);
 				return NCSCC_RC_FAILURE;
 			}
 

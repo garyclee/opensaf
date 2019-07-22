@@ -406,12 +406,18 @@ static void handle_event_in_failover_state(AVD_EVT *evt) {
 
     /* Dequeue, all the messages from the queue
        and process them now */
-
-    while (!cb->evt_queue.empty()) {
+    auto size_before_loop = cb->evt_queue.size();
+    std::queue<AVD_EVT_QUEUE *>::size_type count = 0;
+    while (count < size_before_loop) {
+      // note: process_event() may insert items into
+      // the queue, so terminate loop when we have
+      // processed all the original elements
+      // to avoid infinite loop
       AVD_EVT_QUEUE *queue_evt = cb->evt_queue.front();
       cb->evt_queue.pop();
       process_event(cb, queue_evt->evt);
       delete queue_evt;
+      ++count;
     }
 
     /* Walk through all the nodes to check if any of the nodes state is
@@ -576,7 +582,6 @@ static uint32_t initialize(void) {
   }
   cb->minimum_cluster_size =
       base::GetEnv("OSAF_AMF_MIN_CLUSTER_SIZE", uint32_t{2});
-  cb->fmd_conf_file = base::GetEnv("FMS_CONF_FILE", "");
 
   node_list_db = new AmfDb<uint32_t, AVD_FAIL_OVER_NODE>;
   amfnd_svc_db = new std::set<uint32_t>;

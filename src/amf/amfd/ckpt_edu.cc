@@ -119,6 +119,8 @@ uint32_t avsv_edp_ckpt_msg_async_updt_cnt(EDU_HDL *hdl, EDU_TKN *edu_tkn,
        (long)&((AVSV_ASYNC_UPDT_CNT *)0)->si_trans_updt, 0, nullptr},
       {EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
        (long)&((AVSV_ASYNC_UPDT_CNT *)0)->ng_updt, 0, nullptr},
+      {EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
+       (long)&((AVSV_ASYNC_UPDT_CNT *)0)->failover_updt, 0, nullptr},
 
       {EDU_END, 0, 0, 0, 0, 0, 0, nullptr},
   };

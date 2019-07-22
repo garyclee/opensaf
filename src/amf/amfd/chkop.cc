@@ -1051,6 +1051,10 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action,
             avd_cb->avd_peer_ver);
         return NCSCC_RC_SUCCESS;
       }
+      if (avd_cb->avd_peer_ver >= AVD_MBCSV_SUB_PART_VERSION_10) {
+        cb->async_updt_cnt.failover_updt++;
+      }
+
       break;
     default:
       return NCSCC_RC_SUCCESS;

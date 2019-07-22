@@ -196,7 +196,8 @@ extern "C" {
 
 /* Admin operation IDs */
 	typedef enum {
-		SA_LOG_ADMIN_CHANGE_FILTER = 1
+		SA_LOG_ADMIN_CHANGE_FILTER = 1,
+		SA_LOG_ADMIN_ROTATE_FILE = 2
 	} saLogAdminOperationIdT;
 
 /* 

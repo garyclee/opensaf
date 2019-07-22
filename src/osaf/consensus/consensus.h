@@ -61,6 +61,9 @@ class Consensus {
   bool IsRelaxedNodePromotionEnabled() const;
 
   bool PrioritisePartitionSize() const;
+  uint32_t PrioritisePartitionSizeWaitTime() const;
+
+  uint32_t TakeoverValidTime() const;
 
   // Determine if plugin is telling us to self-fence due to loss
   // of connectivity to the KV store
@@ -98,6 +101,7 @@ class Consensus {
   bool use_consensus_{false};
   bool use_remote_fencing_{false};
   bool prioritise_partition_size_{true};
+  uint32_t prioritise_partition_size_mds_wait_time_{4};
   bool relaxed_node_promotion_{false};
   uint32_t takeover_valid_time_{20};
   uint32_t max_takeover_retry_{0};

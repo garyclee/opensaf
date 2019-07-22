@@ -151,6 +151,7 @@ typedef enum {
 #define OPENSAF_IMM_FLAG_PRT50_ALLOW 0x00000080
 #define OPENSAF_IMM_FLAG_PRT51_ALLOW 0x00000100
 #define OPENSAF_IMM_FLAG_PRT51710_ALLOW 0x00000200
+#define OPENSAF_IMM_FLAG_PRT51906_ALLOW 0x00000400
 
 #define OPENSAF_IMM_SERVICE_NAME "safImmService"
 
@@ -159,7 +160,9 @@ typedef enum {
   SA_IMM_ADMIN_INIT_FROM_FILE = 100, /* Non standard, force PBE disable. */
   SA_IMM_ADMIN_ABORT_CCBS = 202, /* Non standard, abort non critical CCBs. */
   /* Non standard, regenerate pbe database from RAM */
-  SA_IMM_ADMIN_REGENERATE_PBE_DB = 303
+  SA_IMM_ADMIN_REGENERATE_PBE_DB = 303,
+  SA_IMM_ADMIN_FS_UNAVAILABLE = 400,
+  SA_IMM_ADMIN_FS_AVAILABLE = 401,
 } SaImmMngtAdminOperationT;
 
 /*

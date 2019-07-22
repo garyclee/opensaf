@@ -45,14 +45,14 @@ const MDS_CLIENT_MSG_FORMAT_VER avnd_avd_msg_fmt_map_table[] = {
     AVSV_AVD_AVND_MSG_FMT_VER_1, AVSV_AVD_AVND_MSG_FMT_VER_2,
     AVSV_AVD_AVND_MSG_FMT_VER_3, AVSV_AVD_AVND_MSG_FMT_VER_4,
     AVSV_AVD_AVND_MSG_FMT_VER_4, AVSV_AVD_AVND_MSG_FMT_VER_6,
-    AVSV_AVD_AVND_MSG_FMT_VER_7};
+    AVSV_AVD_AVND_MSG_FMT_VER_7, AVSV_AVD_AVND_MSG_FMT_VER_8};
 
 /* messages from director */
 const MDS_CLIENT_MSG_FORMAT_VER avd_avnd_msg_fmt_map_table[] = {
     AVSV_AVD_AVND_MSG_FMT_VER_1, AVSV_AVD_AVND_MSG_FMT_VER_2,
     AVSV_AVD_AVND_MSG_FMT_VER_3, AVSV_AVD_AVND_MSG_FMT_VER_4,
     AVSV_AVD_AVND_MSG_FMT_VER_5, AVSV_AVD_AVND_MSG_FMT_VER_6,
-    AVSV_AVD_AVND_MSG_FMT_VER_7};
+    AVSV_AVD_AVND_MSG_FMT_VER_7, AVSV_AVD_AVND_MSG_FMT_VER_8};
 
 const MDS_CLIENT_MSG_FORMAT_VER avnd_avnd_msg_fmt_map_table[] = {
     AVSV_AVND_AVND_MSG_FMT_VER_1};
@@ -381,6 +381,8 @@ uint32_t avnd_mds_rcv(AVND_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info) {
 
       if (msg.info.avd->msg_type == AVSV_D2N_COMPCSI_ASSIGN_MSG)
         type = AVND_EVT_AVD_COMPCSI_ASSIGN_MSG;
+      else if (msg.info.avd->msg_type == AVSV_D2N_CONTAINED_SU_MSG)
+        type = AVND_EVT_AVD_CONTAINED_SU_MSG;
       else
         type = static_cast<AVND_EVT_TYPE>(
             (msg.info.avd->msg_type - AVSV_D2N_NODE_UP_MSG) +
@@ -1036,6 +1038,23 @@ uint32_t avnd_mds_flat_ava_enc(AVND_CB *cb, MDS_CALLBACK_ENC_INFO *enc_info) {
                                 &cbk_info->param.pxied_comp_clean.comp_name);
           }
           break;
+
+        case AVSV_AMF_CONTAINED_COMP_INST:
+          if (osaf_is_an_extended_name(
+                  &cbk_info->param.contained_inst.comp_name)) {
+            osaf_encode_sanamet(enc_info->io_uba,
+                                &cbk_info->param.contained_inst.comp_name);
+          }
+          break;
+
+        case AVSV_AMF_CONTAINED_COMP_CLEAN:
+          if (osaf_is_an_extended_name(
+                  &cbk_info->param.contained_clean.comp_name)) {
+            osaf_encode_sanamet(enc_info->io_uba,
+                                &cbk_info->param.contained_clean.comp_name);
+          }
+          break;
+
         case AVSV_AMF_SC_STATUS_CHANGE:
           break;
 

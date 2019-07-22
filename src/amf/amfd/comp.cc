@@ -73,7 +73,7 @@ void AVD_COMP::initialize() {
   curr_num_csi_actv = {};
   curr_num_csi_stdby = {};
   comp_proxy_csi = {};
-  comp_container_csi = {};
+  saAmfCompContainerCsi = {};
   saAmfCompRestartCount = {};
   saAmfCompCurrProxyName = {};
   saAmfCompCurrProxiedNames = {};
@@ -328,6 +328,424 @@ done:
   TRACE_LEAVE();
 }
 
+static bool get_container_redundancy_model_from_ccb(
+  CcbUtilOperationData_t *opdata,
+  const std::string& sg_name,
+  SaAmfRedundancyModelT& model) {
+  SaNameT aname, sgtypeName;
+  bool status(false);
+
+  osaf_extended_name_alloc(sg_name.c_str(), &aname);
+  CcbUtilOperationData_t *ccbSgOpData(ccbutil_getCcbOpDataByDN(opdata->ccbId, &aname)),
+    *ccbSgTypeOpData(nullptr);
+
+  if (ccbSgOpData && ccbSgOpData->operationType == CCBUTIL_CREATE &&
+      immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSGType"),
+                      ccbSgOpData->param.create.attrValues,
+                      0, &sgtypeName) == SA_AIS_OK &&
+      (ccbSgTypeOpData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &sgtypeName)) &&
+      immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSgtRedundancyModel"),
+                      ccbSgTypeOpData->param.create.attrValues,
+                      0, &model) == SA_AIS_OK) {
+    status = true;
+  }
+
+  return status;
+}
+
+static bool get_container_contained_from_ccb(
+  const CcbUtilOperationData_t *opData,
+  SaUint32T& compCategory)
+{
+  bool status(false);
+
+  do {
+    if (opData->operationType != CCBUTIL_CREATE)
+      break;
+
+    std::string dnC(Amf::to_string(&opData->objectName));
+    std::string::size_type pos;
+
+    if ((pos = dnC.find(',')) == std::string::npos)
+      break;
+
+    // is it a comp?
+    if (dnC.compare(0, 8, "safComp=") != 0)
+      break;
+
+    std::string comp_nameC;
+
+    avsv_sanamet_init(dnC, comp_nameC, "safComp");
+
+    AVD_COMP_TYPE *comptype(comptype_db->find(comp_nameC));
+    CcbUtilOperationData_t *ccbCompTypeOpData(nullptr);
+
+    if (comptype == nullptr) {
+      /* Comp type does not exist in current model, check CCB */
+      SaNameT aname;
+
+      if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompType"),
+                          opData->param.create.attrValues,
+                          0, &aname) != SA_AIS_OK)
+        break;
+
+      ccbCompTypeOpData = ccbutil_getCcbOpDataByDN(opData->ccbId, &aname);
+      if (ccbCompTypeOpData == nullptr)
+        break;
+    }
+
+    if (comptype)
+      compCategory = comptype->saAmfCtCompCategory;
+    else if (ccbCompTypeOpData &&
+             immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtCompCategory"),
+                             ccbCompTypeOpData->param.create.attrValues,
+                             0, &compCategory) == SA_AIS_OK) {
+    }
+    else
+      break;
+
+    if (IS_COMP_CONTAINER(compCategory) || IS_COMP_CONTAINED(compCategory))
+      status = true;
+  } while (false);
+
+  return status;
+}
+
+static bool is_container_csi_in_ccb(const CcbUtilOperationData_t *opdata,
+                                    const std::string& containerCsi) {
+  bool status(false);
+
+  do {
+    if (!opdata) {
+      /*
+       * this is the case at immload startup where csi hasn't been loaded in
+       * the db, yet, and there is no opdata
+       */
+      SaImmSearchParametersT_2 searchParam;
+      SaImmSearchHandleT searchHandle;
+      SaNameT temp_csi_name;
+
+      const char *className = "SaAmfCSI";
+
+      searchParam.searchOneAttr.attrName =
+         const_cast<SaImmAttrNameT>("SaImmAttrClassName");
+      searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
+      searchParam.searchOneAttr.attrValue = &className;
+
+      if (immutil_saImmOmSearchInitialize_o2(
+             avd_cb->immOmHandle, 0, SA_IMM_SUBTREE,
+             SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR, &searchParam,
+             nullptr, &searchHandle) != SA_AIS_OK) {
+        LOG_ER("saImmOmSearchInitialize_2 failed for getting csi");
+        break;
+      }
+
+      const SaImmAttrValuesT_2 **attributes;
+
+      while (true) {
+        SaAisErrorT rc(immutil_saImmOmSearchNext_2(searchHandle, &temp_csi_name,
+                                        (SaImmAttrValuesT_2 ***)&attributes));
+        if (rc == SA_AIS_OK) {
+          const std::string csi_name(Amf::to_string(&temp_csi_name));
+ 
+          if (csi_name == containerCsi) {
+            status = true;
+            break;
+          }
+        } else {
+          LOG_ER("immutil_saImmOmSearchNext_2 failed: %i", rc);
+          break;
+        }
+      }
+
+      (void)immutil_saImmOmSearchFinalize(searchHandle);
+
+      break;
+    }
+
+    const CcbUtilCcbData *data(ccbutil_findCcbData(opdata->ccbId));
+    if (!data) {
+      LOG_ER("unable to find CCB data to check container contained");
+      break;
+    }
+    for (const CcbUtilOperationData *opData(data->operationListHead);
+         opData;
+         opData = opData->next) {
+      if (opData->operationType != CCBUTIL_CREATE)
+        continue;
+
+      std::string dnC(Amf::to_string(&opData->objectName));
+
+      // is it a csi?
+      if (dnC.compare(0, 7, "safCsi=") != 0)
+        continue;
+
+      if (dnC == containerCsi) {
+        status = true;
+        break;
+      }
+    }
+  } while (false);
+
+  return status;
+}
+
+static uint32_t get_si_rank_from_ccb(
+  const CcbUtilOperationData_t *opdata,
+  const std::string& containerSi) {
+
+  uint32_t sirank(~0U);
+
+  do {
+    if (!opdata) {
+      /*
+       * this is the case at immload startup where si hasn't been loaded in
+       * the db, yet, and there is no opdata
+       */
+      SaImmSearchParametersT_2 searchParam;
+      SaImmSearchHandleT searchHandle;
+      SaNameT temp_si_name;
+
+      const char *className = "SaAmfSI";
+
+      searchParam.searchOneAttr.attrName =
+         const_cast<SaImmAttrNameT>("SaImmAttrClassName");
+      searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
+      searchParam.searchOneAttr.attrValue = &className;
+
+      if (immutil_saImmOmSearchInitialize_o2(
+             avd_cb->immOmHandle, 0, SA_IMM_SUBTREE,
+             SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR, &searchParam,
+             nullptr, &searchHandle) != SA_AIS_OK) {
+        LOG_ER("saImmOmSearchInitialize_2 failed for getting si");
+        break;
+      }
+
+      const SaImmAttrValuesT_2 **attributes;
+
+      while (true) {
+        SaAisErrorT rc(immutil_saImmOmSearchNext_2(searchHandle, &temp_si_name,
+                                        (SaImmAttrValuesT_2 ***)&attributes));
+        if (rc == SA_AIS_OK) {
+          const std::string si_name(Amf::to_string(&temp_si_name));
+ 
+          if (si_name == containerSi) {
+            // get SI rank attribute
+            rc = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSIRank"),
+                       attributes, 0, &sirank);
+            if (rc != SA_AIS_OK)
+              LOG_ER("unable to get si rank from %s", containerSi.c_str());
+            break;
+          }
+        } else {
+          LOG_ER("immutil_saImmOmSearchNext_2 failed: %i", rc);
+          break;
+        }
+      }
+
+      (void)immutil_saImmOmSearchFinalize(searchHandle);
+
+      break;
+    }
+
+    const CcbUtilCcbData *data(ccbutil_findCcbData(opdata->ccbId));
+    if (!data) {
+      LOG_ER("unable to find CCB data to check container contained");
+      break;
+    }
+    for (const CcbUtilOperationData *opData(data->operationListHead);
+         opData;
+         opData = opData->next) {
+      if (opData->operationType != CCBUTIL_CREATE)
+        continue;
+
+      std::string dnC(Amf::to_string(&opData->objectName));
+
+      // is it an si?
+      if (dnC.compare(0, 6, "safSi=") != 0)
+        continue;
+
+      if (dnC == containerSi) {
+        SaAisErrorT rc(immutil_getAttr(
+                         const_cast<SaImmAttrNameT>("saAmfSIRank"),
+                         opData->param.create.attrValues, 0, &sirank));
+        if (rc != SA_AIS_OK)
+          LOG_ER("unable to get si rank from %s", containerSi.c_str());
+        else if (sirank == 0)
+          sirank = ~0U;
+
+        break;
+      }
+    }
+  } while (false);
+
+  return sirank;
+}
+
+static uint32_t get_contained_si_rank_from_ccb(
+  const CcbUtilOperationData_t *opdata,
+  const std::string& containedComp) {
+
+  uint32_t sirank(~0U);
+
+  do {
+    if (!opdata) {
+      /*
+       * this is the case at immload startup where si hasn't been loaded in
+       * the db, yet, and there is no opdata
+       */
+      SaImmSearchParametersT_2 searchParam;
+      SaImmSearchHandleT searchHandle;
+      SaNameT temp_cstype_name;
+
+      const char *className = "SaAmfCompCstype";
+
+      searchParam.searchOneAttr.attrName =
+         const_cast<SaImmAttrNameT>("SaImmAttrClassName");
+      searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
+      searchParam.searchOneAttr.attrValue = &className;
+
+      if (immutil_saImmOmSearchInitialize_o2(
+             avd_cb->immOmHandle, 0, SA_IMM_SUBTREE,
+             SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR, &searchParam,
+             nullptr, &searchHandle) != SA_AIS_OK) {
+        LOG_ER("saImmOmSearchInitialize_2 failed for getting si");
+        break;
+      }
+
+      const SaImmAttrValuesT_2 **attributes;
+
+      while (true) {
+        SaAisErrorT rc(immutil_saImmOmSearchNext_2(searchHandle,
+                                        &temp_cstype_name,
+                                        (SaImmAttrValuesT_2 ***)&attributes));
+        if (rc == SA_AIS_OK) {
+          const std::string cstype_name(Amf::to_string(&temp_cstype_name));
+ 
+          if (cstype_name.find(containedComp) != std::string::npos) {
+            // search the csis for the cs type
+            SaImmSearchParametersT_2 searchParamCsi;
+            SaImmSearchHandleT searchHandleCsi;
+            SaNameT temp_csi_name;
+
+            const char *className = "SaAmfCSI";
+
+            searchParamCsi.searchOneAttr.attrName =
+               const_cast<SaImmAttrNameT>("SaImmAttrClassName");
+            searchParamCsi.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
+            searchParamCsi.searchOneAttr.attrValue = &className;
+
+            if (immutil_saImmOmSearchInitialize_o2(
+                   avd_cb->immOmHandle, 0, SA_IMM_SUBTREE,
+                   SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR,
+                   &searchParamCsi, nullptr, &searchHandleCsi) != SA_AIS_OK) {
+              LOG_ER("saImmOmSearchInitialize_2 failed for getting csi");
+              break;
+            }
+
+            while (true) {
+              SaAisErrorT rc(immutil_saImmOmSearchNext_2(
+                               searchHandleCsi, &temp_csi_name,
+                               (SaImmAttrValuesT_2 ***)&attributes));
+              if (rc == SA_AIS_OK) {
+                const std::string csi_name(Amf::to_string(&temp_csi_name));
+ 
+                SaNameT cstype;
+                rc = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCSType"),
+                                     attributes, 0, &cstype);
+                if (rc != SA_AIS_OK) {
+                  LOG_ER("unable to get cstype rank from %s", csi_name.c_str());
+                  break;
+                }
+
+                if (Amf::to_string(&cstype) == cstype_name) {
+                  // get SI rank attribute
+                  std::string containedSi;
+                  avsv_sanamet_init(csi_name, containedSi, "safSi");
+                  sirank = get_si_rank_from_ccb(0, containedSi);
+                  break;
+                }
+              }
+            }
+
+            (void)immutil_saImmOmSearchFinalize(searchHandleCsi);
+            break;
+          }
+        } else {
+          LOG_ER("immutil_saImmOmSearchNext_2 failed: %i", rc);
+          break;
+        }
+      }
+
+      (void)immutil_saImmOmSearchFinalize(searchHandle);
+
+      break;
+    }
+
+    const CcbUtilCcbData *data(ccbutil_findCcbData(opdata->ccbId));
+    if (!data) {
+      LOG_ER("unable to find CCB data to check container contained");
+      break;
+    }
+    for (const CcbUtilOperationData *opData(data->operationListHead);
+         opData;
+         opData = opData->next) {
+      if (opData->operationType != CCBUTIL_CREATE)
+        continue;
+
+      std::string dnC(Amf::to_string(&opData->objectName));
+
+      // compare the contained comp with the supported cs type to get the csi
+      if (dnC.compare(0, sizeof("safSupportedCsType=") - 1,
+                      "safSupportedCsType=") != 0)
+        continue;
+
+      if (dnC.find(containedComp) != std::string::npos) {
+        size_t last(dnC.find("safComp=")), first(dnC.find("safVersion="));
+        std::string cstypeC(dnC.substr(first, last - first - 1));
+        cstypeC.erase(cstypeC.find('\\'), 1);
+
+        // search the csis for the cs type
+        for (const CcbUtilOperationData *opDataCsi(data->operationListHead);
+             opDataCsi;
+             opDataCsi = opDataCsi->next) {
+          if (opDataCsi->operationType != CCBUTIL_CREATE)
+            continue;
+
+          std::string csiC(Amf::to_string(&opDataCsi->objectName));
+
+          if (csiC.compare(0, sizeof("safCsi=") - 1, "safCsi=") != 0)
+            continue;
+
+          SaNameT cstype;
+          SaAisErrorT rc(immutil_getAttr(
+                           const_cast<SaImmAttrNameT>("saAmfCSType"),
+                           opDataCsi->param.create.attrValues, 0, &cstype));
+
+          if (rc != SA_AIS_OK) {
+            LOG_ER("unable to get cstype from %s", dnC.c_str());
+            break;
+          }
+
+          if (Amf::to_string(&cstype) == cstypeC) {
+            // got the match
+            std::string containedSi;
+            avsv_sanamet_init(csiC, containedSi, "safSi");
+
+            sirank = get_si_rank_from_ccb(opdata, containedSi);
+            break;
+          }
+        }
+      }
+
+      if (sirank != ~0U)
+        break;
+    }
+  } while (false);
+
+  return sirank;
+}
+
 /**
  * Validate configuration attributes for an AMF Comp object
  * @param comp
@@ -357,7 +775,10 @@ static int is_config_valid(const std::string &dn,
                        0, &aname);
   osafassert(rc == SA_AIS_OK);
 
-  if (comptype_db->find(Amf::to_string(&aname)) == nullptr) {
+  AVD_COMP_TYPE *comptype(comptype_db->find(Amf::to_string(&aname)));
+  CcbUtilOperationData_t *ccbCompTypeOpData(nullptr);
+
+  if (comptype == nullptr) {
     /* Comp type does not exist in current model, check CCB */
     if (opdata == nullptr) {
       report_ccb_validation_error(opdata, "'%s' does not exist in model",
@@ -365,7 +786,8 @@ static int is_config_valid(const std::string &dn,
       return 0;
     }
 
-    if (ccbutil_getCcbOpDataByDN(opdata->ccbId, &aname) == nullptr) {
+    ccbCompTypeOpData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &aname);
+    if (ccbCompTypeOpData == nullptr) {
       report_ccb_validation_error(
           opdata, "'%s' does not exist in existing model or in CCB",
           osaf_extended_name_borrow(&aname));
@@ -373,10 +795,24 @@ static int is_config_valid(const std::string &dn,
     }
   }
 
+  bool contained_comp(false);
+
+  // contained and container comps cannot be in the same SU
+  if ((comptype && IS_COMP_CONTAINED(comptype->saAmfCtCompCategory)) ||
+      (ccbCompTypeOpData &&
+      ccbCompTypeOpData->operationType == CCBUTIL_CREATE &&
+      immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtCompCategory"),
+                      ccbCompTypeOpData->param.create.attrValues,
+                      0, &value) == SA_AIS_OK &&
+      value & SA_AMF_COMP_CONTAINED)) {
+    contained_comp = true;
+  }
+
   rc = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompRecoveryOnError"),
                        attributes, 0, &value);
   if (rc == SA_AIS_OK) {
-    if ((value < SA_AMF_NO_RECOMMENDATION) || (value > SA_AMF_CLUSTER_RESET)) {
+    if (value < SA_AMF_NO_RECOMMENDATION || value > SA_AMF_CONTAINER_RESTART ||
+        value == SA_AMF_APPLICATION_RESTART) {
       report_ccb_validation_error(
           opdata,
           "Illegal/unsupported saAmfCompRecoveryOnError value %u for '%s'",
@@ -384,10 +820,17 @@ static int is_config_valid(const std::string &dn,
       return 0;
     }
 
-    if (value == SA_AMF_NO_RECOMMENDATION)
+    if (value == SA_AMF_NO_RECOMMENDATION) {
       LOG_NO(
           "Invalid configuration, saAmfCompRecoveryOnError=NO_RECOMMENDATION(%u) for '%s'",
           value, dn.c_str());
+    } else if (value == SA_AMF_CONTAINER_RESTART && !contained_comp) {
+      report_ccb_validation_error(
+          opdata,
+          "saAmfCompRecoveryOnError=SA_AMF_CONTAINER_RESTART can only be used "
+          "by a contained component: %s", dn.c_str());
+      return 0;
+    }
   }
 
   rc = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompDisableRestart"),
@@ -397,6 +840,273 @@ static int is_config_valid(const std::string &dn,
         opdata, "Illegal saAmfCompDisableRestart value %u for '%s'", value,
         dn.c_str());
     return 0;
+  }
+
+  SaNameT containerCsi;
+
+  if (contained_comp) {
+    rc = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompContainerCsi"),
+                       attributes, 0, &containerCsi);
+    if (rc != SA_AIS_OK) {
+      report_ccb_validation_error(
+          opdata, "Contained component '%s' must have saAmfCompContainerCsi "
+          "attribute set", dn.c_str());
+      return 0;
+    }
+
+    // make sure containerCsi exists in the model or CCB
+    if (!csi_db->find(Amf::to_string(&containerCsi))) {
+      if (!is_container_csi_in_ccb(opdata, Amf::to_string(&containerCsi))) {
+        report_ccb_validation_error(
+            opdata, "saAmfCompContainerCsi value of '%s' in contained "
+            "component '%s' does not exist in the model",
+            Amf::to_string(&containerCsi).c_str(), dn.c_str());
+        return 0;
+      }
+    }
+  }
+
+  bool container_comp(false);
+
+  // container comp can only be in SG which is NWay-Active
+  if ((comptype && IS_COMP_CONTAINER(comptype->saAmfCtCompCategory)) ||
+      (ccbCompTypeOpData &&
+      ccbCompTypeOpData->operationType == CCBUTIL_CREATE &&
+      immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtCompCategory"),
+                      ccbCompTypeOpData->param.create.attrValues,
+                      0, &value) == SA_AIS_OK &&
+      value & SA_AMF_COMP_CONTAINER)) {
+    container_comp = true;
+    std::string sg_name;
+
+    avsv_sanamet_init(dn, sg_name, "safSg");
+    AVD_SG *sg(sg_db->find(sg_name));
+
+    SaAmfRedundancyModelT saAmfSgtRedundancyModel(SA_AMF_NO_REDUNDANCY_MODEL);
+
+    if (sg && sg->sg_type)
+      saAmfSgtRedundancyModel = sg->sg_type->saAmfSgtRedundancyModel;
+    else if (!get_container_redundancy_model_from_ccb(
+      opdata, sg_name, saAmfSgtRedundancyModel)) {
+      report_ccb_validation_error(
+          opdata, "'%s' does not exist in existing model or in CCB",
+          sg_name.c_str());
+      return 0;
+    }
+
+    if (saAmfSgtRedundancyModel != SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL) {
+      report_ccb_validation_error(
+        opdata, "Container component '%s' must be in SG which has "
+	"NWay-Active redundancy model", dn.c_str());
+      return 0;
+    }
+
+    // does this SG also have contained components?
+    if (sg) {
+      for (auto su : sg->list_of_su) {
+        if (su->contained()) {
+          report_ccb_validation_error(
+            opdata, "Container component '%s' must be in SG which has no "
+	    "contained component", dn.c_str());
+          return 0;
+        }
+      }
+    } else {
+      // look through the CCB for contained components in this SG
+      const CcbUtilCcbData *data(ccbutil_findCcbData(opdata->ccbId));
+      if (!data) {
+        LOG_ER("unable to find CCB data to check container contained");
+        return 0;
+      } else {
+        for (const CcbUtilOperationData *opData(data->operationListHead);
+             opData;
+             opData = opData->next) {
+          SaUint32T compCategory;
+
+          if (get_container_contained_from_ccb(opData, compCategory)) {
+            if (IS_COMP_CONTAINED(compCategory)) {
+              std::string sg_nameC;
+              avsv_sanamet_init(Amf::to_string(&opData->objectName),
+                                sg_nameC,
+                                "safSg");
+
+              if (sg_nameC == sg_name) {
+                report_ccb_validation_error(
+                  opdata, "Container component '%s' must be in SG which has no "
+	          "contained component", dn.c_str());
+                return 0;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (container_comp || contained_comp) {
+    std::string su_name;
+
+    avsv_sanamet_init(dn, su_name, "safSu");
+    const AVD_SU *su(su_db->find(su_name));
+
+    if (su) {
+      if (su->container() && contained_comp) {
+        report_ccb_validation_error(
+          opdata, "Contained component '%s' cannot be in SU with container "
+	  "component", dn.c_str());
+        return 0;
+      } else if (su->contained() && container_comp) {
+        report_ccb_validation_error(
+          opdata, "Container component '%s' cannot be in SU with contained "
+	  "component", dn.c_str());
+        return 0;
+      } else if (contained_comp) {
+        // can only have collocated contained components in the SU
+        for (auto comp : su->list_of_comp) {
+          if (comp && comp->contained() &&
+              comp->saAmfCompContainerCsi != Amf::to_string(&containerCsi)) {
+            report_ccb_validation_error(
+              opdata, "Contained component '%s' must have the same "
+              "saAmfCompContainerCsi as other components in the SU",
+              dn.c_str());
+            return 0;
+          } else if (comp && !comp->contained()) {
+            report_ccb_validation_error(
+              opdata, "Contained component '%s' cannot be mixed with other "
+              "component types in the same SU", dn.c_str());
+            return 0;
+          }
+        }
+
+        // XXX also check comps in the CCB
+      }
+    } else {
+      // find the comps in this SU in the CCB and check them
+      const CcbUtilCcbData *data(ccbutil_findCcbData(opdata->ccbId));
+      if (!data) {
+        LOG_ER("unable to find CCB data to check container contained");
+        return 0;
+      } else {
+        bool su_container(false), su_contained(false);
+
+        for (const CcbUtilOperationData *opData(data->operationListHead);
+             opData;
+             opData = opData->next) {
+          if (opData->operationType != CCBUTIL_CREATE)
+            continue;
+
+          std::string dnC(Amf::to_string(&opData->objectName));
+
+          if ((pos = dnC.find(',')) == std::string::npos)
+            continue;
+
+          // is it a comp?
+          if (dnC.compare(0, 8, "safComp=") != 0)
+            continue;
+
+          if (dnC.compare(pos + 1, 6, "safSu=") != 0)
+            continue;
+
+          std::string su_nameC;
+
+          avsv_sanamet_init(dnC, su_nameC, "safSu");
+
+          // is it the same SU?
+          if (su_name != su_nameC)
+            continue;
+
+          std::string comp_nameC;
+
+          avsv_sanamet_init(dnC, comp_nameC, "safComp");
+
+          comptype = comptype_db->find(comp_nameC);
+
+          if (comptype == nullptr) {
+            /* Comp type does not exist in current model, check CCB */
+            if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompType"),
+                                opData->param.create.attrValues,
+                                0, &aname) != SA_AIS_OK)
+              continue;
+
+            ccbCompTypeOpData = ccbutil_getCcbOpDataByDN(opData->ccbId, &aname);
+            if (ccbCompTypeOpData == nullptr)
+              continue;
+          }
+
+          bool container_local(false), contained_local(false);
+
+          if (comptype) {
+            if (IS_COMP_CONTAINER(comptype->saAmfCtCompCategory))
+              su_container = container_local = true;
+            else if (IS_COMP_CONTAINED(comptype->saAmfCtCompCategory))
+              su_contained = contained_local = true;
+          } else if (ccbCompTypeOpData &&
+                     immutil_getAttr(
+                       const_cast<SaImmAttrNameT>("saAmfCtCompCategory"),
+                       ccbCompTypeOpData->param.create.attrValues,
+                       0, &value) == SA_AIS_OK) {
+            if (value & SA_AMF_COMP_CONTAINER)
+              su_container = container_local = true;
+            else if (value & SA_AMF_COMP_CONTAINED)
+              su_contained = contained_local = true;
+          }
+
+          if (!contained_local && !container_local) {
+            report_ccb_validation_error(
+              opdata,
+              "Contained component '%s' cannot be mixed with other "
+              "component types in the same SU", dn.c_str());
+            return 0;
+          }
+
+          if (contained_local) {
+            SaNameT containerCsiC;
+
+            if (immutil_getAttr(
+                  const_cast<SaImmAttrNameT>("saAmfCompContainerCsi"),
+                  opData->param.create.attrValues,
+                  0, &containerCsiC) == SA_AIS_OK) {
+              if (Amf::to_string(&containerCsiC) !=
+                  Amf::to_string(&containerCsi)) {
+                report_ccb_validation_error(
+                  opdata, "Contained component '%s' must have the same "
+                  "saAmfCompContainerCsi as other components in the SU",
+                  dn.c_str());
+                return 0;
+              }
+            }
+          }
+
+          if (su_contained && su_container) {
+            report_ccb_validation_error(
+              opdata, "SU '%s' cannot contain both contained and container "
+	      "components", su_name.c_str());
+            return 0;
+          }
+        }
+      }
+    }
+  }
+
+  if (contained_comp) {
+    // check the SI rank of contained and container
+    std::string containerSi;
+    avsv_sanamet_init(Amf::to_string(&containerCsi), containerSi, "safSi");
+
+    AVD_SI *si(avd_si_get(containerSi));
+
+    uint32_t containerSiRank(si ?
+      si->saAmfSIRank : get_si_rank_from_ccb(opdata, containerSi));
+
+    uint32_t containedSiRank(get_contained_si_rank_from_ccb(opdata, dn));
+
+    if (containedSiRank < containerSiRank) {
+      report_ccb_validation_error(
+              opdata,
+              "container si '%s' has si rank lower than contained '%s'",
+	      containerSi.c_str(), dn.c_str());
+      return 0;
+    }
   }
 
 #if 0
@@ -716,6 +1426,20 @@ static AVD_COMP *comp_create(const std::string &dn,
                       &comp->comp_info.comp_restart) != SA_AIS_OK)
     comp->comp_info.comp_restart = comptype->saAmfCtDefDisableRestart;
 
+  if (comp->contained()) {
+    SaNameT container_csi;
+
+    if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompContainerCsi"),
+                          attributes, 0, &container_csi) != SA_AIS_OK) {
+      LOG_ER("unable to get container csi for %s", dn.c_str());
+      goto done;
+    }
+
+    comp->saAmfCompContainerCsi = Amf::to_string(&container_csi);
+    //XXX TODO_70: verify db if container csi. DO we requre this.
+    container_csis.insert(comp->saAmfCompContainerCsi);
+  }
+
   comp->max_num_csi_actv = -1;   // TODO
   comp->max_num_csi_stdby = -1;  // TODO
 
@@ -770,6 +1494,7 @@ SaAisErrorT avd_comp_config_get(const std::string &su_name, AVD_SU *su) {
       const_cast<SaImmAttrNameT>("saAmfCompQuiescingCompleteTimeout"),
       const_cast<SaImmAttrNameT>("saAmfCompRecoveryOnError"),
       const_cast<SaImmAttrNameT>("saAmfCompDisableRestart"),
+      const_cast<SaImmAttrNameT>("saAmfCompContainerCsi"),
       nullptr};
 
   TRACE_ENTER();
@@ -1267,8 +1992,9 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata) {
     } else if (!strcmp(attribute->attrName, "saAmfCompRecoveryOnError")) {
       if (value_is_deleted == true) continue;
       uint32_t recovery = *((SaUint32T *)value);
-      if ((recovery < SA_AMF_NO_RECOMMENDATION) ||
-          (recovery > SA_AMF_CLUSTER_RESET)) {
+      if (recovery < SA_AMF_NO_RECOMMENDATION ||
+          recovery > SA_AMF_CONTAINER_RESTART ||
+          recovery == SA_AMF_APPLICATION_RESTART) {
         report_ccb_validation_error(
             opdata,
             "Modification of saAmfCompRecoveryOnError Fail,"
@@ -1735,9 +2461,9 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
         comp->comp_proxy_csi = Amf::to_string((SaNameT *)value);
     } else if (!strcmp(attribute->attrName, "saAmfCompContainerCsi")) {
       if (value_is_deleted)
-        comp->comp_proxy_csi = "";
+        comp->saAmfCompContainerCsi = "";
       else
-        comp->comp_container_csi = Amf::to_string((SaNameT *)value);
+        comp->saAmfCompContainerCsi = Amf::to_string((SaNameT *)value);
     } else {
       osafassert(0);
     }
@@ -1842,6 +2568,8 @@ void avd_comp_constructor(void) {
 bool AVD_COMP::is_preinstantiable() const {
   AVSV_COMP_TYPE_VAL category = comp_info.category;
   return ((category == AVSV_COMP_TYPE_SA_AWARE) ||
+          (category == AVSV_COMP_TYPE_CONTAINER) ||
+          (category == AVSV_COMP_TYPE_CONTAINED) ||
           (category == AVSV_COMP_TYPE_PROXIED_LOCAL_PRE_INSTANTIABLE) ||
           (category == AVSV_COMP_TYPE_EXTERNAL_PRE_INSTANTIABLE));
 }
@@ -1903,4 +2631,20 @@ bool AVD_COMP::proxied_pi() const {
 bool AVD_COMP::proxied_npi() const {
   AVD_COMP_TYPE *comptype = comptype_db->find(saAmfCompType);
   return (IS_COMP_PROXIED_NPI(comptype->saAmfCtCompCategory));
+}
+/**
+ * @brief  Checks if component is a container comp.
+ * @Return true/false.
+ */
+bool AVD_COMP::container(void) const {
+  AVD_COMP_TYPE *comptype(comptype_db->find(saAmfCompType));
+  return (IS_COMP_CONTAINER(comptype->saAmfCtCompCategory));
+}
+/**
+ * @brief  Checks if component is contained comp.
+ * @Return true/false.
+ */
+bool AVD_COMP::contained(void) const {
+  AVD_COMP_TYPE *comptype(comptype_db->find(saAmfCompType));
+  return (IS_COMP_CONTAINED(comptype->saAmfCtCompCategory));
 }

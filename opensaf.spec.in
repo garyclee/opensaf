@@ -21,7 +21,7 @@
 %define _systemd_preun() %{service_del_preun}
 %define _systemd_post() %{service_add_post}
 %endif
-%if 0%{?fedora} >= 18
+%if (0%{?fedora} >= 18)
 %define _systemd_preun() %{systemd_preun}
 %define _systemd_post() %{systemd_post}
 %endif
@@ -612,7 +612,6 @@ Requires: %{name}-tools = %{version}-%{release}
 
 %description payload
 
-
 %package libs
 Group: System Environment/Libraries
 Summary: The non-SAF OpenSAF specific common runtime libraries
@@ -924,7 +923,6 @@ fi
 # $1 == 1 (upgrade), $1 == 0, (uninstall)
 
 %postun payload -p /sbin/ldconfig
-
 
 %files
 %defattr(-,root,root)

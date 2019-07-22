@@ -33,6 +33,7 @@
 #ifndef AMF_AMFND_AVND_CB_H_
 #define AMF_AMFND_AVND_CB_H_
 #include <map>
+#include <set>
 #include <vector>
 
 typedef struct avnd_cb_tag {
@@ -151,5 +152,6 @@ void cb_increment_su_failover_count(AVND_CB &cb, const AVND_SU &su);
 
 extern AVND_CB *avnd_cb;
 extern std::map<MDS_DEST, MDS_SVC_PVT_SUB_PART_VER> agent_mds_ver_db;
+extern std::set<std::string> container_csis;
 
 #endif  // AMF_AMFND_AVND_CB_H_

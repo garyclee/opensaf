@@ -147,5 +147,7 @@ uint32_t avnd_evt_tmr_sc_absence_evh(struct avnd_cb_tag *,
                                      struct avnd_evt_tag *);
 uint32_t avnd_evt_avd_reboot_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
 uint32_t avnd_amfa_mds_info_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
+uint32_t avnd_evt_avd_contained_su_evh(struct avnd_cb_tag *,
+                                       struct avnd_evt_tag *);
 
 #endif  // AMF_AMFND_AVND_PROC_H_

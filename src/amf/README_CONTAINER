@@ -1,0 +1,36 @@
+General:
+ o These are general notes regarding the implementation of container/contained
+   in AMF.
+
+ o The container is not an AMF node, and consequently does not have amfnd
+   running inside it. The AMF agent running in the container communicates with
+   amfnd on the host.
+
+Configuring the Container:
+ o the only required RPM which needs to be installed in the container is
+   opensaf-amf-libs and any dependencies it has (currently opensaf-libs,
+   opensaf-log-libs, opensaf-imm-libs).
+
+ o when starting the container you must do the following:
+     1) pass the location of the node_id file to the container
+     2) if using TCP, pass the location of the osaf_dtm_intra_server file to
+        the container. If using TIPC, allow the container to use the host
+        network. (When ticket 2979 is implemented the restriction to have TIPC
+        share the host network will be removed, and a socket file can be passed
+        to the container like TCP.)
+     For docker this can be done via the "docker run -v" (volume) parameter.
+     These will be located at PKGLOCALSTATEDIR /node_id and
+     /osaf_dtm_intra_server.
+
+General Guidelines for using Container/Contained:
+ o it is recommended that the container component be a wrapper around the
+   container software running on the host. For example, if using docker, the
+   container component could be a wrapper around the docker daemon, and
+   lock/unlock could stop and start the docker daemon. This way when the
+   container component stops, all the contained components are also stopped. It
+   is recommended that this behaviour be enabled in the container software.
+
+ o the contained component should operate such that when the
+   SaAmfComponentTerminateCallbackT callback is called within the contained
+   component, and the contained component exits, the container should stop.
+   This can be done in many ways, and there is no preferred or best practice.

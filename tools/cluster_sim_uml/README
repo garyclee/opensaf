@@ -202,6 +202,8 @@ The following Debian/Ubuntu packages are known to work. Also make sure that you
 have installed the corresponding development packages for these libraries.
 
 - bash          4.3
+- bison		3.0.4
+- flex		2.6.0
 - libc6         2.23
 - libgcc1       6.0.1
 - libmnl0       1.0.3

@@ -30,6 +30,7 @@
 // Remember MDS install version of Agents. It can be used to send msg to Agent
 // based on their versions.
 std::map<MDS_DEST, MDS_SVC_PVT_SUB_PART_VER> agent_mds_ver_db;
+std::set<std::string> container_csis;
 extern const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX];
 
 static uint32_t avnd_evt_avnd_avnd_api_msg_hdl(AVND_CB *cb, AVND_EVT *evt);
@@ -78,7 +79,7 @@ uint32_t avnd_evt_avnd_avnd_evh(AVND_CB *cb, AVND_EVT *evt) {
       goto done;
     }
 
-    avnd_comp_cbq_rec_pop_and_del(cb, o_comp, cbk_rec, false);
+    avnd_comp_cbq_rec_pop_and_del(cb, o_comp, cbk_rec->opq_hdl, false);
     goto done;
   }
 
@@ -373,7 +374,7 @@ uint32_t avnd_evt_avnd_avnd_cbk_msg_hdl(AVND_CB *cb, AVND_EVT *evt) {
     /* pop & delete */
     uint32_t found;
 
-    m_AVND_COMP_CBQ_REC_POP(comp, rec, found);
+    rec = avnd_comp_cbq_rec_pop(comp, rec->opq_hdl, found);
     rec->cbk_info = 0;
     if (found) avnd_comp_cbq_rec_del(cb, comp, rec);
   }

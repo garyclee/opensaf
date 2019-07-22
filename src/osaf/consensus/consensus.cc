@@ -207,6 +207,14 @@ bool Consensus::PrioritisePartitionSize() const {
   return prioritise_partition_size_;
 }
 
+uint32_t Consensus::PrioritisePartitionSizeWaitTime() const {
+  return prioritise_partition_size_mds_wait_time_;
+}
+
+uint32_t Consensus::TakeoverValidTime() const {
+  return takeover_valid_time_;
+}
+
 std::string Consensus::CurrentActive() const {
   TRACE_ENTER();
   if (use_consensus_ == false) {
@@ -249,6 +257,8 @@ void Consensus::ProcessEnvironmentSettings() {
   uint32_t use_remote_fencing = base::GetEnv("FMS_USE_REMOTE_FENCING", 0);
   uint32_t prioritise_partition_size =
     base::GetEnv("FMS_TAKEOVER_PRIORITISE_PARTITION_SIZE", 1);
+  uint32_t prioritise_partition_size_mds_wait_time =
+    base::GetEnv("FMS_TAKEOVER_PRIORITISE_PARTITION_SIZE_MDS_WAIT_TIME", 4);
   uint32_t relaxed_node_promotion =
     base::GetEnv("FMS_RELAXED_NODE_PROMOTION", 0);
   config_file_ = base::GetEnv("FMS_CONF_FILE", "");
@@ -277,6 +287,9 @@ void Consensus::ProcessEnvironmentSettings() {
   if (use_consensus_ == true && relaxed_node_promotion == 1) {
     relaxed_node_promotion_ = true;
   }
+
+  prioritise_partition_size_mds_wait_time_ =
+    prioritise_partition_size_mds_wait_time;
 }
 
 bool Consensus::ReloadConfiguration() {
@@ -295,6 +308,7 @@ bool Consensus::ReloadConfiguration() {
       continue;
     }
     int rc;
+    TRACE("Setting '%s' to '%s'", kv.first.c_str(), kv.second.c_str());
     rc = setenv(kv.first.c_str(), kv.second.c_str(), 1);
     osafassert(rc == 0);
   }
@@ -433,6 +447,8 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
      return rc;
   }
 
+  // in case takeover request cannot be read
+  rc = SA_AIS_ERR_FAILED_OPERATION;
   // wait up to max_takeover_retry seconds for request to be answered
   retries = 0;
   while (retries < max_takeover_retry_) {

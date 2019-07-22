@@ -892,7 +892,7 @@ uint32_t avnd_comp_hc_rec_stop(AVND_CB *cb, AVND_COMP *comp,
     AVND_COMP_CBK *cbk_rec = 0;
     m_AVND_COMPDB_CBQ_HC_CBK_GET(comp, rec->key, cbk_rec);
     if (cbk_rec) /* pop & delete this record */
-      avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec, true);
+      avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec->opq_hdl, true);
   }
 
   /* delete the record */

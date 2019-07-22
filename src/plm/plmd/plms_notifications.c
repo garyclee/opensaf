@@ -369,6 +369,7 @@ SaAisErrorT plms_alarm_ntf_send(SaNtfHandleT plm_ntf_hdl, SaNameT *object,
 				SaUint32T event_type, SaInt8T *entity_path,
 				SaUint32T severity, SaUint32T cause,
 				SaUint32T minor_id,
+				SaTimeT timestamp,
 				SaUint16T no_of_corr_notifications,
 				SaNtfIdentifierT *corr_ids,
 				SaNtfIdentifierT *ntf_id)
@@ -376,12 +377,21 @@ SaAisErrorT plms_alarm_ntf_send(SaNtfHandleT plm_ntf_hdl, SaNameT *object,
 	SaNtfAlarmNotificationT plm_notification;
 	SaAisErrorT ret;
 	SaStringT dest_ptr = NULL;
-	SaUint16T ntf_obj_len = 0;
+	SaUint16T ntf_obj_len = 0, lengthAdditionalText = 0;
+	char additionalText[SA_MAX_NAME_LENGTH + 23] = { 0 };
+
+	if (minor_id == SA_PLM_NTFID_HE_ALARM) {
+		snprintf(additionalText,
+			object->length,
+			"Hardware element %s alarm",
+			object->value);
+		lengthAdditionalText = strlen(additionalText) + 1;
+	}
 
 	ret = saNtfAlarmNotificationAllocate(
 	    plm_ntf_hdl, &plm_notification,
 	    no_of_corr_notifications, /* FIXME no of corelated notifications */
-	    0,			      /* FIXME Length of additional text */
+	    lengthAdditionalText,
 	    1,			      /* FIXME assuming only entity path */
 	    0,			      /* FIXME no of specific problems */
 	    0,			      /* FIXME No of monitored attributes */
@@ -395,9 +405,7 @@ SaAisErrorT plms_alarm_ntf_send(SaNtfHandleT plm_ntf_hdl, SaNameT *object,
 
 	/* Fill the common parameters of HE, EE and unmapped HE Alarm */
 	*(plm_notification.notificationHeader.eventType) = event_type;
-	*(plm_notification.notificationHeader.eventTime) =
-	    (SaTimeT)SA_TIME_UNKNOWN; /* FIXME */
-	;			      /* Put current time */
+	*(plm_notification.notificationHeader.eventTime) = timestamp;
 
 	/* Copy noticationObject details give above */
 	plm_notification.notificationHeader.notificationObject->length =
@@ -447,6 +455,12 @@ SaAisErrorT plms_alarm_ntf_send(SaNtfHandleT plm_ntf_hdl, SaNameT *object,
 		}
 
 		memcpy(dest_ptr, entity_path, strlen(entity_path));
+	}
+
+	if (lengthAdditionalText) {
+		strncpy(plm_notification.notificationHeader.additionalText,
+			additionalText,
+			lengthAdditionalText);
 	}
 
 	ret = saNtfNotificationSend(plm_notification.notificationHandle);

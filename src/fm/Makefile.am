@@ -20,7 +20,8 @@ noinst_HEADERS += \
 	src/fm/fmd/fm_cb.h \
 	src/fm/fmd/fm_evt.h \
 	src/fm/fmd/fm_mds.h \
-	src/fm/fmd/fm_mem.h
+	src/fm/fmd/fm_mem.h \
+	src/fm/fmd/tipc_server.h
 
 osaf_execbin_PROGRAMS += bin/osaffmd
 nodist_pkgclccli_SCRIPTS += \
@@ -44,7 +45,8 @@ bin_osaffmd_SOURCES = \
 	src/fm/fmd/fm_amf.cc \
 	src/fm/fmd/fm_main.cc \
 	src/fm/fmd/fm_mds.cc \
-	src/fm/fmd/fm_rda.cc
+	src/fm/fmd/fm_rda.cc \
+	src/fm/fmd/tipc_server.cc
 
 bin_osaffmd_LDADD = \
 	lib/libSaAmf.la \

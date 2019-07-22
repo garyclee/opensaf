@@ -52,6 +52,7 @@ extern "C" {
 #define AVSV_AVD_AVND_MSG_FMT_VER_5 5
 #define AVSV_AVD_AVND_MSG_FMT_VER_6 6
 #define AVSV_AVD_AVND_MSG_FMT_VER_7 7
+#define AVSV_AVD_AVND_MSG_FMT_VER_8 8
 
 /* Internode/External Components Validation result */
 typedef enum {
@@ -110,6 +111,7 @@ typedef enum {
   AVSV_N2D_ND_SISU_STATE_INFO_MSG,
   AVSV_N2D_ND_CSICOMP_STATE_INFO_MSG,
   AVSV_D2N_COMPCSI_ASSIGN_MSG,
+  AVSV_D2N_CONTAINED_SU_MSG,
   AVSV_DND_MSG_MAX
 } AVSV_DND_MSG_TYPE;
 
@@ -603,6 +605,14 @@ typedef struct avsv_d2n_presence_su_msg_info_tag {
   bool term_state;
 } AVSV_D2N_PRESENCE_SU_MSG_INFO;
 
+typedef struct avsv_d2n_contained_su_msg_info_tag {
+  uint32_t msg_id;
+  SaClmNodeIdT node_id;
+  SaNameT container_su_name;
+  SaNameT contained_su_name;
+  bool term_state;
+} AVSV_D2N_CONTAINED_SU_MSG_INFO;
+
 typedef struct avsv_d2n_data_verify_msg_info {
   uint32_t snd_id_cnt;
   uint32_t rcv_id_cnt;
@@ -701,6 +711,7 @@ typedef struct avsv_dnd_msg {
     AVSV_D2N_HB_MSG_INFO d2n_hb_info;
     AVSV_D2N_REBOOT_MSG_INFO d2n_reboot_info;
     AVSV_D2N_COMPCSI_ASSIGN_MSG_INFO d2n_compcsi_assign_msg_info;
+    AVSV_D2N_CONTAINED_SU_MSG_INFO d2n_contained_su_msg_info;
   } msg_info;
 } AVSV_DND_MSG;
 

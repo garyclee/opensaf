@@ -1,0 +1,15 @@
+Google style guide:
+cpplint.py --filter="-build/include,-build/header_guard,-whitespace/line_length" *.cc *.h
+
+Memory and thread checker:
+valgrind --leak-check=full --log-file=/tmp/osaffenced.valgrind ./osaffenced
+valgrind --tool=helgrind --log-file=/tmp/osaffenced.valgrind ./osaffenced
+
+Static lint checker:
+CodeChecker log -b "make" -o compilation.json
+CodeChecker analyze compilation.json -o ~/.reports
+CodeChecker parse ~/.reports -e html -o ~/reports_html
+firefox ~/reports_html/index.html
+
+McCabe Cyclomatic Complexity, top 10 most complex function:
+find . -name "*.cc" | xargs pmccabe | sort -nr | head -10

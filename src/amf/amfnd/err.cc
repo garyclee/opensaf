@@ -70,6 +70,7 @@ static uint32_t avnd_err_recover(AVND_CB *, AVND_SU *, AVND_COMP *, uint32_t);
 static uint32_t avnd_err_rcvr_comp_restart(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_su_restart(AVND_CB *, AVND_SU *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_comp_failover(AVND_CB *, AVND_COMP *);
+static uint32_t avnd_err_rcvr_container_restart(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_su_failover(AVND_CB *, AVND_SU *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_node_switchover(AVND_CB *, AVND_SU *,
                                               AVND_COMP *);
@@ -77,12 +78,16 @@ static uint32_t avnd_err_rcvr_node_failover(AVND_CB *, AVND_SU *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_node_failfast(AVND_CB *, AVND_SU *, AVND_COMP *);
 
 static uint32_t avnd_err_esc_comp_restart(AVND_CB *, AVND_SU *,
-                                          AVSV_ERR_RCVR *);
+                                          AVSV_ERR_RCVR *,
+                                          bool from_contained = false);
+static uint32_t avnd_err_esc_container_restart(AVND_CB *, AVND_COMP *,
+                                               AVSV_ERR_RCVR *);
 static AVSV_ERR_RCVR avnd_err_esc_su_failover(AVND_CB *, AVND_SU *,
                                               AVSV_ERR_RCVR *);
 static uint32_t avnd_err_restart_esc_level_0(AVND_CB *, AVND_SU *,
                                              AVND_ERR_ESC_LEVEL *,
-                                             AVSV_ERR_RCVR *);
+                                             AVSV_ERR_RCVR *,
+                                             bool from_contained);
 static uint32_t avnd_err_restart_esc_level_1(AVND_CB *, AVND_SU *,
                                              AVND_ERR_ESC_LEVEL *,
                                              AVSV_ERR_RCVR *);
@@ -190,9 +195,13 @@ uint32_t avnd_evt_ava_err_rep_evh(AVND_CB *cb, AVND_EVT *evt) {
       amf_rc = SA_AIS_ERR_INVALID_PARAM;
   }
 
-  if (comp && ((err_rep->rec_rcvr.saf_amf == SA_AMF_APPLICATION_RESTART) ||
-               (err_rep->rec_rcvr.saf_amf == SA_AMF_CONTAINER_RESTART)))
+  if (comp && (err_rep->rec_rcvr.saf_amf == SA_AMF_APPLICATION_RESTART))
     amf_rc = SA_AIS_ERR_NOT_SUPPORTED;
+
+  if (comp && !comp->contained() &&
+      err_rep->rec_rcvr.saf_amf == SA_AMF_CONTAINER_RESTART) {
+    amf_rc = SA_AIS_ERR_INVALID_PARAM;
+  }
 
   if (comp && (comp->su->is_ncs == true) &&
       (err_rep->rec_rcvr.saf_amf == SA_AMF_CLUSTER_RESET)) {
@@ -379,7 +388,7 @@ uint32_t avnd_err_process(AVND_CB *cb, AVND_COMP *comp,
     /* get the matching entry from the cbk list */
     m_AVND_COMP_CBQ_INV_GET(comp, comp->term_cbq_inv_value, cbk_rec);
     comp->term_cbq_inv_value = 0;
-    if (cbk_rec) avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec, false);
+    if (cbk_rec) avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec->opq_hdl, false);
   }
 
   // Handle errors differently when shutdown has started
@@ -513,7 +522,8 @@ uint32_t avnd_err_escalate(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp,
   if (*io_esc_rcvr == SA_AMF_NO_RECOMMENDATION)
     *io_esc_rcvr = comp->err_info.def_rec;
 
-  if (*io_esc_rcvr == SA_AMF_COMPONENT_RESTART) {
+  if (*io_esc_rcvr == SA_AMF_COMPONENT_RESTART ||
+      *io_esc_rcvr == SA_AMF_CONTAINER_RESTART) {
     if (m_AVND_COMP_IS_RESTART_DIS(comp) && (!su->is_ncs)) {
       LOG_NO("saAmfCompDisableRestart is true for '%s'", comp->name.c_str());
       LOG_NO("recovery action 'comp restart' escalated to 'comp failover'");
@@ -542,6 +552,11 @@ uint32_t avnd_err_escalate(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp,
     case SA_AMF_COMPONENT_RESTART:
       rc = avnd_err_esc_comp_restart(
           cb, su, reinterpret_cast<AVSV_ERR_RCVR *>(io_esc_rcvr));
+      break;
+
+    case SA_AMF_CONTAINER_RESTART:
+      rc = avnd_err_esc_container_restart(
+          cb, comp, reinterpret_cast<AVSV_ERR_RCVR *>(io_esc_rcvr));
       break;
 
     case SA_AMF_NODE_SWITCHOVER:
@@ -645,6 +660,9 @@ uint32_t avnd_err_recover(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp,
       rc = avnd_err_rcvr_cluster_reset(cb, su, comp);
       break;
 
+    case SA_AMF_CONTAINER_RESTART:
+      rc = avnd_err_rcvr_container_restart(cb, comp);
+
     case AVSV_ERR_RCVR_SU_RESTART:
       rc = avnd_err_rcvr_su_restart(cb, su, comp);
       break;
@@ -679,6 +697,37 @@ static uint32_t avnd_err_rcvr_comp_restart(AVND_CB *cb, AVND_COMP *comp) {
   m_AVND_COMP_FAILED_SET(comp);
 
   uint32_t rc = comp_restart_initiate(comp);
+
+  TRACE_LEAVE2("%u", rc);
+  return rc;
+}
+
+/****************************************************************************
+  Name          : avnd_err_rcvr_container_restart
+
+  Description   : This routine executes container restart recovery.
+
+  Arguments     : cb   - ptr to the AvND control block
+                  comp - ptr to the comp
+
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+
+  Notes         : None.
+******************************************************************************/
+static uint32_t avnd_err_rcvr_container_restart(AVND_CB *cb, AVND_COMP *comp) {
+  TRACE_ENTER();
+  /* mark the comp failed */
+  m_AVND_COMP_FAILED_SET(comp);
+
+  // find the associated container comp and restart it
+  uint32_t rc(NCSCC_RC_FAILURE);
+  AVND_COMP *container(avnd_get_comp_from_csi(cb, comp->saAmfCompContainerCsi));
+  if (container)
+    rc = comp_restart_initiate(container);
+  else {
+    LOG_ER("unable to find associated container component for %s: cannot "
+           "restart it", comp->name.c_str());
+  }
 
   TRACE_LEAVE2("%u", rc);
   return rc;
@@ -1193,7 +1242,8 @@ done:
   Notes         : None.
 ******************************************************************************/
 uint32_t avnd_err_esc_comp_restart(AVND_CB *cb, AVND_SU *su,
-                                   AVSV_ERR_RCVR *esc_rcvr) {
+                                   AVSV_ERR_RCVR *esc_rcvr,
+                                   bool from_contained) {
   AVND_ERR_ESC_LEVEL *esc_level = &su->su_err_esc_level;
   uint32_t rc = NCSCC_RC_SUCCESS;
   TRACE_ENTER();
@@ -1207,7 +1257,8 @@ uint32_t avnd_err_esc_comp_restart(AVND_CB *cb, AVND_SU *su,
 
   switch (*esc_level) {
     case AVND_ERR_ESC_LEVEL_0:
-      rc = avnd_err_restart_esc_level_0(cb, su, esc_level, esc_rcvr);
+      rc = avnd_err_restart_esc_level_0(cb, su, esc_level, esc_rcvr,
+                                        from_contained);
       break;
 
     case AVND_ERR_ESC_LEVEL_1:
@@ -1231,6 +1282,42 @@ uint32_t avnd_err_esc_comp_restart(AVND_CB *cb, AVND_SU *su,
 }
 
 /****************************************************************************
+  Name          : avnd_err_esc_container_restart
+
+  Description   : This routine executes the escalation for component restart.
+
+  Arguments     : cb       - ptr to the AvND control block
+                  comp     - ptr to the Comp
+                  err_rcvr - ptr to AVSV_ERR_RCVR
+
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+
+  Notes         : None.
+******************************************************************************/
+uint32_t avnd_err_esc_container_restart(AVND_CB *cb, AVND_COMP *comp,
+                                        AVSV_ERR_RCVR *esc_rcvr) {
+  TRACE_ENTER();
+
+  // find the associated container comp and execute the recovery on it
+  uint32_t rc(NCSCC_RC_FAILURE);
+  if (comp->contained()) {
+    AVND_COMP *container(avnd_get_comp_from_csi(cb,
+                                                comp->saAmfCompContainerCsi));
+    if (container)
+      comp = container;
+    else {
+      LOG_ER("unable to find associated container component for %s: cannot "
+             "escalate", comp->name.c_str());
+      osafassert(0);
+    }
+  }
+
+  rc = avnd_err_esc_comp_restart(cb, comp->su, esc_rcvr, true);
+  TRACE_LEAVE2("retval=%u", rc);
+  return rc;
+}
+
+/****************************************************************************
   Name          : avnd_err_restart_esc_level_0
 
   Description   : This routine executes the escalation for level0.
@@ -1246,9 +1333,12 @@ uint32_t avnd_err_esc_comp_restart(AVND_CB *cb, AVND_SU *su,
 ******************************************************************************/
 uint32_t avnd_err_restart_esc_level_0(AVND_CB *cb, AVND_SU *su,
                                       AVND_ERR_ESC_LEVEL *esc_level,
-                                      AVSV_ERR_RCVR *esc_rcvr) {
+                                      AVSV_ERR_RCVR *esc_rcvr,
+                                      bool from_contained) {
   uint32_t rc = NCSCC_RC_SUCCESS;
-  *esc_rcvr = static_cast<AVSV_ERR_RCVR>(SA_AMF_COMPONENT_RESTART);
+  *esc_rcvr = from_contained ?
+    static_cast<AVSV_ERR_RCVR>(SA_AMF_CONTAINER_RESTART) :
+    static_cast<AVSV_ERR_RCVR>(SA_AMF_COMPONENT_RESTART);
   TRACE_ENTER();
 
   /* first time in this level */

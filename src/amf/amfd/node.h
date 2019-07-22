@@ -115,6 +115,9 @@ class AVD_AVND {
                               * Checkpointing - Sent independent update
                               */
 
+  // used for cold sync only
+  uint32_t failover_state{NodeState::NodeStates::kUndefined};
+
   std::vector<AVD_SU *> list_of_ncs_su; /* the list of NCS service units on
                                          * this node.
                                          */
@@ -140,6 +143,7 @@ class AVD_AVND {
                                     CLM completed cb. */
   bool recvr_fail_sw;            /* to indicate there was node reboot because of node
                                     failover/switchover.*/
+  bool actv_ctrl_reboot_in_progress;
   AVD_AMF_NG *admin_ng;          /* points to the nodegroup on which admin operation is
                                     going on.*/
   uint16_t node_up_msg_count;    /* to count of node_up msg that director had
@@ -148,6 +152,7 @@ class AVD_AVND {
   bool is_campaign_set_for_all_sus() const;
   // Member functions.
   void node_sus_termstate_set(bool term_state) const;
+  void instantiate_contained_sus(AVD_SU* su, const AVD_CSI *container_csi);
 
  private:
   void initialize();

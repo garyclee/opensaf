@@ -141,7 +141,7 @@ class AVD_COMP {
                                  * Checkpointing - Sent update independently.
                                  */
   std::string comp_proxy_csi;
-  std::string comp_container_csi;
+  std::string saAmfCompContainerCsi;
 
   /* runtime attributes */
   SaAmfOperationalStateT saAmfCompOperState;
@@ -166,6 +166,8 @@ class AVD_COMP {
   bool saaware() const;
   bool proxied_pi() const;
   bool proxied_npi() const;
+  bool container(void) const;
+  bool contained(void) const;
 
  private:
   void initialize();

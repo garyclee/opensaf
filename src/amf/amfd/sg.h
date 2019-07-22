@@ -457,6 +457,10 @@ class AVD_SG {
   // Checks if si_equal_distribution is configured for the SG.
   bool is_equal() const;
   bool find_instantiable_same_rank_su(AVD_SU *su);
+  //Checks if any SU of sg is a container su.
+  bool any_container_su(void) const;
+  //Checks if any SU of sg is a contained su.
+  bool any_contained_su(void) const;
 
  private:
   // disallow copy and assign, TODO(hafe) add common macro for this

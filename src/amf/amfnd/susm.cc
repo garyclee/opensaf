@@ -1090,6 +1090,18 @@ static void su_finish_suRestart_escalation_or_admin_op(AVND_SU *su) {
   }
   TRACE_LEAVE();
 }
+
+static bool container_contained_shutdown(const AVND_SU *su) {
+  bool res(false);
+
+  if (su->contained()) {
+    // see if the associated container is being locked
+
+  }
+
+  return res;
+}
+
 /****************************************************************************
   Name          : avnd_su_si_oper_done
 
@@ -1175,6 +1187,7 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
   /* Inform AMFD when assign are over. During surestart only for non restartable
      SU we need to inform AMFD.*/
   if (opr_done &&
+      !container_contained_shutdown(su) &&
       ((!(m_AVND_SU_IS_RESTART(su))) ||
        (m_AVND_SU_IS_RESTART(su) && (su_all_comps_restartable(*su) == false) &&
         (is_any_non_restartable_comp_assigned(*su) == true))) &&
@@ -2091,11 +2104,31 @@ uint32_t avnd_su_pres_uninst_suinst_hdler(AVND_CB *cb, AVND_SU *su,
       TRACE("%s", curr_comp->name.c_str());
       if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp) &&
           (curr_comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED)) {
-        TRACE("Running the component CLC FSM ");
-        rc = avnd_comp_clc_fsm_run(cb, curr_comp,
-                                   AVND_COMP_CLC_PRES_FSM_EV_INST);
-        if (NCSCC_RC_SUCCESS != rc) goto done;
-        break;
+        if (curr_comp->contained()) {
+          AVND_COMP *container(
+            avnd_get_comp_from_csi(cb, curr_comp->saAmfCompContainerCsi));
+
+          if (container) {
+            // call the contained instantiate callback
+            rc = avnd_comp_clc_fsm_run(cb, curr_comp,
+                                       AVND_COMP_CLC_PRES_FSM_EV_INST);
+            if (rc != NCSCC_RC_SUCCESS) {
+              LOG_ER("failed to start contained fsm: %s",
+                     curr_comp->name.c_str());
+              goto done;
+            }
+            break;
+          } else {
+            TRACE("no active container available; not instantiating contained");
+            goto done;
+          }
+        } else {
+          TRACE("Running the component CLC FSM ");
+          rc = avnd_comp_clc_fsm_run(cb, curr_comp,
+                                     AVND_COMP_CLC_PRES_FSM_EV_INST);
+          if (NCSCC_RC_SUCCESS != rc) goto done;
+          break;
+        }
       }
     } /* for */
   }
@@ -2249,7 +2282,9 @@ uint32_t avnd_su_pres_insting_compinst_hdler(AVND_CB *cb, AVND_SU *su,
            curr_comp; curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(
                           m_NCS_DBLIST_FIND_NEXT(&curr_comp->su_dll_node))) {
         /* instantiate the pi comp */
-        if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp)) {
+        if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp) &&
+           (!m_AVND_COMP_IS_FAILED(curr_comp) ||
+            curr_comp->pres != SA_AMF_PRESENCE_RESTARTING)) {
           TRACE("Running the component clc FSM");
           rc = avnd_comp_clc_fsm_run(cb, curr_comp,
                                      AVND_COMP_CLC_PRES_FSM_EV_INST);
@@ -4223,5 +4258,52 @@ static uint32_t avnd_su_pres_termfailed_comptermfail_or_compuninst(
   }
 
   TRACE_LEAVE();
+  return rc;
+}
+
+uint32_t avnd_evt_avd_contained_su_evh(AVND_CB *cb, AVND_EVT *evt) {
+  AVSV_D2N_CONTAINED_SU_MSG_INFO *info = 0;
+  AVND_SU *contained_su = 0, *container_su = 0;
+  uint32_t rc = NCSCC_RC_SUCCESS;
+  AVND_EVT *evt_ir = 0;
+
+  TRACE_ENTER();
+
+  if (!m_AVND_CB_IS_AVD_UP(cb)) {
+    TRACE("AVD is not yet up");
+    goto done;
+  }
+
+  if (m_AVND_IS_SHUTTING_DOWN(cb)) {
+    TRACE("AMFND is in SHUTDOWN state");
+    goto done;
+  }
+
+  info = &evt->info.avd->msg_info.d2n_contained_su_msg_info;
+
+  avnd_msgid_assert(info->msg_id);
+  cb->rcv_msg_id = info->msg_id;
+
+  container_su = avnd_sudb_rec_get(cb->sudb, Amf::to_string(&info->container_su_name));
+  if (!container_su) {
+    TRACE("SU'%s', not found in DB", osaf_extended_name_borrow(&info->container_su_name));
+    goto done;
+  }
+
+  contained_su = avnd_sudb_rec_get(cb->sudb, Amf::to_string(&info->contained_su_name));
+  if (!contained_su) {
+    TRACE("SU'%s', not found in DB", osaf_extended_name_borrow(&info->contained_su_name));
+    goto done;
+  }
+  contained_su->container_su_name = container_su->name;
+  TRACE("Sending to Imm thread.");
+  evt_ir = avnd_evt_create(cb, AVND_EVT_IR, 0, nullptr, &info->contained_su_name, 0, 0);
+  rc = m_NCS_IPC_SEND(&ir_cb.mbx, evt_ir, evt_ir->priority);
+  if (NCSCC_RC_SUCCESS != rc)
+         LOG_CR("AvND send event to IR mailbox failed, type = %u", evt_ir->type);
+  /* if failure, free the event */
+  if (NCSCC_RC_SUCCESS != rc && evt_ir) avnd_evt_destroy(evt_ir);
+done:
+  TRACE_LEAVE2("%u", rc);
   return rc;
 }

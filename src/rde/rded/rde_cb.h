@@ -18,6 +18,7 @@
 #ifndef RDE_RDED_RDE_CB_H_
 #define RDE_RDED_RDE_CB_H_
 
+#include <atomic>
 #include <cstdint>
 #include <set>
 #include "base/osaf_utility.h"
@@ -37,6 +38,8 @@
 enum class State {kNotActive = 0, kNotActiveSeenPeer, kActiveElected,
                   kActiveElectedSeenPeer, kActiveFailover};
 
+enum class ConsensusState {kUnknown = 0, kConnected, kDisconnected};
+
 struct RDE_CONTROL_BLOCK {
   SYSF_MBX mbx;
   NCSCONTEXT task_handle;
@@ -49,6 +52,8 @@ struct RDE_CONTROL_BLOCK {
   // used for discovering peer controllers, regardless of their role
   std::set<NODE_ID> peer_controllers{};
   State state{State::kNotActive};
+  std::atomic<ConsensusState> consensus_service_state{ConsensusState::kUnknown};
+  std::atomic<bool> state_refresh_thread_started{false}; // consensus service
 };
 
 enum RDE_MSG_TYPE {

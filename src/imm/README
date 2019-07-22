@@ -3046,6 +3046,58 @@ back-end database from one in memory to keep them both consistent.
 
 immadm -o 303 safRdn=immManagement,safApp=safImmService
 
+Return try-again on requests that imply fs-access when fs is configured
+to be administratively unavailable.
+===================================================================
+https://sourceforge.net/p/opensaf/tickets/3019
+
+When underlying file system is unresponsive to pbe write request, all IMM
+write requests that need their changes to be persistent such as apply of ccb or
+updates to persistent runtime attributes or creation/deletion of classes
+or creation/deletion of persistent runtime objects likely gets SA_AIS_ERR_TIMEOUT.
+
+In case of putting the pbe database on a network file server, there is possibility
+that network file server is not responding to FS client and that worse situation
+may last for minutes.
+
+This enhancement introduces two administrative operations to let user inform IMM
+about the availability of the file system. If the server (IMMND) detects the logical
+unavailability of file system through this variable, such write requests will get
+the more honest code SA_AIS_ERR_TRY_AGAIN rather than SA_AIS_ERR_TIMEOUT.
+
+Operation ID 400 is used to inform IMM that the file system is unavailable:
+ immadm -o 400 safRdn=immManagement,safApp=safImmService
+
+and operation ID 401 is used to inform IMM the file system is back:
+ immadm -o 401 safRdn=immManagement,safApp=safImmService
+
+Besides, a new runtime IMM attribute, saImmFileSystemStatus, is added to
+SaImmMngt class; the value shows the current logical status of the file system:
+saImmFileSystemStatus = 0 means the file system is unavailable and
+saImmFileSystemStatus = 1 means the file system is available.
+
+Fetching the value of that attribute, other services or applications that
+have activities to read/write data from/to the file system may benefit as well.
+
+Note that, to use this new feature, bit 11 must be set in opensafImmNostdFlags.
+
+The following is the shell command to set the 11st bit:
+ immadm -o 1 -p opensafImmNostdFlags:SA_UINT32_T:1024 \
+		opensafImm=opensafImm,safApp=safImmService
+
+In summary:
+ Bit 1 controls schema (imm class) changes allowed or not (normally off/0).
+ Bit 2 controls OpenSAF4.1 protocols allowed or not (normally on/1).
+ Bit 3 controls OpenSAF4.3 protocols allowed or not (normally on/1).
+ Bit 4 controls 2PBE oneSafe2PBE, see 2PBE feature in OpenSAF4.4 above (normally off/0).
+ Bit 5 controls OpenSAF4.5 protocols allowed or not (normally on/1).
+ Bit 6 controls OpenSAF4.6 protocols allowed or not (normally on/1).
+ Bit 7 controls OpenSAF4.7 protocols allowed or not (normally on/1).
+ Bit 8 controls OpenSAF5.0 protocols allowed or not (normally on/1).
+ Bit 9 controls OpenSAF5.1 protocols allowed or not (normally on/1).
+ Bit 10 controls OpenSAF5.17.11 protocols allowed or not (normally on/1).
+ Bit 11 controls OpenSAF5.19.07 protocols allowed or not (normally on/1).
+
 ----------------------------------------
 DEPENDENCIES
 ============

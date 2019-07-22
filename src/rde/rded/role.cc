@@ -83,7 +83,9 @@ void Role::MonitorCallback(const std::string& key, const std::string& new_value,
         consensus_service.PrioritisePartitionSize() == true) {
       // don't send this to the main thread straight away, as it will
       // need some time to process topology changes.
-      std::this_thread::sleep_for(std::chrono::seconds(4));
+      std::this_thread::sleep_for(
+        std::chrono::seconds(
+          consensus_service.PrioritisePartitionSizeWaitTime()));
     }
   } else {
     msg->type = RDE_MSG_NEW_ACTIVE_CALLBACK;
@@ -213,6 +215,18 @@ timespec* Role::Poll(timespec* ts) {
         std::thread(&Role::PromoteNode,
                     this, cb->cluster_members.size(),
                     is_candidate).detach();
+      }
+    }
+  } else if (role_ == PCS_RDA_ACTIVE) {
+    RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+    if (cb->consensus_service_state == ConsensusState::kUnknown ||
+        cb->consensus_service_state == ConsensusState::kDisconnected) {
+      // consensus service was previously disconnected, refresh state
+      Consensus consensus_service;
+      if (consensus_service.IsEnabled() == true &&
+        cb->state_refresh_thread_started == false) {
+        cb->state_refresh_thread_started = true;
+        std::thread(&Role::RefreshConsensusState, this, cb).detach();
       }
     }
   }
@@ -350,4 +364,16 @@ void Role::PromoteNodeLate() {
   std::thread(&Role::PromoteNode,
               this, cb->cluster_members.size(),
               true).detach();
+}
+
+void Role::RefreshConsensusState(RDE_CONTROL_BLOCK* cb) {
+  TRACE_ENTER();
+
+  Consensus consensus_service;
+  if (consensus_service.IsWritable() == true) {
+    LOG_NO("Connectivity to consensus service established");
+    cb->consensus_service_state = ConsensusState::kConnected;
+  }
+
+  cb->state_refresh_thread_started = false;
 }

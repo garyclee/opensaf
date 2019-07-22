@@ -187,13 +187,57 @@ static SaAisErrorT ctcstype_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
           opdata, "Modification of SaAmfCtCsType not supported");
       break;
     case CCBUTIL_DELETE:
+      AVD_CTCS_TYPE *ctcstype;
+      AVD_COMP_TYPE *comp_type;
+      AVD_COMP *comp;
+      CcbUtilOperationData_t *t_opData;
+
+      ctcstype = ctcstype_db->find(Amf::to_string(&opdata->objectName));
+      if (ctcstype != nullptr) {
+        std::string cst_name, ct_name;
+        avsv_sanamet_init(Amf::to_string(&opdata->objectName),
+                                      cst_name, "safCSType=");
+        avsv_sanamet_init(cst_name, ct_name, "safVersion");
+        TRACE("'%s'", ct_name.c_str());
+        comp_type = comptype_db->find(ct_name);
+        if ((comp_type) && (nullptr != comp_type->list_of_comp)) {
+          /* check whether there exists a delete operation for
+          * each of the Comp in the comp_type list in the current CCB
+          */
+          bool comp_exist = false;
+          TRACE("SaAmfCompType '%s' has components", comp_type->name.c_str());
+          comp = comp_type->list_of_comp;
+          while (comp != nullptr) {
+            TRACE("%s", osaf_extended_name_borrow(&comp->comp_info.name));
+            t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId,
+                                                &comp->comp_info.name);
+            TRACE("%p", t_opData);
+            if ((t_opData == nullptr) ||
+                (t_opData->operationType != CCBUTIL_DELETE)) {
+              TRACE("OperationType: %p", t_opData);
+              comp_exist = true;
+              break;
+            }
+            comp = comp->comp_type_list_comp_next;
+          }
+          if (comp_exist == true) {
+            rc = SA_AIS_ERR_BAD_OPERATION;
+            report_ccb_validation_error(opdata, "SaAmfCompType '%s' is in use",
+                                        comp_type->name.c_str());
+            goto done;
+          }
+        } else {
+            TRACE("SaAmfCompType '%p'. SaAmfCompType '%s' has no components",
+                  comp_type, ct_name.c_str());
+          }
+      }
       rc = SA_AIS_OK;
       break;
     default:
       osafassert(0);
       break;
   }
-
+done:
   TRACE_LEAVE2("%u", rc);
   return rc;
 }

@@ -203,7 +203,7 @@ static void clm_node_exit_complete(SaClmNodeIdT nodeId) {
   }
 
   if (avd_cb->failover_list.count(node->node_info.nodeId) == 0 &&
-    avd_cb->node_failover_delay == 0) {
+    delay_failover(avd_cb, node->node_info.nodeId) == false) {
     avd_node_failover(node);
     avd_node_delete_nodeid(node);
   }
@@ -322,7 +322,7 @@ static void clm_track_cb(
             LOG_IN("%s: CLM node '%s' is not an AMF cluster member; MDS down received",
                    __FUNCTION__, node_name.c_str());
             if (avd_cb->failover_list.count(node->node_info.nodeId) == 0 &&
-              avd_cb->node_failover_delay == 0) {
+              delay_failover(avd_cb, node->node_info.nodeId) == false) {
               avd_node_delete_nodeid(node);
             }
             goto done;

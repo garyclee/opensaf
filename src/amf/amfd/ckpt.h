@@ -35,9 +35,10 @@
 #define AMF_AMFD_CKPT_H_
 
 // current version
-#define AVD_MBCSV_SUB_PART_VERSION 9
+#define AVD_MBCSV_SUB_PART_VERSION 10
 
 // supported versions
+#define AVD_MBCSV_SUB_PART_VERSION_10 10
 #define AVD_MBCSV_SUB_PART_VERSION_9 9
 #define AVD_MBCSV_SUB_PART_VERSION_8 8
 #define AVD_MBCSV_SUB_PART_VERSION_7 7
@@ -109,6 +110,7 @@ typedef struct avsv_async_updt_cnt {
   uint32_t compcstype_updt;
   uint32_t si_trans_updt;
   uint32_t ng_updt;
+  uint32_t failover_updt;
 } AVSV_ASYNC_UPDT_CNT;
 
 /*
