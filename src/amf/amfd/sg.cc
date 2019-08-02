@@ -2345,6 +2345,18 @@ bool AVD_SG::any_assignment_excessive() {
   return pending;
 }
 
+bool AVD_SG::any_failover_under_progress() const {
+  bool pending = false;
+  TRACE_ENTER2("SG:'%s'", name.c_str());
+  for (const auto &si : list_of_si) {
+    if (si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
+      pending = true;
+      break;
+    }
+  }
+  return pending;
+}
+
 /*
  * Going through all SU of this SG, if any SU has over assigned,
  * reboot the node that hosts the SU.

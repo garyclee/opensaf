@@ -1006,7 +1006,8 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
      * the SG FSM.
      */
     if (su->sg_of_su->any_assignment_in_progress() == false &&
-        su->sg_of_su->any_assignment_absent() == false) {
+        su->sg_of_su->any_assignment_absent() == false &&
+        su->sg_of_su->any_failover_under_progress() == false) {
       su->sg_of_su->set_fsm_state(AVD_SG_FSM_STABLE);
     }
     if (su->sg_of_su->sg_ncs_spec == true) {

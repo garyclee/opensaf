@@ -441,6 +441,7 @@ class AVD_SG {
   bool any_assignment_absent();
   bool any_assignment_assigned();
   bool any_assignment_excessive();
+  bool any_failover_under_progress() const;
   void failover_absent_assignment();
   bool ng_using_saAmfSGAdminState;
   bool headless_validation;
