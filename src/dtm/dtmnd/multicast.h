@@ -48,7 +48,8 @@ class Multicast {
   // parameters.
   Multicast(uint16_t cluster_id, uint32_t node_id, in_port_t stream_port,
             in_port_t dgram_port, sa_family_t address_family,
-            const std::string& stream_address, const std::string& dgram_address,
+            const std::string& stream_address,
+            const std::string& public_address, const std::string& dgram_address,
             const std::string& multicast_address, const std::string& ifname,
             bool scope_link);
   ~Multicast();
@@ -133,6 +134,7 @@ class Multicast {
   in_port_t dgram_port_;
   sa_family_t address_family_;
   std::string stream_address_;
+  std::string public_address_;
   std::string dgram_address_;
   std::string multicast_address_;
   std::string ifname_;

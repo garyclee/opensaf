@@ -83,6 +83,7 @@ DTM_INTERNODE_CB::DTM_INTERNODE_CB()
       node_id{},
       node_name{},
       ip_addr{},
+      public_ip{},
       mcast_addr{},
       bcast_addr{},
       ifname{},
@@ -268,8 +269,8 @@ int main(int argc, char *argv[]) {
   dtms_cb->multicast_ = new Multicast{
       dtms_cb->cluster_id,      dtms_cb->node_id,       dtms_cb->stream_port,
       dtms_cb->dgram_port_rcvr, dtms_cb->i_addr_family, dtms_cb->ip_addr,
-      dtms_cb->bcast_addr,      dtms_cb->mcast_addr,    dtms_cb->ifname,
-      dtms_cb->scope_link};
+      dtms_cb->public_ip,       dtms_cb->bcast_addr,    dtms_cb->mcast_addr,
+      dtms_cb->ifname,          dtms_cb->scope_link};
   if (dtms_cb->multicast_ == nullptr || dtms_cb->multicast_->fd() < 0) {
     LOG_ER("Failed to initialize Multicast instance");
     goto done3;

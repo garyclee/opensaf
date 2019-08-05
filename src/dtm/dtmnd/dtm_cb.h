@@ -74,6 +74,7 @@ class DTM_INTERNODE_CB {
   NODE_ID node_id;                       // Self  Node Id
   char node_name[_POSIX_HOST_NAME_MAX];  // optional
   std::string ip_addr;                   // ipv4 ipv6 addrBuffer
+  std::string public_ip;                 // ipv4 ipv6 addrBuffer
   std::string mcast_addr;                // ipv4 ipv6 addrBuffer
   std::string bcast_addr;
   std::string ifname;  // ipv6mr_interface to
