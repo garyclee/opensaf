@@ -339,6 +339,38 @@ static void sirankedsu_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
       avd_sirankedsu_db_add(avd_sirankedsu);
 
       break;
+    case CCBUTIL_MODIFY:
+      if (opdata->userData == nullptr && avd_cb->is_active () == false)
+        break;
+      osafassert(opdata->userData != nullptr);
+
+      avd_sirankedsu = static_cast<AVD_SUS_PER_SI_RANK *>(opdata->userData);
+
+      for (int i{}; opdata->param.modify.attrMods[i]; i++) {
+        const SaImmAttrModificationT_2 *attr_mod(
+          opdata->param.modify.attrMods[i]);
+
+        if (!strcmp(attr_mod->modAttr.attrName, "saAmfRank")) {
+          AVD_SI *avd_si(avd_si_get(avd_sirankedsu->indx.si_name));
+
+          // remove and readd the ranked su
+          avd_si->remove_rankedsu(avd_sirankedsu->su_name);
+
+          TRACE("saAmfRank modified from '%u' to '%u'",
+                avd_sirankedsu->indx.su_rank,
+                *((SaUint32T *)attr_mod->modAttr.attrValues[0]));
+          avd_sirankedsu->indx.su_rank =
+              *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
+
+          avd_si->add_rankedsu(avd_sirankedsu->su_name,
+                               avd_sirankedsu->indx.su_rank);
+
+	  // update any runtime rankings
+	  avd_si->update_sisu_rank(avd_sirankedsu->su_name,
+                                   avd_sirankedsu->indx.su_rank);
+        }
+      }
+      break;
     case CCBUTIL_DELETE:
       if (opdata->userData == nullptr && avd_cb->is_active () == false) {
         break;
@@ -355,6 +387,44 @@ static void sirankedsu_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
       break;
   }
   TRACE_LEAVE();
+}
+
+static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata) {
+  TRACE_ENTER2("'%s'", osaf_extended_name_borrow(&opdata->objectName));
+
+  SaAisErrorT rc(SA_AIS_OK);
+
+  do {
+    std::string su_name, si_name;
+
+    avd_susi_namet_init(Amf::to_string(&opdata->objectName), su_name, si_name);
+
+    bool found(false);
+
+    AVD_SUS_PER_SI_RANK *su_rank_rec{nullptr};
+
+    /* determine if the su is ranked per si */
+    for (const auto &value : *sirankedsu_db) {
+      su_rank_rec = value.second;
+
+      if (su_rank_rec->indx.si_name.compare(si_name) == 0 &&
+          su_rank_rec->su_name.compare(su_name) == 0) {
+        found = true;
+        break;
+      }
+    }
+
+    if (false == found) {
+      LOG_ER("'%s' not found", osaf_extended_name_borrow(&opdata->objectName));
+      rc = SA_AIS_ERR_FAILED_OPERATION;
+      break;
+    }
+
+    opdata->userData = su_rank_rec;
+  } while (false);
+
+  TRACE_LEAVE();
+  return rc;
 }
 
 static int avd_sirankedsu_ccb_complete_delete_hdlr(
@@ -424,8 +494,7 @@ static SaAisErrorT sirankedsu_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
         rc = SA_AIS_OK;
       break;
     case CCBUTIL_MODIFY:
-      report_ccb_validation_error(
-          opdata, "Modification of SaAmfSIRankedSU not supported");
+      rc = ccb_completed_modify_hdlr(opdata);
       break;
     case CCBUTIL_DELETE: {
       if (avd_sirankedsu_ccb_complete_delete_hdlr(opdata)) rc = SA_AIS_OK;

@@ -255,6 +255,109 @@ void AVD_SI::remove_rankedsu(const std::string &suname) {
   TRACE_LEAVE();
 }
 
+/**
+ * @brief Update order of sisu list with new rank.
+ *
+ * @param suname
+ * @param saAmfRank
+ */
+void AVD_SI::update_sisu_rank(const std::string& suname, uint32_t newRank) {
+  TRACE_ENTER();
+
+  do {
+    // if there is only one entry nothing really to do
+    if (!list_of_sisu || !list_of_sisu->si_next)
+      break;
+
+    // first find the su, and remove it from the linked list
+    AVD_SU_SI_REL *matched_susi{nullptr};
+
+    for (AVD_SU_SI_REL *susi{list_of_sisu}, *prev{nullptr};
+         susi;
+         prev = susi, susi = susi->si_next) {
+      if (suname == susi->su->name) {
+        matched_susi = susi;
+        if (prev)
+          prev->si_next = susi->si_next;
+        else
+          list_of_sisu = susi->si_next;
+        break;
+      }
+    }
+
+    osafassert(matched_susi);
+
+    // now reinsert it at the correct place
+    AVD_SU_SI_REL *prev(nullptr);
+
+    for (AVD_SU_SI_REL *curr_susi(list_of_sisu);
+         curr_susi;
+         prev = curr_susi, curr_susi = curr_susi->si_next) {
+      if (curr_susi->is_per_si == true) {
+        if (false == matched_susi->is_per_si) continue;
+
+        AVD_SUS_PER_SI_RANK *i_su_rank_rec{nullptr};
+
+        /* determine the su_rank rec for this rec */
+        for (const auto &value : *sirankedsu_db) {
+          i_su_rank_rec = value.second;
+          if (i_su_rank_rec->indx.si_name.compare(name) != 0) continue;
+          AVD_SU *curr_su(su_db->find(i_su_rank_rec->su_name));
+          if (curr_su == curr_susi->su) break;
+        }
+
+        osafassert(i_su_rank_rec);
+
+        if (newRank <= i_su_rank_rec->indx.su_rank) break;
+      } else {
+        if (true == matched_susi->is_per_si) break;
+
+        if (newRank <= curr_susi->su->saAmfSURank) break;
+      }
+    }
+
+    if (prev) {
+      matched_susi->si_next = prev->si_next;
+      prev->si_next = matched_susi;
+    } else {
+      matched_susi->si_next = list_of_sisu;
+      list_of_sisu = matched_susi;
+    }
+
+    // update PG rank
+    for (AVD_SU_SI_REL *curr_susi(matched_susi->si->list_of_sisu);
+         curr_susi;
+         curr_susi = curr_susi->si_next) {
+      if (curr_susi->state == SA_AMF_HA_STANDBY)
+        avd_pg_susi_chg_prc(avd_cb, curr_susi);
+    }
+  } while (false);
+
+  TRACE_LEAVE();
+}
+
+uint32_t AVD_SI::get_sisu_rank(const std::string& suname) const {
+  uint32_t rank{};
+
+  TRACE_ENTER2("%s", suname.c_str());
+
+  for (const AVD_SU_SI_REL *susi(list_of_sisu); susi; susi = susi->si_next) {
+    TRACE("su: %s si: %s state: %i",
+          susi->su->name.c_str(),
+          susi->si->name.c_str(),
+          susi->state);
+    if (susi->state == SA_AMF_HA_STANDBY)
+      rank++;
+
+    if (suname == susi->su->name)
+      break;
+  }
+
+  TRACE_LEAVE();
+
+  return rank;
+}
+
 void AVD_SI::remove_csi(AVD_CSI *csi) {
   osafassert(csi->si == this);
   /* remove CSI from the SI */

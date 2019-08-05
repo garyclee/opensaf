@@ -616,6 +616,21 @@ done:
     avd_gen_su_ha_state_changed_ntf(cb, su_si);
   }
 
+  /*
+   * If we are adding an entry which is not the last we need to send PG updates
+   * for rank.
+   */
+  if (su_si->si_next) {
+    for (AVD_SU_SI_REL *curr_susi(si->list_of_sisu);
+         curr_susi;
+         curr_susi = curr_susi->si_next) {
+      // skip this one since a pg update will sent for it already
+      if (su_si == curr_susi || curr_susi->state != SA_AMF_HA_STANDBY) continue;
+
+      avd_pg_susi_chg_prc(avd_cb, curr_susi);
+    }
+  }
+
   TRACE_LEAVE();
   return su_si;
 }
@@ -742,13 +757,36 @@ uint32_t avd_susi_delete(AVD_CL_CB *cb, AVD_SU_SI_REL *susi, bool ckpt) {
     susi->su_next = nullptr;
   }
 
+  bool sendPgUpdate(false);
+
   /* now delete it from the SI list */
   if (p_si_su == nullptr) {
     susi->si->list_of_sisu = susi->si_next;
     susi->si_next = nullptr;
+
+    if (susi->si->list_of_sisu)
+      sendPgUpdate = true;
   } else {
     p_si_su->si_next = susi->si_next;
     susi->si_next = nullptr;
+
+    if (p_si_su->si_next)
+      sendPgUpdate = true;
+  }
+
+  /*
+   * If we are removing an entry which is not the last we need to send PG
+   * updates for rank.
+   */
+  if (sendPgUpdate) {
+    for (AVD_SU_SI_REL *curr_susi(susi->si->list_of_sisu);
+         curr_susi;
+         curr_susi = curr_susi->si_next) {
+      // skip this one since a pg update will sent for it already
+      if (susi == curr_susi || curr_susi->state != SA_AMF_HA_STANDBY) continue;
+
+      avd_pg_susi_chg_prc(avd_cb, curr_susi);
+    }
   }
 
   if (ckpt == false) {
