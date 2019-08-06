@@ -950,6 +950,7 @@ fi
 %{_pkglibdir}/plm_scale_out
 %{_pkglibdir}/opensaf_sc_active
 %{_pkglibdir}/configure_tipc
+%{_pkglibdir}/tipc-config
 
 
 %files amf-libs

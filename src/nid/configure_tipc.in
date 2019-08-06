@@ -78,12 +78,13 @@ if ! [ -x "${tipc}" ] && ! [ -x "${tipc_config}" ]; then
     exit 1
 fi
 
+# Prefer using `tipc` to the obsolete `tipc-config`
+if [ -x "${tipc}" ]; then
+    tipc_config="${pkglibdir}"/tipc-config
+fi
+
 if [ "$MANAGE_TIPC" != "yes" ] && ! [ -s "$pkglocalstatedir/node_id" ]; then
-    if [ -x "${tipc}" ]; then
-	addr=$(tipc node get address | cut -d'<' -f2 | cut -d'>' -f1)
-    else
-	addr=$(tipc-config -addr | cut -d'<' -f2 | cut -d'>' -f1)
-    fi
+	addr=$(${tipc-config} -addr | cut -d'<' -f2 | cut -d'>' -f1)
     addr=$(echo "$addr" | cut -d. -f3)
     CHASSIS_ID=2
     SLOT_ID=$((addr & 255))
@@ -97,11 +98,6 @@ fi
 
 ETH_NAME=$2
 TIPC_NETID=$3
-
-if ! [ -x "${tipc_config}" ]; then
-    echo "error: tipc-config is not available"
-    exit 1
-fi
 
 # Get the Chassis Id and Slot Id from @sysconfdir@/@PACKAGE_NAME@/chassis_id and @sysconfdir@/@PACKAGE_NAME@/slot_id
 if ! test -f "$CHASSIS_ID_FILE"; then

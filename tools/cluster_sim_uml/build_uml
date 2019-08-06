@@ -225,7 +225,7 @@ cmd_create_rootfs()
 
     install -m 755 $archive/scripts/*.rc etc/init.d
     cp $scripts/profile etc
-    cp $scripts/reboot $scripts/shutdown $scripts/tipc-config usr/sbin
+    cp $scripts/reboot $scripts/shutdown $opensaf_home/scripts/tipc-config usr/sbin
     mkdir -p root/www/cgi-bin
     cp $scripts/rshd root/www/cgi-bin
     cp $scripts/rsh $scripts/rcp $scripts/sudo usr/bin

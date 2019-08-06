@@ -50,7 +50,7 @@ osafcshash=@INTERNAL_VERSION_ID@
 unload_tipc() {
 
   	# Unload TIPC if already loaded
-	if [ $MANAGE_TIPC = "yes" ] && grep tipc /proc/modules >/dev/null 2>&1; then
+	if [ "$MANAGE_TIPC" = "yes" ] && grep tipc /proc/modules >/dev/null 2>&1; then
 		modprobe -r tipc >/dev/null 2>&1
 		if [ $? -eq 1 ]; then
 			logger -t $osafprog "warning: TIPC module unloading failed"
@@ -59,13 +59,17 @@ unload_tipc() {
 }
 
 check_tipc() {
-	# Exit if tipc-config is not installed
-	if [ "$MANAGE_TIPC" = "yes" ] && [ ! -x /sbin/tipc-config ]; then
-		which tipc-config >/dev/null 2>&1
-		if [ $? -eq 1 ] ; then
-			logger -s -t $osafprog "Can't find tipc-config in the PATH, exiting."
-			exit 5
-		fi
+
+	if [ "$MANAGE_TIPC" != "yes" ]; then
+		return 0
+	fi
+
+	tipc=$(which tipc 2> /dev/null)
+	tipc_config=$(which tipc-config 2> /dev/null)
+
+	if ! [ -x "${tipc}" ] && ! [ -x "${tipc_config}" ]; then
+		logger -s -t $osafprog "error: neither tipc nor tipc-config is available"
+		exit 1
 	fi
 
 	unload_tipc
