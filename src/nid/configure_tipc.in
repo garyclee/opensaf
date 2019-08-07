@@ -84,7 +84,7 @@ if [ -x "${tipc}" ]; then
 fi
 
 if [ "$MANAGE_TIPC" != "yes" ] && ! [ -s "$pkglocalstatedir/node_id" ]; then
-	addr=$(${tipc-config} -addr | cut -d'<' -f2 | cut -d'>' -f1)
+	addr=$(${tipc_config} -addr | cut -d'<' -f2 | cut -d'>' -f1)
     addr=$(echo "$addr" | cut -d. -f3)
     CHASSIS_ID=2
     SLOT_ID=$((addr & 255))
