@@ -150,8 +150,8 @@ static const char *preparedSql[] = {
 static sqlite3_stmt *preparedStmt[SQL_STMT_SIZE] = {NULL};
 
 struct ObjectInfo {
-  unsigned obj_id;
-  unsigned class_id;
+  int obj_id;
+  int class_id;
   char *dn;
 };
 
@@ -569,8 +569,8 @@ void pbeAtomicSwitchFile(const char *filePath, std::string localTmpFilename) {
 // Reverse object DN and use the reverse DN as key in sReverseDnMap
 // which is used mainly to collect child objects when we perform cascade delete.
 static void reverseAndInsertDn(const std::string &dn,
-                               unsigned obj_id,
-                               unsigned class_id) {
+                               int obj_id,
+                               int class_id) {
   ObjectInfo *info = new ObjectInfo();
   osafassert(info);
 
@@ -596,8 +596,8 @@ static bool prepareLocalData(sqlite3 *dbHandle) {
   sqlite3_stmt *stmt = nullptr;
   int rc;
   bool ret = false;
-  unsigned obj_id;
-  unsigned class_id;
+  int obj_id;
+  int class_id;
   char *class_name;
   std::string dn;
   int count = 0;
@@ -611,7 +611,7 @@ static bool prepareLocalData(sqlite3 *dbHandle) {
   }
 
   while((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-    class_id = static_cast<unsigned>(sqlite3_column_int(stmt, 0));
+    class_id = sqlite3_column_int(stmt, 0);
     class_name = const_cast<char*>(reinterpret_cast<const char *>
                                    (sqlite3_column_text(stmt, 1)));
 
@@ -707,7 +707,7 @@ static bool deleteObjectList(sqlite3 *dbHandle,
   sqlite3_stmt *stmt = nullptr;
   int rc = 0;
   bool ret = false;
-  unsigned object_id;
+  int object_id;
 
   TRACE_ENTER();
 
@@ -1225,7 +1225,7 @@ void pbeCleanTmpFiles(std::string localTmpFilename) {
 }
 
 ClassInfo *classToPBE(std::string classNameString, SaImmHandleT immHandle,
-                      void *db_handle, unsigned int class_id) {
+                      void *db_handle, int class_id) {
   SaImmClassCategoryT classCategory;
   SaImmAttrDefinitionT_2 **attrDefinitions;
   SaAisErrorT errorCode;
@@ -1563,7 +1563,7 @@ static ClassInfo *verifyClassPBE(std::string classNameString,
                                  void *db_handle, bool *badfile) {
   sqlite3 *dbHandle = (sqlite3 *)db_handle;
   int rc = 0;
-  unsigned int class_id = 0;
+  int class_id = 0;
   ClassInfo *classInfo = NULL;
   sqlite3_stmt *stmt;
 
@@ -2479,9 +2479,9 @@ bailout:
 }
 
 int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classIdMap,
-                              std::string className, unsigned int *objIdCount,
+                              std::string className, int *objIdCount,
                               void *db_handle) {
-  unsigned int obj_count = 0;
+  int obj_count = 0;
   SaImmSearchHandleT searchHandle;
   SaAisErrorT errorCode;
   SaNameT objectName;
@@ -2591,11 +2591,11 @@ bailout:
 }
 
 bool objectToPBE(std::string objectNameString, const SaImmAttrValuesT_2 **attrs,
-                 ClassMap *classIdMap, void *db_handle, unsigned int object_id,
+                 ClassMap *classIdMap, void *db_handle, int object_id,
                  SaImmClassNameT className, SaUint64T ccb_id) {
   std::string valueString;
   std::string classNameString;
-  unsigned int class_id = 0;
+  int class_id = 0;
   ClassInfo *classInfo = NULL;
   int rc = 0;
   sqlite3 *dbHandle = (sqlite3 *)db_handle;
@@ -2752,7 +2752,7 @@ bool dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
   std::list<std::string> classNameList;
   std::list<std::string>::iterator it;
   int rc = 0;
-  unsigned int class_id = 0;
+  int class_id = 0;
   char *execErr = NULL;
   sqlite3 *dbHandle = (sqlite3 *)db_handle;
   TRACE_ENTER();
@@ -2847,13 +2847,13 @@ int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap,
   }
 
   if (nrows != 1) {
-    LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+    LOG_ER("Expected 1 row got %d rows (line: %u)", nrows, __LINE__);
     badfile = true;
     goto bailout;
   }
 
-  obj_count = strtoul(result[ncols], NULL, 0);
-  TRACE("verifPbeState: obj_count:%u", obj_count);
+  obj_count = strtol(result[ncols], NULL, 0);
+  TRACE("verifPbeState: obj_count:%d", obj_count);
 
   rc = sqlite3_exec(dbHandle, "ROLLBACK", NULL, NULL, &execErr);
   if (rc != SQLITE_OK) {
@@ -2890,7 +2890,7 @@ int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
   char *execErr = NULL;
   sqlite3 *dbHandle = (sqlite3 *)db_handle;
   TRACE_ENTER();
-  unsigned int object_id = 0;
+  int object_id = 0;
   osaf_extended_name_clear(&root);
 
   /* Initialize immOmSearch */
@@ -2989,7 +2989,7 @@ int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
   char *execErr = NULL;
   sqlite3 *dbHandle = (sqlite3 *)db_handle;
   TRACE_ENTER();
-  unsigned int object_id = 0;
+  int object_id = 0;
   osaf_extended_name_clear(&root);
   std::list<std::string>::iterator it = selectedClassList.begin();
 
@@ -4072,7 +4072,7 @@ int finalizeSqlStatement(void* stmt) {
 }
 
 ClassInfo* classToPBE(std::string classNameString, SaImmHandleT immHandle,
-                      void* db_handle, unsigned int class_id) {
+                      void* db_handle, int class_id) {
   abort();
   return NULL;
 }
@@ -4128,7 +4128,7 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(
 }
 
 bool objectToPBE(std::string objectNameString, const SaImmAttrValuesT_2** attrs,
-                 ClassMap* classIdMap, void* db_handle, unsigned int object_id,
+                 ClassMap* classIdMap, void* db_handle, int object_id,
                  SaImmClassNameT className, SaUint64T ccb_id) {
   abort();
 }
