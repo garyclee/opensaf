@@ -693,9 +693,9 @@ SaAisErrorT SmfUpgradeStep::modifyInformationModel() {
   if (m_modificationList.size() > 0) {
     TRACE("Modifying information model");
     SmfImmUtils immUtil;
+    uint32_t retry_count = 0;
 
     while (1) {
-      uint32_t retry_count = 0;
       SmfRollbackCcb rollbackCcb(
           modifyRollbackCcbDn, getProcedure()->getProcThread()->getImmHandle());
 
