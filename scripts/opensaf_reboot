@@ -128,6 +128,15 @@ temp_node_id=`cat "$NODE_ID_FILE"`
 temp_node_id=`echo "$temp_node_id" |sed -e 's:^0[bBxX]::'| sed -e 's:^:0x:'`
 self_node_id=`printf "%d" $temp_node_id`
 
+tipc=$(which tipc 2> /dev/null)
+tipc_config=$(which tipc-config 2> /dev/null)
+
+if [ -x "${tipc}" ]; then
+	tipc_config="${pkglibdir}"/tipc-config
+fi
+
+unset tipc
+
 # If no argument is provided, forcing node reboot immediately without log
 # flushing, process terminating, disk un-mounting.
 # If clm cluster reboot requested argument one and two are set but not used,
@@ -149,7 +158,7 @@ else
 
                 # Isolate the node
                 if [ "$MDS_TRANSPORT" = "TIPC" ]; then
-                   tipc-config -bd eth:$TIPC_ETH_IF
+                   ${tipc_config} -bd=eth:$TIPC_ETH_IF
                 else
                    $icmd pkill -STOP osafdtmd
                 fi

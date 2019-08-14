@@ -69,7 +69,6 @@ if [ "$#" -lt "1" ] || [ "$#" -gt "4" ]
      exit 1
 fi
 
-# Make sure tipc-config is available, either in path or in default location
 tipc=$(which tipc 2> /dev/null)
 tipc_config=$(which tipc-config 2> /dev/null)
 
