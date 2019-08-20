@@ -53,7 +53,7 @@ const char *rde_msg_name[] = {"-",
                               "RDE_MSG_PEER_DOWN(2)",
                               "RDE_MSG_PEER_INFO_REQ(3)",
                               "RDE_MSG_PEER_INFO_RESP(4)",
-                              "RDE_MSG_NEW_ACTIVE_CALLBACK(5)"
+                              "RDE_MSG_NEW_ACTIVE_CALLBACK(5)",
                               "RDE_MSG_NODE_UP(6)",
                               "RDE_MSG_NODE_DOWN(7)",
                               "RDE_MSG_TAKEOVER_REQUEST_CALLBACK(8)",
