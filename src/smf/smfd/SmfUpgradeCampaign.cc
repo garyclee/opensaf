@@ -930,7 +930,8 @@ void SmfUpgradeCampaign::continueExec() {
     if (o_result == true) {
       LOG_NO("The campaign have been restarted to many times");
       int cnt = smfd_cb->smfCampMaxRestart;
-      std::string error = "To many campaign restarts, max " + cnt;
+      std::string error = "To many campaign restarts, max "
+          + std::to_string(cnt);
       SmfCampaignThread::instance()->campaign()->setError(error);
       changeState(SmfCampStateExecFailed::instance());
       TRACE_LEAVE();
