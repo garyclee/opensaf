@@ -63,6 +63,12 @@ void NodeStateMachine::SetState(uint32_t state) {
     LOG_NO("New state '%u'", state);
   }
 
+  // this is needed for cold sync, in case this node (currently standby)
+  // becomes active later
+  AVD_AVND *node = avd_node_find_nodeid(node_id_);
+  osafassert(node != nullptr);
+  node->failover_state = state;
+
   switch (state) {
     case NodeState::kStart:
       state_ = std::make_shared<Start>(this);
