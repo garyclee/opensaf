@@ -169,8 +169,8 @@ void NodeStateHdlrPl::check_isolation() {
       isolated_ = NodeIsolationState::kNotIsolated;
       syslog(LOG_NOTICE, "one active controller detected");
     } else {
-      isolated_ = NodeIsolationState::kIsolated;
-      syslog(LOG_NOTICE, "%d active controllers detected, split brain", no_of_active);
+      isolated_ = NodeIsolationState::kNotIsolated;
+      syslog(LOG_NOTICE, "%d active controllers detected", no_of_active);
     }
   }
 notify:
