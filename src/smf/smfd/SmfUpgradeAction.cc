@@ -485,73 +485,26 @@ SaAisErrorT SmfImmCcbAction::execute(SaImmOiHandleT i_oiHandle,
 
   if (m_operations.size() > 0) {
     TRACE("Imm Ccb Action");
-    SmfImmUtils immUtil;
-    uint32_t retry_count = 0;
-    while (1) {
-      if (i_rollbackDn != NULL) {
-        rollbackCcb =
-            new (std::nothrow) SmfRollbackCcb(immRollbackCcbDn, i_oiHandle);
-        if (rollbackCcb == NULL) {
-          LOG_ER("SmfImmCcbAction::execute failed to create SmfRollbackCcb");
-          return SA_AIS_ERR_NO_MEMORY;
-        }
-      }
-      result = immUtil.doImmOperations(m_operations, rollbackCcb);
-      if (((result == SA_AIS_ERR_TIMEOUT) || (result == SA_AIS_ERR_NOT_EXIST))
-          && (retry_count <= 6)) {
-        int interval = 5;  // seconds
-        // When IMM aborts a CCB because of synch request from a payload, then
-        // the next call of CCBInitialize() will return TRY_AGAIN till the time
-        // the synch is complete.
-        // There is no direct information available to the OM that can indicate
-        // that the CCB or the Adminownerset failed because of an abort and also
-        // there is no notification that can indicate that IMM is ready now.
-        // That leaves SMF with the option to correlate error codes returned.
-        //
-        // Notes on treatment of SA_AIS_ERR_TIMEOUT and SA_AIS_ERR_NOT_EXIST
-        // error codes:
-        //
-        // 1) CCB abort when it is not the first operation(create/modify/delete)
-        // in the CCB
-        //    and if there is dependency between objects in the CCB:-
-        //
-        // An abort of a CCB and if the objects(Create/Modify/delete) had
-        // some dependency(parent-child) among them, then an API call of
-        // AdminOwnerSet() or the CCBCreate/Delete/Modify() on a dependant
-        // object will return SA_AIS_ERR_NOT_EXIST, because the CCB aborted.
-        //
-        // 2) CCB abort when it is a first operation and/or there is no
-        // intra-ccb objects-dependency:-
-        //
-        // When an ongoing CCB is aborted because of a synch request originating
-        // from a payload, then the AdminOwnerSet() or the
-        // CCBCreate/Delete/Modify() will return timeout.
+    SmfImmUtils smfImmUtils;
 
-        ++retry_count;
-        LOG_NO("SmfImmCcbAction::execute failed with error: %s",
-               saf_error(result));
-        LOG_NO("CCB was aborted!?, Retrying: %u", retry_count);
-        // Total retry time of 2.5 minutes for a worst case IMM loaded with say
-        // < 300k objects. Retry every 25 seconds. i.e. (nanosleep for 5
-        // seconds)  + (immutil_ccbInitialize will worstcase wait till 20
-        // seconds).
-        struct timespec sleepTime = {interval, 0};
-        osaf_nanosleep(&sleepTime);
-        if (rollbackCcb != NULL) {
-          delete rollbackCcb;
-          rollbackCcb = NULL;
-        }
-        continue;
-      } else if (result != SA_AIS_OK) {
-        LOG_ER("SmfImmCcbAction::execute failed, result=%s",
-               saf_error(result));
-        if (rollbackCcb != NULL) {
-          delete rollbackCcb;
-          rollbackCcb = NULL;
-        }
+    if (i_rollbackDn != NULL) {
+      rollbackCcb =
+          new (std::nothrow) SmfRollbackCcb(immRollbackCcbDn, i_oiHandle);
+      if (rollbackCcb == NULL) {
+        LOG_ER("SmfImmCcbAction::execute failed to create SmfRollbackCcb");
+        return SA_AIS_ERR_NO_MEMORY;
       }
-      break;
-    }/* End while (1) */
+    }
+
+    result = smfImmUtils.doImmOperations(m_operations, rollbackCcb);
+    if (result != SA_AIS_OK) {
+      LOG_ER("SmfImmCcbAction::execute failed, result=%s",
+              saf_error(result));
+      if (rollbackCcb != NULL) {
+        delete rollbackCcb;
+        rollbackCcb = NULL;
+      }
+    }
   }
 
   if (rollbackCcb != NULL) {
