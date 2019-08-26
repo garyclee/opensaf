@@ -4060,7 +4060,7 @@ unsigned int purgeInstancesOfClassToPBE(SaImmHandleT immHandle,
 }
 
 int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap* classIdMap,
-                              std::string className, unsigned int* objIdCount,
+                              std::string className, int* objIdCount,
                               void* db_handle) {
   abort();
   return (-1);
