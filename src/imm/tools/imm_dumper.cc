@@ -403,8 +403,14 @@ static std::map<std::string, std::string> cacheRDNs(
   std::list<std::string>::iterator it = classNamesList.begin();
 
   while (it != classNamesList.end()) {
-    saImmOmClassDescriptionGet_2(immHandle, (char*)it->c_str(), &classCategory,
-                                 &attrs);
+    SaAisErrorT errorCode = saImmOmClassDescriptionGet_2(
+        immHandle, (char*)it->c_str(), &classCategory, &attrs);
+
+    if (errorCode != SA_AIS_OK) {
+      std::cerr << "Failed to get the description of " << *it
+                << " class: " << errorCode << " - exiting!" << std::endl;
+      exit(EXIT_FAILURE);
+    }
 
     for (SaImmAttrDefinitionT_2** p = attrs; *p != NULL; p++) {
       if ((*p)->attrFlags & SA_IMM_ATTR_RDN) {
