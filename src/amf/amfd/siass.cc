@@ -541,7 +541,7 @@ AVD_SU_SI_REL *avd_susi_create(AVD_CL_CB *cb, AVD_SI *si, AVD_SU *su,
   /* determine if the su is ranked per si */
   for (const auto &value : *sirankedsu_db) {
     su_rank_rec = value.second;
-    if (su_rank_rec->indx.si_name.compare(si->name) != 0) continue;
+    if (su_rank_rec->si_name.compare(si->name) != 0) continue;
     curr_su = su_db->find(su_rank_rec->su_name);
     if (curr_su == su) break;
   }
@@ -558,15 +558,15 @@ AVD_SU_SI_REL *avd_susi_create(AVD_CL_CB *cb, AVD_SI *si, AVD_SU *su,
       /* determine the su_rank rec for this rec */
       for (const auto &value : *sirankedsu_db) {
         i_su_rank_rec = value.second;
-        if (i_su_rank_rec->indx.si_name.compare(si->name) != 0) continue;
+        if (i_su_rank_rec->si_name.compare(si->name) != 0) continue;
         curr_su = su_db->find(i_su_rank_rec->su_name);
         if (curr_su == i_su_si->su) break;
       }
 
       osafassert(i_su_rank_rec);
 
-      rank1 = su_rank_rec->indx.su_rank;
-      rank2 = i_su_rank_rec->indx.su_rank;
+      rank1 = su_rank_rec->su_rank;
+      rank2 = i_su_rank_rec->su_rank;
       if (rank1 <= rank2) break;
     } else {
       if (true == su_si->is_per_si) break;

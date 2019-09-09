@@ -38,20 +38,19 @@
 #include <algorithm>
 #include <string>
 
-AmfDb<std::pair<std::string, uint32_t>, AVD_SUS_PER_SI_RANK> *sirankedsu_db =
-    nullptr;
+SiRankedSuDb *sirankedsu_db = nullptr;
 static void avd_susi_namet_init(const std::string &object_name,
                                 std::string &su_name, std::string &si_name);
 
 static void avd_sirankedsu_db_add(AVD_SUS_PER_SI_RANK *sirankedsu) {
   unsigned int rc = sirankedsu_db->insert(
-      make_pair(sirankedsu->indx.si_name, sirankedsu->indx.su_rank),
+      make_tuple(sirankedsu->su_name, sirankedsu->si_name, sirankedsu->su_rank),
       sirankedsu);
   osafassert(rc == NCSCC_RC_SUCCESS);
 
   /* Find the si name. */
-  AVD_SI *avd_si = avd_si_get(sirankedsu->indx.si_name);
-  avd_si->add_rankedsu(sirankedsu->su_name, sirankedsu->indx.su_rank);
+  AVD_SI *avd_si = avd_si_get(sirankedsu->si_name);
+  avd_si->add_rankedsu(sirankedsu->su_name, sirankedsu->su_rank);
 
   /* Add sus_per_si_rank to si */
   sirankedsu->sus_per_si_rank_on_si = avd_si;
@@ -67,7 +66,7 @@ static void avd_sirankedsu_db_add(AVD_SUS_PER_SI_RANK *sirankedsu) {
  *to the tree if an element with given index value doesn't exist in the tree.
  *
  * Input: cb - the AVD control block
- *        indx - The key info  needs to add a element in the petricia tree
+ *        key - The key info  needs to add a element in the petricia tree
  *
  * Returns: The pointer to AVD_SUS_PER_SI_RANK structure allocated and added.
  *
@@ -77,13 +76,14 @@ static void avd_sirankedsu_db_add(AVD_SUS_PER_SI_RANK *sirankedsu) {
  **************************************************************************/
 
 static AVD_SUS_PER_SI_RANK *avd_sirankedsu_create(
-    AVD_CL_CB *cb, const AVD_SUS_PER_SI_RANK_INDX &indx) {
+    AVD_CL_CB *cb, const SiRankedSuKey &key) {
   AVD_SUS_PER_SI_RANK *ranked_su_per_si;
 
   ranked_su_per_si = new AVD_SUS_PER_SI_RANK();
 
-  ranked_su_per_si->indx.si_name = indx.si_name;
-  ranked_su_per_si->indx.su_rank = indx.su_rank;
+  ranked_su_per_si->su_name = std::get<0>(key);
+  ranked_su_per_si->si_name = std::get<1>(key);
+  ranked_su_per_si->su_rank = std::get<2>(key);
 
   return ranked_su_per_si;
 }
@@ -95,7 +95,7 @@ static AVD_SUS_PER_SI_RANK *avd_sirankedsu_create(
  * tree with indx value as key.
  *
  * Input: cb - the AVD control block
- *        indx - The key.
+ *        key - The key.
  *
  * Returns: The pointer to AVD_SUS_PER_SI_RANK structure found in the tree.
  *
@@ -105,14 +105,9 @@ static AVD_SUS_PER_SI_RANK *avd_sirankedsu_create(
  **************************************************************************/
 
 static AVD_SUS_PER_SI_RANK *avd_sirankedsu_find(
-    AVD_CL_CB *cb, const AVD_SUS_PER_SI_RANK_INDX &indx) {
-  AVD_SUS_PER_SI_RANK_INDX rank_indx;
+    AVD_CL_CB *cb, const SiRankedSuKey &key) {
 
-  rank_indx.si_name = indx.si_name;
-  rank_indx.su_rank = indx.su_rank;
-
-  AVD_SUS_PER_SI_RANK *ranked_su_per_si =
-      sirankedsu_db->find(make_pair(rank_indx.si_name, rank_indx.su_rank));
+  AVD_SUS_PER_SI_RANK *ranked_su_per_si{sirankedsu_db->find(key)};
 
   return ranked_su_per_si;
 }
@@ -137,8 +132,10 @@ static uint32_t avd_sirankedsu_delete(AVD_CL_CB *cb,
                                       AVD_SUS_PER_SI_RANK *ranked_su_per_si) {
   if (ranked_su_per_si == nullptr) return NCSCC_RC_FAILURE;
 
-  sirankedsu_db->erase(make_pair(ranked_su_per_si->indx.si_name,
-                                 ranked_su_per_si->indx.su_rank));
+  sirankedsu_db->erase(make_tuple(ranked_su_per_si->su_name,
+                                  ranked_su_per_si->si_name,
+                                  ranked_su_per_si->su_rank));
+
   delete ranked_su_per_si;
   return NCSCC_RC_SUCCESS;
 }
@@ -162,7 +159,6 @@ static AVD_SUS_PER_SI_RANK *avd_sirankedsu_ccb_apply_create_hdlr(
   uint32_t rank = 0;
   std::string su_name;
   std::string si_name;
-  AVD_SUS_PER_SI_RANK_INDX indx;
 
   immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfRank"), attributes, 0,
                   &rank);
@@ -170,11 +166,10 @@ static AVD_SUS_PER_SI_RANK *avd_sirankedsu_ccb_apply_create_hdlr(
   avd_susi_namet_init(Amf::to_string(dn), su_name, si_name);
 
   /* Find the avd_sus_per_si_rank name. */
-  indx.si_name = si_name;
-  indx.su_rank = rank;
+  SiRankedSuKey key{make_tuple(su_name, si_name, rank)};
 
   AVD_SUS_PER_SI_RANK *avd_sus_per_si_rank =
-      avd_sirankedsu_create(avd_cb, indx);
+      avd_sirankedsu_create(avd_cb, key);
   osafassert(avd_sus_per_si_rank);
 
   avd_sus_per_si_rank->su_name = su_name;
@@ -214,8 +209,8 @@ static void avd_sirankedsu_del_si_list(AVD_CL_CB *cb,
     if (i_sus_per_si_rank != sus_per_si_rank) {
       LOG_CR(
           "SI '%s' having SU '%s' with rank %u, does not exist in sirankedsu link list",
-          sus_per_si_rank->indx.si_name.c_str(),
-          sus_per_si_rank->su_name.c_str(), sus_per_si_rank->indx.su_rank);
+          sus_per_si_rank->si_name.c_str(),
+          sus_per_si_rank->su_name.c_str(), sus_per_si_rank->su_rank);
     } else {
       if (prev_sus_per_si_rank == nullptr) {
         sus_per_si_rank->sus_per_si_rank_on_si->list_of_sus_per_si_rank =
@@ -241,7 +236,6 @@ static int is_config_valid(const std::string &dn,
   std::string su_name;
   std::string si_name;
   uint32_t rank = 0;
-  AVD_SUS_PER_SI_RANK_INDX indx;
   AVD_SU *avd_su = nullptr;
 
   avd_susi_namet_init(dn, su_name, si_name);
@@ -292,9 +286,9 @@ static int is_config_valid(const std::string &dn,
     return 0;
   }
 
-  indx.si_name = si_name;
-  indx.su_rank = rank;
-  if ((avd_sirankedsu_find(avd_cb, indx)) != nullptr) {
+  SiRankedSuKey key{make_tuple(su_name, si_name, rank)};
+
+  if ((avd_sirankedsu_find(avd_cb, key)) != nullptr) {
     if (opdata != nullptr) {
       report_ccb_validation_error(opdata,
                                   "saAmfRankedSu exists %s, si'%s', rank'%u'",
@@ -351,23 +345,23 @@ static void sirankedsu_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
           opdata->param.modify.attrMods[i]);
 
         if (!strcmp(attr_mod->modAttr.attrName, "saAmfRank")) {
-          AVD_SI *avd_si(avd_si_get(avd_sirankedsu->indx.si_name));
+          AVD_SI *avd_si(avd_si_get(avd_sirankedsu->si_name));
 
           // remove and readd the ranked su
           avd_si->remove_rankedsu(avd_sirankedsu->su_name);
 
           TRACE("saAmfRank modified from '%u' to '%u'",
-                avd_sirankedsu->indx.su_rank,
+                avd_sirankedsu->su_rank,
                 *((SaUint32T *)attr_mod->modAttr.attrValues[0]));
-          avd_sirankedsu->indx.su_rank =
+          avd_sirankedsu->su_rank =
               *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
 
           avd_si->add_rankedsu(avd_sirankedsu->su_name,
-                               avd_sirankedsu->indx.su_rank);
+                               avd_sirankedsu->su_rank);
 
-	  // update any runtime rankings
-	  avd_si->update_sisu_rank(avd_sirankedsu->su_name,
-                                   avd_sirankedsu->indx.su_rank);
+          // update any runtime rankings
+          avd_si->update_sisu_rank(avd_sirankedsu->su_name,
+                                   avd_sirankedsu->su_rank);
         }
       }
       break;
@@ -407,7 +401,7 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata) {
     for (const auto &value : *sirankedsu_db) {
       su_rank_rec = value.second;
 
-      if (su_rank_rec->indx.si_name.compare(si_name) == 0 &&
+      if (su_rank_rec->si_name.compare(si_name) == 0 &&
           su_rank_rec->su_name.compare(su_name) == 0) {
         found = true;
         break;
@@ -445,7 +439,7 @@ static int avd_sirankedsu_ccb_complete_delete_hdlr(
   for (const auto &value : *sirankedsu_db) {
     su_rank_rec = value.second;
 
-    if (su_rank_rec->indx.si_name.compare(si_name) == 0 &&
+    if (su_rank_rec->si_name.compare(si_name) == 0 &&
         su_rank_rec->su_name.compare(su_name) == 0) {
       found = true;
       break;
@@ -514,8 +508,8 @@ SaAisErrorT avd_sirankedsu_config_get(const std::string &si_name, AVD_SI *si) {
   SaImmSearchParametersT_2 searchParam;
   const SaImmAttrValuesT_2 **attributes;
   const char *className = "SaAmfSIRankedSU";
-  AVD_SUS_PER_SI_RANK_INDX indx;
   SaNameT dn;
+  uint32_t su_rank{};
   AVD_SUS_PER_SI_RANK *avd_sirankedsu = nullptr;
 
   TRACE_ENTER();
@@ -538,16 +532,20 @@ SaAisErrorT avd_sirankedsu_config_get(const std::string &si_name, AVD_SI *si) {
          SA_AIS_OK) {
     LOG_NO("'%s'", osaf_extended_name_borrow(&dn));
 
-    indx.si_name = si_name;
     if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfRank"), attributes, 0,
-                        &indx.su_rank) != SA_AIS_OK) {
+                        &su_rank) != SA_AIS_OK) {
       LOG_ER("Get saAmfRank FAILED for '%s'", osaf_extended_name_borrow(&dn));
       goto done1;
     }
 
     if (!is_config_valid(Amf::to_string(&dn), attributes, nullptr)) goto done2;
 
-    if ((avd_sirankedsu = avd_sirankedsu_find(avd_cb, indx)) == nullptr) {
+    std::string su_name, dummy;
+    avd_susi_namet_init(Amf::to_string(&dn), su_name, dummy);
+
+    SiRankedSuKey key{make_tuple(su_name, si_name, su_rank)};
+
+    if ((avd_sirankedsu = avd_sirankedsu_find(avd_cb, key)) == nullptr) {
       if ((avd_sirankedsu = avd_sirankedsu_ccb_apply_create_hdlr(
                &dn, attributes)) == nullptr)
         goto done2;
@@ -566,8 +564,7 @@ done1:
 }
 
 void avd_sirankedsu_constructor(void) {
-  sirankedsu_db =
-      new AmfDb<std::pair<std::string, uint32_t>, AVD_SUS_PER_SI_RANK>;
+  sirankedsu_db = new SiRankedSuDb;
   avd_class_impl_set("SaAmfSIRankedSU", nullptr, nullptr,
                      sirankedsu_ccb_completed_cb, sirankedsu_ccb_apply_cb);
 }

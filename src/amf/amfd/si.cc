@@ -285,7 +285,9 @@ void AVD_SI::update_sisu_rank(const std::string& suname, uint32_t newRank) {
       }
     }
 
-    osafassert(matched_susi);
+    // if the SU is not being used right now then nothing to do
+    if (!matched_susi)
+      break;
 
     // now reinsert it at the correct place
     AVD_SU_SI_REL *prev(nullptr);
@@ -301,14 +303,14 @@ void AVD_SI::update_sisu_rank(const std::string& suname, uint32_t newRank) {
         /* determine the su_rank rec for this rec */
         for (const auto &value : *sirankedsu_db) {
           i_su_rank_rec = value.second;
-          if (i_su_rank_rec->indx.si_name.compare(name) != 0) continue;
+          if (i_su_rank_rec->si_name.compare(name) != 0) continue;
           AVD_SU *curr_su(su_db->find(i_su_rank_rec->su_name));
           if (curr_su == curr_susi->su) break;
         }
 
         osafassert(i_su_rank_rec);
 
-        if (newRank <= i_su_rank_rec->indx.su_rank) break;
+        if (newRank <= i_su_rank_rec->su_rank) break;
       } else {
         if (true == matched_susi->is_per_si) break;
 

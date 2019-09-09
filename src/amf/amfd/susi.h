@@ -34,6 +34,7 @@
 #ifndef AMF_AMFD_SUSI_H_
 #define AMF_AMFD_SUSI_H_
 
+#include <tuple>
 #include "amf/amfd/su.h"
 #include "amf/amfd/si.h"
 #include "amf/amfd/ntf.h"
@@ -76,26 +77,24 @@ typedef struct avd_su_si_rel_tag {
   bool absent;
 } AVD_SU_SI_REL;
 
-/* SusperSiRank table index structure */
-typedef struct avd_sus_per_si_rank_index_tag {
-  std::string si_name;
-  uint32_t su_rank; /* The rank of the SU */
-
-} AVD_SUS_PER_SI_RANK_INDX;
-
 /* Availability directors SUs organised per RANK in a SI.
  * This Data structure lives in the AVD.
  */
 typedef struct avd_sus_per_si_rank_tag {
-  AVD_SUS_PER_SI_RANK_INDX indx; /* Table index */
   std::string su_name;           /* name of the SU as std::string */
+  std::string si_name;
+  uint32_t su_rank; /* The rank of the SU */
   AVD_SI *sus_per_si_rank_on_si;
   struct avd_sus_per_si_rank_tag *sus_per_si_rank_list_si_next;
 
 } AVD_SUS_PER_SI_RANK;
 
-extern AmfDb<std::pair<std::string, uint32_t>, AVD_SUS_PER_SI_RANK>
-    *sirankedsu_db;
+typedef std::tuple<std::string /*su*/, std::string /*si*/, uint32_t /*rank*/>
+  SiRankedSuKey;
+
+typedef AmfDb<SiRankedSuKey, AVD_SUS_PER_SI_RANK> SiRankedSuDb;
+
+extern SiRankedSuDb *sirankedsu_db;
 
 #define AVD_SU_PER_SI_RANK_NULL ((AVD_SUS_PER_SI_RANK *)0)
 
