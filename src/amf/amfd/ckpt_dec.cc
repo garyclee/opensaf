@@ -2721,10 +2721,25 @@ uint32_t avd_dec_warm_sync_rsp(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
     if (updt_cnt->ng_updt != cb->async_updt_cnt.ng_updt)
       LOG_ER("ng_updt counters mismatch: Active: %u Standby: %u",
              updt_cnt->ng_updt, cb->async_updt_cnt.ng_updt);
-    if (updt_cnt->failover_updt != cb->async_updt_cnt.failover_updt)
-      LOG_ER("failover_updt counters mismatch: Active: %u Standby: %u",
-             updt_cnt->failover_updt, cb->async_updt_cnt.failover_updt);
+    if (updt_cnt->failover_updt != cb->async_updt_cnt.failover_updt) {
+      if (dec->i_peer_version >= AVD_MBCSV_SUB_PART_VERSION_10) {
+        LOG_ER("failover_updt counters mismatch: Active: %u Standby: %u",
+               updt_cnt->failover_updt, cb->async_updt_cnt.failover_updt);
+      } else {
+        // Versions before 10 did not support failover_updt
+        // After a downgrade scenario, where the active is < v10
+        // and this node is >= v10, then there will be failover_updt mismatch
+        // If so, just set the value to what's on the older active
+        cb->async_updt_cnt.failover_updt = updt_cnt->failover_updt;
 
+        // check again
+        if (0 == memcmp(updt_cnt, &cb->async_updt_cnt,
+                        sizeof(AVSV_ASYNC_UPDT_CNT))) {
+          cb->stby_sync_state = AVD_STBY_IN_SYNC;
+          return status;
+        }
+      }
+    }
     LOG_ER("Out of sync detected in warm sync response, exiting");
     osafassert(0);
 
