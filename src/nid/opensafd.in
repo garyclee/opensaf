@@ -287,6 +287,9 @@ start() {
 }
 
 stop() {
+	# flush all internal opensaf log messages into disk before stopping
+	$bindir/osaflog --flush
+
 	if ! mutex_create; then
 		return 1
 	fi
