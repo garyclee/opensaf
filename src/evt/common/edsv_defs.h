@@ -82,7 +82,7 @@
 
 #define m_EDSV_GET_CLM_VER(amf_ver) \
   amf_ver.releaseCode = 'B';        \
-  amf_ver.majorVersion = 0x01;      \
+  amf_ver.majorVersion = 0x04;      \
   amf_ver.minorVersion = 0x01;
 
 /* Define our limits */

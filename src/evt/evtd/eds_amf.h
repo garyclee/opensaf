@@ -81,9 +81,16 @@ void eds_amf_csi_rmv_callback(SaInvocationT invocation, const SaNameT *compName,
 uint32_t eds_amf_register(EDS_CB *);
 
 SaAisErrorT eds_clm_init(EDS_CB *cb);
+SaAisErrorT eds_clm_reinit_bg(EDS_CB *cb);
 void eds_clm_cluster_track_cbk(
-    const SaClmClusterNotificationBufferT *notificationBuffer,
-    SaUint32T numberOfMembers, SaAisErrorT error);
+	const SaClmClusterNotificationBufferT_4 *notificationBuffer,
+	SaUint32T numberOfMembers,
+	SaInvocationT invocation,
+	const SaNameT *rootCauseEntity,
+	const SaNtfCorrelationIdsT *correlationIds,
+	SaClmChangeStepT step,
+	SaTimeT timeSupervision,
+	SaAisErrorT error);
 void send_clm_status_change(EDS_CB *cb, SaClmClusterChangesT cluster_change,
                             NODE_ID node_id);
 
