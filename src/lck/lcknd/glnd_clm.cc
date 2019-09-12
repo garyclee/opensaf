@@ -1,3 +1,4 @@
+#include <thread>
 #include <saClm.h>
 #include "lck/lcknd/glnd_clm.h"
 #include "base/osaf_time.h"
@@ -93,7 +94,7 @@ SaAisErrorT glnd_clm_init(GLND_CB *cb) {
     while (true) {
       rc = saClmInitialize_4(&cb->clm_hdl, &callbacks, &version);
 
-      if (rc == SA_AIS_ERR_TRY_AGAIN) {
+      if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_UNAVAILABLE) {
         osaf_nanosleep(&kHundredMilliseconds);
         continue;
       } else if (rc != SA_AIS_OK) {
@@ -104,11 +105,20 @@ SaAisErrorT glnd_clm_init(GLND_CB *cb) {
       }
     }
 
+    if (rc != SA_AIS_OK)
+      break;
+
     rc = saClmClusterTrack_4(
         cb->clm_hdl, SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_LOCAL, 0);
 
     if (rc != SA_AIS_OK) {
       LOG_ER("saClmClusterTrack failed: %i", rc);
+      break;
+    }
+
+    rc = saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj);
+    if (rc != SA_AIS_OK) {
+      LOG_ER("saClmSelectionObjectGet failed: %i", rc);
       break;
     }
   } while (false);
@@ -127,4 +137,13 @@ SaAisErrorT glnd_clm_deinit(GLND_CB *cb) {
   cb->clm_hdl = 0;
 
   return rc;
+}
+
+static void clm_reinit_thread(GLND_CB *cb) {
+  glnd_clm_init(cb);
+}
+
+void glnd_clm_reinit_bg(GLND_CB *cb) {
+  std::thread x(&clm_reinit_thread, cb);
+  x.detach();
 }

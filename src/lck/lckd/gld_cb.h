@@ -111,6 +111,7 @@ typedef struct glsv_gld_cb_tag {
   SaImmOiHandleT immOiHandle;     /* IMM OI Handle */
   SaSelectionObjectT imm_sel_obj; /*Selection object to wait for
                                      IMM events */
+  SaSelectionObjectT clm_sel_obj;
   bool is_impl_set;
   bool fully_initialized;
 } GLSV_GLD_CB;
