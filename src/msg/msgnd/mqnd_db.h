@@ -220,6 +220,7 @@ typedef struct mqnd_cb {
   uint32_t gl_msg_max_prio_q_size;
   SaImmOiHandleT immOiHandle;
   SaSelectionObjectT imm_sel_obj;
+  SaSelectionObjectT clm_sel_obj;
 } MQND_CB;
 
 #define MQND_QUEUE_INFO_NULL ((MQND_QUEUE_INFO *)0)

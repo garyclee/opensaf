@@ -47,6 +47,7 @@
 #include <poll.h>
 #include <stdlib.h>
 
+#include "base/osaf_time.h"
 #include "msg/msgd/mqd.h"
 #include "mqd_imm.h"
 #include "mqd_ntf.h"
@@ -114,18 +115,31 @@ static SaAisErrorT mqd_clm_init(MQD_CB *cb)
 	do {
 		SaVersionT clm_version;
 		SaClmCallbacksT_4 mqd_clm_cbk;
+		bool logged_error = false;
 
 		m_MQSV_GET_CLM_VER(clm_version);
 		mqd_clm_cbk.saClmClusterNodeGetCallback = NULL;
 		mqd_clm_cbk.saClmClusterTrackCallback =
 		    mqd_clm_cluster_track_callback;
 
-		saErr =
-		    saClmInitialize_4(&cb->clm_hdl, &mqd_clm_cbk, &clm_version);
-		if (saErr != SA_AIS_OK) {
-			LOG_ER("saClmInitialize_4 failed with error %u",
-			       (unsigned)saErr);
-			break;
+		while (true) {
+			saErr = saClmInitialize_4(&cb->clm_hdl,
+				       	&mqd_clm_cbk,
+				       	&clm_version);
+			if (saErr == SA_AIS_OK)
+				break;
+			else if (saErr == SA_AIS_ERR_TRY_AGAIN ||
+					saErr == SA_AIS_ERR_UNAVAILABLE) {
+				if (!logged_error) {
+					LOG_ER("saClmInitialize_4 failed: %i", saErr);
+					logged_error = true;
+				}
+				osaf_nanosleep(&kHundredMilliseconds);
+				continue;
+			} else {
+				LOG_ER("saClmInitialize_4 failed: %i", saErr);
+				break;
+			}
 		}
 		TRACE_1("saClmInitialize success");
 
@@ -416,6 +430,33 @@ done:
 	return rc;
 }
 
+static void * mqd_clm_init_thread(void *arg) {
+	TRACE_ENTER();
+	MQD_CB *cb = (MQD_CB *)(arg);
+
+	mqd_clm_init(cb);
+
+	TRACE_LEAVE();
+	return 0;
+}
+
+static SaAisErrorT mqd_clm_reinit_bg(MQD_CB *cb)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, mqd_clm_init_thread, cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	pthread_attr_destroy(&attr);
+
+	return SA_AIS_OK;
+}
+
 /**************************************************************************** \
   PROCEDURE NAME : mqd_lib_destroy
 
@@ -570,7 +611,11 @@ void mqd_main_process(uint32_t hdl)
 		if (fds[FD_CLM].revents & POLLIN) {
 			/* dispatch all the CLM pending function */
 			err = saClmDispatch(pMqd->clm_hdl, SA_DISPATCH_ALL);
-			if (err != SA_AIS_OK) {
+			if (err == SA_AIS_ERR_BAD_HANDLE) {
+				pMqd->clm_sel_obj = -1;
+				LOG_NO("saClmDispatch returned bad handle");
+				mqd_clm_reinit_bg(pMqd);
+			} else if (err != SA_AIS_OK) {
 				LOG_ER("saClmDispatch failed: %u", err);
 			}
 		}
