@@ -89,7 +89,7 @@ typedef struct avd_sus_per_si_rank_tag {
 
 } AVD_SUS_PER_SI_RANK;
 
-typedef std::tuple<std::string /*su*/, std::string /*si*/, uint32_t /*rank*/>
+typedef std::tuple<std::string /*si*/, uint32_t /*rank*/, std::string /*su*/>
   SiRankedSuKey;
 
 typedef AmfDb<SiRankedSuKey, AVD_SUS_PER_SI_RANK> SiRankedSuDb;

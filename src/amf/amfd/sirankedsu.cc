@@ -44,7 +44,7 @@ static void avd_susi_namet_init(const std::string &object_name,
 
 static void avd_sirankedsu_db_add(AVD_SUS_PER_SI_RANK *sirankedsu) {
   unsigned int rc = sirankedsu_db->insert(
-      make_tuple(sirankedsu->su_name, sirankedsu->si_name, sirankedsu->su_rank),
+      make_tuple(sirankedsu->si_name, sirankedsu->su_rank, sirankedsu->su_name),
       sirankedsu);
   osafassert(rc == NCSCC_RC_SUCCESS);
 
@@ -81,9 +81,9 @@ static AVD_SUS_PER_SI_RANK *avd_sirankedsu_create(
 
   ranked_su_per_si = new AVD_SUS_PER_SI_RANK();
 
-  ranked_su_per_si->su_name = std::get<0>(key);
-  ranked_su_per_si->si_name = std::get<1>(key);
-  ranked_su_per_si->su_rank = std::get<2>(key);
+  ranked_su_per_si->si_name = std::get<0>(key);
+  ranked_su_per_si->su_rank = std::get<1>(key);
+  ranked_su_per_si->su_name = std::get<2>(key);
 
   return ranked_su_per_si;
 }
@@ -132,10 +132,9 @@ static uint32_t avd_sirankedsu_delete(AVD_CL_CB *cb,
                                       AVD_SUS_PER_SI_RANK *ranked_su_per_si) {
   if (ranked_su_per_si == nullptr) return NCSCC_RC_FAILURE;
 
-  sirankedsu_db->erase(make_tuple(ranked_su_per_si->su_name,
-                                  ranked_su_per_si->si_name,
-                                  ranked_su_per_si->su_rank));
-
+  sirankedsu_db->erase(make_tuple(ranked_su_per_si->si_name,
+                                  ranked_su_per_si->su_rank,
+                                  ranked_su_per_si->su_name));
   delete ranked_su_per_si;
   return NCSCC_RC_SUCCESS;
 }
@@ -166,7 +165,7 @@ static AVD_SUS_PER_SI_RANK *avd_sirankedsu_ccb_apply_create_hdlr(
   avd_susi_namet_init(Amf::to_string(dn), su_name, si_name);
 
   /* Find the avd_sus_per_si_rank name. */
-  SiRankedSuKey key{make_tuple(su_name, si_name, rank)};
+  SiRankedSuKey key{make_tuple(si_name, rank, su_name)};
 
   AVD_SUS_PER_SI_RANK *avd_sus_per_si_rank =
       avd_sirankedsu_create(avd_cb, key);
@@ -286,7 +285,7 @@ static int is_config_valid(const std::string &dn,
     return 0;
   }
 
-  SiRankedSuKey key{make_tuple(su_name, si_name, rank)};
+  SiRankedSuKey key{make_tuple(si_name, rank, su_name)};
 
   if ((avd_sirankedsu_find(avd_cb, key)) != nullptr) {
     if (opdata != nullptr) {
@@ -543,7 +542,7 @@ SaAisErrorT avd_sirankedsu_config_get(const std::string &si_name, AVD_SI *si) {
     std::string su_name, dummy;
     avd_susi_namet_init(Amf::to_string(&dn), su_name, dummy);
 
-    SiRankedSuKey key{make_tuple(su_name, si_name, su_rank)};
+    SiRankedSuKey key{make_tuple(si_name, su_rank, su_name)};
 
     if ((avd_sirankedsu = avd_sirankedsu_find(avd_cb, key)) == nullptr) {
       if ((avd_sirankedsu = avd_sirankedsu_ccb_apply_create_hdlr(
