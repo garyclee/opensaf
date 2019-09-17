@@ -326,6 +326,11 @@ static SaAisErrorT sgtype_ccb_completed_modify_hdlr(
   const SaImmAttrModificationT_2 *attr_mod;
   int i = 0;
   AVD_AMF_SG_TYPE *sgt = sgtype_db->find(Amf::to_string(&opdata->objectName));
+  if (sgt == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SGT modify completed (STDBY): sgt does not exist");
+    return SA_AIS_OK;
+  }
+  assert(sgt != nullptr);
 
   TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId,
                osaf_extended_name_borrow(&opdata->objectName));
@@ -383,6 +388,7 @@ static SaAisErrorT sgtype_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
     case CCBUTIL_DELETE:
       sgt = sgtype_db->find(Amf::to_string(&opdata->objectName));
       if (sgt == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SGT delete completed (STDBY): sgt does not exist");
         rc = SA_AIS_OK;
         opdata->userData = nullptr;
         goto done;
@@ -429,6 +435,10 @@ static void sgtype_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
                osaf_extended_name_borrow(&opdata->objectName));
 
   AVD_AMF_SG_TYPE *sgt = sgtype_db->find(Amf::to_string(&opdata->objectName));
+  if (sgt == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SGT modify apply (STDBY): sgt does not exist");
+    return;
+  }
 
   while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
     bool value_is_deleted;
@@ -499,6 +509,7 @@ static void sgtype_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
       break;
     case CCBUTIL_DELETE:
       if (opdata->userData == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SGT delete apply (STDBY): sgt does not exist");
         break;
       }
       osafassert(opdata->userData != nullptr);

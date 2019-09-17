@@ -1509,6 +1509,7 @@ SaAisErrorT avd_comp_config_get(const std::string &su_name, AVD_SU *su) {
            SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
            configAttributes, &searchHandle)) != SA_AIS_OK) {
     LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, rc);
+    error = rc;
     goto done1;
   }
 
@@ -1524,9 +1525,15 @@ SaAisErrorT avd_comp_config_get(const std::string &su_name, AVD_SU *su) {
     num_of_comp_in_su++;
     comp_add_to_model(comp);
 
-    if (avd_compcstype_config_get(Amf::to_string(&comp_name), comp) !=
-        SA_AIS_OK)
-      goto done2;
+    if ((rc = avd_compcstype_config_get(Amf::to_string(&comp_name), comp)) !=
+        SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_comp_delete(comp);
+        num_of_comp_in_su--;
+      } else {
+        goto done2;
+      }
+    }
   }
 
   /* If there are no component in the SU, we treat it as invalid configuration.
@@ -1695,6 +1702,10 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata) {
   TRACE_ENTER();
 
   comp = comp_db->find(Amf::to_string(&opdata->objectName));
+  if (comp == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("Comp modify completed (STDBY): comp does not exist");
+    return SA_AIS_OK;
+  }
 
   while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
     const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
@@ -2479,6 +2490,7 @@ void comp_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata) {
 
   AVD_COMP *comp = comp_db->find(Amf::to_string(&opdata->objectName));
   if (comp == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("Comp modify apply (STDBY): comp does not exist");
     return;
   }
   /* comp should be found in the database even if it was

@@ -792,6 +792,7 @@ SaAisErrorT avd_si_config_get(AVD_APP *app) {
            SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
            configAttributes, &searchHandle)) != SA_AIS_OK) {
     LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, rc);
+    error = rc;
     goto done1;
   }
 
@@ -805,9 +806,22 @@ SaAisErrorT avd_si_config_get(AVD_APP *app) {
 
     si->si_add_to_model();
 
-    if (avd_sirankedsu_config_get(si_str, si) != SA_AIS_OK) goto done2;
+    if ((rc = avd_sirankedsu_config_get(si_str, si)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_si_delete(si);
+        continue;
+      } else {
+        goto done2;
+      }
+    }
 
-    if (avd_csi_config_get(si_str, si) != SA_AIS_OK) goto done2;
+    if ((rc = avd_csi_config_get(si_str, si)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_si_delete(si);
+      } else {
+        goto done2;
+      }
+    }
 
     if ((si->sg_of_si != nullptr) && (si->sg_of_si->any_container_su() == true)
         && (si->csi_count() > 1)) {
@@ -842,7 +856,11 @@ static SaAisErrorT si_ccb_completed_modify_hdlr(
                osaf_extended_name_borrow(&opdata->objectName));
 
   si = avd_si_get(Amf::to_string(&opdata->objectName));
-  osafassert(si != nullptr);
+  if (si == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SI modify completed (STDBY): si does not exist");
+    return SA_AIS_OK;
+  }
+  assert(si != nullptr);
 
   /* Modifications can only be done for these attributes. */
   while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
@@ -1341,6 +1359,10 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata) {
                osaf_extended_name_borrow(&opdata->objectName));
 
   si = avd_si_get(Amf::to_string(&opdata->objectName));
+  if (si == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SI modify apply (STDBY): si does not exist");
+    return;
+  }
   osafassert(si != nullptr);
 
   /* Modifications can be done for any parameters. */
@@ -1441,6 +1463,7 @@ static void si_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
       break;
     case CCBUTIL_DELETE:
       if (opdata->userData == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SI delete apply (STDBY): si does not exist");
         break;
       }
       osafassert(opdata->userData != nullptr);

@@ -282,7 +282,7 @@ done:
  * @return int
  */
 SaAisErrorT avd_compcstype_config_get(const std::string &name, AVD_COMP *comp) {
-  SaAisErrorT error;
+  SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION, rc;
   SaImmSearchHandleT searchHandle;
   SaImmSearchParametersT_2 searchParam;
   SaNameT dn;
@@ -299,27 +299,25 @@ SaAisErrorT avd_compcstype_config_get(const std::string &name, AVD_COMP *comp) {
   searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
   searchParam.searchOneAttr.attrValue = &className;
 
-  error = immutil_saImmOmSearchInitialize_o2(
+  rc = immutil_saImmOmSearchInitialize_o2(
       avd_cb->immOmHandle, name.c_str(), SA_IMM_SUBTREE,
       SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
       attributeNames, &searchHandle);
-
-  if (SA_AIS_OK != error) {
-    LOG_ER("saImmOmSearchInitialize_2 failed: %u", error);
+  if (SA_AIS_OK != rc) {
+    LOG_ER("saImmOmSearchInitialize_2 failed: %u", rc);
+    error = rc;
     goto done1;
   }
 
-  while ((error = immutil_saImmOmSearchNext_2(
+  while ((rc = immutil_saImmOmSearchNext_2(
               searchHandle, &dn, (SaImmAttrValuesT_2 ***)&attributes)) ==
          SA_AIS_OK) {
     if (!is_config_valid(Amf::to_string(&dn), nullptr)) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
 
     if ((compcstype = compcstype_create(Amf::to_string(&dn), attributes)) ==
         nullptr) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
     compcstype_add_to_model(compcstype);

@@ -473,7 +473,7 @@ done:
  * @return int
  */
 SaAisErrorT avd_csi_config_get(const std::string &si_name, AVD_SI *si) {
-  SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION;
+  SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION, rc;
   SaImmSearchHandleT searchHandle;
   SaImmSearchParametersT_2 searchParam;
   SaNameT temp_csi_name;
@@ -487,11 +487,12 @@ SaAisErrorT avd_csi_config_get(const std::string &si_name, AVD_SI *si) {
   searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
   searchParam.searchOneAttr.attrValue = &className;
 
-  if (immutil_saImmOmSearchInitialize_o2(
+  if ((rc = immutil_saImmOmSearchInitialize_o2(
           avd_cb->immOmHandle, si_name.c_str(), SA_IMM_SUBTREE,
           SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR, &searchParam,
-          nullptr, &searchHandle) != SA_AIS_OK) {
+          nullptr, &searchHandle)) != SA_AIS_OK) {
     LOG_ER("saImmOmSearchInitialize_2 failed");
+    error = rc;
     goto done1;
   }
 
@@ -507,9 +508,12 @@ SaAisErrorT avd_csi_config_get(const std::string &si_name, AVD_SI *si) {
       csi_get_attr_and_add_to_model(csi, attributes, si_name);
     }
 
-    if (avd_csiattr_config_get(csi_name, csi) != SA_AIS_OK) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
-      goto done2;
+    if ((rc = avd_csiattr_config_get(csi_name, csi)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_csi_delete(csi);
+      } else {
+        goto done2;
+      }
     }
   }
 
@@ -638,6 +642,10 @@ static SaAisErrorT csi_ccb_completed_modify_hdlr(
   const SaImmAttrModificationT_2 *attr_mod;
   int i = 0;
   AVD_CSI *csi = csi_db->find(Amf::to_string(&opdata->objectName));
+  if (csi == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("Csi modify completed (STDBY): csi does not exist");
+    return SA_AIS_OK;
+  }
   const std::string object_name(Amf::to_string(&opdata->objectName));
 
   assert(csi);
@@ -983,6 +991,10 @@ static void csi_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
                osaf_extended_name_borrow(&opdata->objectName));
 
   AVD_CSI *csi = csi_db->find(Amf::to_string(&opdata->objectName));
+  if (csi == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("Csi modify apply (STDBY): csi does not exist");
+    return;
+  }
   assert(csi != nullptr);
   AVD_SI *si = csi->si;
   assert(si != nullptr);

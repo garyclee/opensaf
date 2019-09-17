@@ -296,6 +296,11 @@ static void app_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
     case CCBUTIL_MODIFY: {
       const SaImmAttrModificationT_2 *attr_mod;
       app = app_db->find(Amf::to_string(&opdata->objectName));
+      if (app == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("App modify apply (STDBY): app does not exist");
+        break;
+      }
+      assert(app != nullptr);
       int i = 0;
       while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
         const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
@@ -448,11 +453,12 @@ SaAisErrorT avd_app_config_get(void) {
   searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
   searchParam.searchOneAttr.attrValue = &className;
 
-  if (immutil_saImmOmSearchInitialize_2(
+  if ((rc = immutil_saImmOmSearchInitialize_2(
           avd_cb->immOmHandle, nullptr, SA_IMM_SUBTREE,
           SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
-          configAttributes, &searchHandle) != SA_AIS_OK) {
-    LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, error);
+          configAttributes, &searchHandle)) != SA_AIS_OK) {
+    LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, rc);
+    error = rc;
     goto done1;
   }
 
@@ -468,9 +474,22 @@ SaAisErrorT avd_app_config_get(void) {
 
     app_add_to_model(app);
 
-    if (avd_sg_config_get(Amf::to_string(&dn), app) != SA_AIS_OK) goto done2;
+    if ((rc = avd_sg_config_get(Amf::to_string(&dn), app)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_app_delete(app);
+        continue;
+      } else {
+        goto done2;
+      }
+    }
 
-    if (avd_si_config_get(app) != SA_AIS_OK) goto done2;
+    if ((rc = avd_si_config_get(app)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_app_delete(app);
+      } else {
+        goto done2;
+      }
+    }
   }
 
   if (rc == SA_AIS_ERR_NOT_EXIST) {

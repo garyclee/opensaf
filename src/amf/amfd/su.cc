@@ -694,7 +694,7 @@ done:
 }
 
 SaAisErrorT avd_su_config_get(const std::string &sg_name, AVD_SG *sg) {
-  SaAisErrorT error, rc;
+  SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION, rc;
   SaImmSearchHandleT searchHandle;
   SaImmSearchParametersT_2 searchParam;
   SaNameT tmp_su_name;
@@ -719,13 +719,14 @@ SaAisErrorT avd_su_config_get(const std::string &sg_name, AVD_SG *sg) {
   searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
   searchParam.searchOneAttr.attrValue = &className;
 
-  error = immutil_saImmOmSearchInitialize_o2(
+  rc = immutil_saImmOmSearchInitialize_o2(
       avd_cb->immOmHandle, sg_name.c_str(), SA_IMM_SUBTREE,
       SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
       configAttributes, &searchHandle);
 
-  if (SA_AIS_OK != error) {
-    LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, error);
+  if (SA_AIS_OK != rc) {
+    LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, rc);
+    error = rc;
     goto done1;
   }
 
@@ -734,27 +735,29 @@ SaAisErrorT avd_su_config_get(const std::string &sg_name, AVD_SG *sg) {
               (SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK) {
     su_name = Amf::to_string(&tmp_su_name);
     if (!is_config_valid(su_name, attributes, nullptr)) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
 
     if ((su = su_create(su_name, attributes)) == nullptr) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
 
     su_add_to_model(su);
 
-    if (avd_comp_config_get(su_name, su) != SA_AIS_OK) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
-      goto done2;
+    if ((rc = avd_comp_config_get(su_name, su)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        su->remove_from_model();
+        delete su;
+        continue;
+      } else {
+        goto done2;
+      }
     }
 
     if (su->any_container_comp() == true)  {
       if (su->container() == false) {
         LOG_ER("%s: comps of other category mixed with container comp: %u",
                su->name.c_str(), error);
-        error = SA_AIS_ERR_FAILED_OPERATION;
         goto done2;
       }
     }
@@ -762,7 +765,6 @@ SaAisErrorT avd_su_config_get(const std::string &sg_name, AVD_SG *sg) {
       if (su->contained() == false) {
         LOG_ER("%s: comps of other category mixed with contained comp: %u",
                su->name.c_str(), error);
-        error = SA_AIS_ERR_FAILED_OPERATION;
         goto done2;
       }
     }
@@ -1604,6 +1606,11 @@ static SaAisErrorT su_ccb_completed_modify_hdlr(
     if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUFailover")) {
       if (value_is_deleted == true) continue;
       AVD_SU *su = su_db->find(Amf::to_string(&opdata->objectName));
+      if (su == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SU modify completed (STDBY): su does not exist");
+        return SA_AIS_OK;
+      }
+      assert(su != nullptr);
       uint32_t su_failover = *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
 
       /* If SG is not in stable state and amfnd is already busy in the handling
@@ -1698,6 +1705,7 @@ static SaAisErrorT su_ccb_completed_delete_hdlr(
 
   su = su_db->find(Amf::to_string(&opdata->objectName));
   if (su == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SU delete completed (STDBY): su does not exist");
     opdata->userData = nullptr;
     return SA_AIS_OK;
   }
@@ -1970,6 +1978,10 @@ static void su_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
                osaf_extended_name_borrow(&opdata->objectName));
 
   su = su_db->find(Amf::to_string(&opdata->objectName));
+  if (su == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SU modify apply (STDBY): su does not exist");
+    return;
+  }
   osafassert(su != nullptr);
 
   while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
@@ -2053,6 +2065,7 @@ void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata) {
   AVD_SG *sg;
 
   if (opdata->userData == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SU delete apply (STDBY): su does not exist");
     return;
   }
   AVD_SU *su = static_cast<AVD_SU *>(opdata->userData);
