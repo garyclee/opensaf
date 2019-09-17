@@ -2069,6 +2069,7 @@ void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata) {
     return;
   }
   AVD_SU *su = static_cast<AVD_SU *>(opdata->userData);
+  osafassert(su != nullptr);
   sg = su->sg_of_su;
 
   TRACE_ENTER2("'%s'", su->name.c_str());

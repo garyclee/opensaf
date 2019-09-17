@@ -162,6 +162,7 @@ static SaAisErrorT svctypecstypes_ccb_completed_cb(
         opdata->userData = nullptr;
         break;
       }
+      osafassert(svctypecstype != nullptr);
       if (svctypecstype->curr_num_csis == 0) {
         rc = SA_AIS_OK;
         opdata->userData = svctypecstype;

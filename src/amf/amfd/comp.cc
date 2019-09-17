@@ -2128,6 +2128,7 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
           attribute->attrValuesNumber);
 
     if (!strcmp(attribute->attrName, "saAmfCompType")) {
+      osafassert(value != nullptr);
       SaNameT *dn = (SaNameT *)value;
       const std::string oldType(comp->saAmfCompType);
       if (oldType.compare(Amf::to_string(dn)) == 0) {

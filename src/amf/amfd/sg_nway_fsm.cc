@@ -2184,7 +2184,7 @@ uint32_t SG_NWAY::su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su) {
       /* identify the quiesced assigning susi */
       for (susi = si->list_of_sisu;
            susi && !((SA_AMF_READINESS_IN_SERVICE ==
-                      curr_susi->su->saAmfSuReadinessState) &&
+                      susi->su->saAmfSuReadinessState) &&
                      (SA_AMF_HA_QUIESCED == susi->state) &&
                      (AVD_SU_SI_STATE_MODIFY == susi->fsm));
            susi = susi->si_next)

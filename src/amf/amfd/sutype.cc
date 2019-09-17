@@ -290,6 +290,7 @@ static void sutype_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
         LOG_WA("SUT delete apply (STDBY): sut does not exist");
         break;
       }
+      osafassert(sut != nullptr);
       sutype_db->erase(sut->name);
       sutype_delete(&sut);
       break;
@@ -396,7 +397,7 @@ static SaAisErrorT sutype_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
       /* check whether there exists a delete operation for
        * each of the SU in the su_type list in the current CCB
        */
-
+      osafassert(sut != nullptr);
       for (const auto &su : sut->list_of_su) {
         const SaNameTWrapper su_name(su->name);
         t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, su_name);

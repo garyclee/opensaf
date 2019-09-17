@@ -921,7 +921,8 @@ static void ccb_apply_delete_hdlr(CcbUtilOperationData_t *opdata) {
     goto done;
   }
 
-  TRACE("'%s'", csi ? csi->name.c_str() : nullptr);
+  osafassert(csi != nullptr);
+  TRACE("'%s'", csi->name.c_str());
 
   /* Check whether si has been assigned to any SU. */
   if ((nullptr != csi->si->list_of_sisu) && (csi->compcsi_cnt != 0)) {

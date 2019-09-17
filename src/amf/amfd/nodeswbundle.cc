@@ -125,7 +125,7 @@ static int is_swbdl_delete_ok(const std::string &bundle_dn,
   if (node == nullptr && avd_cb->is_active() == false) {
     return 1;
   }
-
+  osafassert(node != nullptr);
   if (!is_swbdl_delete_ok_for_node(bundle_dn, node_dn, node->list_of_ncs_su,
                                    opdata))
     return 0;

@@ -2558,6 +2558,7 @@ static uint32_t shutdown_contained_sus(AVD_CL_CB *cb, AVD_SU *container_su,
     }
   }
 
+  osafassert(container_csi_rel != nullptr);
   const std::string& container_csi(container_csi_rel->csi->name);
 
   for (auto &su : container_su->su_on_node->list_of_su) {

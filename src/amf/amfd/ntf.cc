@@ -505,6 +505,7 @@ SaAisErrorT avd_try_send_notification(NtfSend* job) {
         &myntf->notification.alarmNotification.notificationHandle;
   }
 
+  osafassert(notificationHandle != nullptr);
   // Try to send the notification if not sent.
   if (job->already_sent == false) {
     rc = saNtfNotificationSend(*notificationHandle);

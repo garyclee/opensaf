@@ -975,6 +975,7 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp,
   curr_csi = (csi) ? csi
                    : m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
                          m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+  osafassert(curr_csi != nullptr);
 
   TRACE_ENTER2("comp:'%s'", comp->name.c_str());
   LOG_IN("Assigning '%s' %s to '%s'", csiname.c_str(),
@@ -1370,6 +1371,7 @@ uint32_t avnd_comp_csi_remove(AVND_CB *cb, AVND_COMP *comp,
     if (!curr_csi)
       curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
           m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+    osafassert(curr_csi != nullptr);
 
     /* mark the csi state removing */
     m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi,
@@ -1703,6 +1705,7 @@ uint32_t avnd_comp_csi_assign_done(AVND_CB *cb, AVND_COMP *comp,
     /* get the first csi-record for this comp */
     curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
         m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+    osafassert(curr_csi != nullptr);
 
     if (all_csis_at_rank_assigned(curr_csi->si, curr_csi->rank)) {
       uint32_t rank = (SA_AMF_HA_ACTIVE == curr_csi->si->curr_state ||
@@ -2257,6 +2260,7 @@ uint32_t avnd_amf_resp_send(AVND_CB *cb, AVSV_AMF_API_TYPE type,
     /* Fill informations.  */
     avnd_msg = static_cast<AVSV_ND2ND_AVND_MSG *>(
         calloc(1, sizeof(AVSV_ND2ND_AVND_MSG)));
+    osafassert(avnd_msg != nullptr);
 
     osaf_extended_name_alloc(comp->name.c_str(), &avnd_msg->comp_name);
     avnd_msg->mds_ctxt = *ctxt;
