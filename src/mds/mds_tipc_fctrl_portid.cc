@@ -67,6 +67,8 @@ TipcPortId::TipcPortId(struct tipc_portid id, int sock, uint16_t chksize,
 }
 
 TipcPortId::~TipcPortId() {
+  // Fake a TmrChunkAck event to ack all received messages
+  ReceiveTmrChunkAck();
   // clear all msg in sndqueue_
   sndqueue_.Clear();
 }
@@ -156,6 +158,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
       // send ack for @chunk_size_ msgs starting from fseq
       SendChunkAck(fseq, svc_id, chunk_size_);
       rcvwnd_.acked_ = rcvwnd_.rcv_;
+      rc = NCSCC_RC_CONTINUE;
     }
   } else {
     // todo: update rcvwnd_.nacked_space_.
@@ -255,6 +258,18 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
         "Error[msg not found]",
         id_.node, id_.ref,
         mseq, mfrag, fseq);
+  }
+}
+
+void TipcPortId::ReceiveTmrChunkAck() {
+  uint16_t chksize = rcvwnd_.rcv_ - rcvwnd_.acked_;
+  if (chksize > 0) {
+    m_MDS_LOG_DBG("FCTRL: [node:%x, ref:%u], "
+        "ChkAckExp",
+        id_.node, id_.ref);
+    // send ack for @chksize msgs starting from rcvwnd_.rcv_
+    SendChunkAck(rcvwnd_.rcv_, 0, chksize);
+    rcvwnd_.acked_ = rcvwnd_.rcv_;
   }
 }
 

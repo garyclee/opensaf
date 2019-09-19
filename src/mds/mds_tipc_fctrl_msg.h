@@ -44,6 +44,8 @@ class Event {
                            // selective data msgs (not supported)
     kEvtDropData,          // event reported from tipc that a message is not
                            // delivered
+    kEvtTmrAll,
+    kEvtTmrChunkAck,  // event to send the chunk ack
   };
   NCS_IPC_MSG next_{0};
   Type type_;
@@ -67,6 +69,10 @@ class Event {
     id_(id), svc_id_(svc_id), mseq_(mseq), mfrag_(mfrag),
     fseq_(f_seg_num), chunk_size_(chunk_size) {
     type_ = type;
+  }
+  bool IsTimerEvent() { return (type_ > Type::kEvtTmrAll); }
+  bool IsFlowEvent() {
+    return (Type::kEvtDataFlowAll < type_ && type_ < Type::kEvtTmrAll);
   }
 };
 

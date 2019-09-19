@@ -66,13 +66,23 @@ std::map<uint64_t, TipcPortId*> portid_map;
 std::mutex portid_map_mutex;
 
 // chunk ack parameters
-// todo: The chunk ack size should be configurable
+// todo: The chunk ack timeout and chunk ack size should be configurable
+int kChunkAckTimeout = 1000;  // in miliseconds
 uint16_t kChunkAckSize = 3;
 
 TipcPortId* portid_lookup(struct tipc_portid id) {
   uint64_t uid = TipcPortId::GetUniqueId(id);
   if (portid_map.find(uid) == portid_map.end()) return nullptr;
   return portid_map[uid];
+}
+
+void process_timer_event(const Event evt) {
+  for (auto i : portid_map) {
+    TipcPortId* portid = i.second;
+    if (evt.type_ == Event::Type::kEvtTmrChunkAck) {
+      portid->ReceiveTmrChunkAck();
+    }
+  }
 }
 
 uint32_t process_flow_event(const Event evt) {
@@ -110,7 +120,7 @@ uint32_t process_flow_event(const Event evt) {
 uint32_t process_all_events(void) {
   enum { FD_FCTRL = 0, NUM_FDS };
 
-  int poll_tmo = MDTM_TIPC_POLL_TIMEOUT;
+  int poll_tmo = kChunkAckTimeout;
   while (true) {
     int pollres;
     struct pollfd pfd[NUM_FDS] = {{0}};
@@ -135,10 +145,23 @@ uint32_t process_all_events(void) {
         if (evt == nullptr) continue;
 
         portid_map_mutex.lock();
-        process_flow_event(*evt);
+
+        if (evt->IsTimerEvent()) {
+          process_timer_event(*evt);
+        }
+        if (evt->IsFlowEvent()) {
+          process_flow_event(*evt);
+        }
+
         delete evt;
         portid_map_mutex.unlock();
       }
+    }
+    // timeout, scan all portid and send ack msgs
+    if (pollres == 0) {
+      portid_map_mutex.lock();
+      process_timer_event(Event(Event::Type::kEvtTmrChunkAck));
+      portid_map_mutex.unlock();
     }
   }  /* while */
   return NCSCC_RC_SUCCESS;
@@ -368,6 +391,10 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
       portid_map_mutex.lock();
       uint32_t rc = process_flow_event(Event(Event::Type::kEvtRcvData,
           id, data.svc_id_, header.mseq_, header.mfrag_, header.fseq_));
+      if (rc == NCSCC_RC_CONTINUE) {
+        process_timer_event(Event(Event::Type::kEvtTmrChunkAck));
+        rc = NCSCC_RC_SUCCESS;
+      }
       portid_map_mutex.unlock();
       return rc;
     }

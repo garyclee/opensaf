@@ -53,6 +53,7 @@ class TipcPortId {
   uint32_t ReceiveData(uint32_t mseq, uint16_t mfrag,
       uint16_t fseq, uint16_t svc_id);
   void ReceiveNack(uint32_t mseq, uint16_t mfrag, uint16_t fseq);
+  void ReceiveTmrChunkAck();
   uint32_t Send(uint8_t* data, uint16_t length);
   uint32_t Queue(const uint8_t* data, uint16_t length);
 
