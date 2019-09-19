@@ -27,6 +27,7 @@
 #include "base/ncs_main_papi.h"
 #include "mdstipc.h"
 #include "base/ncssysf_tmr.h"
+#include "base/osaf_poll.h"
 
 #define MSG_SIZE MDS_DIRECT_BUF_MAXSIZE
 static MDS_CLIENT_MSG_FORMAT_VER gl_set_msg_fmt_ver;
@@ -13104,6 +13105,234 @@ void tet_create_default_PWE_VDEST_tp()
 	test_validate(FAIL, 0);
 }
 
+void tet_sender(char *send_buff, uint32_t buff_len, int msg_count)
+{
+	int live = 100; // sender live max 100s
+	TET_MDS_MSG *mesg;
+	mesg = (TET_MDS_MSG *)malloc(sizeof(TET_MDS_MSG));
+	memset(mesg, 0, sizeof(TET_MDS_MSG));
+
+	printf("\nStarted Sender (pid:%d) svc_id=%d\n",
+			(int)getpid(), NCSMDS_SVC_ID_INTERNAL_MIN);
+	if (adest_get_handle() != NCSCC_RC_SUCCESS) {
+		printf("\n: Sender FAIL to get adest handle\n");
+		exit(1);
+	}
+
+	if (mds_service_install(gl_tet_adest.mds_pwe1_hdl,
+				NCSMDS_SVC_ID_INTERNAL_MIN, 1,
+				NCSMDS_SCOPE_NONE, false, false) != NCSCC_RC_SUCCESS) {
+		printf("\nSender FAIL to install the service\n");
+		exit(1);
+	}
+
+	MDS_SVC_ID svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+	if (mds_service_subscribe(
+		gl_tet_adest.mds_pwe1_hdl, NCSMDS_SVC_ID_INTERNAL_MIN,
+		NCSMDS_SCOPE_INTRANODE, 1, svcids) != NCSCC_RC_SUCCESS) {
+		printf("\nSender FAIL to subscribe receiver\n");
+		exit(1);
+	}
+
+	while(!gl_tet_adest.svc[0].svcevt[0].dest && live-- > 0) {
+		printf("\nSender is waiting for receiver UP\n");
+		sleep(1);
+	}
+	printf("\nSender got last event=%d of svc_id=%d dest=<%llx>\n",
+			gl_tet_adest.svc[0].svcevt[0].event,
+			gl_tet_adest.svc[0].svcevt[0].svc_id,
+			gl_tet_adest.svc[0].svcevt[0].dest);
+
+	// wait for receiver subscribe sender
+	// otherwise, receiver won't detect loss message
+	sleep(1);
+
+	uint32_t offset = 0;
+	uint32_t msg_len = buff_len / msg_count;
+	for (int i = 1; i <= msg_count; i++) {
+		memcpy(mesg->send_data, &send_buff[offset], msg_len);
+		mesg->send_len = msg_len;
+		if (mds_just_send(gl_tet_adest.mds_pwe1_hdl,
+				  NCSMDS_SVC_ID_INTERNAL_MIN,
+				  NCSMDS_SVC_ID_EXTERNAL_MIN,
+				  gl_tet_adest.svc[0].svcevt[0].dest,
+				  MDS_SEND_PRIORITY_HIGH,
+				  mesg) != NCSCC_RC_SUCCESS) {
+			printf("\nSender FAIL send message\n");
+			exit(1);
+		} else {
+			printf("\nSender SENT message %d successfully\n", i);
+		}
+		offset += msg_len;
+	}
+	free(mesg);
+	while(live-- > 0) {
+		// Keep sender alive for retransmission
+		sleep(1);
+	}
+}
+
+bool tet_receiver(char *expected_buff, uint32_t buff_len, int msg_count)
+{
+	int ret = 1;
+	printf("\nStarted Receiver (pid:%d) svc_id=%d\n",
+			(int)getpid(), NCSMDS_SVC_ID_EXTERNAL_MIN);
+	if (adest_get_handle() != NCSCC_RC_SUCCESS) {
+		printf("\nReceiver FAIL to get adest handle\n");
+		return ret;
+	}
+
+	sleep(1); //Let sender subscribe before receiver install
+	if (mds_service_install(gl_tet_adest.mds_pwe1_hdl,
+				NCSMDS_SVC_ID_EXTERNAL_MIN, 1,
+				NCSMDS_SCOPE_NONE, true, false) != NCSCC_RC_SUCCESS) {
+		printf("\nReceiver FAIL to install the service\n");
+	}
+
+	MDS_SVC_ID svcids[] = {NCSMDS_SVC_ID_INTERNAL_MIN};
+	if (mds_service_subscribe(
+		gl_tet_adest.mds_pwe1_hdl, NCSMDS_SVC_ID_EXTERNAL_MIN,
+		NCSMDS_SCOPE_INTRANODE, 1, svcids) != NCSCC_RC_SUCCESS) {
+		printf("\nReceiver FAIL to subscribe sender\n");
+		exit(1);
+	}
+
+	char *received_buff = malloc(buff_len);
+	memset(received_buff, 0, buff_len);
+	uint32_t offset = 0;
+	struct pollfd sel;
+	int counter = 0;
+	sel.fd = m_GET_FD_FROM_SEL_OBJ(gl_tet_adest.svc[0].sel_obj);
+	sel.events = POLLIN;
+	while(counter < msg_count) {
+		int ret = osaf_poll(&sel, 1, 10000);
+		if (ret > 0) {
+			gl_rcvdmsginfo.msg = NULL;
+			if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
+						 NCSMDS_SVC_ID_EXTERNAL_MIN,
+						 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+				printf("\nReceiver FAIL to retrieve message\n");
+				break;
+			}
+			TET_MDS_MSG *msg = (TET_MDS_MSG*)gl_rcvdmsginfo.msg;
+			if (msg != NULL) {
+				memcpy(&received_buff[offset],msg->recvd_data, msg->recvd_len);
+				offset += msg->recvd_len;
+				counter++;
+			}
+		} else {
+			printf("\nReceiver got %d messages\n", counter);
+			printf("\nReceiver poll FAIL\n");
+			break;
+		}
+	}
+
+	printf("\nReceiver verify received buffer is same as expected\n");
+	if (offset == buff_len) {
+		if (memcmp(received_buff, expected_buff, buff_len) != 0) {
+			printf("\nReceiver: Received buffer is not as expected\n");
+			printf("\nReceiver: Dump buffer to /var/log/opensaf/ \n");
+			FILE *fp = fopen("/var/log/opensaf/mdstest_received_buff","wb");
+			fwrite(received_buff, sizeof(char), buff_len, fp);
+			fclose(fp);
+			fp = fopen("/var/log/opensaf/mdstest_expect_buff","wb");
+			fwrite(expected_buff, sizeof(char), buff_len, fp);
+			fclose(fp);
+		} else {
+			ret = 0;
+		}
+	} else {
+		printf("\nReceiver: Total received length=%d differ expected %d\n", offset, buff_len);
+	}
+	free(received_buff);
+	printf("\nEnd Receiver (pid:%d) svc_id=%d\n",
+			(int)getpid(), NCSMDS_SVC_ID_EXTERNAL_MIN);
+	return ret;
+}
+
+void tet_overload_tp_1(void)
+{
+	int pid = 0;
+	int FAIL = 0;
+	uint32_t buff_len = 100000000;
+	int msg_count = 2000;
+	int msg_size = buff_len/msg_count;
+	char *buff = malloc(buff_len);
+
+	for (unsigned int i = 0; i < msg_count; i++) {
+		/* to verify received correct order */
+		memset(buff+(i*msg_size), 'X', msg_size);
+		sprintf(buff+(i*msg_size), "%u", i+1);
+	}
+
+	printf("\nTest Case 1: Receiver wait for drop normal message retransmit and receive all messages in order\n");
+	/*--------------------------------------------------------------------*/
+	pid = fork();
+	if (pid == 0) {
+		/* child as sender */
+		setenv("MDS_TIPC_FCTRL_ENABLED", "1", 1);
+		mds_startup();
+		tet_sender(buff, buff_len, msg_count);
+		mds_shutdown();
+	} else if (pid > 0) {
+		/* parent as receiver */
+		setenv("MDS_TIPC_FCTRL_ENABLED", "1", 1);
+		mds_startup();
+		FAIL = tet_receiver(buff, buff_len, msg_count);
+		printf("\nReceiver finish, kill Sender\n");
+		kill(pid, SIGKILL);
+		mds_shutdown();
+	} else {
+		/* fork() error */
+		printf("\nFAIL to fork()\n");
+		FAIL = 1;
+	}
+
+	free(buff);
+	test_validate(FAIL, 0);
+}
+
+void tet_overload_tp_2(void)
+{
+	int pid = 0;
+	int FAIL = 0;
+	uint32_t buff_len = 100000000;
+	int msg_count = 1000;
+	int msg_size = buff_len/msg_count;
+	char *buff = malloc(buff_len);
+
+	for (unsigned int i = 0; i < msg_count; i++) {
+		/* to verify received correct order */
+		memset(buff+(i*msg_size), 'X', msg_size);
+		sprintf(buff+(i*msg_size), "%u", i+1);
+	}
+
+	printf("\nTest Case 2: Receiver wait for drop fragment message retransmit and receive all messages in order\n");
+	/*--------------------------------------------------------------------*/
+	pid = fork();
+	if (pid == 0) {
+		/* child as sender */
+		setenv("MDS_TIPC_FCTRL_ENABLED", "1", 1);
+		mds_startup();
+		tet_sender(buff, buff_len, msg_count);
+		mds_shutdown();
+	} else if (pid > 0) {
+		/* parent as receiver */
+		setenv("MDS_TIPC_FCTRL_ENABLED", "1", 1);
+		mds_startup();
+		FAIL = tet_receiver(buff, buff_len, msg_count);
+		kill(pid, SIGKILL);
+		mds_shutdown();
+	} else {
+		/* fork() error */
+		printf("\nFAIL to fork()\n");
+		FAIL = 1;
+	}
+
+	free(buff);
+	test_validate(FAIL, 0);
+}
+
 void Print_return_status(uint32_t rs)
 {
 	switch (rs) {
@@ -13821,4 +14050,12 @@ __attribute__((constructor)) static void mdsTipcAPI_constructor(void)
 		      "create_PWE_upto_MAX_VDEST");
 	test_case_add(26, tet_create_default_PWE_VDEST_tp,
 		      "create_default_PWE_VDEST");
+
+	test_suite_add(27, "MDS TIPC OVERLOAD Test");
+	test_case_add(
+		27, tet_overload_tp_1,
+		"Receiver wait for drop normal message retransmit and receive all messages in order");
+	test_case_add(
+		27, tet_overload_tp_2,
+		"Receiver wait for drop fragment message retransmit and receive all messages in order");
 }
