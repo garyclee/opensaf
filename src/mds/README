@@ -1,0 +1,221 @@
+/*      -*- OpenSAF  -*-
+ *
+ * (C) Copyright 2019 The OpenSAF Foundation
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+ * under the GNU Lesser General Public License Version 2.1, February 1999.
+ * The complete license can be accessed from the following location:
+ * http://opensource.org/licenses/lgpl-license.php
+ * See the Copying file included with the OpenSAF distribution for full
+ * licensing terms.
+ *
+ * Author(s): Ericsson AB
+ *
+ */
+Background
+==========
+If OpenSAF configures TIPC as transport, the MDS library today will use
+TIPC SOCK_RDM socket for message distribution in the cluster. The SOCK_RDM
+datagram socket possibly encounters buffer overflow at receiver ends which
+has been documented in tipc.io[1]. A temporary solution for this buffer
+overflow issue is that the socket buffer size can be increased to a larger
+number. However, if the cluster continues either scaling out or adding more
+components, the system will be under dimensioned, thus the TIPC buffer
+overflow can occur again.
+
+MDS's solution for TIPC buffer overflow
+=======================================
+If MDS disables TIPC_DEST_DROPPABLE, TIPC will return the ancillary message
+when the original message is failed to deliver. By this event, if the message
+has been saved in queue, MDS at sender sides can search and retransmit this
+message to the receivers.
+Once the messages in the sender's queue has been delivered successfully, MDS
+needs to remove them. MDS introduces its internal ACK message as an
+acknowledgment from receivers so that the senders can remove the messages
+out of the queue.
+Also, as such situation of buffer overflow at receivers, the retransmission may
+not succeed or even become worse at receiver ends (the more retransmission,
+the more overflow to occur). MDS imitates the sliding window in TCP[2] to
+control the flow of data message towards the receivers.
+
+Legacy MDS data message, new (data + ACK) MDS message, and upgradability
+------------------------------------------------------------------------
+Below is the MDS legacy message format that has been used till OpenSAF 5.19.07
+
+oct 0  message length
+oct 1
+------------------------------------------
+oct 2  sequence number: incremented for every message sent out to all destined
+...       tipc portid.
+oct 5
+------------------------------------------
+oct 6  fragment number: a message with same sequence number can be fragmented,
+oct 7  identified by this fragment number.
+------------------------------------------
+oct 8  length check: cross check with message length(oct0,1), NOT USED.
+oct 9
+------------------------------------------
+oct 10 protocol version: (MDS_PROT:0xA0 | MDS_VERSION:0x08) = 0xA8, NOT USED
+------------------------------------------
+oct 11 mds length: length of mds header and mds data, starting from oct13
+oct 12
+------------------------------------------
+oct 13 mds header and data
+...
+------------------------------------------
+
+The current sequence number/fragment number are being used in MDS for all
+messages sent to all discovered tipc portid(s), meaning that every message is sent
+to any tipc portid, the sequence/fragment number is increased. The flow control
+needs its own sequence number sliding between two tipc porid(s) so that receivers
+can detect message drop due to buffer overload. Therefore, the oct8 and oct9 are
+now reused as flow control sequence number. The oct10, protocol version, has new
+value of 0xB8. The format of new data message as below:
+
+oct 0  same
+...
+oct 7
+------------------------------------------
+oct 8  flow control sequence number
+oct 9
+------------------------------------------
+oct 10 protocol version: (MDS_PROT_TIPC_FCTRL:0xB0 | MDS_VERSION:0x08) = 0xB8
+------------------------------------------
+oct 11 same
+...
+------------------------------------------
+
+The ACK message is introduced to acknowledge one data message or a chunk of
+accumulative data message. The ACK message format:
+
+oct 0  message length
+oct 1
+------------------------------------------
+oct 2  8 bytes, NOT USED
+....
+oct 9
+------------------------------------------
+oct 10 protocol version: (MDS_PROT_TIPC_FCTRL:0xB0 | MDS_VERSION:0x08) = 0xB8
+------------------------------------------
+oct 11 protocol identifier: MDS_PROT_FCTRL_ID
+......
+oct 14
+------------------------------------------
+oct 15 flow control message type: CHUNKACK
+------------------------------------------
+oct 16 service id: service id of data messages to be acknowledged
+oct 17
+------------------------------------------
+oct 18 acknowledged sequence
+oct 19
+------------------------------------------
+oct 20 chunk size
+oct 21
+------------------------------------------
+
+Psuedo code illustrates the data message handling at MDS.
+
+if protocol version is 0xB8 then
+  if protocol identifier is MDS_PROT_FCTRL_ID then
+    this is mds flow control message.
+    if message type is CHUNKACK, then
+      this is ACK message for successfully delivered data message(s).
+  else
+    this is data message within flow control.
+    decode oct8,9 as flow control sequence number.
+else
+  this is legacy data message.
+
+Because the legacy MDS does not use oct8,9,10, so it can communicate transparently
+to the new MDS in regard to the presence of flow control. Therefore, the upgrade
+will not be affected.
+
+In case that the receiver end is at legacy MDS version, the new MDS has a timer
+mechanism to recognize if the receiver has no flow control supported. This timer
+is implemented at the sender so that MDS will stop message queuing for a non-flow
+-control MDS at receivers, namely tx-probation timer.
+
+MDS's sliding window
+--------------------
+One important factor that needs to be documented in the implementation of MDS's
+sliding window, is that "TIPC's link layer delivery guarantee, the only limiting
+factor for datagram delivery is the socket receive buffer size" [1][3][4]. Therefore,
+MDS at sender side does not have to implement the retransmission timer. Also, if
+MDS at sender side anticipates the buffer overflow at receiver ends, or receives
+the first ancillary message, MDS starts queuing messages till the buffer overflow
+is resolved to resume data message transmission.
+
+(1) Sender sequence window
+
+acked_: last sequence has been acked by receiver
+send_:  next sequence to be sent
+nacked_space_: total bytes are sent but not acked
+
+Example:
+   1     2     3     4     5     6     7     8
+|-----|-----|-----|-----|-----|-----|-----|-----|
+            acked_                  send_
+If acked_:3, send_:7, then
+The message with sequence 1,2,3 have been acked.
+The 4,5,6 are sent but not acked, and are still in queue.
+The 7 is not sent yet.
+The nacked_space_: bytes_of(4,5,6)
+
+(2) Receiver sequence window
+
+acked_: last sequence has been acked to sender
+rcv_: last sequence has been received
+nacked_space_: total bytes has not been acked
+Example:
+   1     2     3     4     5     6     7     8     9     10
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+            acked_                        rcv_
+If acked_:3, rcv_:8
+The message with sequence 1,2,3: has been acked.
+The 4,5,6,7,8 are received by not acked, still in sender's queue.
+The 9,10 are not received yet
+The nacked_space_: bytes_of(4,5,6,7,8)
+
+TIPC portid state machine and its transition
+--------------------------------------------
+kDisabled, // no flow control support at this state
+kStartup,  // a newly published portid starts at this state
+kTxProb,   // txprob timer is running to confirm if the flow control is supported
+kEnabled   // flow control support is confirmed, data flow is controlled
+kRcvBuffOverflow // anticipating (or experienced) the receiver's buffer overflow
+
+  kDisabled <--- kStartup --------
+     /|\             |           |
+      |              |           |
+      |              V           V
+      -----------kTxProb ---> kEnabled <---> kRcvBuffOverflow
+
+At the kRcvBuffOverflow state, the messages are being requested to send by MDS's
+users will be enqueued at sender sides. When the state returns back to kEnabled,
+the queued messages will be transmitted, the transmission is open for MDS's users.
+
+At this version, MDS changes to kRcvBuffOverflow state if the TIPC_RETDATA event
+is returned, which is known as loss-based buffer overflow detection. Another
+approach is that MDS can utilize the TIPC_USED_RCV_BUFF TIPC socket option
+so that the senders can periodically get update of the receiver's TIPC sock buffer
+utilization. In that way, the senders can anticipate the buffer overflow in advance,
+which is called in MDS's context as a loss-less detection.
+
+Configuration
+=============
+ChunkAckTimeout timer: the receivers send the ACK message if this timer expires.
+If this ChunkAckTimeout is set too large, the round trip of data message
+acknowledgment increases, data message stays too long in the queue.
+
+ChunkAckSize: The number of message to be acknowledged in an ACK message. If
+this ChunkAckSize is too small, there will be a plentiful number of ACK messages
+sent across two ends, which causes the overhead cost to MDS's message handling.
+
+References
+==========
+[1] http://tipc.io/programming.html, 1.3.1. Datagram Messaging
+[2] https://tools.ietf.org/html/rfc793, page 20.
+[3] http://www.tipc.io/protocol.html#anchor71, 7.2.5. Sequence Control and Retransmission
+[4] http://tipc.sourceforge.net/protocol.html, 4.2. Link
