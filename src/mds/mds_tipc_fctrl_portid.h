@@ -35,6 +35,8 @@ class MessageQueue {
   uint64_t Erase(uint16_t fseq_from, uint16_t fseq_to);
   uint64_t Size() const { return queue_.size(); }
   void Clear();
+  DataMessage* FirstUnsent();
+  void MarkUnsentFrom(uint16_t fseq);
  private:
   std::deque<DataMessage*> queue_;
 };
@@ -73,8 +75,9 @@ class TipcPortId {
   void ReceiveNack(uint32_t mseq, uint16_t mfrag, uint16_t fseq);
   bool ReceiveTmrTxProb(uint8_t max_txprob);
   void ReceiveTmrChunkAck();
+  void FlushData();
   uint32_t Send(uint8_t* data, uint16_t length);
-  uint32_t Queue(const uint8_t* data, uint16_t length);
+  uint32_t Queue(const uint8_t* data, uint16_t length, bool is_sent);
 
   uint16_t svc_cnt_{1};  // number of service subscribed on this portid
 

@@ -110,6 +110,7 @@ class DataMessage: public BaseMessage {
   uint8_t* msg_data_{nullptr};
   uint8_t snd_type_{0};
 
+  bool is_sent_{true};
   DataMessage() {}
   virtual ~DataMessage();
   void Decode(uint8_t *msg) override;

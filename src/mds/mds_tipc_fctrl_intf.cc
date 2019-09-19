@@ -285,14 +285,16 @@ uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
     rc = NCSCC_RC_FAILURE;
   } else {
     if (portid->state_ != TipcPortId::State::kDisabled) {
-      portid->Queue(buffer, len);
+      bool sendable = portid->ReceiveCapable(len);
+      portid->Queue(buffer, len, sendable);
       // start txprob timer for the first msg sent out
       // do not start for other states
-      if (portid->state_ == TipcPortId::State::kStartup) {
+      if (sendable && portid->state_ == TipcPortId::State::kStartup) {
         txprob_timer.Start(kBaseTimerInt, tmr_exp_cbk);
         m_MDS_LOG_DBG("FCTRL: Start txprob");
         portid->state_ = TipcPortId::State::kTxProb;
       }
+      if (sendable == false) rc = NCSCC_RC_FAILURE;
     }
   }
 
