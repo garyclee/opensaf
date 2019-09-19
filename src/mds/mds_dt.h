@@ -162,7 +162,7 @@ uint32_t mdtm_del_from_ref_tbl(MDS_SUBTN_REF_VAL ref);
 uint32_t mds_tmr_mailbox_processing(void);
 uint32_t mdtm_get_from_ref_tbl(MDS_SUBTN_REF_VAL ref, MDS_SVC_HDL *svc_hdl);
 uint32_t mdtm_add_frag_hdr(uint8_t *buf_ptr, uint16_t len, uint32_t seq_num,
-                           uint16_t frag_byte);
+                           uint16_t frag_byte, uint16_t fctrl_seq_num);
 uint32_t mdtm_free_reassem_msg_mem(MDS_ENCODED_MSG *msg);
 uint32_t mdtm_process_recv_data(uint8_t *buf, uint16_t len, uint64_t tipc_id,
                                 uint32_t *buff_dump);
@@ -240,8 +240,12 @@ bool mdtm_mailbox_mbx_cleanup(NCSCONTEXT arg, NCSCONTEXT msg);
 
 #define MDS_PROT 0xA0
 #define MDS_VERSION 0x08
-#define MDS_PROT_VER_MASK (MDS_PROT | MDS_VERSION)
+#define MDS_PROT_VER_MASK 0xFC
 #define MDTM_PRI_MASK 0x3
+
+/* MDS protocol/version for flow control */
+#define MDS_PROT_FCTRL (0xB0 | MDS_VERSION)
+#define MDS_PROT_FCTRL_ID 0x00AC13F5
 
 /* Added for the subscription changes */
 #define MDS_NCS_CHASSIS_ID (m_NCS_GET_NODE_ID & 0x00ff0000)

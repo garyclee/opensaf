@@ -47,6 +47,7 @@
 #include "mds_dt_tipc.h"
 #include "mds_dt_tcp_disc.h"
 #include "mds_core.h"
+#include "mds_tipc_fctrl_intf.h"
 #include "mds_tipc_recvq_stats.h"
 #include "base/osaf_utility.h"
 #include "base/osaf_poll.h"
@@ -165,20 +166,22 @@ NCS_PATRICIA_TREE mdtm_reassembly_list;
 uint32_t mdtm_global_frag_num;
 
 const unsigned int MAX_RECV_THRESHOLD = 30;
+uint8_t gl_mds_pro_ver = MDS_PROT | MDS_VERSION;
 
-static bool get_tipc_port_id(int sock, uint32_t* port_id) {
+static bool get_tipc_port_id(int sock, struct tipc_portid* port_id) {
 	struct sockaddr_tipc addr;
 	socklen_t sz = sizeof(addr);
 
 	memset(&addr, 0, sizeof(addr));
-	*port_id = 0;
+	port_id->node = 0;
+	port_id->ref = 0;
 	if (0 > getsockname(sock, (struct sockaddr *)&addr, &sz)) {
 		syslog(LOG_ERR, "MDTM:TIPC Failed to get socket name, err: %s",
 		       strerror(errno));
 		return false;
 	}
 
-	*port_id = addr.addr.id.ref;
+	*port_id = addr.addr.id;
 	return true;
 }
 
@@ -240,12 +243,13 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	}
 
 	/* Code for getting the self tipc random number */
-	if (!get_tipc_port_id(tipc_cb.BSRsock, mds_tipc_ref)) {
+	struct tipc_portid port_id;
+	if (!get_tipc_port_id(tipc_cb.BSRsock, &port_id)) {
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		return NCSCC_RC_FAILURE;
 	}
-
+	*mds_tipc_ref = port_id.ref;
 	tipc_cb.adest = ((uint64_t)(nodeid)) << 32;
 	tipc_cb.adest |= *mds_tipc_ref;
 	tipc_cb.node_id = nodeid;
@@ -324,6 +328,23 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 		mdtm_attach_mbx(tipc_cb.tmr_mbx);
 		mdtm_set_transport(MDTM_TX_TYPE_TIPC);
 	}
+
+	/* Get tipc socket receive buffer size */
+	int optval;
+	socklen_t optlen = sizeof(optval);
+	if (getsockopt(tipc_cb.BSRsock, SOL_SOCKET, SO_RCVBUF,
+		&optval, &optlen) != 0) {
+		syslog(LOG_ERR, "MDTM: getsockopt() failed to get rcv buf size to: %str",
+			strerror(errno));
+		close(tipc_cb.Dsock);
+		close(tipc_cb.BSRsock);
+		return NCSCC_RC_FAILURE;
+	}
+
+	/* Create flow control tasks if enabled*/
+	gl_mds_pro_ver = MDS_PROT_FCTRL;
+	mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id,
+		(uint64_t)optval, tipc_mcast_enabled);
 
 	/* Create a task to receive the events and data */
 	if (mdtm_create_rcv_task(tipc_cb.hdle_mdtm) != NCSCC_RC_SUCCESS) {
@@ -469,7 +490,7 @@ uint32_t mdtm_tipc_destroy(void)
 			 NULL);
 	m_NCS_IPC_RELEASE(&tipc_cb.tmr_mbx,
 			  (NCS_IPC_CB)mdtm_mailbox_mbx_cleanup);
-
+	mds_tipc_fctrl_shutdown();
 	/* Clear reference hdl list */
 	while (mdtm_ref_hdl_list_hdr != NULL) {
 		/* Store temporary the pointer of entry to be deleted */
@@ -672,36 +693,26 @@ ssize_t recvfrom_connectionless(int sd, void *buf, size_t nbytes, int flags,
 							       0));
 					if (anc_data[0] == TIPC_ERR_OVERLOAD) {
 						LOG_ER(
-						    "MDTM: From <0x%"PRIx32 ":%"PRIu32 "> undeliverable message condition ancillary data: TIPC_ERR_OVERLOAD",
-						    ((struct sockaddr_tipc*) from)->addr.id.node,
-						    ((struct sockaddr_tipc*) from)->addr.id.ref);
-						m_MDS_LOG_CRITICAL(
 						    "MDTM: From <0x%"PRIx32 ":%"PRIu32 "> undeliverable message condition ancillary data: TIPC_ERR_OVERLOAD ",
 						    ((struct sockaddr_tipc*) from)->addr.id.node,
 						    ((struct sockaddr_tipc*) from)->addr.id.ref);
-					} else {
+					} else if (anc_data[0] == TIPC_ERR_NO_PORT){
 						/* TIPC_ERRINFO - TIPC error
 						 * code associated with a
 						 * returned data message or a
 						 * connection termination
 						 * message */
-						m_MDS_LOG_DBG(
-						    "MDTM: undelivered message condition ancillary data: TIPC_ERRINFO err : %d",
-						    anc_data[0]);
+						mds_tipc_fctrl_portid_terminate(((struct sockaddr_tipc*)from)->addr.id);
+					} else {
+						m_MDS_LOG_ERR("MDTM:: TIPC_ERRINFO anc_data[0]:%u", anc_data[0]);
 					}
 				} else if (anc->cmsg_type == TIPC_RETDATA) {
-					/* If we set TIPC_DEST_DROPPABLE off
-					   message (configure TIPC to return
-					   rejected messages to the sender ) we
-					   will hit this when we implement MDS
-					   retransmit lost messages, can be
-					   replaced with flow control logic */
 					/* TIPC_RETDATA -The contents of a
 					 * returned data message */
-					LOG_IN(
-					    "MDTM: undelivered message condition ancillary data: TIPC_RETDATA");
-					m_MDS_LOG_INFO(
-					    "MDTM: undelivered message condition ancillary data: TIPC_RETDATA");
+					LOG_IN("MDTM: undelivered message condition ancillary data: TIPC_RETDATA");
+					uint16_t ret_msg_len = anc->cmsg_len - sizeof(*anc);
+					unsigned char *ret_msg = CMSG_DATA(anc);
+					mds_tipc_fctrl_drop_data(ret_msg, ret_msg_len, ((struct sockaddr_tipc*)from)->addr.id);
 				} else if (anc->cmsg_type == TIPC_DESTNAME) {
 					if (sz == 0) {
 						m_MDS_LOG_DBG(
@@ -822,7 +833,7 @@ static uint32_t mdtm_process_recv_events(void)
 								m_MDS_LOG_INFO(
 								    "MDTM: Published: ");
 								m_MDS_LOG_INFO(
-								    "MDTM:  <%u,%u,%u> port id <0x%08x:%u>\n",
+								    "MDTM:  <%x,%x,%x> port id <0x%08x:%u>\n",
 								    NTOHL(
 									event.s
 									    .seq
@@ -841,7 +852,12 @@ static uint32_t mdtm_process_recv_events(void)
 									event
 									    .port
 									    .ref));
-
+								struct tipc_portid id = {
+									.node = NTOHL(event.port.node),
+									.ref = NTOHL(event.port.ref)
+								};
+								uint32_t type = NTOHL(event.s.seq.type);
+								mds_tipc_fctrl_portid_up(id, type);
 								if (NCSCC_RC_SUCCESS !=
 								    mdtm_process_discovery_events(
 									TIPC_PUBLISHED,
@@ -873,7 +889,12 @@ static uint32_t mdtm_process_recv_events(void)
 									event
 									    .port
 									    .ref));
-
+								struct tipc_portid id = {
+									.node = NTOHL(event.port.node),
+									.ref = NTOHL(event.port.ref)
+								};
+								uint32_t type = NTOHL(event.s.seq.type);
+								mds_tipc_fctrl_portid_down(id, type);
 								if (NCSCC_RC_SUCCESS !=
 								    mdtm_process_discovery_events(
 									TIPC_WITHDRAWN,
@@ -986,8 +1007,6 @@ static uint32_t mdtm_process_recv_events(void)
 						break;
 					}
 					if (recd_bytes == 0) {
-						m_MDS_LOG_DBG(
-						    "MDTM: recd bytes=0 on received on sock, abnormal/unknown/hack  condition. Ignoring");
 						break;
 					}
 					data = inbuf;
@@ -1076,9 +1095,10 @@ static uint32_t mdtm_process_recv_events(void)
 							    &buff_dump);
 						}
 #else
-						mdtm_process_recv_data(
-						    &inbuf[2], recd_bytes - 2,
-						    tipc_id, &buff_dump);
+						if (mds_tipc_fctrl_rcv_data(inbuf, recd_bytes, client_addr.addr.id)
+						    == NCSCC_RC_SUCCESS) {
+							mdtm_process_recv_data(&inbuf[2], recd_bytes - 2, tipc_id, &buff_dump);
+						}
 #endif
 					} else {
 						uint64_t tipc_id;
@@ -1873,9 +1893,9 @@ uint32_t mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id,
 	server_addr.addr.nameseq.upper = server_inst;
 
 	/* The self tipc random port number */
-	uint32_t port_id = 0;
+  struct tipc_portid port_id;
 	get_tipc_port_id(tipc_cb.BSRsock, &port_id);
-	m_MDS_LOG_NOTIFY("MDTM: install_tipc : <p:%u,s:%u,i:%u>", port_id,
+	m_MDS_LOG_NOTIFY("MDTM: install_tipc : <p:%u,s:%u,i:%u>", port_id.ref,
 			 server_type, server_inst);
 
 	if (0 != bind(tipc_cb.BSRsock, (struct sockaddr *)&server_addr,
@@ -2495,6 +2515,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 	 */
 	uint32_t status = 0;
 	uint32_t sum_mds_hdr_plus_mdtm_hdr_plus_len;
+  uint16_t fctrl_seq_num = 0;
 	int version = req->msg_arch_word & 0x7;
 	if (version > 1) {
 		sum_mds_hdr_plus_mdtm_hdr_plus_len =
@@ -2583,11 +2604,16 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 			    mdtm_add_mds_hdr(buffer_ack, req)) {
 				return NCSCC_RC_FAILURE;
 			}
-
+		  /* if sndqueue is capable, then obtain the current sending seq */
+		  if (mds_tipc_fctrl_sndqueue_capable(tipc_id, len, &fctrl_seq_num)
+		      == NCSCC_RC_FAILURE){
+		    m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d", len);
+		    return NCSCC_RC_FAILURE;
+		  }
 			/* Add frag_hdr */
 			if (NCSCC_RC_SUCCESS !=
 			    mdtm_add_frag_hdr(buffer_ack, len, frag_seq_num,
-					      0)) {
+					      0, fctrl_seq_num)) {
 				return NCSCC_RC_FAILURE;
 			}
 
@@ -2676,13 +2702,22 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 					free(body);
 					return NCSCC_RC_FAILURE;
 				}
+				/* if sndqueue is capable, then obtain the current sending seq */
+				if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
+					len + sum_mds_hdr_plus_mdtm_hdr_plus_len,
+					&fctrl_seq_num) == NCSCC_RC_FAILURE){
+					m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d",
+						len + sum_mds_hdr_plus_mdtm_hdr_plus_len);
+					free(body);
+					return NCSCC_RC_FAILURE;
+				}
 
 				if (NCSCC_RC_SUCCESS !=
 				    mdtm_add_frag_hdr(
 					body,
 					(len +
 					 sum_mds_hdr_plus_mdtm_hdr_plus_len),
-					frag_seq_num, 0)) {
+					frag_seq_num, 0, fctrl_seq_num)) {
 					m_MDS_LOG_ERR(
 					    "MDTM: Unable to add the frag Hdr to the send msg\n");
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
@@ -2778,12 +2813,23 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 				    req->msg.data.buff_info.buff);
 				return NCSCC_RC_FAILURE;
 			}
+			/* if sndqueue is capable, then obtain the current sending seq */
+			if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
+				req->msg.data.buff_info.len + sum_mds_hdr_plus_mdtm_hdr_plus_len,
+				&fctrl_seq_num) == NCSCC_RC_FAILURE) {
+				m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d",
+					req->msg.data.buff_info.len + sum_mds_hdr_plus_mdtm_hdr_plus_len);
+				free(body);
+				mds_free_direct_buff(req->msg.data.buff_info.buff);
+				return NCSCC_RC_FAILURE;
+			}
+
 			if (NCSCC_RC_SUCCESS !=
 			    mdtm_add_frag_hdr(
 				body,
 				req->msg.data.buff_info.len +
 				    sum_mds_hdr_plus_mdtm_hdr_plus_len,
-				frag_seq_num, 0)) {
+				frag_seq_num, 0, fctrl_seq_num)) {
 				m_MDS_LOG_ERR(
 				    "MDTM: Unable to add the frag Hdr to the send msg\n");
 				free(body);
@@ -2860,6 +2906,7 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 	uint16_t i = 1;
 	uint16_t frag_val = 0;
 	uint32_t sum_mds_hdr_plus_mdtm_hdr_plus_len;
+	uint16_t fctrl_seq_num = 0;
 	int version = req->msg_arch_word & 0x7;
 	uint32_t ret = NCSCC_RC_SUCCESS;
 
@@ -2938,9 +2985,18 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 					return NCSCC_RC_FAILURE;
 				}
 			}
+			/* if sndqueue is capable, then obtain the current sending seq */
+			if (mds_tipc_fctrl_sndqueue_capable(id, len_buf, &fctrl_seq_num)
+				== NCSCC_RC_FAILURE) {
+				m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d", len_buf);
+				m_MMGR_FREE_BUFR_LIST(usrbuf);
+				free(body);
+				return NCSCC_RC_FAILURE;
+			}
+
 			if (NCSCC_RC_SUCCESS !=
 			    mdtm_add_frag_hdr(body, len_buf, seq_num,
-					      frag_val)) {
+					      frag_val, fctrl_seq_num)) {
 				m_MDS_LOG_ERR(
 				    "MDTM: Frag hde addition failed\n");
 				m_MMGR_FREE_BUFR_LIST(usrbuf);
@@ -2996,7 +3052,7 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 *********************************************************/
 
 uint32_t mdtm_add_frag_hdr(uint8_t *buf_ptr, uint16_t len, uint32_t seq_num,
-			   uint16_t frag_byte)
+			   uint16_t frag_byte, uint16_t fctrl_seq_num)
 {
 	/* Add the FRAG HDR to the Buffer */
 	uint8_t *data;
@@ -3013,9 +3069,17 @@ uint32_t mdtm_add_frag_hdr(uint8_t *buf_ptr, uint16_t len, uint32_t seq_num,
 				    5); /* 2 bytes for keeping len, to cross
 					   check at the receiver end */
 #else
-	ncs_encode_16bit(&data, len - MDTM_FRAG_HDR_LEN -
-				    2); /* 2 bytes for keeping len, to cross
-					   check at the receiver end */
+	/* Next 2 bytes for keeping len, to cross check at the receiver end.
+	 * Used to be encoded as below:
+	 *
+	 * ncs_encode_16bit(&data, len - MDTM_FRAG_HDR_LEN - 2);
+	 *
+	 * However, these 2 bytes have been never examined at receiver. As backward
+	 * compatibility, the fragment header and mds data header can't be extended,
+	 * hereafter, these 2 bytes will be used as sequence number in flow control
+	 * (per tipc portid)
+	 * */
+	ncs_encode_16bit(&data, fctrl_seq_num);
 #endif
 	return NCSCC_RC_SUCCESS;
 }
@@ -3060,21 +3124,25 @@ static uint32_t mdtm_sendto(uint8_t *buffer, uint16_t buff_len,
 		buffer[4] = checksum;
 	}
 #endif
-
-	send_len = sendto(tipc_cb.BSRsock, buffer, buff_len, 0,
-			  (struct sockaddr *)&server_addr, sizeof(server_addr));
-	if (send_len == buff_len) {
-		m_MDS_LOG_INFO("MDTM: Successfully sent message");
-		return NCSCC_RC_SUCCESS;
-	} else if (send_len == -1) {
-		m_MDS_LOG_ERR("MDTM: Failed to send message err :%s",
-			      strerror(errno));
-		return NCSCC_RC_FAILURE;
-	} else {
-		m_MDS_LOG_ERR("MDTM: Failed to send message send_len :%zd",
-			      send_len);
-		return NCSCC_RC_FAILURE;
+	if (mds_tipc_fctrl_trysend(buffer, buff_len, id) == NCSCC_RC_SUCCESS) {
+		send_len = sendto(tipc_cb.BSRsock, buffer, buff_len, 0,
+					(struct sockaddr *)&server_addr, sizeof(server_addr));
+		if (send_len == buff_len) {
+			m_MDS_LOG_INFO("MDTM: Successfully sent message");
+			return NCSCC_RC_SUCCESS;
+		} else if (send_len == -1) {
+			m_MDS_LOG_ERR("MDTM: Failed to send message err :%s", strerror(errno));
+			// todo: it's failed to send msg, if flow control is enabled
+			// the msg needs to mark unsent
+			return NCSCC_RC_FAILURE;
+		} else {
+			m_MDS_LOG_ERR("MDTM: Failed to send message send_len :%zd", send_len);
+			// todo: it's failed to send msg, if flow control is enabled
+			// the msg needs to mark unsent
+			return NCSCC_RC_FAILURE;
+		}
 	}
+	return NCSCC_RC_SUCCESS;
 }
 
 /*********************************************************
@@ -3103,12 +3171,12 @@ static uint32_t mdtm_mcast_sendto(void *buffer, size_t size,
 	server_addr.addr.nameseq.lower = HTONL(MDS_MDTM_LOWER_INSTANCE);
 	/*This can be scope-down to dest_svc_id  server_inst TBD*/
 	server_addr.addr.nameseq.upper = HTONL(MDS_MDTM_UPPER_INSTANCE);
-
 	int send_len =
 	    sendto(tipc_cb.BSRsock, buffer, size, 0,
 		   (struct sockaddr *)&server_addr, sizeof(server_addr));
+
 	if (send_len == size) {
-		m_MDS_LOG_INFO("MDTM: Successfully sent message");
+		m_MDS_LOG_INFO("MDTM: Successfully sent mcast message");
 		return NCSCC_RC_SUCCESS;
 	} else {
 		m_MDS_LOG_ERR("MDTM: Failed to send Multicast message err :%s",
@@ -3151,7 +3219,7 @@ static uint32_t mdtm_add_mds_hdr(uint8_t *buffer, MDTM_SEND_REQ *req)
 	uint8_t *ptr;
 	ptr = buffer;
 
-	prot_ver |= MDS_PROT | MDS_VERSION | ((uint8_t)(req->pri - 1));
+	prot_ver |= gl_mds_pro_ver | ((uint8_t)(req->pri - 1));
 	enc_snd_type = (req->msg.encoding << 6);
 	enc_snd_type |= (uint8_t)req->snd_type;
 
