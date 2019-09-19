@@ -45,6 +45,7 @@ class Event {
     kEvtDropData,          // event reported from tipc that a message is not
                            // delivered
     kEvtTmrAll,
+    kEvtTmrTxProb,    // event that tx probation timer expired for once
     kEvtTmrChunkAck,  // event to send the chunk ack
   };
   NCS_IPC_MSG next_{0};

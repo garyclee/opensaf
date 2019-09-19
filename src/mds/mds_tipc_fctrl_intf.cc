@@ -34,6 +34,7 @@
 
 using mds::Event;
 using mds::TipcPortId;
+using mds::Timer;
 using mds::DataMessage;
 using mds::ChunkAck;
 using mds::HeaderMessage;
@@ -65,6 +66,11 @@ uint64_t sock_buf_size = 0;
 std::map<uint64_t, TipcPortId*> portid_map;
 std::mutex portid_map_mutex;
 
+// probation timer event to enable flow control at receivers
+const int64_t kBaseTimerInt = 200;  // in centisecond
+const uint8_t kTxProbMaxRetries = 10;
+Timer txprob_timer(Event::Type::kEvtTmrTxProb);
+
 // chunk ack parameters
 // todo: The chunk ack timeout and chunk ack size should be configurable
 int kChunkAckTimeout = 1000;  // in miliseconds
@@ -76,12 +82,36 @@ TipcPortId* portid_lookup(struct tipc_portid id) {
   return portid_map[uid];
 }
 
+void tmr_exp_cbk(void* uarg) {
+  Timer* timer = reinterpret_cast<Timer*>(uarg);
+  if (timer != nullptr) {
+    timer->is_active_ = false;
+    // send to fctrl thread
+    if (m_NCS_IPC_SEND(&mbx_events, new Event(timer->type_),
+        NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+      m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events\n");
+    }
+  }
+}
+
 void process_timer_event(const Event evt) {
+  bool txprob_restart = false;
   for (auto i : portid_map) {
     TipcPortId* portid = i.second;
+
+    if (evt.type_ == Event::Type::kEvtTmrTxProb) {
+      if (portid->ReceiveTmrTxProb(kTxProbMaxRetries) == true) {
+        txprob_restart = true;
+      }
+    }
+
     if (evt.type_ == Event::Type::kEvtTmrChunkAck) {
       portid->ReceiveTmrChunkAck();
     }
+  }
+  if (txprob_restart) {
+    txprob_timer.Start(kBaseTimerInt, tmr_exp_cbk);
+    m_MDS_LOG_DBG("FCTRL: Restart txprob");
   }
 }
 
@@ -231,8 +261,10 @@ uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id, uint16_t len,
         id.node, id.ref, __LINE__);
     rc = NCSCC_RC_FAILURE;
   } else {
-    // assign the sequence number of the outgoing message
-    *next_seq = portid->GetCurrentSeq();
+    if (portid->state_ != TipcPortId::State::kDisabled) {
+      // assign the sequence number of the outgoing message
+      *next_seq = portid->GetCurrentSeq();
+    }
   }
 
   portid_map_mutex.unlock();
@@ -252,7 +284,16 @@ uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
         id.node, id.ref, __LINE__);
     rc = NCSCC_RC_FAILURE;
   } else {
-    portid->Queue(buffer, len);
+    if (portid->state_ != TipcPortId::State::kDisabled) {
+      portid->Queue(buffer, len);
+      // start txprob timer for the first msg sent out
+      // do not start for other states
+      if (portid->state_ == TipcPortId::State::kStartup) {
+        txprob_timer.Start(kBaseTimerInt, tmr_exp_cbk);
+        m_MDS_LOG_DBG("FCTRL: Start txprob");
+        portid->state_ = TipcPortId::State::kTxProb;
+      }
+    }
   }
 
   portid_map_mutex.unlock();
