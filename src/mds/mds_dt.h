@@ -214,10 +214,10 @@ typedef struct mdtm_ref_hdl_list {
   MDS_SVC_HDL svc_hdl;
 } MDTM_REF_HDL_LIST;
 
-MDTM_REF_HDL_LIST *mdtm_ref_hdl_list_hdr;
+extern MDTM_REF_HDL_LIST *mdtm_ref_hdl_list_hdr;
+extern NCS_PATRICIA_TREE mdtm_reassembly_list;
 uint32_t mdtm_attach_mbx(SYSF_MBX mbx);
 void mds_buff_dump(uint8_t *buff, uint32_t len, uint32_t max);
-NCS_PATRICIA_TREE mdtm_reassembly_list;
 
 uint32_t mdtm_set_transport(MDTM_TX_TYPE transport);
 bool mdtm_mailbox_mbx_cleanup(NCSCONTEXT arg, NCSCONTEXT msg);

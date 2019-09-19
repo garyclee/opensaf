@@ -159,6 +159,8 @@ struct sockaddr_tipc topsrv;
 
 static MDS_SUBTN_REF_VAL handle;
 static uint16_t num_subscriptions;
+MDTM_REF_HDL_LIST *mdtm_ref_hdl_list_hdr;
+NCS_PATRICIA_TREE mdtm_reassembly_list;
 
 uint32_t mdtm_global_frag_num;
 
