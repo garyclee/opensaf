@@ -342,9 +342,22 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	}
 
 	/* Create flow control tasks if enabled*/
-	gl_mds_pro_ver = MDS_PROT_FCTRL;
-	mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id,
-		(uint64_t)optval, tipc_mcast_enabled);
+	char* ptr;
+	if ((ptr = getenv("MDS_TIPC_FCTRL_ENABLED")) != NULL) {
+		if (atoi(ptr) == 1) {
+			gl_mds_pro_ver = MDS_PROT_FCTRL;
+			int ackto = -1;
+			int acksize = -1;
+			if ((ptr = getenv("MDS_TIPC_FCTRL_ACKTIMEOUT")) != NULL) {
+				ackto = atoi(ptr);
+			}
+			if ((ptr = getenv("MDS_TIPC_FCTRL_ACKSIZE")) != NULL) {
+				acksize = atoi(ptr);
+			}
+			mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id, (uint64_t)optval,
+				ackto, acksize, tipc_mcast_enabled);
+		}
+	}
 
 	/* Create a task to receive the events and data */
 	if (mdtm_create_rcv_task(tipc_cb.hdle_mdtm) != NCSCC_RC_SUCCESS) {

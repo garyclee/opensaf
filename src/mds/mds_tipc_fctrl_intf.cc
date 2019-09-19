@@ -40,6 +40,9 @@ using mds::ChunkAck;
 using mds::HeaderMessage;
 
 namespace {
+// flow control enabled/disabled
+bool is_fctrl_enabled = false;
+
 // multicast/broadcast enabled
 // todo: to be removed if flow control support it
 bool is_mcast_enabled = true;
@@ -225,7 +228,8 @@ uint32_t create_ncs_task(void *task_hdl) {
 }  // end local namespace
 
 uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
-    uint64_t rcv_buf_size, bool mcast_enabled) {
+    uint64_t rcv_buf_size, int32_t ackto, int32_t acksize,
+    bool mcast_enabled) {
   if (create_ncs_task(&p_task_hdl) !=
       NCSCC_RC_SUCCESS) {
     m_MDS_LOG_ERR("FCTRL: Start of the Created Task-failed:\n");
@@ -234,8 +238,10 @@ uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
   data_sock_fd = dgramsock;
   snd_rcv_portid = id;
   sock_buf_size = rcv_buf_size;
+  is_fctrl_enabled = true;
   is_mcast_enabled = mcast_enabled;
-
+  if (ackto != -1) kChunkAckTimeout = ackto;
+  if (acksize != -1) kChunkAckSize = acksize;
   m_MDS_LOG_NOTIFY("FCTRL: Initialize [node:%x, ref:%u]",
       id.node, id.ref);
 
@@ -243,6 +249,7 @@ uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
 }
 
 uint32_t mds_tipc_fctrl_shutdown(void) {
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
   if (ncs_task_release(p_task_hdl) != NCSCC_RC_SUCCESS) {
     m_MDS_LOG_ERR("FCTRL: Stop of the Created Task-failed:\n");
   }
@@ -251,6 +258,8 @@ uint32_t mds_tipc_fctrl_shutdown(void) {
 
 uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id, uint16_t len,
           uint16_t* next_seq) {
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
   uint32_t rc = NCSCC_RC_SUCCESS;
 
   portid_map_mutex.lock();
@@ -274,6 +283,8 @@ uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id, uint16_t len,
 
 uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
     struct tipc_portid id) {
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
   uint32_t rc = NCSCC_RC_SUCCESS;
 
   portid_map_mutex.lock();
@@ -304,6 +315,8 @@ uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
 }
 
 uint32_t mds_tipc_fctrl_portid_up(struct tipc_portid id, uint32_t type) {
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
   MDS_SVC_ID svc_id = (uint16_t)(type & MDS_EVENT_MASK_FOR_SVCID);
 
   portid_map_mutex.lock();
@@ -328,6 +341,8 @@ uint32_t mds_tipc_fctrl_portid_up(struct tipc_portid id, uint32_t type) {
 }
 
 uint32_t mds_tipc_fctrl_portid_down(struct tipc_portid id, uint32_t type) {
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
   MDS_SVC_ID svc_id = (uint16_t)(type & MDS_EVENT_MASK_FOR_SVCID);
 
   portid_map_mutex.lock();
@@ -345,6 +360,8 @@ uint32_t mds_tipc_fctrl_portid_down(struct tipc_portid id, uint32_t type) {
 }
 
 uint32_t mds_tipc_fctrl_portid_terminate(struct tipc_portid id) {
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
   portid_map_mutex.lock();
 
   // Delete this tipc portid out of the map
@@ -362,6 +379,8 @@ uint32_t mds_tipc_fctrl_portid_terminate(struct tipc_portid id) {
 
 uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
     struct tipc_portid id) {
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
   HeaderMessage header;
   header.Decode(buffer);
   // if mds support flow control
@@ -402,6 +421,8 @@ uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
 
 uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
     struct tipc_portid id) {
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
   HeaderMessage header;
   header.Decode(buffer);
   // if mds support flow control

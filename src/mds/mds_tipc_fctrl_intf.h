@@ -27,7 +27,8 @@ extern "C" {
 #endif
 
 uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
-    uint64_t rcv_buf_size, bool mbrcast_enabled);
+    uint64_t rcv_buf_size, int32_t ackto,
+    int32_t acksize, bool mbrcast_enabled);
 uint32_t mds_tipc_fctrl_shutdown(void);
 uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
     struct tipc_portid id);
