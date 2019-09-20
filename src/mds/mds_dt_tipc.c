@@ -247,6 +247,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	if (!get_tipc_port_id(tipc_cb.BSRsock, &port_id)) {
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
+		*mds_tipc_ref = 0;
 		return NCSCC_RC_FAILURE;
 	}
 	*mds_tipc_ref = port_id.ref;
@@ -330,7 +331,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	}
 
 	/* Get tipc socket receive buffer size */
-	int optval;
+	int optval = 0;
 	socklen_t optlen = sizeof(optval);
 	if (getsockopt(tipc_cb.BSRsock, SOL_SOCKET, SO_RCVBUF,
 		&optval, &optlen) != 0) {
@@ -350,12 +351,25 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 			int acksize = -1;
 			if ((ptr = getenv("MDS_TIPC_FCTRL_ACKTIMEOUT")) != NULL) {
 				ackto = atoi(ptr);
+				if (ackto == 0) {
+					syslog(LOG_ERR, "MDTM:TIPC Invalid "
+							"MDS_TIPC_FCTRL_ACKTIMEOUT, using default value");
+					ackto = -1;
+				}
 			}
 			if ((ptr = getenv("MDS_TIPC_FCTRL_ACKSIZE")) != NULL) {
 				acksize = atoi(ptr);
+				if (acksize == 0) {
+					syslog(LOG_ERR, "MDTM:TIPC Invalid "
+							"MDS_TIPC_FCTRL_ACKSIZE, using default value");
+					acksize = -1;
+				}
 			}
-			mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id, (uint64_t)optval,
+			mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id, optval,
 				ackto, acksize, tipc_mcast_enabled);
+		} else {
+			syslog(LOG_ERR, "MDTM:TIPC Invalid value of"
+				"MDS_TIPC_FCTRL_ENABLED");
 		}
 	}
 
@@ -366,6 +380,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		m_NCS_IPC_RELEASE(&tipc_cb.tmr_mbx, NULL);
+		mds_tipc_fctrl_shutdown();
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -2528,7 +2543,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 	 */
 	uint32_t status = 0;
 	uint32_t sum_mds_hdr_plus_mdtm_hdr_plus_len;
-  uint16_t fctrl_seq_num = 0;
+	uint16_t fctrl_seq_num = 0;
 	int version = req->msg_arch_word & 0x7;
 	if (version > 1) {
 		sum_mds_hdr_plus_mdtm_hdr_plus_len =
@@ -2618,7 +2633,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 				return NCSCC_RC_FAILURE;
 			}
 		  /* if sndqueue is capable, then obtain the current sending seq */
-		  if (mds_tipc_fctrl_sndqueue_capable(tipc_id, len, &fctrl_seq_num)
+		  if (mds_tipc_fctrl_sndqueue_capable(tipc_id, &fctrl_seq_num)
 		      == NCSCC_RC_FAILURE){
 		    m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d", len);
 		    return NCSCC_RC_FAILURE;
@@ -2717,10 +2732,10 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 				}
 				/* if sndqueue is capable, then obtain the current sending seq */
 				if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
-					len + sum_mds_hdr_plus_mdtm_hdr_plus_len,
 					&fctrl_seq_num) == NCSCC_RC_FAILURE){
 					m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d",
 						len + sum_mds_hdr_plus_mdtm_hdr_plus_len);
+					m_MMGR_FREE_BUFR_LIST(usrbuf);
 					free(body);
 					return NCSCC_RC_FAILURE;
 				}
@@ -2828,7 +2843,6 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 			}
 			/* if sndqueue is capable, then obtain the current sending seq */
 			if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
-				req->msg.data.buff_info.len + sum_mds_hdr_plus_mdtm_hdr_plus_len,
 				&fctrl_seq_num) == NCSCC_RC_FAILURE) {
 				m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d",
 					req->msg.data.buff_info.len + sum_mds_hdr_plus_mdtm_hdr_plus_len);
@@ -2999,7 +3013,7 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 				}
 			}
 			/* if sndqueue is capable, then obtain the current sending seq */
-			if (mds_tipc_fctrl_sndqueue_capable(id, len_buf, &fctrl_seq_num)
+			if (mds_tipc_fctrl_sndqueue_capable(id, &fctrl_seq_num)
 				== NCSCC_RC_FAILURE) {
 				m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d", len_buf);
 				m_MMGR_FREE_BUFR_LIST(usrbuf);

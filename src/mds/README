@@ -182,7 +182,7 @@ TIPC portid state machine and its transition
 --------------------------------------------
 kDisabled, // no flow control support at this state
 kStartup,  // a newly published portid starts at this state
-kTxProb,   // txprob timer is running to confirm if the flow control is supported
+kTxProb,   // tx probation timer is running to confirm if the flow control is supported
 kEnabled   // flow control support is confirmed, data flow is controlled
 kRcvBuffOverflow // anticipating (or experienced) the receiver's buffer overflow
 

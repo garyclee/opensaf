@@ -71,8 +71,8 @@ class Event {
     fseq_(f_seg_num), chunk_size_(chunk_size) {
     type_ = type;
   }
-  bool IsTimerEvent() { return (type_ > Type::kEvtTmrAll); }
-  bool IsFlowEvent() {
+  bool IsTimerEvent() const { return (type_ > Type::kEvtTmrAll); }
+  bool IsFlowEvent() const {
     return (Type::kEvtDataFlowAll < type_ && type_ < Type::kEvtTmrAll);
   }
 };
@@ -86,6 +86,14 @@ class BaseMessage {
 
 class HeaderMessage: public BaseMessage {
  public:
+  enum FieldIndex {
+    kMessageLength = 0,
+    kSequenceNumber = 2,
+    kFragmentNumber = 6,
+    kLengthCheck = 8,
+    kFlowControlSequenceNumber = kLengthCheck,  // reuse kLengthCheck
+    kProtocolVersion = 10
+  };
   uint8_t* msg_ptr_{nullptr};
   uint16_t msg_len_{0};
   uint32_t mseq_{0};
@@ -104,6 +112,9 @@ class HeaderMessage: public BaseMessage {
 
 class DataMessage: public BaseMessage {
  public:
+  enum FieldIndex {
+    kSendType = 17,
+  };
   HeaderMessage header_;
   uint16_t svc_id_{0};
 
@@ -118,6 +129,13 @@ class DataMessage: public BaseMessage {
 
 class ChunkAck: public BaseMessage {
  public:
+  enum FieldIndex {
+    kProtocolIdentifier = 11,
+    kFlowControlMessageType = 15,
+    kServiceId = 16,
+    kFlowControlSequenceNumber = 18,
+    kChunkAckSize = 20
+  };
   static const uint8_t kChunkAckMsgType = 1;
   static const uint16_t kChunkAckMsgLength = 22;
 

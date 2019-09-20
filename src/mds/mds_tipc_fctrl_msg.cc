@@ -31,17 +31,17 @@ void HeaderMessage::Encode(uint8_t *msg) {
   uint8_t *ptr;
 
   // encode message length
-  ptr = &msg[0];
+  ptr = &msg[HeaderMessage::FieldIndex::kMessageLength];
   ncs_encode_16bit(&ptr, msg_len_);
   // encode sequence number
-  ptr = &msg[2];
+  ptr = &msg[HeaderMessage::FieldIndex::kSequenceNumber];
   ncs_encode_32bit(&ptr, mseq_);
-  // encode sequence number
-  ptr = &msg[6];
+  // encode fragment number
+  ptr = &msg[HeaderMessage::FieldIndex::kFragmentNumber];
   ncs_encode_16bit(&ptr, mfrag_);
   // skip length_check: oct8&9
   // encode protocol version
-  ptr = &msg[10];
+  ptr = &msg[HeaderMessage::FieldIndex::kProtocolVersion];
   ncs_encode_8bit(&ptr, MDS_PROT_FCTRL);
 }
 
@@ -49,32 +49,32 @@ void HeaderMessage::Decode(uint8_t *msg) {
   uint8_t *ptr;
 
   // decode message length
-  ptr = &msg[0];
+  ptr = &msg[HeaderMessage::FieldIndex::kMessageLength];
   msg_len_ = ncs_decode_16bit(&ptr);
   // decode sequence number
-  ptr = &msg[2];
+  ptr = &msg[HeaderMessage::FieldIndex::kSequenceNumber];
   mseq_ = ncs_decode_32bit(&ptr);
   // decode fragment number
-  ptr = &msg[6];
+  ptr = &msg[HeaderMessage::FieldIndex::kFragmentNumber];
   mfrag_ = ncs_decode_16bit(&ptr);
   // decode protocol version
-  ptr = &msg[10];
+  ptr = &msg[HeaderMessage::FieldIndex::kProtocolVersion];
   pro_ver_ = ncs_decode_8bit(&ptr);
   if ((pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) {
     // decode flow control sequence number
-    ptr = &msg[8];
+    ptr = &msg[HeaderMessage::FieldIndex::kFlowControlSequenceNumber];
     fseq_ = ncs_decode_16bit(&ptr);
     // decode protocol identifier
-    ptr = &msg[11];
+    ptr = &msg[ChunkAck::FieldIndex::kProtocolIdentifier];
     pro_id_ = ncs_decode_32bit(&ptr);
     if (pro_id_ == MDS_PROT_FCTRL_ID) {
       // decode message type
-      ptr = &msg[15];
+      ptr = &msg[ChunkAck::FieldIndex::kFlowControlMessageType];
       msg_type_ = ncs_decode_8bit(&ptr);
     }
   } else {
     if (mfrag_ != 0) {
-      ptr = &msg[8];
+      ptr = &msg[HeaderMessage::FieldIndex::kFlowControlSequenceNumber];
       fseq_ = ncs_decode_16bit(&ptr);
       if (fseq_ != 0) pro_ver_ = MDS_PROT_FCTRL;
     }
@@ -90,7 +90,7 @@ void DataMessage::Decode(uint8_t *msg) {
              MDS_HEADER_RCVR_SVC_ID_POSITION];
   svc_id_ = ncs_decode_16bit(&ptr);
   // decode snd_type
-  ptr = &msg[17];
+  ptr = &msg[DataMessage::FieldIndex::kSendType];
   snd_type_ = (ncs_decode_8bit(&ptr)) & 0x3f;
 }
 
@@ -109,19 +109,19 @@ ChunkAck::ChunkAck(uint16_t svc_id, uint16_t fseq, uint16_t chunk_size):
 void ChunkAck::Encode(uint8_t *msg) {
   uint8_t *ptr;
   // encode protocol identifier
-  ptr = &msg[11];
+  ptr = &msg[ChunkAck::FieldIndex::kProtocolIdentifier];
   ncs_encode_32bit(&ptr, MDS_PROT_FCTRL_ID);
   // encode message type
-  ptr = &msg[15];
+  ptr = &msg[ChunkAck::FieldIndex::kFlowControlMessageType];
   ncs_encode_8bit(&ptr, kChunkAckMsgType);
   // encode service id
-  ptr = &msg[16];
+  ptr = &msg[ChunkAck::FieldIndex::kServiceId];
   ncs_encode_16bit(&ptr, svc_id_);
   // encode flow control sequence number
-  ptr = &msg[18];
+  ptr = &msg[ChunkAck::FieldIndex::kFlowControlSequenceNumber];
   ncs_encode_16bit(&ptr, acked_fseq_);
   // encode chunk size
-  ptr = &msg[20];
+  ptr = &msg[ChunkAck::FieldIndex::kChunkAckSize];
   ncs_encode_16bit(&ptr, chunk_size_);
 }
 
@@ -129,13 +129,13 @@ void ChunkAck::Decode(uint8_t *msg) {
   uint8_t *ptr;
 
   // decode service id
-  ptr = &msg[16];
+  ptr = &msg[ChunkAck::FieldIndex::kServiceId];
   svc_id_ = ncs_decode_16bit(&ptr);
   // decode flow control sequence number
-  ptr = &msg[18];
+  ptr = &msg[ChunkAck::FieldIndex::kFlowControlSequenceNumber];
   acked_fseq_ = ncs_decode_16bit(&ptr);
   // decode chunk size
-  ptr = &msg[20];
+  ptr = &msg[ChunkAck::FieldIndex::kChunkAckSize];
   chunk_size_ = ncs_decode_16bit(&ptr);
 }
 

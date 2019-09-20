@@ -70,7 +70,7 @@ std::map<uint64_t, TipcPortId*> portid_map;
 std::mutex portid_map_mutex;
 
 // probation timer event to enable flow control at receivers
-const int64_t kBaseTimerInt = 200;  // in centisecond
+const int64_t kBaseTimerInt = 100;  // in centisecond
 const uint8_t kTxProbMaxRetries = 10;
 Timer txprob_timer(Event::Type::kEvtTmrTxProb);
 
@@ -97,7 +97,7 @@ void tmr_exp_cbk(void* uarg) {
   }
 }
 
-void process_timer_event(const Event evt) {
+void process_timer_event(const Event& evt) {
   bool txprob_restart = false;
   for (auto i : portid_map) {
     TipcPortId* portid = i.second;
@@ -118,18 +118,18 @@ void process_timer_event(const Event evt) {
   }
 }
 
-uint32_t process_flow_event(const Event evt) {
+uint32_t process_flow_event(const Event& evt) {
   uint32_t rc = NCSCC_RC_SUCCESS;
   TipcPortId *portid = portid_lookup(evt.id_);
   if (portid == nullptr) {
     if (evt.type_ == Event::Type::kEvtRcvData) {
-      portid = new TipcPortId(evt.id_, data_sock_fd, kChunkAckSize,
-          sock_buf_size);
+      portid = new TipcPortId(evt.id_, data_sock_fd,
+          kChunkAckSize, sock_buf_size);
       portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
-      if (evt.type_ == Event::Type::kEvtRcvData) {
-        rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
+      rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
             evt.fseq_, evt.svc_id_);
-      }
+    } else {
+      m_MDS_LOG_ERR("PortId not found for evt:%d", (int)evt.type_);
     }
   } else {
     if (evt.type_ == Event::Type::kEvtRcvData) {
@@ -154,13 +154,14 @@ uint32_t process_all_events(void) {
   enum { FD_FCTRL = 0, NUM_FDS };
 
   int poll_tmo = kChunkAckTimeout;
+  struct pollfd pfd[NUM_FDS] = {{0, 0, 0}};
+
+  pfd[FD_FCTRL].fd =
+      ncs_ipc_get_sel_obj(&mbx_events).rmv_obj;
+  pfd[FD_FCTRL].events = POLLIN;
+
   while (true) {
     int pollres;
-    struct pollfd pfd[NUM_FDS] = {{0}};
-
-    pfd[FD_FCTRL].fd =
-        ncs_ipc_get_sel_obj(&mbx_events).rmv_obj;
-    pfd[FD_FCTRL].events = POLLIN;
 
     pollres = poll(pfd, NUM_FDS, poll_tmo);
 
@@ -172,12 +173,12 @@ uint32_t process_all_events(void) {
 
     if (pollres > 0) {
       if (pfd[FD_FCTRL].revents == POLLIN) {
+        portid_map_mutex.lock();
+
         Event *evt = reinterpret_cast<Event*>(ncs_ipc_non_blk_recv(
             &mbx_events));
 
         if (evt == nullptr) continue;
-
-        portid_map_mutex.lock();
 
         if (evt->IsTimerEvent()) {
           process_timer_event(*evt);
@@ -212,12 +213,14 @@ uint32_t create_ncs_task(void *task_hdl) {
   }
   if (m_NCS_IPC_ATTACH(&mbx_events) != NCSCC_RC_SUCCESS) {
     m_MDS_LOG_ERR("m_NCS_IPC_ATTACH failed");
+    m_NCS_IPC_RELEASE(&mbx_events, nullptr);
     return NCSCC_RC_FAILURE;
   }
   if (ncs_task_create((NCS_OS_CB)process_all_events, 0,
           "OSAF_MDS", prio_val, policy, NCS_MDTM_STACKSIZE,
           &task_hdl) != NCSCC_RC_SUCCESS) {
-    m_MDS_LOG_ERR("FCTRL: Task Creation-failed:\n");
+    m_MDS_LOG_ERR("FCTRL: ncs_task_create() failed\n");
+    m_NCS_IPC_RELEASE(&mbx_events, nullptr);
     return NCSCC_RC_FAILURE;
   }
 
@@ -230,18 +233,20 @@ uint32_t create_ncs_task(void *task_hdl) {
 uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
     uint64_t rcv_buf_size, int32_t ackto, int32_t acksize,
     bool mcast_enabled) {
-  if (create_ncs_task(&p_task_hdl) !=
-      NCSCC_RC_SUCCESS) {
-    m_MDS_LOG_ERR("FCTRL: Start of the Created Task-failed:\n");
-    return NCSCC_RC_FAILURE;
-  }
+
   data_sock_fd = dgramsock;
   snd_rcv_portid = id;
   sock_buf_size = rcv_buf_size;
-  is_fctrl_enabled = true;
   is_mcast_enabled = mcast_enabled;
   if (ackto != -1) kChunkAckTimeout = ackto;
   if (acksize != -1) kChunkAckSize = acksize;
+
+  if (create_ncs_task(&p_task_hdl) !=
+      NCSCC_RC_SUCCESS) {
+    m_MDS_LOG_ERR("FCTRL: create_ncs_task() failed\n");
+    return NCSCC_RC_FAILURE;
+  }
+  is_fctrl_enabled = true;
   m_MDS_LOG_NOTIFY("FCTRL: Initialize [node:%x, ref:%u]",
       id.node, id.ref);
 
@@ -250,13 +255,29 @@ uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
 
 uint32_t mds_tipc_fctrl_shutdown(void) {
   if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
+  portid_map_mutex.lock();
+
   if (ncs_task_release(p_task_hdl) != NCSCC_RC_SUCCESS) {
     m_MDS_LOG_ERR("FCTRL: Stop of the Created Task-failed:\n");
   }
+
+  m_NCS_IPC_DETACH(&mbx_events, nullptr, nullptr);
+  m_NCS_IPC_RELEASE(&mbx_events, nullptr);
+
+  for (auto i : portid_map) delete i.second;
+  portid_map.clear();
+
+  portid_map_mutex.unlock();
+  is_fctrl_enabled = false;
+
+  m_MDS_LOG_NOTIFY("FCTRL: Shutdown [node:%x, ref:%u]",
+      snd_rcv_portid.node, snd_rcv_portid.ref);
+
   return NCSCC_RC_SUCCESS;
 }
 
-uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id, uint16_t len,
+uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id,
           uint16_t* next_seq) {
   if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
 

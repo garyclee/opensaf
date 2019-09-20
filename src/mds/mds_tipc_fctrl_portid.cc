@@ -30,6 +30,7 @@ Timer::Timer(Event::Type type) {
 }
 
 Timer::~Timer() {
+  // do not call Stop
 }
 
 void Timer::Start(int64_t period, void (*tmr_exp_func)(void*)) {
@@ -57,8 +58,8 @@ void MessageQueue::Queue(DataMessage* msg) {
 }
 
 DataMessage* MessageQueue::Find(uint32_t mseq, uint16_t mfrag) {
-  for (auto it = queue_.begin(); it != queue_.end(); ++it) {
-    DataMessage *m = *it;
+  for (const auto& it : queue_) {
+    DataMessage *m = it;
     if (m->header_.mseq_ == mseq && m->header_.mfrag_ == mfrag) {
       return m;
     }
@@ -83,8 +84,8 @@ uint64_t MessageQueue::Erase(Seq16 fseq_from, Seq16 fseq_to) {
 }
 
 DataMessage* MessageQueue::FirstUnsent() {
-  for (auto it = queue_.begin(); it != queue_.end(); ++it) {
-    DataMessage *m = *it;
+  for (const auto& it : queue_) {
+    DataMessage *m = it;
     if (m->is_sent_ == false) {
       return m;
     }
@@ -93,8 +94,8 @@ DataMessage* MessageQueue::FirstUnsent() {
 }
 
 void MessageQueue::MarkUnsentFrom(Seq16 fseq) {
-  for (auto it = queue_.begin(); it != queue_.end(); ++it) {
-    DataMessage *m = *it;
+  for (const auto& it : queue_) {
+    DataMessage *m = it;
     if (Seq16(m->header_.fseq_) >= fseq) m->is_sent_ = false;
   }
 }
@@ -118,7 +119,6 @@ TipcPortId::~TipcPortId() {
   ReceiveTmrChunkAck();
   // flush all unsent msg in sndqueue_
   FlushData();
-  sndqueue_.Clear();
 }
 
 uint64_t TipcPortId::GetUniqueId(struct tipc_portid id) {
@@ -143,6 +143,7 @@ void TipcPortId::FlushData() {
           sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
     }
   } while (msg != nullptr);
+  sndqueue_.Clear();
 }
 
 uint32_t TipcPortId::Send(uint8_t* data, uint16_t length) {
@@ -203,10 +204,20 @@ bool TipcPortId::ReceiveCapable(uint16_t sending_len) {
   if (sndwnd_.nacked_space_ + sending_len < rcv_buf_size_) {
     return true;
   } else {
-    state_ = State::kRcvBuffOverflow;
-    m_MDS_LOG_DBG("FCTRL: [node:%x, ref:%u] --> Overflow, %" PRIu64
-        ", %u, %" PRIu64, id_.node, id_.ref, sndwnd_.nacked_space_,
-        sending_len, rcv_buf_size_);
+    if (state_ == State::kTxProb) {
+      // Too many msgs are not acked by receiver while in txprob state
+      // disable flow control
+      state_ = State::kDisabled;
+      m_MDS_LOG_ERR("FCTRL: [node:%x, ref:%u] --> Disabled, %" PRIu64
+          ", %u, %" PRIu64, id_.node, id_.ref, sndwnd_.nacked_space_,
+          sending_len, rcv_buf_size_);
+      return true;
+    } else if (state_ == State::kEnabled) {
+      state_ = State::kRcvBuffOverflow;
+      m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u] --> Overflow, %" PRIu64
+          ", %u, %" PRIu64, id_.node, id_.ref, sndwnd_.nacked_space_,
+          sending_len, rcv_buf_size_);
+    }
     return false;
   }
 }
@@ -242,7 +253,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
   // update state
   if (state_ == State::kTxProb || state_ == State::kStartup) {
     state_ = State::kEnabled;
-    m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
+    m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
         "RcvData, TxProb[retries:%u, state:%u]",
         id_.node, id_.ref,
         txprob_cnt_, (uint8_t)state_);
@@ -331,7 +342,7 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
   // update state
   if (state_ == State::kTxProb) {
     state_ = State::kEnabled;
-    m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
+    m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
         "RcvChkAck, "
         "TxProb[retries:%u, state:%u]",
         id_.node, id_.ref,
@@ -358,7 +369,7 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
     sndwnd_.nacked_space_ -= acked_bytes;
 
     // try to send a few pending msg
-    DataMessage* msg;
+    DataMessage* msg = nullptr;
     uint64_t resend_bytes = 0;
     while (resend_bytes < acked_bytes) {
       // find the lowest sequence unsent yet
@@ -386,7 +397,7 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
     // no more unsent message, back to kEnabled
     if (msg == nullptr && state_ == State::kRcvBuffOverflow) {
       state_ = State::kEnabled;
-      m_MDS_LOG_DBG("FCTRL: [node:%x, ref:%u] Overflow --> Enabled ",
+      m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u] Overflow --> Enabled ",
           id_.node, id_.ref);
     }
   } else {
@@ -423,7 +434,7 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
   }
   if (state_ != State::kRcvBuffOverflow) {
     state_ = State::kRcvBuffOverflow;
-    m_MDS_LOG_DBG("FCTRL: [node:%x, ref:%u] --> Overflow ",
+    m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u] --> Overflow ",
         id_.node, id_.ref);
     sndqueue_.MarkUnsentFrom(Seq16(fseq));
   }
@@ -466,10 +477,9 @@ bool TipcPortId::ReceiveTmrTxProb(uint8_t max_txprob) {
     // receiver is at old mds version
     if (state_ == State::kDisabled) {
       FlushData();
-      sndqueue_.Clear();
     }
 
-    m_MDS_LOG_DBG("FCTRL: [node:%x, ref:%u], "
+    m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u], "
         "TxProbExp, TxProb[retries:%u, state:%u]",
         id_.node, id_.ref,
         txprob_cnt_, (uint8_t)state_);
