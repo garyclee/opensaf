@@ -297,6 +297,8 @@ std::string LogServer::ExecuteCommand(const std::string& command,
     if (current_stream_ == stream) {
       current_stream_ = log_streams_.begin()->second;
     }
+    delete stream;
+    --no_of_log_streams_;
     return std::string{"!delete " + argument};
   } else if (command == "?flush") {
     for (const auto& s : log_streams_) {
