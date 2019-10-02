@@ -1,6 +1,6 @@
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2016 The OpenSAF Foundation
+# (C) Copyright 2019 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -15,8 +15,4 @@
 #
 
 all:
-	$(MAKE) -C ../.. bin/osafdtmd bin/osaftransportd bin/osaflog
-
-check:
-	$(MAKE) -C ../.. bin/transport_test
-	../../bin/transport_test
+	$(MAKE) -C ../../.. bin/osaflog

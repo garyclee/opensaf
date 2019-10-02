@@ -27,6 +27,8 @@ namespace Osaflog {
 static constexpr const char* kServerSocketPath =
     PKGLOCALSTATEDIR "/osaf_log.sock";
 
+static constexpr const uint64_t kOneDayInMinute = 24*60;
+
 struct __attribute__((__packed__)) ClientAddressConstantPrefix {
   sa_family_t family = AF_UNIX;
   char abstract = '\0';
