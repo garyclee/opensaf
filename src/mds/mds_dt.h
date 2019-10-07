@@ -245,7 +245,7 @@ bool mdtm_mailbox_mbx_cleanup(NCSCONTEXT arg, NCSCONTEXT msg);
 
 /* MDS protocol/version for flow control */
 #define MDS_PROT_FCTRL (0xB0 | MDS_VERSION)
-#define MDS_PROT_FCTRL_ID 0x00AC13F5
+#define MDS_PROT_FCTRL_ID 0xFDAC13F5
 
 /* Added for the subscription changes */
 #define MDS_NCS_CHASSIS_ID (m_NCS_GET_NODE_ID & 0x00ff0000)

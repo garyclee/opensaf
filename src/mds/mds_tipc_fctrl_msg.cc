@@ -64,13 +64,19 @@ void HeaderMessage::Decode(uint8_t *msg) {
     // decode flow control sequence number
     ptr = &msg[HeaderMessage::FieldIndex::kFlowControlSequenceNumber];
     fseq_ = ncs_decode_16bit(&ptr);
-    // decode protocol identifier
-    ptr = &msg[ChunkAck::FieldIndex::kProtocolIdentifier];
-    pro_id_ = ncs_decode_32bit(&ptr);
-    if (pro_id_ == MDS_PROT_FCTRL_ID) {
-      // decode message type
-      ptr = &msg[ChunkAck::FieldIndex::kFlowControlMessageType];
-      msg_type_ = ncs_decode_8bit(&ptr);
+    // decode protocol identifier if the mfrag_ and mseq_ are 0
+    // otherwise it is always DataMessage within non-zero mseq_ and mfrag_
+    if (mfrag_ == 0 && mseq_ == 0) {
+      ptr = &msg[ChunkAck::FieldIndex::kProtocolIdentifier];
+      pro_id_ = ncs_decode_32bit(&ptr);
+      if (pro_id_ == MDS_PROT_FCTRL_ID) {
+        // decode message type
+        ptr = &msg[ChunkAck::FieldIndex::kFlowControlMessageType];
+        msg_type_ = ncs_decode_8bit(&ptr);
+      }
+    } else {
+      pro_id_ = 0;
+      msg_type_ = 0;
     }
   } else {
     if (mfrag_ != 0) {
