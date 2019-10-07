@@ -439,6 +439,7 @@ static void sgtype_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
     LOG_WA("SGT modify apply (STDBY): sgt does not exist");
     return;
   }
+  osafassert(sgt != nullptr);
 
   while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
     bool value_is_deleted;

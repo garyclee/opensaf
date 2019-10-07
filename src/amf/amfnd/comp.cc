@@ -2785,6 +2785,7 @@ uint32_t comp_restart_initiate(AVND_COMP *comp) {
     // reset contained comps for this container
     AVND_COMP_CSI_REC *curr_csi(m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
       m_NCS_DBLIST_FIND_FIRST(&comp->csi_list)));
+    osafassert(curr_csi != nullptr);
     const std::string& containerCsi(curr_csi->name);
 
     for (auto &it : cb->compdb) {
@@ -2837,6 +2838,7 @@ uint32_t comp_restart_initiate(AVND_COMP *comp) {
   if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
     AVND_COMP_CSI_REC *csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
         m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+    osafassert(csi != nullptr);
     if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNED(csi) ||
         m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_RESTARTING(csi)) {
       m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(

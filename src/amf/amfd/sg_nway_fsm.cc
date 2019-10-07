@@ -2589,6 +2589,8 @@ static AVD_SU_SI_REL *find_pref_standby_susi(AVD_SU_SI_REL *sisu) {
 
   TRACE_ENTER();
 
+  osafassert(sisu != nullptr);
+  osafassert(sisu->si != nullptr);
   curr_sisu = sisu->si->list_of_sisu;
   while (curr_sisu) {
     if ((SA_AMF_READINESS_IN_SERVICE == curr_sisu->su->saAmfSuReadinessState) &&

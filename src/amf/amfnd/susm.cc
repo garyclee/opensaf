@@ -392,6 +392,7 @@ uint32_t avnd_su_si_msg_prc(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *info) {
       if (true == info->single_csi) {
         AVND_COMP_CSI_PARAM *csi_param;
         AVND_COMP_CSI_REC *csi_rec;
+        osafassert(si != nullptr);
         si->single_csi_add_rem_in_si = AVSV_SUSI_ACT_DEL;
         osafassert((info->num_assigns == 1));
         csi_param = info->list;
