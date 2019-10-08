@@ -161,7 +161,7 @@ uint32_t TipcPortId::Send(uint8_t* data, uint16_t length) {
   if (send_len == length) {
     rc = NCSCC_RC_SUCCESS;
   } else {
-    m_MDS_LOG_ERR("sendto() err :%s", strerror(errno));
+    m_MDS_LOG_ERR("FCTRL: sendto() failed, Error[%s]", strerror(errno));
     rc = NCSCC_RC_FAILURE;
   }
   return rc;
@@ -208,8 +208,9 @@ bool TipcPortId::ReceiveCapable(uint16_t sending_len) {
       // Too many msgs are not acked by receiver while in txprob state
       // disable flow control
       state_ = State::kDisabled;
-      m_MDS_LOG_ERR("FCTRL: [node:%x, ref:%u] --> Disabled, %" PRIu64
-          ", %u, %" PRIu64, id_.node, id_.ref, sndwnd_.nacked_space_,
+      m_MDS_LOG_ERR("FCTRL: me --> [node:%x, ref:%u], [nacked:%" PRIu64
+          ", len:%u, rcv_buf_size:%" PRIu64 "], Warning[kTxProb -> kDisabled]",
+          id_.node, id_.ref, sndwnd_.nacked_space_,
           sending_len, rcv_buf_size_);
       return true;
     } else if (state_ == State::kEnabled) {
@@ -442,7 +443,8 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
   }
   if (state_ == State::kRcvBuffOverflow) {
     m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
-        "RcvNack,  ignore[fseq:%u, state:%u]",
+        "RcvNack[fseq:%u, state:%u]"
+        "Warning[Ignore Nack]",
         id_.node, id_.ref,
         fseq, (uint8_t)state_);
     sndqueue_.MarkUnsentFrom(Seq16(fseq));

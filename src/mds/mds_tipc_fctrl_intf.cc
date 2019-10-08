@@ -93,7 +93,8 @@ void tmr_exp_cbk(void* uarg) {
     // send to fctrl thread
     if (m_NCS_IPC_SEND(&mbx_events, new Event(timer->type_),
         NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-      m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events\n");
+      m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+          strerror(errno));
     }
   }
 }
@@ -130,7 +131,9 @@ uint32_t process_flow_event(const Event& evt) {
       rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
             evt.fseq_, evt.svc_id_);
     } else {
-      m_MDS_LOG_ERR("PortId not found for evt:%d", (int)evt.type_);
+      m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
+          "RcvEvt[evt:%d], Error[PortId not found]",
+          evt.id_.node, evt.id_.ref, (int)evt.type_);
     }
   } else {
     if (evt.type_ == Event::Type::kEvtRcvData) {
@@ -169,7 +172,7 @@ uint32_t process_all_events(void) {
 
     if (pollres == -1) {
       if (errno == EINTR) continue;
-      m_MDS_LOG_ERR("FCTRL: poll() failed:%s", strerror(errno));
+      m_MDS_LOG_ERR("FCTRL: poll() failed, Error[%s]", strerror(errno));
       break;
     }
 
@@ -212,18 +215,21 @@ uint32_t create_ncs_task(void *task_hdl) {
   int prio_val = ((max_prio - min_prio) * 0.87);
 
   if (m_NCS_IPC_CREATE(&mbx_events) != NCSCC_RC_SUCCESS) {
-    m_MDS_LOG_ERR("m_NCS_IPC_CREATE failed");
+    m_MDS_LOG_ERR("FCTRL: m_NCS_IPC_CREATE failed, Error[%s]",
+        strerror(errno));
     return NCSCC_RC_FAILURE;
   }
   if (m_NCS_IPC_ATTACH(&mbx_events) != NCSCC_RC_SUCCESS) {
-    m_MDS_LOG_ERR("m_NCS_IPC_ATTACH failed");
+    m_MDS_LOG_ERR("FCTRL: m_NCS_IPC_ATTACH failed, Error[%s]",
+        strerror(errno));
     m_NCS_IPC_RELEASE(&mbx_events, nullptr);
     return NCSCC_RC_FAILURE;
   }
   if (ncs_task_create((NCS_OS_CB)process_all_events, 0,
           "OSAF_MDS", prio_val, policy, NCS_MDTM_STACKSIZE,
           &task_hdl) != NCSCC_RC_SUCCESS) {
-    m_MDS_LOG_ERR("FCTRL: ncs_task_create() failed\n");
+    m_MDS_LOG_ERR("FCTRL: ncs_task_create(), Error[%s]",
+        strerror(errno));
     m_NCS_IPC_RELEASE(&mbx_events, nullptr);
     return NCSCC_RC_FAILURE;
   }
@@ -247,7 +253,8 @@ uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
 
   if (create_ncs_task(&p_task_hdl) !=
       NCSCC_RC_SUCCESS) {
-    m_MDS_LOG_ERR("FCTRL: create_ncs_task() failed\n");
+    m_MDS_LOG_ERR("FCTRL: create_ncs_task() failed, Error[%s]",
+        strerror(errno));
     return NCSCC_RC_FAILURE;
   }
   is_fctrl_enabled = true;
@@ -263,7 +270,8 @@ uint32_t mds_tipc_fctrl_shutdown(void) {
   portid_map_mutex.lock();
 
   if (ncs_task_release(p_task_hdl) != NCSCC_RC_SUCCESS) {
-    m_MDS_LOG_ERR("FCTRL: Stop of the Created Task-failed:\n");
+    m_MDS_LOG_ERR("FCTRL: Stop of the Created Task-failed, Error[%s]",
+        strerror(errno));
   }
 
   m_NCS_IPC_DETACH(&mbx_events, nullptr, nullptr);
@@ -291,7 +299,8 @@ uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id,
 
   TipcPortId *portid = portid_lookup(id);
   if (portid == nullptr) {
-    m_MDS_LOG_ERR("FCTRL: PortId not found [node:%x, ref:%u] line:%u",
+    m_MDS_LOG_ERR("FCTRL: [me] --> [node:%x, ref:%u], "
+        "[line:%u], Error[PortId not found]",
         id.node, id.ref, __LINE__);
     rc = NCSCC_RC_FAILURE;
   } else {
@@ -316,7 +325,8 @@ uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
 
   TipcPortId *portid = portid_lookup(id);
   if (portid == nullptr) {
-    m_MDS_LOG_ERR("FCTRL: PortId not found [node:%x, ref:%u] line:%u",
+    m_MDS_LOG_ERR("FCTRL: [me] --> [node:%x, ref:%u], "
+        "[line:%u], Error[PortId not found]",
         id.node, id.ref, __LINE__);
     rc = NCSCC_RC_FAILURE;
   } else {
@@ -420,7 +430,8 @@ uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
             new Event(Event::Type::kEvtSendChunkAck, id, ack.svc_id_,
                 header.mseq_, header.mfrag_, ack.acked_fseq_, ack.chunk_size_),
             NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events\n");
+          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+              strerror(errno));
           return NCSCC_RC_FAILURE;
         }
         return NCSCC_RC_SUCCESS;
@@ -434,7 +445,8 @@ uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
           new Event(Event::Type::kEvtDropData, id, data.svc_id_,
               header.mseq_, header.mfrag_, header.fseq_),
           NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events\n");
+        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+            strerror(errno));
         return NCSCC_RC_FAILURE;
       }
       return NCSCC_RC_SUCCESS;
@@ -462,13 +474,10 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
             new Event(Event::Type::kEvtRcvChunkAck, id, ack.svc_id_,
                 header.mseq_, header.mfrag_, ack.acked_fseq_, ack.chunk_size_),
                 NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events\n");
+          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+              strerror(errno));
         }
-        // return NCSCC_RC_FAILURE, so the tipc receiving thread (legacy) will
-        // skip this data msg
-        return NCSCC_RC_FAILURE;
-      }
-      if (header.msg_type_ == Nack::kNackMsgType) {
+      } else if (header.msg_type_ == Nack::kNackMsgType) {
         // receive nack message
         Nack nack;
         nack.Decode(buffer);
@@ -477,12 +486,17 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
             new Event(Event::Type::kEvtRcvNack, id, nack.svc_id_,
                 header.mseq_, header.mfrag_, nack.nacked_fseq_),
                 NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events\n");
+          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+              strerror(errno));
         }
-        // return NCSCC_RC_FAILURE, so the tipc receiving thread (legacy) will
-        // skip this data msg
-        return NCSCC_RC_FAILURE;
+      } else {
+        m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
+            "[msg_type:%u], Error[not supported message type]",
+            id.node, id.ref, header.msg_type_);
       }
+      // return NCSCC_RC_FAILURE, so the tipc receiving thread (legacy) will
+      // skip this data msg
+      return NCSCC_RC_FAILURE;
     } else {
       // receive data message
       DataMessage data;
