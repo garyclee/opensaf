@@ -4196,7 +4196,7 @@ void mds_mcm_msg_loss(MDS_SVC_HDL local_svc_hdl, MDS_DEST rem_adest,
 
 	/* Check whether the msg loss is enabled or not */
 	if (true != local_svc_info->i_msg_loss_indication) {
-		m_MDS_LOG_INFO(" MSG loss not enbaled mds_mcm_msg_loss\n");
+		m_MDS_LOG_NOTIFY("MSG loss is not enabled mds_mcm_msg_loss\n");
 		return;
 	}
 

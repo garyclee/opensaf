@@ -972,7 +972,7 @@ uint32_t mds_tmr_mailbox_processing(void)
 					.vdest_id);
 				break;
 			case MDS_REASSEMBLY_TMR:
-				m_MDS_LOG_DBG(
+				m_MDS_LOG_ERR(
 				    "MDTM: Tmr Mailbox Processing:Reassemble Tmr Hdl=0x%08x",
 				    mbx_evt_info->info.tmr_info_hdl);
 				mdtm_process_reassem_timer_event(

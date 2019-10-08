@@ -94,7 +94,7 @@ class Seq16 {
 class MessageQueue {
  public:
   void Queue(DataMessage* msg);
-  DataMessage* Find(uint32_t mseq, uint16_t mfrag);
+  DataMessage* Find(Seq16 fseq);
   uint64_t Erase(Seq16 fseq_from, Seq16 fseq_to);
   uint64_t Size() const { return queue_.size(); }
   void Clear();
@@ -133,6 +133,7 @@ class TipcPortId {
   bool ReceiveCapable(uint16_t sending_len);
   void ReceiveChunkAck(uint16_t fseq, uint16_t chunk_size);
   void SendChunkAck(uint16_t fseq, uint16_t svc_id, uint16_t chunk_size);
+  void SendNack(uint16_t fseq, uint16_t svc_id);
   uint32_t ReceiveData(uint32_t mseq, uint16_t mfrag,
       uint16_t fseq, uint16_t svc_id);
   void ReceiveNack(uint32_t mseq, uint16_t mfrag, uint16_t fseq);

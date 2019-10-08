@@ -102,7 +102,7 @@ void DataMessage::Decode(uint8_t *msg) {
 
 DataMessage::~DataMessage() {
   if (msg_data_ != nullptr) {
-    delete msg_data_;
+    delete[] msg_data_;
     msg_data_ = nullptr;
   }
 }
@@ -143,6 +143,39 @@ void ChunkAck::Decode(uint8_t *msg) {
   // decode chunk size
   ptr = &msg[ChunkAck::FieldIndex::kChunkAckSize];
   chunk_size_ = ncs_decode_16bit(&ptr);
+}
+
+
+Nack::Nack(uint16_t svc_id, uint16_t fseq):
+    svc_id_(svc_id), nacked_fseq_(fseq) {
+  msg_type_ = kNackMsgType;
+}
+
+void Nack::Encode(uint8_t *msg) {
+  uint8_t *ptr;
+  // encode protocol identifier
+  ptr = &msg[Nack::FieldIndex::kProtocolIdentifier];
+  ncs_encode_32bit(&ptr, MDS_PROT_FCTRL_ID);
+  // encode message type
+  ptr = &msg[Nack::FieldIndex::kFlowControlMessageType];
+  ncs_encode_8bit(&ptr, kNackMsgType);
+  // encode service id
+  ptr = &msg[Nack::FieldIndex::kServiceId];
+  ncs_encode_16bit(&ptr, svc_id_);
+  // encode flow control sequence number
+  ptr = &msg[Nack::FieldIndex::kFlowControlSequenceNumber];
+  ncs_encode_16bit(&ptr, nacked_fseq_);
+}
+
+void Nack::Decode(uint8_t *msg) {
+  uint8_t *ptr;
+
+  // decode service id
+  ptr = &msg[Nack::FieldIndex::kServiceId];
+  svc_id_ = ncs_decode_16bit(&ptr);
+  // decode flow control sequence number
+  ptr = &msg[Nack::FieldIndex::kFlowControlSequenceNumber];
+  nacked_fseq_ = ncs_decode_16bit(&ptr);
 }
 
 }  // end namespace mds

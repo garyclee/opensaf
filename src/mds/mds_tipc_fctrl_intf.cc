@@ -38,6 +38,7 @@ using mds::Timer;
 using mds::DataMessage;
 using mds::ChunkAck;
 using mds::HeaderMessage;
+using mds::Nack;
 
 namespace {
 // flow control enabled/disabled
@@ -142,7 +143,8 @@ uint32_t process_flow_event(const Event& evt) {
     if (evt.type_ == Event::Type::kEvtSendChunkAck) {
       portid->SendChunkAck(evt.fseq_, evt.svc_id_, evt.chunk_size_);
     }
-    if (evt.type_ == Event::Type::kEvtDropData) {
+    if (evt.type_ == Event::Type::kEvtDropData ||
+        evt.type_ == Event::Type::kEvtRcvNack) {
       portid->ReceiveNack(evt.mseq_, evt.mfrag_,
           evt.fseq_);
     }
@@ -178,8 +180,10 @@ uint32_t process_all_events(void) {
         Event *evt = reinterpret_cast<Event*>(ncs_ipc_non_blk_recv(
             &mbx_events));
 
-        if (evt == nullptr) continue;
-
+        if (evt == nullptr) {
+          portid_map_mutex.unlock();
+          continue;
+        }
         if (evt->IsTimerEvent()) {
           process_timer_event(*evt);
         }
@@ -457,6 +461,21 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
         if (m_NCS_IPC_SEND(&mbx_events,
             new Event(Event::Type::kEvtRcvChunkAck, id, ack.svc_id_,
                 header.mseq_, header.mfrag_, ack.acked_fseq_, ack.chunk_size_),
+                NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events\n");
+        }
+        // return NCSCC_RC_FAILURE, so the tipc receiving thread (legacy) will
+        // skip this data msg
+        return NCSCC_RC_FAILURE;
+      }
+      if (header.msg_type_ == Nack::kNackMsgType) {
+        // receive nack message
+        Nack nack;
+        nack.Decode(buffer);
+        // send to the event thread
+        if (m_NCS_IPC_SEND(&mbx_events,
+            new Event(Event::Type::kEvtRcvNack, id, nack.svc_id_,
+                header.mseq_, header.mfrag_, nack.nacked_fseq_),
                 NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
           m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events\n");
         }

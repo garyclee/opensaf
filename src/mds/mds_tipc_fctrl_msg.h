@@ -44,6 +44,7 @@ class Event {
                            // selective data msgs (not supported)
     kEvtDropData,          // event reported from tipc that a message is not
                            // delivered
+    kEvtRcvNack,           // event that received nack message
     kEvtTmrAll,
     kEvtTmrTxProb,    // event that tx probation timer expired for once
     kEvtTmrChunkAck,  // event to send the chunk ack
@@ -146,6 +147,27 @@ class ChunkAck: public BaseMessage {
   ChunkAck() {}
   ChunkAck(uint16_t svc_id, uint16_t fseq, uint16_t chunk_size);
   virtual ~ChunkAck() {}
+  void Encode(uint8_t *msg) override;
+  void Decode(uint8_t *msg) override;
+};
+
+class Nack: public BaseMessage {
+ public:
+  enum FieldIndex {
+    kProtocolIdentifier = 11,
+    kFlowControlMessageType = 15,
+    kServiceId = 16,
+    kFlowControlSequenceNumber = 18,
+  };
+  static const uint8_t kNackMsgType = 2;
+  static const uint16_t kNackMsgLength = 20;
+
+  uint8_t msg_type_{0};
+  uint16_t svc_id_{0};
+  uint16_t nacked_fseq_{0};
+  Nack() {}
+  Nack(uint16_t svc_id, uint16_t fseq);
+  virtual ~Nack() {}
   void Encode(uint8_t *msg) override;
   void Decode(uint8_t *msg) override;
 };

@@ -57,10 +57,10 @@ void MessageQueue::Queue(DataMessage* msg) {
   queue_.push_back(msg);
 }
 
-DataMessage* MessageQueue::Find(uint32_t mseq, uint16_t mfrag) {
+DataMessage* MessageQueue::Find(Seq16 fseq) {
   for (const auto& it : queue_) {
     DataMessage *m = it;
-    if (m->header_.mseq_ == mseq && m->header_.mfrag_ == mfrag) {
+    if (Seq16(m->header_.fseq_) == fseq) {
       return m;
     }
   }
@@ -224,19 +224,33 @@ bool TipcPortId::ReceiveCapable(uint16_t sending_len) {
 
 void TipcPortId::SendChunkAck(uint16_t fseq, uint16_t svc_id,
     uint16_t chksize) {
-  uint8_t data[ChunkAck::kChunkAckMsgLength];
+  uint8_t data[ChunkAck::kChunkAckMsgLength] = {0};
 
   HeaderMessage header(ChunkAck::kChunkAckMsgLength, 0, 0, fseq);
-  header.Encode(reinterpret_cast<uint8_t*>(&data));
+  header.Encode(data);
 
   ChunkAck sack(svc_id, fseq, chksize);
-  sack.Encode(reinterpret_cast<uint8_t*>(&data));
-  Send(reinterpret_cast<uint8_t*>(&data), ChunkAck::kChunkAckMsgLength);
+  sack.Encode(data);
+  Send(data, ChunkAck::kChunkAckMsgLength);
   m_MDS_LOG_DBG("FCTRL: [me] --> [node:%x, ref:%u], "
       "SndChkAck[fseq:%u, chunk:%u]",
       id_.node, id_.ref,
       fseq, chksize);
 }
+
+void TipcPortId::SendNack(uint16_t fseq, uint16_t svc_id) {
+  uint8_t data[Nack::kNackMsgLength] = {0};
+
+  HeaderMessage header(Nack::kNackMsgLength, 0, 0, fseq);
+  header.Encode(data);
+
+  Nack nack(svc_id, fseq);
+  nack.Encode(data);
+  Send(data, Nack::kNackMsgLength);
+  m_MDS_LOG_DBG("FCTRL: [me] --> [node:%x, ref:%u], "
+      "SndNack[fseq:%u]", id_.node, id_.ref, fseq);
+}
+
 
 uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
     uint16_t fseq, uint16_t svc_id) {
@@ -312,9 +326,11 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
             id_.node, id_.ref,
             mseq, mfrag, fseq,
             rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_);
+        // send nack
+        SendNack((rcvwnd_.rcv_ + Seq16(1)).v(), svc_id);
       }
     }
-    if (Seq16(fseq) <= rcvwnd_.acked_) {
+    if (Seq16(fseq) <= rcvwnd_.rcv_) {
       rc = NCSCC_RC_FAILURE;
       // unexpected retransmission
       m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
@@ -438,7 +454,7 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
         id_.node, id_.ref);
     sndqueue_.MarkUnsentFrom(Seq16(fseq));
   }
-  DataMessage* msg = sndqueue_.Find(mseq, mfrag);
+  DataMessage* msg = sndqueue_.Find(Seq16(fseq));
   if (msg != nullptr) {
     // Resend the msg found
     if (Send(msg->msg_data_, msg->header_.msg_len_) == NCSCC_RC_SUCCESS) {
