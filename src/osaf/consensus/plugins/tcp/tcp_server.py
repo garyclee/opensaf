@@ -73,9 +73,14 @@ class ThreadedRPCServer(ThreadingMixIn,
             certfile=CERTFILE,
             keyfile=KEYFILE,
             cert_reqs=ssl.CERT_NONE,
-            ssl_version=ssl.PROTOCOL_TLSv1_2)
+            ssl_version=ssl.PROTOCOL_TLSv1_2,
+            do_handshake_on_connect=False)
         self.server_bind()
         self.server_activate()
+
+    def finish_request(self, request, client_address):
+         request.do_handshake()
+         return SimpleXMLRPCServer.finish_request(self, request, client_address)
 
 
 class Arbitrator(object):
