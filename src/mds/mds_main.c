@@ -408,7 +408,7 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 				if (tipc_mcast_enabled != false)
 					tipc_mcast_enabled = true;
 
-				m_MDS_LOG_DBG(
+				m_MDS_LOG_NOTIFY(
 				    "MDS: TIPC_MCAST_ENABLED: %d  Set argument \n",
 				    tipc_mcast_enabled);
 			}

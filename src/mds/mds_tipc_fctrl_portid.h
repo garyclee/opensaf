@@ -134,11 +134,13 @@ class TipcPortId {
   void ReceiveChunkAck(uint16_t fseq, uint16_t chunk_size);
   void SendChunkAck(uint16_t fseq, uint16_t svc_id, uint16_t chunk_size);
   void SendNack(uint16_t fseq, uint16_t svc_id);
+  void SendIntro();
   uint32_t ReceiveData(uint32_t mseq, uint16_t mfrag,
       uint16_t fseq, uint16_t svc_id);
   void ReceiveNack(uint32_t mseq, uint16_t mfrag, uint16_t fseq);
   bool ReceiveTmrTxProb(uint8_t max_txprob);
   void ReceiveTmrChunkAck();
+  void ReceiveIntro();
   void FlushData();
   uint32_t Send(uint8_t* data, uint16_t length);
   uint32_t Queue(const uint8_t* data, uint16_t length, bool is_sent);

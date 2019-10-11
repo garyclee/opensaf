@@ -112,6 +112,7 @@ TipcPortId::TipcPortId(struct tipc_portid id, int sock, uint16_t chksize,
     uint64_t sock_buf_size):
   id_(id), bsrsock_(sock), chunk_size_(chksize), rcv_buf_size_(sock_buf_size) {
   state_ = State::kStartup;
+  SendIntro();
 }
 
 TipcPortId::~TipcPortId() {
@@ -189,7 +190,7 @@ uint32_t TipcPortId::Queue(const uint8_t* data, uint16_t length,
         sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
   } else {
     ++sndwnd_.send_;
-    m_MDS_LOG_DBG("FCTRL: [me] --> [node:%x, ref:%u], "
+    m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
         "QueData[mseq:%u, mfrag:%u, fseq:%u, len:%u], "
         "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
         id_.node, id_.ref,
@@ -248,10 +249,22 @@ void TipcPortId::SendNack(uint16_t fseq, uint16_t svc_id) {
   Nack nack(svc_id, fseq);
   nack.Encode(data);
   Send(data, Nack::kNackMsgLength);
-  m_MDS_LOG_DBG("FCTRL: [me] --> [node:%x, ref:%u], "
+  m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
       "SndNack[fseq:%u]", id_.node, id_.ref, fseq);
 }
 
+void TipcPortId::SendIntro() {
+  uint8_t data[Intro::kIntroMsgLength] = {0};
+
+  HeaderMessage header(Intro::kIntroMsgLength, 0, 0, 0);
+  header.Encode(data);
+
+  Intro intro;
+  intro.Encode(data);
+  Send(data, Intro::kIntroMsgLength);
+  m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
+      "SndIntro", id_.node, id_.ref);
+}
 
 uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
     uint16_t fseq, uint16_t svc_id) {
@@ -330,8 +343,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
         // send nack
         SendNack((rcvwnd_.rcv_ + Seq16(1)).v(), svc_id);
       }
-    }
-    if (Seq16(fseq) <= rcvwnd_.rcv_) {
+    } else if (Seq16(fseq) <= rcvwnd_.rcv_) {
       rc = NCSCC_RC_FAILURE;
       // unexpected retransmission
       m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
@@ -399,7 +411,7 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
             sndwnd_.nacked_space_ += msg->header_.msg_len_;
             msg->is_sent_ = true;
             resend_bytes += msg->header_.msg_len_;
-            m_MDS_LOG_DBG("FCTRL: [me] --> [node:%x, ref:%u], "
+            m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
                 "SndQData[fseq:%u, len:%u], "
                 "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
                 id_.node, id_.ref,
@@ -443,7 +455,7 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
   }
   if (state_ == State::kRcvBuffOverflow) {
     m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
-        "RcvNack[fseq:%u, state:%u]"
+        "RcvNack[fseq:%u, state:%u], "
         "Warning[Ignore Nack]",
         id_.node, id_.ref,
         fseq, (uint8_t)state_);
@@ -462,7 +474,7 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
     if (Send(msg->msg_data_, msg->header_.msg_len_) == NCSCC_RC_SUCCESS) {
       msg->is_sent_ = true;
     }
-    m_MDS_LOG_DBG("FCTRL: [me] --> [node:%x, ref:%u], "
+    m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
         "RsndData[mseq:%u, mfrag:%u, fseq:%u], "
         "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
         id_.node, id_.ref,
@@ -495,12 +507,11 @@ bool TipcPortId::ReceiveTmrTxProb(uint8_t max_txprob) {
     // receiver is at old mds version
     if (state_ == State::kDisabled) {
       FlushData();
+      m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u], "
+          "TxProbExp, TxProb[retries:%u, state:%u]",
+          id_.node, id_.ref,
+          txprob_cnt_, (uint8_t)state_);
     }
-
-    m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u], "
-        "TxProbExp, TxProb[retries:%u, state:%u]",
-        id_.node, id_.ref,
-        txprob_cnt_, (uint8_t)state_);
   }
   return restart_txprob;
 }
@@ -515,6 +526,17 @@ void TipcPortId::ReceiveTmrChunkAck() {
     // send ack for @chksize msgs starting from rcvwnd_.rcv_
     SendChunkAck(rcvwnd_.rcv_.v(), 0, chksize);
     rcvwnd_.acked_ = rcvwnd_.rcv_;
+  }
+}
+
+void TipcPortId::ReceiveIntro() {
+  m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
+      "RcvIntro, "
+      "TxProb[retries:%u, state:%u]",
+      id_.node, id_.ref,
+      txprob_cnt_, (uint8_t)state_);
+  if (state_ == State::kStartup || state_ == State::kTxProb) {
+    state_ = State::kEnabled;
   }
 }
 

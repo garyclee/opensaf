@@ -178,4 +178,15 @@ void Nack::Decode(uint8_t *msg) {
   nacked_fseq_ = ncs_decode_16bit(&ptr);
 }
 
+
+void Intro::Encode(uint8_t *msg) {
+  uint8_t *ptr;
+  // encode protocol identifier
+  ptr = &msg[Intro::FieldIndex::kProtocolIdentifier];
+  ncs_encode_32bit(&ptr, MDS_PROT_FCTRL_ID);
+  // encode message type
+  ptr = &msg[Intro::FieldIndex::kFlowControlMessageType];
+  ncs_encode_8bit(&ptr, kIntroMsgType);
+}
+
 }  // end namespace mds

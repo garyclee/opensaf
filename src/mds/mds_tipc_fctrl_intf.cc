@@ -39,6 +39,7 @@ using mds::DataMessage;
 using mds::ChunkAck;
 using mds::HeaderMessage;
 using mds::Nack;
+using mds::Intro;
 
 namespace {
 // flow control enabled/disabled
@@ -124,12 +125,20 @@ uint32_t process_flow_event(const Event& evt) {
   uint32_t rc = NCSCC_RC_SUCCESS;
   TipcPortId *portid = portid_lookup(evt.id_);
   if (portid == nullptr) {
+    // the null portid normally should not happen; however because the
+    // tipc_cb.Dsock and tipc_cb.BSRsock are separated; the data message
+    // sent from BSRsock may come before reception of TIPC_PUBLISHED
     if (evt.type_ == Event::Type::kEvtRcvData) {
       portid = new TipcPortId(evt.id_, data_sock_fd,
           kChunkAckSize, sock_buf_size);
       portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
       rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
             evt.fseq_, evt.svc_id_);
+    } else if (evt.type_ == Event::Type::kEvtRcvIntro) {
+      portid = new TipcPortId(evt.id_, data_sock_fd,
+          kChunkAckSize, sock_buf_size);
+      portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
+      portid->ReceiveIntro();
     } else {
       m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
           "RcvEvt[evt:%d], Error[PortId not found]",
@@ -150,6 +159,9 @@ uint32_t process_flow_event(const Event& evt) {
         evt.type_ == Event::Type::kEvtRcvNack) {
       portid->ReceiveNack(evt.mseq_, evt.mfrag_,
           evt.fseq_);
+    }
+    if (evt.type_ == Event::Type::kEvtRcvIntro) {
+      portid->ReceiveIntro();
     }
   }
   return rc;
@@ -489,6 +501,16 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
           m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
               strerror(errno));
         }
+      } else if (header.msg_type_ == Intro::kIntroMsgType) {
+        // no need to decode intro message
+        // the decoding intro message type is done in header decoding
+        // send to the event thread
+        if (m_NCS_IPC_SEND(&mbx_events,
+            new Event(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0),
+                NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+              strerror(errno));
+        }
       } else {
         m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
             "[msg_type:%u], Error[not supported message type]",
@@ -516,6 +538,11 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
       portid_map_mutex.unlock();
       return rc;
     }
+  } else {
+    m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
+        "Receive non-flow-control data message, "
+        "header.pro_ver:%u",
+        id.node, id.ref, header.pro_ver_);
   }
   return NCSCC_RC_SUCCESS;
 }

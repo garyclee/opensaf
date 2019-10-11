@@ -45,6 +45,7 @@ class Event {
     kEvtDropData,          // event reported from tipc that a message is not
                            // delivered
     kEvtRcvNack,           // event that received nack message
+    kEvtRcvIntro,          // event that received intro message
     kEvtTmrAll,
     kEvtTmrTxProb,    // event that tx probation timer expired for once
     kEvtTmrChunkAck,  // event to send the chunk ack
@@ -171,6 +172,23 @@ class Nack: public BaseMessage {
   void Encode(uint8_t *msg) override;
   void Decode(uint8_t *msg) override;
 };
+
+class Intro: public BaseMessage {
+ public:
+  enum FieldIndex {
+    kProtocolIdentifier = 11,
+    kFlowControlMessageType = 15,
+  };
+  static const uint8_t kIntroMsgType = 3;
+  static const uint16_t kIntroMsgLength = 16;
+
+  uint8_t msg_type_{0};
+
+  Intro() { msg_type_ = kIntroMsgType; }
+  virtual ~Intro() {}
+  void Encode(uint8_t *msg) override;
+};
+
 
 }  // end namespace mds
 
