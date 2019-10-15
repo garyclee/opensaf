@@ -145,6 +145,12 @@ typedef struct tet_mds_recvd_msg_info {
   uint16_t len;
 } TET_MDS_RECVD_MSG_INFO;
 
+typedef struct COUNTER {
+  MDS_DEST fr_dest;
+  uint32_t msg_count;
+  struct COUNTER *next;
+} COUNTER;
+
 /********************* GLOBAL variables ********************/
 TET_ADEST gl_tet_adest;
 TET_VDEST
