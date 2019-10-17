@@ -378,7 +378,28 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
         txprob_cnt_, (uint8_t)state_);
   }
   // update sender sequence window
-  if (sndwnd_.acked_ < Seq16(fseq) && Seq16(fseq) < sndwnd_.send_) {
+  if (sndwnd_.acked_ < Seq16(fseq)) {
+    // The fseq_ should always be less then sndwnd_.send_, hence
+    // mds should check the sender being capable of sending more
+    // message only if D = sndwnd_.send_ - sndwnd_.acked_ < 2^15 - 1 = 32767
+    // If a burst of message is sent, D could be > 32767
+    // mds in this case should notify the sender try to send again
+    // later; which however could leads to a backward compatibility
+    // For now mds logs a warning and let the transmission continue
+    // (mds could be changed to return try again if it is not a backward
+    // compatibility problem to a specific client).
+    if (Seq16(fseq) >= sndwnd_.send_) {
+      m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
+          "RcvChkAck[fseq:%u, chunk:%u], "
+          "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "], "
+          "queue[size:%" PRIu64 "], "
+          "Warning[ack sequence out of window]",
+          id_.node, id_.ref,
+          fseq, chksize,
+          sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_,
+          sndqueue_.Size());
+    }
+
     m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
         "RcvChkAck[fseq:%u, chunk:%u], "
         "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "], "
