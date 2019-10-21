@@ -1,8 +1,8 @@
-OpenSAF 5.19.07 (released 2019-07-22)
+OpenSAF 5.19.10 (released 2019-10-23)
 -------------------------------------
 
 This is a major release containing new enhancements. Before installing or
-upgrading to OpenSAF 5.19.07, make sure your system meets the minimum version
+upgrading to OpenSAF 5.19.10, make sure your system meets the minimum version
 requirements of the following system components:
 
 - Linux kernel, version 2.6.39 or later. Recommended version is Linux 3.18 or
@@ -36,27 +36,31 @@ Important enhancements in this release
 
 **AMF enhancements**
 
-- amf: add support for container/contained [#70]
-- amfd: improve failover behaviour if consensus service is enabled [#3029]
+- amfd: add support for modifying saAmfRank of SaAmfSIRankedSU class [#3058]
+- amfd: allow saAmfRank of SaAmfSIRankedSU to be non-unique [#3076]
 
-**LOG enhancements**
+**DTM enhancements**
 
-- log: Delete the older file without closing current log file via admin operation [#3046]
+- dtm: support NAT [#3057]
+
+**OSAF enhancements**
+
+- osaf: implement a TCP based consensus service plugin [#3064]
 
 **MDS enhancements**
 
-- mds: use new TIPC getsockopt to log receive queue utilization [#3038]
+- mds: handle dropped TIPC packets [#1960]
 
 Links
 -----
 
-* The complete list of enhancements in the 5.19.07 release can be found in this
+* The complete list of enhancements in the 5.19.10 release can be found in this
   report:
 
-https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A5.19.07+AND+_type%3Aenhancement
+https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A5.19.10+AND+_type%3Aenhancement
 
-* The documentation for the OpenSAF 5.19.07 release can be downloaded here:
+* The documentation for the OpenSAF 5.19.10 release can be downloaded here:
 
-http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.19.07.tar.gz/download
+http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.19.10.tar.gz/download
 
 You can also check the README of the respective OpenSAF service.
