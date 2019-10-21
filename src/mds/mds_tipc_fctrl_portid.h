@@ -136,7 +136,7 @@ class TipcPortId {
   void SendNack(uint16_t fseq, uint16_t svc_id);
   void SendIntro();
   uint32_t ReceiveData(uint32_t mseq, uint16_t mfrag,
-      uint16_t fseq, uint16_t svc_id);
+      uint16_t fseq, uint16_t svc_id, uint8_t snd_type, bool mcast_enabled);
   void ReceiveNack(uint32_t mseq, uint16_t mfrag, uint16_t fseq);
   bool ReceiveTmrTxProb(uint8_t max_txprob);
   void ReceiveTmrChunkAck();
@@ -155,6 +155,7 @@ class TipcPortId {
   int bsrsock_;  // tipc socket to send/receive data per tipc_portid
   uint16_t chunk_size_{5};
   uint64_t rcv_buf_size_{0};  // estimated buffer size at receiver
+  bool rcving_mbcast_{false};  // a flag of receiving the bcast/mcast msg
 
   struct sndwnd {
     // sender sequence window

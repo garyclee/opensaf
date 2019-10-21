@@ -60,17 +60,12 @@ class Event {
   uint16_t mfrag_{0};
   uint16_t fseq_{0};
   uint16_t chunk_size_{1};
+  uint8_t snd_type_{0};
   explicit Event(Type type):type_(type) {}
   Event(Type type, struct tipc_portid id, uint16_t svc_id,
-      uint32_t mseq, uint16_t mfrag, uint16_t f_seg_num):
+      uint32_t mseq, uint16_t mfrag, uint16_t f_seq_num):
     id_(id), svc_id_(svc_id),
-    mseq_(mseq), mfrag_(mfrag), fseq_(f_seg_num) {
-    type_ = type;
-  }
-  Event(Type type, struct tipc_portid id, uint16_t svc_id, uint32_t mseq,
-      uint16_t mfrag, uint16_t f_seg_num, uint16_t chunk_size):
-    id_(id), svc_id_(svc_id), mseq_(mseq), mfrag_(mfrag),
-    fseq_(f_seg_num), chunk_size_(chunk_size) {
+    mseq_(mseq), mfrag_(mfrag), fseq_(f_seq_num) {
     type_ = type;
   }
   bool IsTimerEvent() const { return (type_ > Type::kEvtTmrAll); }

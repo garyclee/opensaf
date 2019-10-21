@@ -133,7 +133,7 @@ uint32_t process_flow_event(const Event& evt) {
           kChunkAckSize, sock_buf_size);
       portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
       rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
-            evt.fseq_, evt.svc_id_);
+            evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
     } else if (evt.type_ == Event::Type::kEvtRcvIntro) {
       portid = new TipcPortId(evt.id_, data_sock_fd,
           kChunkAckSize, sock_buf_size);
@@ -147,7 +147,7 @@ uint32_t process_flow_event(const Event& evt) {
   } else {
     if (evt.type_ == Event::Type::kEvtRcvData) {
       rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
-          evt.fseq_, evt.svc_id_);
+          evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
     }
     if (evt.type_ == Event::Type::kEvtRcvChunkAck) {
       portid->ReceiveChunkAck(evt.fseq_, evt.chunk_size_);
@@ -430,6 +430,7 @@ uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
 
   HeaderMessage header;
   header.Decode(buffer);
+  Event* pevt = nullptr;
   // if mds support flow control
   if ((header.pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) {
     if (header.pro_id_ == MDS_PROT_FCTRL_ID) {
@@ -438,9 +439,10 @@ uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
         ChunkAck ack;
         ack.Decode(buffer);
         // send to the event thread
-        if (m_NCS_IPC_SEND(&mbx_events,
-            new Event(Event::Type::kEvtSendChunkAck, id, ack.svc_id_,
-                header.mseq_, header.mfrag_, ack.acked_fseq_, ack.chunk_size_),
+        pevt = new Event(Event::Type::kEvtSendChunkAck, id, ack.svc_id_,
+            header.mseq_, header.mfrag_, ack.acked_fseq_);
+        pevt->chunk_size_ = ack.chunk_size_;
+        if (m_NCS_IPC_SEND(&mbx_events, pevt,
             NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
           m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
               strerror(errno));
@@ -453,9 +455,9 @@ uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
       DataMessage data;
       data.Decode(buffer);
       // send to the event thread
-      if (m_NCS_IPC_SEND(&mbx_events,
-          new Event(Event::Type::kEvtDropData, id, data.svc_id_,
-              header.mseq_, header.mfrag_, header.fseq_),
+      pevt = new Event(Event::Type::kEvtDropData, id, data.svc_id_,
+          header.mseq_, header.mfrag_, header.fseq_);
+      if (m_NCS_IPC_SEND(&mbx_events, pevt,
           NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
         m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
             strerror(errno));
@@ -474,6 +476,7 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
 
   HeaderMessage header;
   header.Decode(buffer);
+  Event* pevt = nullptr;
   // if mds support flow control
   if ((header.pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) {
     if (header.pro_id_ == MDS_PROT_FCTRL_ID) {
@@ -482,9 +485,10 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
         ChunkAck ack;
         ack.Decode(buffer);
         // send to the event thread
-        if (m_NCS_IPC_SEND(&mbx_events,
-            new Event(Event::Type::kEvtRcvChunkAck, id, ack.svc_id_,
-                header.mseq_, header.mfrag_, ack.acked_fseq_, ack.chunk_size_),
+        pevt = new Event(Event::Type::kEvtRcvChunkAck, id, ack.svc_id_,
+            header.mseq_, header.mfrag_, ack.acked_fseq_);
+        pevt->chunk_size_ = ack.chunk_size_;
+        if (m_NCS_IPC_SEND(&mbx_events, pevt,
                 NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
           m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
               strerror(errno));
@@ -494,9 +498,9 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
         Nack nack;
         nack.Decode(buffer);
         // send to the event thread
-        if (m_NCS_IPC_SEND(&mbx_events,
-            new Event(Event::Type::kEvtRcvNack, id, nack.svc_id_,
-                header.mseq_, header.mfrag_, nack.nacked_fseq_),
+        pevt = new Event(Event::Type::kEvtRcvNack, id, nack.svc_id_,
+            header.mseq_, header.mfrag_, nack.nacked_fseq_);
+        if (m_NCS_IPC_SEND(&mbx_events, pevt,
                 NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
           m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
               strerror(errno));
@@ -505,8 +509,8 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
         // no need to decode intro message
         // the decoding intro message type is done in header decoding
         // send to the event thread
-        if (m_NCS_IPC_SEND(&mbx_events,
-            new Event(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0),
+        pevt = new Event(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0);
+        if (m_NCS_IPC_SEND(&mbx_events, pevt,
                 NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
           m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
               strerror(errno));
@@ -523,14 +527,11 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
       // receive data message
       DataMessage data;
       data.Decode(buffer);
-      // todo: skip mcast/bcast, revisit
-      if ((data.snd_type_ == MDS_SENDTYPE_BCAST ||
-          data.snd_type_ == MDS_SENDTYPE_RBCAST) && is_mcast_enabled) {
-        return NCSCC_RC_SUCCESS;
-      }
       portid_map_mutex.lock();
-      uint32_t rc = process_flow_event(Event(Event::Type::kEvtRcvData,
-          id, data.svc_id_, header.mseq_, header.mfrag_, header.fseq_));
+      Event evt(Event::Type::kEvtRcvData, id, data.svc_id_, header.mseq_,
+          header.mfrag_, header.fseq_);
+      evt.snd_type_ = data.snd_type_;
+      uint32_t rc = process_flow_event(evt);
       if (rc == NCSCC_RC_CONTINUE) {
         process_timer_event(Event(Event::Type::kEvtTmrChunkAck));
         rc = NCSCC_RC_SUCCESS;

@@ -267,7 +267,7 @@ void TipcPortId::SendIntro() {
 }
 
 uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
-    uint16_t fseq, uint16_t svc_id) {
+    uint16_t fseq, uint16_t svc_id, uint8_t snd_type, bool mcast_enabled) {
   uint32_t rc = NCSCC_RC_SUCCESS;
   if (state_ == State::kDisabled) {
     m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
@@ -286,6 +286,34 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
         id_.node, id_.ref,
         txprob_cnt_, (uint8_t)state_);
   }
+  // if tipc multicast is enabled, receiver does not inspect sequence number
+  // for both fragment/unfragment multicast/broadcast message
+  if (mcast_enabled) {
+    if (mfrag == 0) {
+      // this is not fragment, the snd_type field is always present in message
+      rcving_mbcast_ = false;
+      if (snd_type == MDS_SENDTYPE_BCAST || snd_type == MDS_SENDTYPE_RBCAST) {
+        rcving_mbcast_ = true;
+      }
+    } else {
+      // this is fragment, the snd_type is only present in the first fragment
+      if ((mfrag & 0x7fff) == 1 &&
+          (snd_type == MDS_SENDTYPE_BCAST || snd_type == MDS_SENDTYPE_RBCAST)) {
+        rcving_mbcast_ = true;
+      }
+    }
+    if (rcving_mbcast_ == true) {
+      m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
+          "RcvData[mseq:%u, mfrag:%u, fseq:%u], "
+          "rcvwnd[acked:%u, rcv:%u, nacked:%" PRIu64 "], "
+          "Ignore bcast/mcast ",
+          id_.node, id_.ref,
+          mseq, mfrag, fseq,
+          rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_);
+      return rc;
+    }
+  }
+
   // update receiver sequence window
   if (rcvwnd_.acked_ < Seq16(fseq) && rcvwnd_.rcv_ + Seq16(1) == Seq16(fseq)) {
     m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
@@ -475,13 +503,18 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
     return;
   }
   if (state_ == State::kRcvBuffOverflow) {
-    m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
-        "RcvNack[fseq:%u, state:%u], "
-        "Warning[Ignore Nack]",
-        id_.node, id_.ref,
-        fseq, (uint8_t)state_);
     sndqueue_.MarkUnsentFrom(Seq16(fseq));
-    return;
+    if (Seq16(fseq) - sndwnd_.acked_ > 1) {
+      m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
+          "RcvNack[fseq:%u], "
+          "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "], "
+          "queue[size:%" PRIu64 "], "
+          "Warning[Ignore Nack]",
+          id_.node, id_.ref, fseq,
+          sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_,
+          sndqueue_.Size());
+      return;
+    }
   }
   if (state_ != State::kRcvBuffOverflow) {
     state_ = State::kRcvBuffOverflow;
