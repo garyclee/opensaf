@@ -103,6 +103,10 @@ typedef struct mqa_test_env {
   SaAisErrorT open_clbk_err;
   SaMsgQueueHandleT open_clbk_qhdl;
 
+  SaInvocationT open_clbk_invo_2;
+  SaAisErrorT open_clbk_err_2;
+  SaMsgQueueHandleT open_clbk_qhdl_2;
+
   SaInvocationT del_clbk_invo;
   SaAisErrorT del_clbk_err;
 
@@ -200,29 +204,6 @@ extern void tet_queueStatus(SaMsgQueueStatusT *queueStatus);
 extern void groupTrackInfo(SaMsgQueueGroupNotificationBufferT *buffer);
 extern void msgDump(SaMsgMessageT *msg);
 
-extern int tet_test_msgInitialize(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgSelectionObject(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgDispatch(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgFinalize(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgQueueOpen(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgQueueOpenAsync(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgQueueStatusGet(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgQueueClose(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgQueueUnlink(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgGroupCreate(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgGroupInsert(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgGroupRemove(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgGroupDelete(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgGroupTrack(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgGroupTrackStop(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgMessageSend(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgMessageSendAsync(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgMessageGet(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgMessageCancel(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgMessageSendReceive(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgMessageReply(int i, MQSV_CONFIG_FLAG flg);
-extern int tet_test_msgMessageReplyAsync(int i, MQSV_CONFIG_FLAG flg);
-
 extern int tet_test_red_msgInitialize(int i, MQSV_CONFIG_FLAG flg);
 extern int tet_test_red_msgSelectionObject(int i, MQSV_CONFIG_FLAG flg);
 extern int tet_test_red_msgDispatch(int i, MQSV_CONFIG_FLAG flg);
@@ -253,9 +234,6 @@ extern void mqsv_restore_params(MQSV_RESTORE_OPT opt);
 extern void mqsv_clean_output_params();
 extern void mqsv_clean_clbk_params();
 extern void mqsv_clean_q_status();
-extern void mqsv_init_cleanup(MQSV_INIT_CLEANUP_OPT opt);
-extern void mqsv_q_cleanup(MQSV_Q_CLEANUP_OPT opt);
-extern void mqsv_q_grp_cleanup(MQSV_Q_GRP_CLEANUP_OPT opt);
 extern void mqsv_q_grp_track_stop(MQSV_Q_GRP_TRACK_STOP_OPT opt);
 void mqsv_init_red_cleanup(MQSV_INIT_CLEANUP_OPT opt);
 void mqsv_q_red_cleanup(MQSV_Q_CLEANUP_OPT opt);

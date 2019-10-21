@@ -745,6 +745,7 @@ static uint32_t mqnd_mds_svc_evt(MQND_CB *cb,
 			return NCSCC_RC_SUCCESS;
 		break;
 	case NCSMDS_UP:
+	case NCSMDS_NEW_ACTIVE:
 		switch (svc_evt->i_svc_id) {
 		case NCSMDS_SVC_ID_MQD: {
 			cb->is_mqd_up = true;
@@ -765,6 +766,25 @@ static uint32_t mqnd_mds_svc_evt(MQND_CB *cb,
 				LOG_ER("Message Format Version Invalid %u",
 				       to_dest_node_id);
 
+			MQSV_EVT *evt = NULL;
+			evt = m_MMGR_ALLOC_MQSV_EVT(NCS_SERVICE_ID_MQND);
+			if (evt == NULL) {
+				LOG_CR("Event Database Creation Failed");
+				return NCSCC_RC_FAILURE;
+			}
+			memset(evt, 0, sizeof(MQSV_EVT));
+			evt->evt_type = MQSV_NOT_DSEND_EVENT;
+			evt->type = MQSV_EVT_MQND_CTRL;
+			evt->msg.mqnd_ctrl.type =
+			    MQND_CTRL_EVT_DEFERRED_MQA_RSP;
+
+			/* Post the event to MQND Thread */
+			rc = m_NCS_IPC_SEND(&cb->mbx, evt,
+					    NCS_IPC_PRIORITY_HIGH);
+			if (rc != NCSCC_RC_SUCCESS) {
+				LOG_CR(
+				    "Sending the event to the MQND Mail Box failed");
+			}
 		} break;
 		case NCSMDS_SVC_ID_MQA: {
 			MQSV_EVT *evt = NULL;
@@ -815,31 +835,6 @@ static uint32_t mqnd_mds_svc_evt(MQND_CB *cb,
 		break;
 	case NCSMDS_NO_ACTIVE:
 		cb->is_mqd_up = false;
-		break;
-	case NCSMDS_NEW_ACTIVE:
-		cb->is_mqd_up = true;
-		{
-			MQSV_EVT *evt = NULL;
-			evt = m_MMGR_ALLOC_MQSV_EVT(NCS_SERVICE_ID_MQND);
-			if (evt == NULL) {
-				cb->is_mqd_up = true;
-				LOG_CR("Event Database Creation Failed");
-				return NCSCC_RC_FAILURE;
-			}
-			memset(evt, 0, sizeof(MQSV_EVT));
-			evt->evt_type = MQSV_NOT_DSEND_EVENT;
-			evt->type = MQSV_EVT_MQND_CTRL;
-			evt->msg.mqnd_ctrl.type =
-			    MQND_CTRL_EVT_DEFERRED_MQA_RSP;
-
-			/* Post the event to MQND Thread */
-			rc = m_NCS_IPC_SEND(&cb->mbx, evt,
-					    NCS_IPC_PRIORITY_HIGH);
-			if (rc != NCSCC_RC_SUCCESS) {
-				LOG_CR(
-				    "Sending the event to the MQND Mail Box failed");
-			}
-		}
 		break;
 	default:
 		break;

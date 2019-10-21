@@ -177,7 +177,7 @@ uint32_t mqnd_queue_create(MQND_CB *cb, MQP_OPEN_REQ *open, MDS_DEST *rcvr_mqa,
 	if (error != SA_AIS_OK) {
 		LOG_ER("Create MsgQobject %s Failed with error: %u",
 		       qnode->qinfo.queueName.value, error);
-		return NCSCC_RC_FAILURE;
+		goto qname_destroy;
 	}
 
 	error = mqnd_create_runtime_MsgQPriorityobject(
@@ -186,7 +186,15 @@ uint32_t mqnd_queue_create(MQND_CB *cb, MQP_OPEN_REQ *open, MDS_DEST *rcvr_mqa,
 	if (error != SA_AIS_OK) {
 		LOG_ER("Create MsgQPriorityobject %s Failed with error: %u",
 		       qnode->qinfo.queueName.value, error);
-		return NCSCC_RC_FAILURE;
+
+		if (immutil_saImmOiRtObjectDelete(cb->immOiHandle,
+                                                  &qnode->qinfo.queueName) !=
+                    SA_AIS_OK) {
+                        LOG_ER("Deleting MessageQueue Object %s FAILED",
+                               qnode->qinfo.queueName.value);
+		}
+
+		goto qname_destroy;
 	}
 
 	*qhdl = qnode->qinfo.queueHandle;

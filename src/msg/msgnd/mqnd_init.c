@@ -604,7 +604,6 @@ static uint32_t mqnd_cb_db_init(MQND_CB *cb)
 		return rc;
 	}
 	cb->is_qevt_hdl_db_up = true;
-	cb->mqa_dfrd_evt_rsp_list_head = NULL;
 	rc = mqnd_mqa_list_init(&cb->mqa_list_info);
 
 	TRACE_LEAVE();

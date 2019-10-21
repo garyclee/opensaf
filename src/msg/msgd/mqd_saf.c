@@ -40,6 +40,161 @@ extern MQDLIB_INFO gl_mqdinfo;
 static uint32_t mqd_process_quisced_state(MQD_CB *pMqd,
 					  SaInvocationT invocation,
 					  SaAmfHAStateT haState);
+
+/*
+ * This function is called after SC absence resolves. We need to setup
+ * the db with q groups that still exist in IMM.
+ */
+static void get_q_groups_from_imm(MQD_CB *pMqd)
+{
+	const char *className = "SaMsgQueueGroup";
+	SaAisErrorT error;
+	SaImmHandleT immHandle = 0;
+	SaImmSearchHandleT searchHandle;
+	SaImmSearchParametersT_2 searchParam;
+	SaNameT dn;
+	const SaImmAttrValuesT_2 **attributes;
+
+        TRACE_ENTER();
+	searchParam.searchOneAttr.attrName = "SaImmAttrClassName";
+	searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
+	searchParam.searchOneAttr.attrValue = &className;
+
+	do {
+		SaVersionT version = { 'A', 2, 15 };
+
+		error = immutil_saImmOmInitialize(&immHandle, 0, &version);
+
+		if (error != SA_AIS_OK) {
+			LOG_ER("saImmOmInitialize failed %u", error);
+			break;
+		}
+
+        	error = immutil_saImmOmSearchInitialize_o2(
+			immHandle,
+			0,
+			SA_IMM_SUBTREE,
+			SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR,
+	       		&searchParam,
+	       		0,
+	       		&searchHandle);
+
+        	if (error != SA_AIS_OK) {
+                	LOG_ER("immutil_saImmOmSearchInitialize_o2 failed: %i",
+				error);
+			break;
+        	}
+
+		while (immutil_saImmOmSearchNext_2(searchHandle, &dn,
+			(SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
+
+			MQD_OBJ_NODE *pObjNode = 0;
+			int i = 0;
+			uint32_t policy = 0, numQueues = 0;
+
+			if (immutil_getAttr("saMsgQueueGroupPolicy",
+				attributes, 0, &policy) != SA_AIS_OK) {
+				LOG_ER("unable to get policy");
+				break;
+			}
+
+			if (immutil_getAttr("saMsgQueueGroupNumQueues",
+				attributes, 0, &numQueues) != SA_AIS_OK) {
+				LOG_ER("unable to get number of queues");
+				break;
+			}
+
+			TRACE("num of queues in q group: %i", numQueues);
+			SaNameT *queues = calloc(numQueues, sizeof(SaNameT));
+
+			if (numQueues) {
+				for (i = 0; i < numQueues; i++) {
+					error = immutil_getAttr(
+							"saMsgQueueGroupMemberName",
+							attributes, i,
+						       	&queues[i]);
+					if (error != SA_AIS_OK) {
+						LOG_ER("unable to get queue: %i rc: %i", i, error);
+					}
+				}
+			}
+
+			TRACE("adding queue: %s", dn.value);
+			if (mqd_db_node_create(pMqd, &pObjNode) !=
+				NCSCC_RC_SUCCESS) {
+				LOG_ER("failed to create q group");
+				break;
+			}
+
+			memcpy(&pObjNode->oinfo.name, &dn, sizeof(SaNameT));
+			pObjNode->oinfo.type = MQSV_OBJ_QGROUP;
+			pObjNode->oinfo.info.qgrp.policy = policy;
+
+			if (mqd_db_node_add(pMqd, pObjNode) !=
+				NCSCC_RC_SUCCESS) {
+                        	LOG_ER("failed to add q group");
+				break;
+			}
+
+                        pMqd->currentNumOfQueueGroups++;
+
+			/* register any queues that are members of the group */
+			bool prevState = pMqd->active;
+			pMqd->active = true;
+			for (i = 0; i < numQueues; i++) {
+				TRACE("adding queue: %s", queues[i].value);
+				if (mqd_db_node_create(pMqd, &pObjNode) !=
+					NCSCC_RC_SUCCESS) {
+					LOG_ER("failed to create q");
+					break;
+				}
+
+				memcpy(&pObjNode->oinfo.name, &queues[i],
+					sizeof(SaNameT));
+				pObjNode->oinfo.type = MQSV_OBJ_QUEUE;
+
+				if (mqd_db_node_add(pMqd, pObjNode) !=
+					NCSCC_RC_SUCCESS) {
+                        		LOG_ER("failed to add q");
+					break;
+				}
+
+				ASAPi_MSG_INFO *asapiReg =
+					m_MMGR_ALLOC_ASAPi_MSG_INFO(asapi.my_svc_id);
+				memset(asapiReg, 0, sizeof(ASAPi_MSG_INFO));
+				asapiReg->msgtype = ASAPi_MSG_REG;
+				asapiReg->info.reg.objtype = ASAPi_OBJ_BOTH;
+				asapiReg->info.reg.group = dn;
+				asapiReg->info.reg.queue.name = queues[i];
+
+				MQSV_EVT evt;
+				memset(&evt, 0, sizeof(evt));
+
+				evt.msg.asapi = asapiReg;
+				if (mqd_asapi_evt_hdlr(&evt, pMqd) != NCSCC_RC_SUCCESS)
+					LOG_ER("failed to register queue with group");
+			}
+			pMqd->active = prevState;
+
+			free(queues);
+		}
+
+		error = immutil_saImmOmSearchFinalize(searchHandle);
+
+		if (error != SA_AIS_OK)
+			LOG_ER("saImmOmSearchFinalize failed: %i", error);
+	} while (false);
+
+	if (immHandle) {
+		error = immutil_saImmOmFinalize(immHandle);
+
+		if (error != SA_AIS_OK)
+			LOG_ER("saImmOmFinalize failed: %i", error);
+	}
+
+	TRACE_LEAVE2();
+}
+
 /****************************************************************************
  PROCEDURE NAME : mqd_saf_hlth_chk_cb
 
@@ -194,6 +349,11 @@ void mqd_saf_csi_set_cb(SaInvocationT invocation, const SaNameT *compName,
 				LOG_ER(
 				    "mqd_imm_declare_implementer failed: err = %u",
 				    saErr);
+			}
+
+			if (csiDescriptor.csiStateDescriptor.activeDescriptor.
+				transitionDescriptor == SA_AMF_CSI_NEW_ASSIGN) {
+				get_q_groups_from_imm(pMqd);
 			}
 			mds_role = V_DEST_RL_ACTIVE;
 		} else {
