@@ -197,6 +197,7 @@ typedef struct glnd_cb_tag {
 
   SaClmHandleT clm_hdl;   /* CLM handle, obtained thru CLM init        */
   SaAmfHandleT amf_hdl;   /* AMF handle, obtained thru AMF init        */
+  SaSelectionObjectT clm_sel_obj;
   SaAmfHAStateT ha_state; /* present AMF HA state of the component     */
   EDU_HDL glnd_edu_hdl;   /* edu handle used for encode/decode         */
   void *shm_base_addr; /* Stores shared memory starting address, which contains

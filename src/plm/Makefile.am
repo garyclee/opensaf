@@ -114,10 +114,10 @@ lib_libplms_hpi_la_LIBADD = \
 lib_LTLIBRARIES += lib/libSaPlm.la
 
 lib_libSaPlm_la_SOURCES = \
-	src/plm/agent/plma_api.c \
-	src/plm/agent/plma_comm.c \
-	src/plm/agent/plma_init.c \
-	src/plm/agent/plma_mds.c
+	src/plm/agent/plma_api.cc \
+	src/plm/agent/plma_comm.cc \
+	src/plm/agent/plma_init.cc \
+	src/plm/agent/plma_mds.cc
 
 nodist_EXTRA_lib_libSaPlm_la_SOURCES = dummy.cc
 

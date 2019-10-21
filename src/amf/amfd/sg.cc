@@ -435,7 +435,7 @@ static AVD_SG *sg_create(const std::string &sg_name,
  */
 SaAisErrorT avd_sg_config_get(const std::string &app_dn, AVD_APP *app) {
   AVD_SG *sg;
-  SaAisErrorT error, rc;
+  SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION, rc;
   SaImmSearchHandleT searchHandle;
   SaImmSearchParametersT_2 searchParam;
   SaNameT dn;
@@ -468,13 +468,14 @@ SaAisErrorT avd_sg_config_get(const std::string &app_dn, AVD_APP *app) {
   searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
   searchParam.searchOneAttr.attrValue = &className;
 
-  error = immutil_saImmOmSearchInitialize_o2(
+  rc = immutil_saImmOmSearchInitialize_o2(
       avd_cb->immOmHandle, app_dn.c_str(), SA_IMM_SUBTREE,
       SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
       configAttributes, &searchHandle);
 
-  if (SA_AIS_OK != error) {
-    LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, error);
+  if (SA_AIS_OK != rc) {
+    LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, rc);
+    error = rc;
     goto done1;
   }
 
@@ -482,20 +483,21 @@ SaAisErrorT avd_sg_config_get(const std::string &app_dn, AVD_APP *app) {
               searchHandle, &dn, (SaImmAttrValuesT_2 ***)&attributes)) ==
          SA_AIS_OK) {
     if (!is_config_valid(Amf::to_string(&dn), attributes, nullptr)) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
 
     if ((sg = sg_create(Amf::to_string(&dn), attributes)) == nullptr) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
 
     sg_add_to_model(sg);
 
-    if (avd_su_config_get(Amf::to_string(&dn), sg) != SA_AIS_OK) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
-      goto done2;
+    if ((rc = avd_su_config_get(Amf::to_string(&dn), sg)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_sg_delete(sg);
+      } else {
+        goto done2;
+      }
     }
   }
 
@@ -582,7 +584,11 @@ static SaAisErrorT ccb_completed_modify_hdlr(
   TRACE_ENTER2("'%s'", osaf_extended_name_borrow(&opdata->objectName));
 
   sg = sg_db->find(Amf::to_string(&opdata->objectName));
-  osafassert(sg != nullptr);
+  if (sg == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SG modify completed (STDBY): sg does not exist");
+    return SA_AIS_OK;
+  }
+  assert(sg != nullptr);
 
   /* Validate whether we can modify it. */
 
@@ -890,6 +896,10 @@ static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata) {
   TRACE_ENTER2("'%s'", osaf_extended_name_borrow(&opdata->objectName));
 
   sg = sg_db->find(Amf::to_string(&opdata->objectName));
+  if (sg == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SG modify apply (STDBY): sg does not exist");
+    return;
+  }
   assert(sg != nullptr);
 
   sg_type = sgtype_db->find(sg->saAmfSGType);
@@ -1625,6 +1635,7 @@ static SaAisErrorT sg_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
     case CCBUTIL_DELETE:
       sg = sg_db->find(Amf::to_string(&opdata->objectName));
       if (sg == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SG delete completed (STDBY): sg does not exist");
         rc = SA_AIS_OK;
         opdata->userData = nullptr;
         break;
@@ -1687,6 +1698,7 @@ static void sg_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
       break;
     case CCBUTIL_DELETE:
       if (opdata->userData == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SG delete apply (STDBY): sg does not exist");
         break;
       }
       osafassert(opdata->userData != nullptr);
@@ -2342,6 +2354,18 @@ bool AVD_SG::any_assignment_excessive() {
     }
   }
   TRACE_LEAVE();
+  return pending;
+}
+
+bool AVD_SG::any_failover_under_progress() const {
+  bool pending = false;
+  TRACE_ENTER2("SG:'%s'", name.c_str());
+  for (const auto &si : list_of_si) {
+    if (si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
+      pending = true;
+      break;
+    }
+  }
   return pending;
 }
 

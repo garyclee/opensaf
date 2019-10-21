@@ -619,7 +619,7 @@ uint32_t mbcsv_process_close_request(NCS_MBCSV_ARG *arg)
 	if (NULL ==
 	    (mbc_reg = (MBCSV_REG *)m_MBCSV_TAKE_HANDLE(arg->i_mbcsv_hdl))) {
 		TRACE_2("bad handle specified");
-		rc = SA_AIS_ERR_BAD_HANDLE;
+		return SA_AIS_ERR_BAD_HANDLE;
 	}
 
 	m_NCS_LOCK(&mbc_reg->svc_lock, NCS_LOCK_WRITE);
@@ -685,7 +685,7 @@ uint32_t mbcsv_process_chg_role_request(NCS_MBCSV_ARG *arg)
 	if (NULL ==
 	    (mbc_reg = (MBCSV_REG *)m_MBCSV_TAKE_HANDLE(arg->i_mbcsv_hdl))) {
 		TRACE_2("bad handle specified");
-		rc = SA_AIS_ERR_BAD_HANDLE;
+		return SA_AIS_ERR_BAD_HANDLE;
 	}
 
 	m_NCS_LOCK(&mbc_reg->svc_lock, NCS_LOCK_READ);
@@ -804,7 +804,7 @@ uint32_t mbcsv_process_snd_ckpt_request(NCS_MBCSV_ARG *arg)
 	if (NULL ==
 	    (mbc_reg = (MBCSV_REG *)m_MBCSV_TAKE_HANDLE(arg->i_mbcsv_hdl))) {
 		TRACE_2("bad handle specified");
-		rc = SA_AIS_ERR_BAD_HANDLE;
+		return SA_AIS_ERR_BAD_HANDLE;
 	}
 
 	m_NCS_LOCK(&mbc_reg->svc_lock, NCS_LOCK_READ);

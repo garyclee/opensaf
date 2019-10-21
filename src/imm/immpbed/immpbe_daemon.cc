@@ -59,8 +59,8 @@ static nfds_t nrtfds = 1;
 
 static void *sDbHandle = NULL;
 static ClassMap *sClassIdMap = NULL;
-static unsigned int sObjCount = 0;
-static unsigned int sClassCount = 0;
+static int sObjCount = 0;
+static int sClassCount = 0;
 static unsigned int sEpoch = 0;
 static unsigned int sNoStdFlags = 0x00000000;
 static unsigned int sBufsize = 256;
@@ -605,20 +605,19 @@ static void saImmOiAdminOperationCallback(
         classToPBE(className, pbeOmHandle, sDbHandle, ++sClassCount);
 
     if (schemaChange) {
-      unsigned int obj_count = 0;
       LOG_IN("PBE created new class definition for %s", className.c_str());
       if (persistentExtent) {
-        TRACE_5("sObjCount:%u", sObjCount);
-        obj_count = dumpInstancesOfClassToPBE(pbeOmHandle, sClassIdMap,
+        TRACE_5("sObjCount:%d", sObjCount);
+        int obj_count = dumpInstancesOfClassToPBE(pbeOmHandle, sClassIdMap,
                                               className, &sObjCount, sDbHandle);
         if (obj_count < 0) {
           LOG_ER(
               "dumpInstncesOfClassesToPBE failed in callback in PBE. sDbHandle is closed - exiting");
           exit(1);
         }
-        LOG_NO("PBE dumped %u objects of new class definition for %s",
+        LOG_NO("PBE dumped %d objects of new class definition for %s",
                obj_count, className.c_str());
-        TRACE_5("sObjCount:%u", sObjCount);
+        TRACE_5("sObjCount:%d", sObjCount);
       }
     } else {
       /* Add classname to opensaf object when this is not an upgrade. */
@@ -2386,7 +2385,7 @@ void pbeRtObjThreadStart() {
 
 void pbeDaemon(SaImmHandleT immHandle, void *dbHandle,
                SaImmAdminOwnerHandleT ownerHandle, ClassMap *classIdMap,
-               unsigned int objCount, bool pbe2, bool pbe2B) {
+               int objCount, bool pbe2, bool pbe2B) {
   SaAisErrorT error = SA_AIS_OK;
   ClassMap::iterator ci;
 
@@ -2404,7 +2403,7 @@ void pbeDaemon(SaImmHandleT immHandle, void *dbHandle,
   immutilWrapperProfile.nTries = 5;
 
   TRACE_ENTER();
-  LOG_NO("pbeDaemon starting with obj-count:%u", sObjCount);
+  LOG_NO("pbeDaemon starting with obj-count:%d", sObjCount);
 
   /* Restore also sClassCount. */
   for (ci = sClassIdMap->begin(); ci != sClassIdMap->end(); ++ci) {
@@ -2498,7 +2497,6 @@ void pbeDaemon(SaImmHandleT immHandle, void *dbHandle,
           sDbHandle = NULL;
         }
         pbeOiHandle = 0;
-        immHandle = 0;
         break;
       }
     }

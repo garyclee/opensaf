@@ -509,7 +509,7 @@ void gld_main_process(SYSF_MBX *mbx)
 	SaAisErrorT error = SA_AIS_OK;
 	GLSV_GLD_CB *gld_cb = NULL;
 	NCS_MBCSV_ARG mbcsv_arg;
-	SaSelectionObjectT amf_sel_obj, clm_sel_obj;
+	SaSelectionObjectT amf_sel_obj;
 	int term_fd;
 
 	TRACE_ENTER();
@@ -528,13 +528,6 @@ void gld_main_process(SYSF_MBX *mbx)
 		goto end;
 	}
 
-	error = saClmSelectionObjectGet(gld_cb->clm_hdl, &clm_sel_obj);
-
-	if (error != SA_AIS_OK) {
-		LOG_ER("CLM Selection object get error: %i", error);
-		goto end;
-	}
-
 	daemon_sigterm_install(&term_fd);
 
 	/* Set up all file descriptors to listen to */
@@ -546,10 +539,10 @@ void gld_main_process(SYSF_MBX *mbx)
 	fds[FD_MBX].events = POLLIN;
 	fds[FD_IMM].fd = gld_cb->imm_sel_obj;
 	fds[FD_IMM].events = POLLIN;
-	fds[FD_CLM].fd = clm_sel_obj;
 	fds[FD_CLM].events = POLLIN;
 
 	while (1) {
+		fds[FD_CLM].fd = gld_cb->clm_sel_obj;
 		fds[FD_MBCSV].fd = gld_cb->mbcsv_sel_obj;
 		fds[FD_MBCSV].events = POLLIN;
 		if ((gld_cb->immOiHandle != 0) &&
@@ -643,7 +636,11 @@ void gld_main_process(SYSF_MBX *mbx)
 		if (fds[FD_CLM].revents & POLLIN) {
 			/* dispatch all the CLM pending function */
 			error = saClmDispatch(gld_cb->clm_hdl, SA_DISPATCH_ALL);
-			if (error != SA_AIS_OK) {
+			if (error == SA_AIS_ERR_BAD_HANDLE) {
+				LOG_ER("saClmDispatch with bad handle");
+				gld_cb->clm_sel_obj = -1;
+				gld_clm_reinit_bg(gld_cb);
+			} else if (error != SA_AIS_OK) {
 				LOG_ER("CLM dispatch failed: %i", error);
 			}
 		}

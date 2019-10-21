@@ -3382,6 +3382,15 @@ SaAisErrorT SmfUpgradeProcedure::getImmStepsMergedSingleStep() {
     return SA_AIS_ERR_INIT;
   }
 
+  if (newStep->getState() == SA_SMF_STEP_COMPLETED) {
+    SmfCampaignThread::instance()->campaign()->setError("");
+    LOG_NO("SmfUpgradeProcedure::getImmStepsMergedSingleStep: State %d",
+           SA_SMF_STEP_COMPLETED);
+    delete newStep;
+    TRACE_LEAVE();
+    return SA_AIS_OK;
+  }
+
   if ((newStep->getState() != SA_SMF_STEP_INITIAL) &&
       (newStep->getState() != SA_SMF_STEP_EXECUTING)) {
     LOG_NO("SmfUpgradeProcedure::getImmStepsMergedSingleStep: Invalid state %d",

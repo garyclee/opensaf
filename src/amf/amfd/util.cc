@@ -948,6 +948,30 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
         }
       }
 
+      if (susi_msg->msg_info.d2n_su_si_assign.ha_state == SA_AMF_HA_STANDBY) {
+        // fill in standby descriptor info
+        for (const AVD_SU_SI_REL *curr_susi(l_compcsi->susi->si->list_of_sisu);
+             curr_susi;
+             curr_susi = curr_susi->si_next) {
+          if (curr_susi->state == SA_AMF_HA_ACTIVE) {
+            for (const AVD_COMP_CSI_REL *comp_csi(curr_susi->list_of_csicomp);
+                 comp_csi;
+                 comp_csi = comp_csi->susi_csicomp_next) {
+              if (comp_csi->csi == l_compcsi->csi) {
+                osaf_extended_name_alloc(
+                  osaf_extended_name_borrow(&comp_csi->comp->comp_info.name),
+                                            &compcsi_info->active_comp_name);
+                break;
+              }
+            }
+            break;
+          }
+        }
+
+        compcsi_info->stdby_rank =
+          l_compcsi->csi->si->get_sisu_rank(l_compcsi->susi->su->name);
+      }
+
       compcsi_info->next = susi_msg->msg_info.d2n_su_si_assign.list;
       susi_msg->msg_info.d2n_su_si_assign.list = compcsi_info;
       susi_msg->msg_info.d2n_su_si_assign.num_assigns++;
@@ -1016,7 +1040,8 @@ static uint32_t avd_prep_pg_mem_list(
           osaf_extended_name_borrow(&curr->comp->comp_info.name), &comp_name);
       mem_list->notification[i].member.compName = comp_name;
       mem_list->notification[i].member.haState = curr->susi->state;
-      mem_list->notification[i].member.rank = curr->comp->su->saAmfSURank;
+      mem_list->notification[i].member.rank =
+        curr->susi->si->get_sisu_rank(curr->comp->su->name);
       mem_list->notification[i].change = SA_AMF_PROTECTION_GROUP_NO_CHANGE;
       mem_list->numberOfItems++;
     } /* for */
@@ -1140,7 +1165,8 @@ uint32_t avd_snd_pg_upd_msg(AVD_CL_CB *cb, AVD_AVND *node,
         osaf_extended_name_borrow(&comp_csi->comp->comp_info.name), &comp_name);
     pg_msg_info->mem.member.compName = comp_name;
     pg_msg_info->mem.member.haState = comp_csi->susi->state;
-    pg_msg_info->mem.member.rank = comp_csi->comp->su->saAmfSURank;
+    pg_msg_info->mem.member.rank =
+      comp_csi->susi->si->get_sisu_rank(comp_csi->comp->su->name);
     pg_msg_info->mem.change = change;
   } else {
     osaf_extended_name_alloc(csi_name.c_str(), &temp_csi_name);

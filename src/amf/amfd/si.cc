@@ -255,6 +255,111 @@ void AVD_SI::remove_rankedsu(const std::string &suname) {
   TRACE_LEAVE();
 }
 
+/**
+ * @brief Update order of sisu list with new rank.
+ *
+ * @param suname
+ * @param saAmfRank
+ */
+void AVD_SI::update_sisu_rank(const std::string& suname, uint32_t newRank) {
+  TRACE_ENTER();
+
+  do {
+    // if there is only one entry nothing really to do
+    if (!list_of_sisu || !list_of_sisu->si_next)
+      break;
+
+    // first find the su, and remove it from the linked list
+    AVD_SU_SI_REL *matched_susi{nullptr};
+
+    for (AVD_SU_SI_REL *susi{list_of_sisu}, *prev{nullptr};
+         susi;
+         prev = susi, susi = susi->si_next) {
+      if (suname == susi->su->name) {
+        matched_susi = susi;
+        if (prev)
+          prev->si_next = susi->si_next;
+        else
+          list_of_sisu = susi->si_next;
+        break;
+      }
+    }
+
+    // if the SU is not being used right now then nothing to do
+    if (!matched_susi)
+      break;
+
+    // now reinsert it at the correct place
+    AVD_SU_SI_REL *prev(nullptr);
+
+    for (AVD_SU_SI_REL *curr_susi(list_of_sisu);
+         curr_susi;
+         prev = curr_susi, curr_susi = curr_susi->si_next) {
+      if (curr_susi->is_per_si == true) {
+        if (false == matched_susi->is_per_si) continue;
+
+        AVD_SUS_PER_SI_RANK *i_su_rank_rec{nullptr};
+
+        /* determine the su_rank rec for this rec */
+        for (const auto &value : *sirankedsu_db) {
+          i_su_rank_rec = value.second;
+          if (i_su_rank_rec->si_name.compare(name) != 0) continue;
+          AVD_SU *curr_su(su_db->find(i_su_rank_rec->su_name));
+          if (curr_su == curr_susi->su) break;
+        }
+
+        osafassert(i_su_rank_rec);
+
+        if (newRank <= i_su_rank_rec->su_rank) break;
+      } else {
+        if (true == matched_susi->is_per_si) break;
+
+        if (newRank <= curr_susi->su->saAmfSURank) break;
+      }
+    }
+
+    if (prev) {
+      matched_susi->si_next = prev->si_next;
+      prev->si_next = matched_susi;
+    } else {
+      matched_susi->si_next = list_of_sisu;
+      list_of_sisu = matched_susi;
+    }
+
+    // update PG rank
+    for (AVD_SU_SI_REL *curr_susi(matched_susi->si->list_of_sisu);
+         curr_susi;
+         curr_susi = curr_susi->si_next) {
+      if (curr_susi->state == SA_AMF_HA_STANDBY)
+        avd_pg_susi_chg_prc(avd_cb, curr_susi);
+    }
+  } while (false);
+
+  TRACE_LEAVE();
+}
+
+uint32_t AVD_SI::get_sisu_rank(const std::string& suname) const {
+  uint32_t rank{};
+
+  TRACE_ENTER2("%s", suname.c_str());
+
+  for (const AVD_SU_SI_REL *susi(list_of_sisu); susi; susi = susi->si_next) {
+    TRACE("su: %s si: %s state: %i",
+          susi->su->name.c_str(),
+          susi->si->name.c_str(),
+          susi->state);
+    if (susi->state == SA_AMF_HA_STANDBY)
+      rank++;
+
+    if (suname == susi->su->name)
+      break;
+  }
+
+  TRACE_LEAVE();
+
+  return rank;
+}
+
 void AVD_SI::remove_csi(AVD_CSI *csi) {
   osafassert(csi->si == this);
   /* remove CSI from the SI */
@@ -687,6 +792,7 @@ SaAisErrorT avd_si_config_get(AVD_APP *app) {
            SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
            configAttributes, &searchHandle)) != SA_AIS_OK) {
     LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, rc);
+    error = rc;
     goto done1;
   }
 
@@ -700,9 +806,22 @@ SaAisErrorT avd_si_config_get(AVD_APP *app) {
 
     si->si_add_to_model();
 
-    if (avd_sirankedsu_config_get(si_str, si) != SA_AIS_OK) goto done2;
+    if ((rc = avd_sirankedsu_config_get(si_str, si)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_si_delete(si);
+        continue;
+      } else {
+        goto done2;
+      }
+    }
 
-    if (avd_csi_config_get(si_str, si) != SA_AIS_OK) goto done2;
+    if ((rc = avd_csi_config_get(si_str, si)) != SA_AIS_OK) {
+      if ((rc == SA_AIS_ERR_NOT_EXIST) && (avd_cb->is_active() == false)) {
+        avd_si_delete(si);
+      } else {
+        goto done2;
+      }
+    }
 
     if ((si->sg_of_si != nullptr) && (si->sg_of_si->any_container_su() == true)
         && (si->csi_count() > 1)) {
@@ -737,7 +856,11 @@ static SaAisErrorT si_ccb_completed_modify_hdlr(
                osaf_extended_name_borrow(&opdata->objectName));
 
   si = avd_si_get(Amf::to_string(&opdata->objectName));
-  osafassert(si != nullptr);
+  if (si == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SI modify completed (STDBY): si does not exist");
+    return SA_AIS_OK;
+  }
+  assert(si != nullptr);
 
   /* Modifications can only be done for these attributes. */
   while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
@@ -1236,6 +1359,10 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata) {
                osaf_extended_name_borrow(&opdata->objectName));
 
   si = avd_si_get(Amf::to_string(&opdata->objectName));
+  if (si == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SI modify apply (STDBY): si does not exist");
+    return;
+  }
   osafassert(si != nullptr);
 
   /* Modifications can be done for any parameters. */
@@ -1336,6 +1463,7 @@ static void si_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
       break;
     case CCBUTIL_DELETE:
       if (opdata->userData == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SI delete apply (STDBY): si does not exist");
         break;
       }
       osafassert(opdata->userData != nullptr);

@@ -27,6 +27,7 @@
   mqnd_main_process ...........Process all the events posted to MQND.
 ******************************************************************************/
 
+#include "base/osaf_time.h"
 #include "mqnd.h"
 #include "mqnd_imm.h"
 #include <poll.h>
@@ -154,6 +155,113 @@ static uint32_t mqnd_extract_destroy_info(int argc, char *argv[],
 	return (NCSCC_RC_SUCCESS);
 }
 
+static SaAisErrorT mqnd_clm_init(MQND_CB *cb)
+{
+	SaAisErrorT rc = SA_AIS_OK;
+
+	TRACE_ENTER();
+
+	do {
+		SaClmCallbacksT_4 clm_cbk;
+		SaClmClusterNodeT_4 cluster_node;
+		SaVersionT clm_version;
+		bool logged_error = false;
+
+		cb->clm_hdl = 0;
+
+		m_MQSV_GET_CLM_VER(clm_version);
+		clm_cbk.saClmClusterNodeGetCallback = NULL;
+		clm_cbk.saClmClusterTrackCallback = mqnd_clm_cluster_track_cbk;
+
+		while (true) {
+			rc = saClmInitialize_4(&cb->clm_hdl, &clm_cbk, &clm_version);
+			if (rc == SA_AIS_OK)
+				break;
+			else if (rc == SA_AIS_ERR_TRY_AGAIN ||
+				rc == SA_AIS_ERR_UNAVAILABLE) {
+				if (!logged_error) {
+					LOG_WA("saClmInitialize_4 failed: %i", rc);
+					logged_error = true;
+				}
+				osaf_nanosleep(&kHundredMilliseconds);
+				continue;
+			} else {
+				LOG_ER("saClmInitialize_4 failed: %d", rc);
+				break;
+			}
+		}
+
+		if (rc != SA_AIS_OK)
+			break;
+
+		rc = saClmClusterNodeGet_4(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID,
+				 	MQND_CLM_API_TIMEOUT, &cluster_node);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("saClmClusterNodeGet_4 failed with return code %d", rc);
+			break;
+		}
+
+		cb->nodeid = cluster_node.nodeId;
+		if (cb->nodeid == 0) {
+			LOG_ER("Cluster Node ID is getting 0");
+			assert(0);
+		}
+
+		rc = saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("saClmSelectionObjectGet Failed: %i", rc);
+			break;
+		}
+
+		rc = saClmClusterTrack_4(cb->clm_hdl,
+			      (SA_TRACK_CURRENT | SA_TRACK_CHANGES),
+			      NULL);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("saClmClusterTrack_4 Failed: %i", rc);
+			break;
+		}
+
+		cb->clm_node_joined = 1;
+	} while (false);
+
+	if (rc != SA_AIS_OK && cb->clm_hdl) {
+		SaAisErrorT rc1 = saClmFinalize(cb->clm_hdl);
+		if (rc1 != SA_AIS_OK)
+			LOG_ER("saClmFinalize failed: %i", rc1);
+	}
+
+	TRACE_LEAVE();
+
+	return rc;
+}
+
+static void * mqnd_clm_init_thread(void *arg) {
+	TRACE_ENTER();
+	MQND_CB *cb = (MQND_CB *)(arg);
+
+	mqnd_clm_init(cb);
+
+	TRACE_LEAVE();
+	return 0;
+}
+
+static uint32_t mqnd_clm_reinit_bg(MQND_CB *cb)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, mqnd_clm_init_thread, cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	pthread_attr_destroy(&attr);
+
+	return SA_AIS_OK;
+}
+
 /****************************************************************************
  * Name          : mqnd_lib_init
  *
@@ -177,9 +285,6 @@ static uint32_t mqnd_lib_init(MQSV_CREATE_INFO *info)
 	SaAmfHealthcheckKeyT healthy;
 	char *health_key = NULL;
 	SaAisErrorT amf_error;
-	SaClmCallbacksT_4 clm_cbk;
-	SaClmClusterNodeT_4 cluster_node;
-	SaVersionT clm_version;
 	char str_vector[10] = "";
 	int fd;
 	size_t bytes_read;
@@ -308,32 +413,12 @@ static uint32_t mqnd_lib_init(MQSV_CREATE_INFO *info)
 	}
 	TRACE_1("Registration With AMF Successfull");
 
-	/* B301 changes */
+	amf_error = mqnd_clm_init(cb);
 
-	m_MQSV_GET_CLM_VER(clm_version);
-	clm_cbk.saClmClusterNodeGetCallback = NULL;
-	clm_cbk.saClmClusterTrackCallback = mqnd_clm_cluster_track_cbk;
-
-	rc = saClmInitialize_4(&cb->clm_hdl, &clm_cbk, &clm_version);
-	if (rc != SA_AIS_OK) {
-		LOG_ER("saClmInitialize_4 failed with return code %d", rc);
-		goto mqnd_mds_fail;
+	if (amf_error != SA_AIS_OK) {
+		LOG_ER("mqnd_clm_init Failed: %u", amf_error);
+		goto amf_reg_err;
 	}
-
-	rc = saClmClusterNodeGet_4(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID,
-				 MQND_CLM_API_TIMEOUT, &cluster_node);
-	if (rc != SA_AIS_OK) {
-		LOG_ER("saClmClusterNodeGet_4 failed with return code %d", rc);
-		goto mqnd_clm_fail;
-	}
-
-	cb->nodeid = cluster_node.nodeId;
-	if (cb->nodeid == 0) {
-		LOG_ER("Cluster Node ID is getting 0");
-		assert(0);
-	}
-
-	cb->clm_node_joined = 1;
 
 	/* Imm Initialization */
 	amf_error = mqnd_imm_initialize(cb);
@@ -386,8 +471,6 @@ static uint32_t mqnd_lib_init(MQSV_CREATE_INFO *info)
 mqnd_mds_fail:
 	/* IMM FInalize. */
 	saImmOiFinalize(cb->immOiHandle);
-mqnd_clm_fail:
-	saClmFinalize(cb->clm_hdl);
 amf_reg_err:
 	mqnd_amf_de_init(cb);
 amf_init_err:
@@ -754,7 +837,7 @@ void mqnd_main_process(uint32_t hdl)
 	NCS_SEL_OBJ mbx_fd;
 	MQSV_EVT *evt = NULL;
 	MQSV_DSEND_EVT *dsend_evt = NULL;
-	SaSelectionObjectT amf_sel_obj, clm_sel_obj;
+	SaSelectionObjectT amf_sel_obj;
 	SaAisErrorT clm_error, err;
 	int term_fd;
 
@@ -777,28 +860,15 @@ void mqnd_main_process(uint32_t hdl)
 
 	daemon_sigterm_install(&term_fd);
 
-	if (saClmSelectionObjectGet(cb->clm_hdl, &clm_sel_obj) != SA_AIS_OK) {
-		LOG_ER("saClmSelectionObjectGet Failed");
-		return;
-	}
-
 	fds[FD_TERM].fd = term_fd;
 	fds[FD_TERM].events = POLLIN;
 	fds[FD_AMF].fd = amf_sel_obj;
 	fds[FD_AMF].events = POLLIN;
-	fds[FD_CLM].fd = clm_sel_obj;
 	fds[FD_CLM].events = POLLIN;
 	fds[FD_MBX].fd = mbx_fd.rmv_obj;
 	fds[FD_MBX].events = POLLIN;
 	fds[FD_IMM].fd = cb->imm_sel_obj;
 	fds[FD_IMM].events = POLLIN;
-
-	if (saClmClusterTrack_4(cb->clm_hdl,
-			      (SA_TRACK_CURRENT | SA_TRACK_CHANGES),
-			      NULL) != SA_AIS_OK) {
-		LOG_ER("saClmClusterTrack_4 Failed");
-		return;
-	}
 
 	while (1) {
 
@@ -809,6 +879,8 @@ void mqnd_main_process(uint32_t hdl)
 		} else {
 			nfds = NUM_FD - 1;
 		}
+
+		fds[FD_CLM].fd = cb->clm_sel_obj;
 
 		int ret = poll(fds, nfds, -1);
 		if (ret == -1) {
@@ -838,7 +910,11 @@ void mqnd_main_process(uint32_t hdl)
 
 		if (fds[FD_CLM].revents & POLLIN) {
 			clm_error = saClmDispatch(cb->clm_hdl, SA_DISPATCH_ALL);
-			if (clm_error != SA_AIS_OK) {
+			if (clm_error == SA_AIS_ERR_BAD_HANDLE) {
+				cb->clm_sel_obj = -1;
+				LOG_NO("saClmDispatch returned bad handle");
+				mqnd_clm_reinit_bg(cb);
+			} else if (clm_error != SA_AIS_OK) {
 				LOG_ER("saClmDispatch Failed with error %d",
 				       clm_error);
 			}

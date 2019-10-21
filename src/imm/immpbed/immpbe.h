@@ -22,6 +22,6 @@
 
 void pbeDaemon(SaImmHandleT immHandle, void* dbHandle,
                SaImmAdminOwnerHandleT ownerHandle, ClassMap* classIdMap,
-               unsigned int objCount, bool pbe2, bool pbe2B);
+               int objCount, bool pbe2, bool pbe2B);
 
 #endif  // IMM_IMMPBED_IMMPBE_H_

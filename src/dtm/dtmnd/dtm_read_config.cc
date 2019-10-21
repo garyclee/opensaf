@@ -84,6 +84,8 @@ void dtm_print_config(DTM_INTERNODE_CB *config) {
   TRACE("  %d", config->node_id);
   TRACE("  IP_ADDR: ");
   TRACE("  %s", config->ip_addr.c_str());
+  TRACE("  PUBLIC_IP_ADDR: ");
+  TRACE("  %s", config->public_ip.c_str());
   TRACE("  STREAM_PORT: ");
   TRACE("  %u", config->stream_port);
   TRACE("  DGRAM_PORT_SNDR: ");
@@ -335,6 +337,14 @@ int dtm_read_config(DTM_INTERNODE_CB *config, const char *dtm_config_file) {
         tag = 0;
         tag_len = 0;
       }
+
+      if (strncmp(line, "DTM_PUBLIC_IP=", strlen("DTM_PUBLIC_IP=")) == 0) {
+        tag_len = strlen("DTM_PUBLIC_IP=");
+        config->public_ip = std::string(&line[tag_len]);
+        tag = 0;
+        tag_len = 0;
+      }
+
       if (strncmp(line, "DTM_TCP_LISTENING_PORT=",
                   strlen("DTM_TCP_LISTENING_PORT=")) == 0) {
         tag_len = strlen("DTM_TCP_LISTENING_PORT=");

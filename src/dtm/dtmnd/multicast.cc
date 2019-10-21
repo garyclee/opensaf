@@ -34,6 +34,7 @@ Multicast::Multicast(uint16_t cluster_id, uint32_t node_id,
                      in_port_t stream_port, in_port_t dgram_port,
                      sa_family_t address_family,
                      const std::string &stream_address,
+                     const std::string &public_address,
                      const std::string &dgram_address,
                      const std::string &multicast_address,
                      const std::string &ifname, bool scope_link)
@@ -43,6 +44,7 @@ Multicast::Multicast(uint16_t cluster_id, uint32_t node_id,
       dgram_port_{dgram_port},
       address_family_{address_family},
       stream_address_{stream_address},
+      public_address_{public_address},
       dgram_address_{dgram_address},
       multicast_address_{multicast_address},
       ifname_{ifname},
@@ -788,7 +790,8 @@ uint32_t Multicast::dgram_set_mcast_ttl(int mcast_ttl, int family) {
 bool Multicast::Send() {
   TRACE_ENTER();
   Message msg{cluster_id_,  node_id_,        !multicast_address_.empty(),
-              stream_port_, address_family_, stream_address_};
+              stream_port_, address_family_,
+              !public_address_.empty() ? public_address_ : stream_address_};
   bool success = true;
   for (const auto &addr : peers_) {
     ssize_t num_bytes;

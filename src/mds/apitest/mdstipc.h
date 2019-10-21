@@ -20,6 +20,7 @@
 
 #include "base/ncssysf_tsk.h"
 #include "base/ncssysf_def.h"
+#include "base/ncsencdec_pub.h"
 
 typedef struct tet_task {
   NCS_OS_CB entry;
@@ -144,6 +145,12 @@ typedef struct tet_mds_recvd_msg_info {
   uint16_t len;
 } TET_MDS_RECVD_MSG_INFO;
 
+typedef struct COUNTER {
+  MDS_DEST fr_dest;
+  uint32_t msg_count;
+  struct COUNTER *next;
+} COUNTER;
+
 /********************* GLOBAL variables ********************/
 TET_ADEST gl_tet_adest;
 TET_VDEST
@@ -162,9 +169,6 @@ int gl_ENC_FLAT_CB_FAIL;
 int gl_DEC_FLAT_CB_FAIL;
 int gl_RECEIVE_CB_FAIL;
 int gl_COPY_CB_FAIL;
-
-uint32_t ncs_encode_16bit(uint8_t **, uint32_t);
-uint16_t ncs_decode_16bit(uint8_t **);
 
 uint32_t tet_mds_svc_callback(NCSMDS_CALLBACK_INFO *);
 /******************MDS call back routines *********************************/
@@ -528,5 +532,7 @@ uint32_t mds_send_get_redack(MDS_HDL mds_hdl, MDS_SVC_ID svc_id,
 uint32_t mds_send_redrsp_getack(MDS_HDL mds_hdl, MDS_SVC_ID svc_id,
                                 int64_t time_to_wait, TET_MDS_MSG *response);
 uint32_t tet_sync_point(void);
+int mds_startup(void);
+int mds_shutdown(void);
 
 #endif  // MDS_APITEST_MDSTIPC_H_

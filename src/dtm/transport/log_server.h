@@ -46,6 +46,7 @@ class LogServer {
   // process has received the SIGTERM signal, which is indicated by the caller
   // by making the term_fd (provided in the constructor) readable.
   void Run();
+  void CloseIdleStreams();
   // To read Transportd.conf
   bool ReadConfig(const char *transport_config_file);
 
@@ -55,7 +56,7 @@ class LogServer {
     static constexpr size_t kMaxLogNameSize = 32;
     LogStream(const std::string& log_name, size_t max_backups,
                                                  size_t max_file_size);
-
+    ~LogStream() { Flush(); }
     size_t log_name_size() const { return log_name_.size(); }
     const char* log_name_data() const { return log_name_.data(); }
     char* current_buffer_position() {
@@ -68,6 +69,8 @@ class LogServer {
     // I/O.
     void Write(size_t size);
     void Flush();
+    const char* name() const { return log_name_.c_str(); }
+    struct timespec last_write() const { return last_write_; }
     struct timespec last_flush() const {
       return last_flush_;
     }
@@ -75,6 +78,7 @@ class LogServer {
    private:
     const std::string log_name_;
     struct timespec last_flush_;
+    struct timespec last_write_;
     LogWriter log_writer_;
   };
   LogStream* GetStream(const char* msg_id, size_t msg_id_size);
@@ -95,6 +99,7 @@ class LogServer {
   // Configuration for LogServer
   size_t max_backups_;
   size_t max_file_size_;
+  struct timespec max_idle_time_{0, 0};
 
   base::UnixServerSocket log_socket_;
   std::map<std::string, LogStream*> log_streams_;

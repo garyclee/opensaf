@@ -15,7 +15,7 @@
 #
 
 all:
-	$(MAKE) -C ../.. bin/osafdtmd bin/osaftransportd
+	$(MAKE) -C ../.. bin/osafdtmd bin/osaftransportd bin/osaflog
 
 check:
 	$(MAKE) -C ../.. bin/transport_test

@@ -54,7 +54,7 @@ the messages received from the peer.
 
 static const char *disc_trace[] = {"Peer UP msg", "Peer DOWN msg",
 				   "Peer INFO msg", "Peer INFO resp msg",
-				   "Peer Role change msg"
+				   "Peer Role change msg",
 				   "Invalid peer discovery msg"};
 typedef enum {ANCHOR_SEARCH, NODE_ID_SEARCH} SearchMode;
 

@@ -237,6 +237,11 @@ static void sutype_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
   TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId,
                osaf_extended_name_borrow(&opdata->objectName));
   AVD_SUTYPE *sut = sutype_db->find(Amf::to_string(&opdata->objectName));
+  if (sut == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SUT modify apply (STDBY): sut does not exist");
+    return;
+  }
+  assert(sut != nullptr);
 
   while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
     if (!strcmp(attr_mod->modAttr.attrName, "saAmfSutDefSUFailover")) {
@@ -282,8 +287,10 @@ static void sutype_ccb_apply_cb(CcbUtilOperationData_t *opdata) {
     case CCBUTIL_DELETE:
       sut = sutype_db->find(Amf::to_string(&opdata->objectName));
       if (sut == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SUT delete apply (STDBY): sut does not exist");
         break;
       }
+      osafassert(sut != nullptr);
       sutype_db->erase(sut->name);
       sutype_delete(&sut);
       break;
@@ -306,6 +313,11 @@ static SaAisErrorT sutype_ccb_completed_modify_hdlr(
   const SaImmAttrModificationT_2 *attr_mod;
   int i = 0;
   AVD_SUTYPE *sut = sutype_db->find(Amf::to_string(&opdata->objectName));
+  if (sut == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("SUT modify completed (STDBY): sut does not exist");
+    return SA_AIS_OK;
+  }
+  assert(sut != nullptr);
 
   TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId,
                osaf_extended_name_borrow(&opdata->objectName));
@@ -377,6 +389,7 @@ static SaAisErrorT sutype_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
     case CCBUTIL_DELETE:
       sut = sutype_db->find(Amf::to_string(&opdata->objectName));
       if (sut == nullptr && avd_cb->is_active() == false) {
+        LOG_WA("SUT delete completed (STDBY): sut does not exist");
         rc = SA_AIS_OK;
         break;
       }
@@ -384,7 +397,7 @@ static SaAisErrorT sutype_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
       /* check whether there exists a delete operation for
        * each of the SU in the su_type list in the current CCB
        */
-
+      osafassert(sut != nullptr);
       for (const auto &su : sut->list_of_su) {
         const SaNameTWrapper su_name(su->name);
         t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, su_name);

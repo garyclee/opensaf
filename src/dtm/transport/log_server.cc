@@ -44,6 +44,7 @@ LogServer::LogServer(int term_fd)
 
 LogServer::~LogServer() {
   for (const auto& s : log_streams_) delete s.second;
+  log_streams_.clear();
 }
 
 void LogServer::Run() {
@@ -77,6 +78,9 @@ void LogServer::Run() {
         ExecuteCommand(buffer, result, src_addr, addrlen);
       }
     }
+
+    CloseIdleStreams();
+
     struct timespec current = base::ReadMonotonicClock();
     struct timespec last_flush = current;
     bool empty = true;
@@ -91,9 +95,38 @@ void LogServer::Run() {
       if (!stream->empty()) empty = false;
     }
     struct timespec timeout = (last_flush + base::kFifteenSeconds) - current;
+    struct timespec* poll_timeout = &timeout;
+    if (empty && log_streams_.size() > 1) {
+      uint64_t max_idle = max_idle_time_.tv_sec;
+      poll_timeout = (max_idle) ? &max_idle_time_ : nullptr;
+    }
     pfd[1].fd = log_socket_.fd();
-    osaf_ppoll(pfd, 2, empty ? nullptr : &timeout, nullptr);
+    osaf_ppoll(pfd, 2, poll_timeout, nullptr);
   } while ((pfd[0].revents & POLLIN) == 0);
+}
+
+void LogServer::CloseIdleStreams() {
+  if (max_idle_time_.tv_sec == 0 || log_streams_.size() == 1) return;
+
+  struct timespec current = base::ReadMonotonicClock();
+  auto it = log_streams_.begin();
+  while (it != log_streams_.end()) {
+    LogStream* stream = it->second;
+    struct timespec last_write = stream->last_write();
+    std::string name = stream->name();
+    if ((current - last_write) >= max_idle_time_
+        && name != kMdsLogStreamName) {
+      syslog(LOG_NOTICE, "Deleted the idle stream: %s", name.c_str());
+      if (current_stream_ == stream) {
+        current_stream_ = log_streams_.begin()->second;
+      }
+      it = log_streams_.erase(it);
+      delete stream;
+      no_of_log_streams_--;
+    } else {
+      it++;
+    }
+  }
 }
 
 LogServer::LogStream* LogServer::GetStream(const char* msg_id,
@@ -176,6 +209,19 @@ bool LogServer::ReadConfig(const char *transport_config_file) {
                "has illegal value '%s'", &line[tag_len]);
       }
     }
+
+    if (strncmp(line, "TRANSPORT_MAX_IDLE_TIME=",
+                strlen("TRANSPORT_MAX_IDLE_TIME=")) == 0) {
+      tag_len = strlen("TRANSPORT_MAX_IDLE_TIME=");
+      bool success;
+      uint64_t max_idle_time = base::StrToUint64(&line[tag_len], &success);
+      if (success && max_idle_time <= Osaflog::kOneDayInMinute) {
+        max_idle_time_.tv_sec = max_idle_time;
+      } else {
+        syslog(LOG_ERR, "TRANSPORT_MAX_IDLE_TIME "
+               "has illegal value '%s'", &line[tag_len]);
+      }
+    }
   }
 
   /* Close file. */
@@ -251,6 +297,8 @@ std::string LogServer::ExecuteCommand(const std::string& command,
     if (current_stream_ == stream) {
       current_stream_ = log_streams_.begin()->second;
     }
+    delete stream;
+    --no_of_log_streams_;
     return std::string{"!delete " + argument};
   } else if (command == "?flush") {
     for (const auto& s : log_streams_) {
@@ -258,6 +306,13 @@ std::string LogServer::ExecuteCommand(const std::string& command,
       stream->Flush();
     }
     return std::string{"!flush"};
+  } else if (command == "?max-idle-time") {
+      bool success = false;
+      uint64_t max_idle_time = base::StrToUint64(argument.c_str(), &success);
+      if (success && max_idle_time <= Osaflog::kOneDayInMinute) {
+        max_idle_time_.tv_sec = max_idle_time*60;
+      }
+      return std::string{"!max-idle-time " + std::to_string(max_idle_time)};
   } else {
     return std::string{"!not_supported"};
   }
@@ -268,11 +323,13 @@ LogServer::LogStream::LogStream(const std::string& log_name,
     : log_name_{log_name}, last_flush_{}, log_writer_{log_name, max_backups,
                                                              max_file_size} {
   if (log_name.size() > kMaxLogNameSize) osaf_abort(log_name.size());
+  last_write_ = base::ReadMonotonicClock();
 }
 
 void LogServer::LogStream::Write(size_t size) {
   if (log_writer_.empty()) last_flush_ = base::ReadMonotonicClock();
   log_writer_.Write(size);
+  last_write_ = base::ReadMonotonicClock();
 }
 
 void LogServer::LogStream::Flush() {

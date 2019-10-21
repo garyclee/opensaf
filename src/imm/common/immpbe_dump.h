@@ -37,7 +37,7 @@ typedef std::map<std::string, SaImmAttrFlagsT> AttrMap;
 int finalizeSqlStatement(void* stmt);
 
 struct ClassInfo {
-  ClassInfo(unsigned int class_id) : mClassId(class_id), sqlStmt(NULL) {}
+  ClassInfo(int class_id) : mClassId(class_id), sqlStmt(NULL) {}
   ~ClassInfo() {
     finalizeSqlStatement(sqlStmt);
     sqlStmt = NULL;
@@ -45,7 +45,7 @@ struct ClassInfo {
     mAttrMap.clear();
   }
 
-  unsigned int mClassId;
+  int mClassId;
   AttrMap mAttrMap;
   void* sqlStmt;
 };
@@ -71,11 +71,11 @@ bool dumpClassesToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 unsigned int purgeInstancesOfClassToPBE(SaImmHandleT immHandle,
                                         std::string className, void* db_handle);
 int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap* classIdMap,
-                              std::string className, unsigned int* objidCount,
+                              std::string className, int* objidCount,
                               void* db_handle);
 
 ClassInfo* classToPBE(std::string classNameString, SaImmHandleT immHandle,
-                      void* db_handle, unsigned int class_id);
+                      void* db_handle, int class_id);
 
 void deleteClassToPBE(std::string classNameString, void* db_handle,
                       ClassInfo* theClass);
@@ -89,7 +89,7 @@ int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
                      void* db_handle,
                      std::list<std::string>& selectedClassList);
 bool objectToPBE(std::string objectNameString, const SaImmAttrValuesT_2** attrs,
-                 ClassMap* classIdMap, void* db_handle, unsigned int object_id,
+                 ClassMap* classIdMap, void* db_handle, int object_id,
                  SaImmClassNameT className, SaUint64T ccbId);
 
 void objectDeleteToPBE(std::string objectNameString, void* db_handle);

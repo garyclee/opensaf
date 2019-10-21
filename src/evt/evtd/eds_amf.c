@@ -26,6 +26,7 @@ DESCRIPTION:
 This include file contains AMF interaction logic for health-check and other
 stuff.
 *******************************************************************************/
+#include "base/osaf_time.h"
 #include "eds.h"
 #include "eds_dl_api.h"
 
@@ -622,9 +623,9 @@ uint32_t eds_amf_register(EDS_CB *eds_cb)
 SaAisErrorT eds_clm_init(EDS_CB *cb)
 {
 	SaVersionT clm_version;
-	SaClmCallbacksT clm_cbk;
-	SaClmClusterNodeT cluster_node;
-	SaClmClusterNotificationBufferT notify_buff;
+	SaClmCallbacksT_4 clm_cbk;
+	SaClmClusterNodeT_4 cluster_node;
+	SaClmClusterNotificationBufferT_4 notify_buff;
 	SaAisErrorT rc = SA_AIS_OK;
 	SaTimeT timeout = EDSV_CLM_TIMEOUT;
 	TRACE_ENTER();
@@ -639,13 +640,22 @@ SaAisErrorT eds_clm_init(EDS_CB *cb)
 	clm_cbk.saClmClusterNodeGetCallback = NULL;
 	clm_cbk.saClmClusterTrackCallback = eds_clm_cluster_track_cbk;
 
-	/* Say Hello */
-	rc = saClmInitialize(&cb->clm_hdl, &clm_cbk, &clm_version);
-	if (rc != SA_AIS_OK) {
-		LOG_ER("saClmInitialize failed with error: %d", rc);
-		TRACE_LEAVE();
-		return rc;
+	while (true) {
+		/* Say Hello */
+		rc = saClmInitialize_4(&cb->clm_hdl, &clm_cbk, &clm_version);
+		if (rc == SA_AIS_OK)
+			break;
+		else if (rc == SA_AIS_ERR_TRY_AGAIN ||
+			rc == SA_AIS_ERR_UNAVAILABLE) {
+			osaf_nanosleep(&kHundredMilliseconds);
+			continue;
+		} else {
+			LOG_ER("saClmInitialize_4 failed with error: %d", rc);
+			TRACE_LEAVE();
+			return rc;
+		}
 	}
+
 	/* Get the FD */
 	if (SA_AIS_OK !=
 	    (rc = saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj))) {
@@ -654,10 +664,10 @@ SaAisErrorT eds_clm_init(EDS_CB *cb)
 		return rc;
 	}
 	/* Get your own node id */
-	rc = saClmClusterNodeGet(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID, timeout,
+	rc = saClmClusterNodeGet_4(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID, timeout,
 				 &cluster_node);
 	if (rc != SA_AIS_OK) {
-		LOG_ER("saClmClusterNodeGet failed with error: %d", rc);
+		LOG_ER("saClmClusterNodeGet_4 failed with error: %d", rc);
 		TRACE_LEAVE();
 		return rc;
 	}
@@ -665,13 +675,40 @@ SaAisErrorT eds_clm_init(EDS_CB *cb)
 	cb->node_id = cluster_node.nodeId;
 
 	notify_buff.notification = NULL;
-	rc = saClmClusterTrack(cb->clm_hdl,
+	rc = saClmClusterTrack_4(cb->clm_hdl,
 			       (SA_TRACK_CURRENT | SA_TRACK_CHANGES), NULL);
 	if (rc != SA_AIS_OK)
 		LOG_ER("saClmClusterTrack failed with error: %d", rc);
 
 	TRACE_LEAVE();
 	return rc;
+}
+
+static void * eds_clm_init_thread(void *arg) {
+       TRACE_ENTER();
+       EDS_CB *cb = (EDS_CB *)(arg);
+
+       eds_clm_init(cb);
+
+       TRACE_LEAVE();
+       return 0;
+}
+
+SaAisErrorT eds_clm_reinit_bg(EDS_CB *cb)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, eds_clm_init_thread, cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	pthread_attr_destroy(&attr);
+
+	return SA_AIS_OK;
 }
 
 /**************************************************************************
@@ -700,8 +737,14 @@ SaAisErrorT eds_clm_init(EDS_CB *cb)
  **************************************************************************/
 
 void eds_clm_cluster_track_cbk(
-    const SaClmClusterNotificationBufferT *notificationBuffer,
-    SaUint32T numberOfMembers, SaAisErrorT error)
+	const SaClmClusterNotificationBufferT_4 *notificationBuffer,
+	SaUint32T numberOfMembers,
+	SaInvocationT invocation,
+	const SaNameT *rootCauseEntity,
+	const SaNtfCorrelationIdsT *correlationIds,
+	SaClmChangeStepT step,
+	SaTimeT timeSupervision,
+	SaAisErrorT error)
 {
 	EDS_CB *cb = NULL;
 	NODE_ID node_id;

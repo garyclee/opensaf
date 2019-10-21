@@ -337,13 +337,22 @@ watch() {
   orig_value=$(get "$watch_key")
   result=$?
 
-  if [ "$result" -le "1" ]; then
+  if [ "$result" -le 1 ]; then
+      if [ "$result" -eq 0 ] && [ "$watch_key" == "$takeover_request" ]; then
+        state=$(echo $orig_value | awk '{print $4}')
+        if [ "$state" == "NEW" ]; then
+          # takeover_request already exists; maybe it was created
+          # while this node was being promoted
+          echo $orig_value
+          return 0
+        fi
+      fi
     while true
     do
       sleep $heartbeat_interval
       current_value=$(get "$watch_key")
       result=$?
-      if [ "$result" -gt "1" ]; then
+      if [ "$result" -gt 1 ]; then
         # etcd down?
         if [ "$watch_key" == "$takeover_request" ]; then
           hostname=`cat $node_name_file`

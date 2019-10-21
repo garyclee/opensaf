@@ -220,11 +220,15 @@ int ModelModification::CreateObjectManager() {
 
   bool return_state = imm_om_handle_->InitializeHandle();
   if (return_state == false) {
-    // No recovery is possible
-    LOG_NO("%s: OM-handle, RestoreHandle(), Fail", __FUNCTION__);
-    recovery_info = kFail;
-    api_name_ = "saImmOmInitialize";
-    ais_error_ = imm_om_handle_->ais_error();
+    SaAisErrorT ais_error = imm_om_handle_->ais_error();
+    if (ais_error == SA_AIS_ERR_TRY_AGAIN) {
+      recovery_info = kRestartOm;
+    } else {
+      // No recovery is possible
+      LOG_NO("%s: OM-handle, RestoreHandle(), Fail", __FUNCTION__);
+      recovery_info = kFail;
+      api_name_ = "saImmOmInitialize";
+    }
   } else {
     recovery_info = kContinue;
   }
@@ -418,6 +422,14 @@ int ModelModification::AdminOwnerSet(const std::vector<std::string>& objects,
   return recovery_info;
 }
 
+static bool has_object(const std::vector<CreateDescriptor>& create_descriptors,
+                       const std::string& object) {
+  for (const auto& desc : create_descriptors) {
+    if (object == desc.parent_name) return true;
+  }
+  return false;
+}
+
 // Add create requests for all objects to be created
 // Set admin ownership for parent to all objects to be created with scope
 // SA_IMM_ONE.
@@ -440,9 +452,17 @@ int ModelModification::AddCreates(const std::vector<CreateDescriptor>&
       // Become admin owner of parent if there is a parent. If no parent the
       // IMM object will be created as a root object
       std::vector<std::string> imm_objects;
-      imm_objects.push_back(create_descriptor.parent_name);
+      std::string parent = create_descriptor.parent_name;
+      imm_objects.push_back(parent);
       recovery_info = AdminOwnerSet(imm_objects, SA_IMM_ONE);
       if (recovery_info == kFail) {
+        // data for this ccb is valid but it is aborted by imm to start
+        // IMM sync, therefore marking this ccb is restartable.
+        if (ais_error_ == SA_AIS_ERR_NOT_EXIST &&
+            has_object(create_descriptors, parent)) {
+          recovery_info = kRestartOm;
+          break;
+        }
         LOG_NO("%s: AdminOwnerSet() Fail", __FUNCTION__);
         break;
       } else if (recovery_info == kRestartOm) {

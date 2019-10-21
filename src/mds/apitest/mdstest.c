@@ -84,12 +84,13 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	if (mds_startup() != 0) {
+	if ((suite != 27) && (mds_startup() != 0)) {
 		printf("Fail to start mds agents\n");
 		return 1;
 	}
 
 	int rc = test_run(suite, tcase);
-	mds_shutdown();
+	if (suite != 27)
+		mds_shutdown();
 	return rc;
 }

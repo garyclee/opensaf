@@ -630,6 +630,45 @@ done:
 }
 
 /*****************************************************************************
+ * Function: avd_sg_2n_assign_act_si
+ *
+ * Purpose:  This function choose and assign SIs in the SG that dont have
+ *           active assignment.
+ *
+ * Input: cb - the AVD control block
+ *        sg - The pointer to the service group.
+ *        su - The pointer to the service unit to be assigned ACTIVE.
+ *
+ * Returns: True if assign succeed, otherwise return false
+ *
+ **************************************************************************/
+static bool avd_sg_2n_assign_act_si(AVD_CL_CB *cb, AVD_SG *sg, AVD_SU *su) {
+  bool l_flag = false;
+  AVD_SU_SI_REL *tmp_susi;
+  TRACE_ENTER();
+  /* choose and assign SIs in the SG that dont have active assignment */
+  for (const auto &i_si : sg->list_of_si) {
+    if ((i_si->saAmfSIAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+        (i_si->list_of_csi != nullptr) &&
+        (i_si->si_dep_state != AVD_SI_SPONSOR_UNASSIGNED) &&
+        (i_si->si_dep_state != AVD_SI_UNASSIGNING_DUE_TO_DEP) &&
+        (i_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN) &&
+        (i_si->list_of_sisu == AVD_SU_SI_REL_NULL) &&
+        (su->saAmfSUNumCurrActiveSIs < sg->saAmfSGMaxActiveSIsperSU)) {
+      /* found a SI that needs active assignment. */
+      if (avd_new_assgn_susi(cb, su, i_si, SA_AMF_HA_ACTIVE, false,
+                             &tmp_susi) == NCSCC_RC_SUCCESS) {
+        l_flag = true;
+      } else {
+        LOG_ER("%s:%u: %s", __FILE__, __LINE__, i_si->name.c_str());
+      }
+    }
+  }
+  TRACE_LEAVE();
+  return l_flag;
+}
+
+/*****************************************************************************
  * Function: avd_sg_2n_su_chose_asgn
  *
  * Purpose:  This function will identify the current active SU.
@@ -675,7 +714,10 @@ static AVD_SU *avd_sg_2n_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg) {
     for (const auto &iter : sg->list_of_su) {
       if (iter->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) {
         a_su = iter;
-        break;
+        l_flag = avd_sg_2n_assign_act_si(cb, sg, a_su);
+        if (l_flag == true) {
+          break;
+        }
       }
     }
 
@@ -683,36 +725,13 @@ static AVD_SU *avd_sg_2n_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg) {
       TRACE("No in service SUs available in the SG");
       goto done;
     }
-  } else { /* if (a_susi == AVD_SU_SI_REL_NULL) */
-
+  } else { /* if (a_susi != AVD_SU_SI_REL_NULL) */
     a_su = a_susi->su;
-  }
-
-  if (a_su->saAmfSuReadinessState != SA_AMF_READINESS_IN_SERVICE) {
-    TRACE("The current active SU is OOS so return");
-    goto done;
-  }
-
-  /* check if any more active SIs can be assigned to this SU */
-  l_flag = false;
-
-  /* choose and assign SIs in the SG that dont have active assignment */
-  for (const auto &i_si : sg->list_of_si) {
-    if ((i_si->saAmfSIAdminState == SA_AMF_ADMIN_UNLOCKED) &&
-        (i_si->list_of_csi != nullptr) &&
-        (i_si->si_dep_state != AVD_SI_SPONSOR_UNASSIGNED) &&
-        (i_si->si_dep_state != AVD_SI_UNASSIGNING_DUE_TO_DEP) &&
-        (i_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN) &&
-        (i_si->list_of_sisu == AVD_SU_SI_REL_NULL) &&
-        (a_su->saAmfSUNumCurrActiveSIs < sg->saAmfSGMaxActiveSIsperSU)) {
-      /* found a SI that needs active assignment. */
-      if (avd_new_assgn_susi(cb, a_su, i_si, SA_AMF_HA_ACTIVE, false,
-                             &tmp_susi) == NCSCC_RC_SUCCESS) {
-        l_flag = true;
-      } else {
-        LOG_ER("%s:%u: %s", __FILE__, __LINE__, i_si->name.c_str());
-      }
+    if (a_su->saAmfSuReadinessState != SA_AMF_READINESS_IN_SERVICE) {
+      TRACE("The current active SU is OOS so return");
+      goto done;
     }
+    l_flag = avd_sg_2n_assign_act_si(cb, sg, a_su);
   }
 
   /* if any assignments have been done return the SU */

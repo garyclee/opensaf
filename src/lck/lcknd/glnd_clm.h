@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+void glnd_clm_reinit_bg(GLND_CB *);
 SaAisErrorT glnd_clm_init(GLND_CB *);
 SaAisErrorT glnd_clm_deinit(GLND_CB *);
 

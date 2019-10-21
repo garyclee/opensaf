@@ -1,0 +1,520 @@
+#!/usr/bin/env python3
+"""
+     -*- OpenSAF  -*-
+
+(C) Copyright 2019 Ericsson AB 2019 - All Rights Reserved.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+under the GNU Lesser General Public License Version 2.1, February 1999.
+The complete license can be accessed from the following location:
+http://opensource.org/licenses/lgpl-license.php
+See the Copying file included with the OpenSAF distribution for full
+licensing terms.
+
+"""
+
+import argparse
+import os
+import socket
+import ssl
+import sys
+import time
+import xmlrpc.client
+import syslog
+
+
+class ArbitratorPlugin(object):
+    """ This class represents a TCP Plugin """
+
+    def __init__(self):
+        # Replace with actual URL
+        self.uri = "https://test:test@arbitrator:6666/"
+        # Warning: certificate verification is disabled
+        self.proxy = xmlrpc.client.ServerProxy(
+            self.uri, context=ssl._create_unverified_context())
+
+        # Get tipc link tolerance timeout if OpenSAF in used with TIPC
+        link_tolerance = self.get_tipc_tolerance()
+        self.timeout = link_tolerance
+
+        # TODO make configurable? default to 1s
+        self.socket_timeout = 1
+        socket.setdefaulttimeout(self.socket_timeout)
+
+        # TODO make configurable? default to 100ms
+        self.heartbeat_interval = 0.1
+
+        # constants
+        self.keyname = 'opensaf_consensus_lock'
+        self.takeover_request = 'takeover_request'
+        self.testkey = "opensaf_write_test"
+
+        # location where opensaf node_name is defined
+        self.node_name_file = '/etc/opensaf/node_name'
+        self.hostname = self.get_node_name()
+
+    def run(self):
+        """ Main method to handle input and output """
+        result = self.parse_cmd()
+        if 'output' in result:
+            print(result['output'])
+        sys.exit(result['code'])
+
+    def parse_cmd(self):
+        """ Handle input parameters from user """
+        parser = argparse.ArgumentParser(description="Arbitration Plugin")
+        sub_parser = parser.add_subparsers(
+            dest="command",
+            help="Execute script with this command"
+        )
+
+        parser_get = sub_parser.add_parser(
+            "get",
+            help="Retrieve <value> of <key> in tcp database"
+        )
+        parser_get.add_argument("key", metavar="<key>")
+
+        parser_set = sub_parser.add_parser(
+            "set",
+            help="Set <key> to <value> in tcp database"
+        )
+        parser_set.add_argument("key", metavar="<key>")
+        parser_set.add_argument("value", metavar="<value>")
+        parser_set.add_argument("timeout", metavar="<timeout>", type=int)
+
+        parser_create = sub_parser.add_parser(
+            "create",
+            help="Create <key> and set to <value>"
+                 " for <timeout> second in tcp database"
+        )
+        parser_create.add_argument("key", metavar="<key>")
+        parser_create.add_argument("value", metavar="<value>")
+        parser_create.add_argument("timeout", metavar="<timeout>", type=int)
+
+        parser_set_if_prev = sub_parser.add_parser(
+            "set_if_prev",
+            help="Set <key> to <value> if the existing value matches <prev>"
+        )
+        parser_set_if_prev.add_argument("key", metavar="<key>")
+        parser_set_if_prev.add_argument("value", metavar="<value>")
+        parser_set_if_prev.add_argument("prev", metavar="<prev>")
+        parser_set_if_prev.add_argument(
+            "timeout", metavar="<timeout>", type=int)
+
+        parser_lock = sub_parser.add_parser(
+            "lock",
+            help="Set <owner> of the lock,"
+                 " automatically unlock after <timeout>"
+        )
+        parser_lock.add_argument("owner", metavar="<owner>")
+        parser_lock.add_argument("timeout", metavar="<timeout>", type=int)
+
+        parser_unlock = sub_parser.add_parser(
+            "unlock",
+            help="Unlock the lock from <owner>"
+        )
+        parser_unlock.add_argument("owner", metavar="<owner>")
+        parser_unlock.add_argument(
+            "--force",
+            help="force to unlock the lock even if lock isn't held by <owner>",
+            action='store_true'
+        )
+
+        sub_parser.add_parser(
+            "lock_owner",
+            help="Retrieve owner of lock"
+        )
+
+        parser_watch = sub_parser.add_parser(
+            "watch",
+            help="Watch events stream on <key>"
+        )
+        parser_watch.add_argument("key", metavar="<key>")
+
+        sub_parser.add_parser(
+            "watch_lock",
+            help="Watch events stream on lock"
+        )
+
+        parser_erase = sub_parser.add_parser(
+            "erase",
+            help="Remove the <key> from tcp database"
+        )
+        parser_erase.add_argument("key", metavar="<key>")
+
+        args = vars(parser.parse_args())
+        command = args.pop('command')
+        params = []
+        if args:
+            params.append(args)
+        return getattr(self, command)(*params)
+
+    def get_node_name(self):
+        node_file = open(self.node_name_file)
+        node_name = node_file.readline().strip()
+        node_file.close()
+        return node_name
+
+    def get_tipc_tolerance(self):
+        """ Retrieve tipc link tolerance timeout """
+        # Get bearer
+        bearer = os.popen('tipc bearer list').read().strip()
+        if bearer is not None and len(bearer) > 0:
+            tokens = bearer.split(":")
+            tol_to = os.popen('tipc bearer get tolerance media '
+                              '%s device %s' %
+                              (tokens[0], tokens[1])).read()
+            return float(tol_to) / 1000
+
+        takeover_timeout = os.environ.get(
+            'FMS_TAKEOVER_REQUEST_VALID_TIME')
+        if takeover_timeout is not None and int(takeover_timeout) > 0:
+            return int(takeover_timeout) / 2
+
+        # default to 5 seconds
+        return 5
+
+    def is_active(self):
+        """ Should this node be active according to RDE """
+        state = os.popen('rdegetrole').read().strip()
+        return bool(state == 'ACTIVE')
+
+    def get(self, params):
+        """ Retrieve value of key in tcp database
+
+        Args:
+            params (dict): contains key from user input
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>,
+                'output': <value of the key>
+            }
+                * code = 0: success
+                * code = 1: invalid param
+                * code = 2: other failure
+        """
+        ret = {'code': 1, 'output': ''}
+
+        # takeover_request will not be used
+        return ret
+
+    def set(self, params):
+        """ Set key to value in tcp database
+
+        Args:
+            params (dict): contains key, value from user input
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>
+            }
+                * code = 0: success
+                * code = non-zero: failure
+        """
+
+        ret = {'code': 1}
+        key = params['key']
+        value = params['value']
+        # params['timeout']
+
+        if key == self.testkey:
+            try:
+                result = self.proxy.set(key, value)
+            except socket.error:
+                result = False
+            if result:
+                ret['code'] = 0
+
+        return ret
+
+    def create(self, params):
+        """ Create key and set to value for timeout second in tcp database
+
+        Args:
+            params (dict): contains key, value, timeout
+             from user input
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>
+            }
+                * code = 0: success
+                * code = 1: already exist
+                * code = 2: invalid param
+                * code = 3: other failure
+        """
+        ret = {'code': 2}
+        key = params['key']
+
+        if key == self.takeover_request:
+            # takeover_request will not be used
+            ret['code'] = 2
+        return ret
+
+    def set_if_prev(self, params):
+        """ Set key to value if the existing value matches previous value
+
+        Args:
+            params (dict): contains key (str),
+             value (str), prev (str) from user input
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>
+            }
+                * code = 0: success
+                * code = non-zero: failure
+        """
+        ret = {'code': 1}
+        key = params['key']
+        # params['value']
+        # params['timeout']
+
+        if key == self.takeover_request:
+            # takeover_request will not be used
+            # pretend it worked
+            ret['code'] = 0
+
+        return ret
+
+    def lock(self, params):
+        """ Set owner of the lock, automatically unlock after timeout
+
+        Args:
+            params (dict): contains owner (str),
+             timeout (integer) from user input
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>,
+                'output': <current owner of the lock>
+            }
+                * code = 0: success
+                * code = 1: lock is owned by someone else
+                * code = 2 or above: other failure
+
+        NOTE: if lock is already acquired by owner, then timeout is extended
+        TODO: timeout not yet implemented
+        """
+        ret = {'code': 0}
+        owner = params['owner']
+        owner_up = False
+
+        try:
+            result = self.proxy.create(self.keyname, owner)
+            if result is False:
+                current_owner = self.proxy.get(self.keyname)
+                if current_owner == owner:
+                    syslog.syslog("lock is already held by this node")
+                    return ret
+                original_timestamp = self.proxy.get(current_owner)
+                if original_timestamp:
+                    original_timestamp = int(original_timestamp)
+                else:
+                    original_timestamp = 0
+                # check if the owner is updating the arbitrator
+                while True:
+                    # get current time from arbitrator
+                    time_at_arb = self.proxy.heartbeat(self.hostname)
+                    # last time the current owner heartbeated
+                    last_timestamp = self.proxy.get(current_owner)
+                    if last_timestamp > original_timestamp:
+                        # owner is updating arbitrator OK
+                        syslog.syslog("current active is heartbeating")
+                        owner_up = True
+                        break
+                    elif time_at_arb > (original_timestamp + self.timeout):
+                        syslog.syslog("current active is not heartbeating")
+                        # more than 'timeout' seconds have elapsed since
+                        # the last update, we can assume the old
+                        # active is not heartbeating
+                        owner_up = False
+                        break
+                    time.sleep(self.heartbeat_interval)
+                if owner_up:
+                    ret['code'] = 1
+                else:
+                    # owner is not updating arbitrator
+                    self.proxy.delete(self.keyname)
+                    return self.lock(params)
+            else:
+                syslog.syslog("obtained lock at arbitrator")
+        except socket.error:
+            syslog.syslog("socket error")
+            ret['code'] = 2
+
+        return ret
+
+    def unlock(self, params):
+        """ Unlock the lock from owner
+
+        Args:
+            params (dict): contains owner (str),
+             force (boolean) from user input
+                * force = True: force to unlock the lock even if
+                    owner don't match with current owner
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>,
+                'output': <current owner of the lock>
+            }
+                * code = 0: success
+                * code = 1: lock is owned by someone else
+                * code = 2 or above: other failure
+        """
+        ret = {'code': 0}
+        owner = params['owner']
+
+        # remove 'owner.lock'
+        try:
+            current_owner = self.proxy.get(self.keyname)
+            if current_owner == owner:
+                result = self.proxy.delete(self.keyname)
+                if result is False:
+                    ret['code'] = 2
+            else:
+                ret['code'] = 1
+        except socket.error:
+            ret['code'] = 2
+
+        return ret
+
+    def lock_owner(self):
+        """ Retrieve owner of lock
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>,
+                'output': <current owner of the lock>
+            }
+                * code = 0: success
+                * code = non-zero: failure
+        """
+        ret = {'code': 0, 'output': 'unknown'}
+
+        try:
+            current_owner = self.proxy.get(self.keyname)
+            ret['output'] = current_owner
+        except socket.error:
+            ret['code'] = 1
+
+        return ret
+
+    def watch_lock(self):
+        """ Watch events stream on lock
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>,
+                'output': <new value of the lock>
+            }
+                * code = 0: success
+                * code = non-zero: failure
+        """
+        return self.watch({'key': self.keyname})
+
+    def erase(self, params):
+        """ Remove the key from tcp database
+
+        Args:
+            params (dict): contains key from user input
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>
+            }
+                * code = 0: success
+                * code = non-zero: failure
+        """
+        ret = {'code': 1}
+        key = params['key']
+
+        if key == self.takeover_request:
+            # takeover_request will not be used
+            # pretend it worked
+            ret['code'] = 0
+
+        return ret
+
+    def watch(self, params):
+        """ Watch events stream on key
+
+        Args:
+            params (dict): contains key from user input
+
+        Returns:
+            dict: result with format
+            {
+                'code': <return code>,
+                'output': <new value of the key>
+            }
+                * code = 0: success
+                * code = non-zero: failure
+        """
+        ret = {'code': 0, 'output': 'unknown'}
+        key = params['key']
+
+        if key != self.keyname and key != self.takeover_request:
+            # no other key is supported
+            ret['code'] = 2
+            return ret
+
+        last_arb_timestamp = 0
+        while True:
+            if key == self.takeover_request:
+                if self.is_active() is False:
+                    # maybe a controller swap occurred
+                    break
+                while True:
+                    try:
+                        time_at_arb = self.proxy.heartbeat(self.hostname)
+                        if last_arb_timestamp == 0:
+                            last_arb_timestamp = time_at_arb
+                            break
+                        elif (time_at_arb - last_arb_timestamp) > self.timeout:
+                            # VM was frozen?
+                            syslog.syslog('VM was frozen!')
+                            ret['code'] = 126
+                            return ret
+                        else:
+                            last_arb_timestamp = time_at_arb
+                            break
+                    except socket.error:
+                        # can't heartbeat, need to self-fence (if peer down)
+                        syslog.syslog('cannot heartbeat, inform rded')
+                        ret['output'] = self.hostname + \
+                            ' SC-0 10000000 UNDEFINED'
+                        return ret
+            elif key == self.keyname:
+                try:
+                    current_owner = self.proxy.get(self.keyname)
+                    if not current_owner:
+                        if self.is_active() is False:
+                            # a switchover occurred
+                            break
+                        # maybe the arbitrator restarted
+                        self.proxy.create(self.keyname, self.hostname)
+                    elif current_owner != self.hostname:
+                        ret['output'] = current_owner
+                        break
+                except socket.error:
+                    pass
+            time.sleep(self.heartbeat_interval)
+        return ret
+
+
+if __name__ == '__main__':
+    ArbitratorPlugin().run()

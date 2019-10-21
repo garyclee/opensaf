@@ -159,7 +159,8 @@ dist_osaf_execbin_SCRIPTS += \
 	$(top_srcdir)/scripts/opensaf_reboot \
 	$(top_srcdir)/scripts/opensaf_sc_active \
 	$(top_srcdir)/scripts/opensaf_scale_out \
-	$(top_srcdir)/scripts/plm_scale_out
+	$(top_srcdir)/scripts/plm_scale_out \
+	$(top_srcdir)/scripts/tipc-config
 
 include $(top_srcdir)/src/ais/Makefile.am
 include $(top_srcdir)/src/base/Makefile.am

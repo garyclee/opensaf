@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/bash
 #
 #      -*- OpenSAF  -*-
 #
@@ -39,7 +39,18 @@ fi
 while [ $# -gt 0 ]; do
     case "$1" in
 	-addr)
-	    echo "node address: $(/sbin/tipc node get address)"
+		addr=$(/sbin/tipc node get address)
+		hex_pattern="^[0-9a-fA-F]+$"
+		if [[ $addr =~ $hex_pattern ]]; then
+			dec_addr=$((16#$addr))
+			# the algorithm is based on /usr/include/linux/tipc.h
+			# to form tipc node address into 'Z.C.N' format.
+			tipc_zone=$((dec_addr >> 24))
+			tipc_cluster=$(((dec_addr >> 12) & 0xfff))
+			tipc_node=$((dec_addr & 0xfff))
+			addr="<$tipc_zone.$tipc_cluster.$tipc_node>"
+		fi
+		echo "node address: $addr"
 	    ;;
 	-a=*)
 	    /sbin/tipc node set address "$(echo "$1" | cut -d= -f2)"

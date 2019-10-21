@@ -92,11 +92,11 @@ AVD_SU *avd_sg_nacvred_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg) {
     for (const auto &value : *sirankedsu_db) {
       AVD_SUS_PER_SI_RANK *su_rank_rec = value.second;
       {
-        if (su_rank_rec->indx.si_name.compare(i_si->name) != 0) continue;
+        if (su_rank_rec->si_name.compare(i_si->name) != 0) continue;
 
         /* get the su & si */
         i_su = su_db->find(su_rank_rec->su_name);
-        AVD_SI *si = avd_si_get(su_rank_rec->indx.si_name);
+        AVD_SI *si = avd_si_get(su_rank_rec->si_name);
 
         /* validate this entry */
         if ((si == nullptr) || (i_su == nullptr) ||

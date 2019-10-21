@@ -47,6 +47,7 @@ namespace {
 void PrintUsage(const char* program_name);
 bool SendCommand(const std::string& command);
 bool MaxTraceFileSize(uint64_t max_file_size);
+bool SetMaxIdleTime(uint64_t max_idle);
 bool NoOfBackupFiles(uint64_t number_of_backups);
 bool Flush();
 base::UnixServerSocket* CreateSocket();
@@ -70,10 +71,12 @@ int main(int argc, char** argv) {
                                   {"print", no_argument, nullptr, 'p'},
                                   {"delete", no_argument, nullptr, 'd'},
                                   {"extract-trace", required_argument, 0, 'e'},
+                                  {"max-idle", required_argument, 0, 'i'},
                                   {0, 0, 0, 0}};
 
   uint64_t max_file_size = 0;
   uint64_t max_backups = 0;
+  uint64_t max_idle = 0;
   int option = 0;
 
   int long_index = 0;
@@ -82,71 +85,81 @@ int main(int argc, char** argv) {
   bool delete_result =  true;
   bool max_file_size_result = true;
   bool number_of_backups_result = true;
+  bool max_idle_result = true;
   bool flush_set = false;
   bool pretty_print_set = false;
   bool delete_set = false;
   bool max_file_size_set = false;
   bool max_backups_set = false;
+  bool max_idle_set = false;
   bool thread_trace = false;
   std::string input_core = "";
   std::string output_trace = "";
 
   if (argc == 1) {
-     PrintUsage(argv[0]);
-     exit(EXIT_FAILURE);
+    PrintUsage(argv[0]);
+    exit(EXIT_FAILURE);
   }
 
   while ((option = getopt_long(argc, argv, "m:b:p:f:e:",
-                   long_options, &long_index)) != -1) {
-        switch (option) {
-             case 'p':
-                   pretty_print_set = true;
-                   flush_set = true;
-                 break;
-             case 'd':
-                   delete_set = true;
-                 break;
-             case 'f':
-                   flush_set = true;
-                 break;
-             case 'm':
-                   max_file_size = base::StrToUint64(optarg,
-                                                     &max_file_size_set);
-                   if (!max_file_size_set || max_file_size > SIZE_MAX) {
-                     fprintf(stderr, "Illegal max-file-size argument\n");
-                     exit(EXIT_FAILURE);
-                   }
-                 break;
-             case 'b':
-                   max_backups = base::StrToUint64(optarg, &max_backups_set);
-                   if (!max_backups_set || max_backups > SIZE_MAX) {
-                     fprintf(stderr, "Illegal max-backups argument\n");
-                     exit(EXIT_FAILURE);
-                   }
-                 break;
-             case 'e':
-                   if (argv[optind] == nullptr || optarg == nullptr) {
-                     fprintf(stderr, "Coredump file or output trace file is "
-                         "not specified in arguments\n");
-                     exit(EXIT_FAILURE);
-                   }
-                   input_core = std::string(optarg);
-                   output_trace = std::string(argv[optind]);
-                   struct stat statbuf;
-                   if (stat(input_core.c_str(), &statbuf) != 0) {
-                    fprintf(stderr, "Core dump file does not exist\n");
-                    exit(EXIT_FAILURE);
-                   }
-
-                   if (stat(output_trace.c_str(), &statbuf) == 0) {
-                     fprintf(stderr, "Output trace file already exists\n");
-                     exit(EXIT_FAILURE);
-                   }
-                   thread_trace = true;
-                   break;
-             default: PrintUsage(argv[0]);
-                 exit(EXIT_FAILURE);
+                               long_options, &long_index)) != -1) {
+    switch (option) {
+      case 'p':
+        pretty_print_set = true;
+        flush_set = true;
+        break;
+      case 'd':
+        delete_set = true;
+        break;
+      case 'f':
+        flush_set = true;
+        break;
+      case 'm':
+        max_file_size = base::StrToUint64(optarg,
+                                          &max_file_size_set);
+        if (!max_file_size_set || max_file_size > SIZE_MAX) {
+          fprintf(stderr, "Illegal max-file-size argument\n");
+          exit(EXIT_FAILURE);
         }
+        break;
+      case 'b':
+        max_backups = base::StrToUint64(optarg, &max_backups_set);
+        if (!max_backups_set || max_backups > SIZE_MAX) {
+          fprintf(stderr, "Illegal max-backups argument\n");
+          exit(EXIT_FAILURE);
+        }
+        break;
+      case 'i':
+        max_idle = base::StrToUint64(optarg, &max_idle_set);
+        if (!max_idle_set || max_idle > Osaflog::kOneDayInMinute) {
+          fprintf(stderr, "Illegal max-idle argument."
+                  " Valid value is in the range [0-24*60]\n");
+          exit(EXIT_FAILURE);
+        }
+        break;
+      case 'e':
+        if (argv[optind] == nullptr || optarg == nullptr) {
+          fprintf(stderr, "Coredump file or output trace file is "
+                  "not specified in arguments\n");
+          exit(EXIT_FAILURE);
+        }
+        input_core = std::string(optarg);
+        output_trace = std::string(argv[optind]);
+        struct stat statbuf;
+        if (stat(input_core.c_str(), &statbuf) != 0) {
+          fprintf(stderr, "Core dump file does not exist\n");
+          exit(EXIT_FAILURE);
+        }
+
+        if (stat(output_trace.c_str(), &statbuf) == 0) {
+          fprintf(stderr, "Output trace file already exists\n");
+          exit(EXIT_FAILURE);
+        }
+        thread_trace = true;
+        break;
+      default: PrintUsage(argv[0]);
+        exit(EXIT_FAILURE);
+    }
   }
 
   if (thread_trace) exit(ExtractTrace(input_core, output_trace));
@@ -181,8 +194,11 @@ int main(int argc, char** argv) {
   if (max_file_size_set == true) {
      max_file_size_result = MaxTraceFileSize(max_file_size);
   }
+  if (max_idle_set == true) {
+    max_idle_result = SetMaxIdleTime(max_idle);
+  }
   if (flush_result && print_result && max_file_size_result &&
-      delete_result && number_of_backups_result)
+      delete_result && number_of_backups_result && max_idle_result)
      exit(EXIT_SUCCESS);
   exit(EXIT_FAILURE);
 }
@@ -220,7 +236,12 @@ void PrintUsage(const char* program_name) {
           "                      THREAD_TRACE_BUFFER enabled, this option\n"
           "                      reads the <corefile> to extract the trace\n"
           "                      strings in all threads and writes them to\n"
-          "                      the <tracefile> file.\n",
+          "                      the <tracefile> file.\n"
+          "--max-idle=NUM        Set the maximum number of idle time to NUM\n"
+          "                      minutes. If a stream has not been used for\n"
+          "                      the given time, the stream will be closed.\n"
+          "                      Given zero (default) to max-idle to disable\n"
+          "                      this functionality.\n",
           program_name);
 }
 
@@ -295,6 +316,11 @@ bool MaxTraceFileSize(uint64_t max_file_size) {
 
 bool NoOfBackupFiles(uint64_t max_backups) {
   return SendCommand(std::string("max-backups ") + std::to_string(max_backups));
+}
+
+bool SetMaxIdleTime(uint64_t max_idle) {
+  return SendCommand(std::string("max-idle-time ") +
+                     std::to_string(max_idle));
 }
 
 bool Flush() {

@@ -1342,13 +1342,13 @@ uint32_t avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg) {
     for (const auto &value : *sirankedsu_db) {
       AVD_SUS_PER_SI_RANK *su_rank_rec = value.second;
       {
-        if (su_rank_rec->indx.si_name.compare(curr_si->name) != 0) {
+        if (su_rank_rec->si_name.compare(curr_si->name) != 0) {
           continue;
         }
 
         /* get the su & si */
         curr_su = su_db->find(su_rank_rec->su_name);
-        AVD_SI *si = avd_si_get(su_rank_rec->indx.si_name);
+        AVD_SI *si = avd_si_get(su_rank_rec->si_name);
 
         /* validate this entry */
         if ((si == nullptr) || (curr_su == nullptr) ||
@@ -1472,11 +1472,11 @@ uint32_t avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg) {
     for (const auto &value : *sirankedsu_db) {
       AVD_SUS_PER_SI_RANK *su_rank_rec = value.second;
       {
-        if (su_rank_rec->indx.si_name.compare(curr_si->name) != 0) continue;
+        if (su_rank_rec->si_name.compare(curr_si->name) != 0) continue;
 
         /* get the su & si */
         curr_su = su_db->find(su_rank_rec->su_name);
-        AVD_SI *si = avd_si_get(su_rank_rec->indx.si_name);
+        AVD_SI *si = avd_si_get(su_rank_rec->si_name);
 
         /* validate this entry */
         if ((si == nullptr) || (curr_su == nullptr) ||
@@ -2184,7 +2184,7 @@ uint32_t SG_NWAY::su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su) {
       /* identify the quiesced assigning susi */
       for (susi = si->list_of_sisu;
            susi && !((SA_AMF_READINESS_IN_SERVICE ==
-                      curr_susi->su->saAmfSuReadinessState) &&
+                      susi->su->saAmfSuReadinessState) &&
                      (SA_AMF_HA_QUIESCED == susi->state) &&
                      (AVD_SU_SI_STATE_MODIFY == susi->fsm));
            susi = susi->si_next)
@@ -2589,6 +2589,8 @@ static AVD_SU_SI_REL *find_pref_standby_susi(AVD_SU_SI_REL *sisu) {
 
   TRACE_ENTER();
 
+  osafassert(sisu != nullptr);
+  osafassert(sisu->si != nullptr);
   curr_sisu = sisu->si->list_of_sisu;
   while (curr_sisu) {
     if ((SA_AMF_READINESS_IN_SERVICE == curr_sisu->su->saAmfSuReadinessState) &&

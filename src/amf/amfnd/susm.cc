@@ -392,6 +392,7 @@ uint32_t avnd_su_si_msg_prc(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *info) {
       if (true == info->single_csi) {
         AVND_COMP_CSI_PARAM *csi_param;
         AVND_COMP_CSI_REC *csi_rec;
+        osafassert(si != nullptr);
         si->single_csi_add_rem_in_si = AVSV_SUSI_ACT_DEL;
         osafassert((info->num_assigns == 1));
         csi_param = info->list;
@@ -1010,6 +1011,7 @@ static AVND_SU_SI_REC *get_higher_ranked_si(const AVND_SU_SI_REC *si) {
  */
 static bool all_sis_atrank_removed(const AVND_SU_SI_REC *si) {
   const AVND_SU_SI_REC *tmp;
+  osafassert(si != nullptr);
 
   /* search forwards */
   for (tmp = si; tmp && (tmp->rank == si->rank);
@@ -2267,6 +2269,8 @@ uint32_t avnd_su_pres_insting_compinst_hdler(AVND_CB *cb, AVND_SU *su,
       "Component Instantiated event in the Instantiating state:'%s' : '%s'",
       su->name.c_str(), compname.c_str());
 
+  osafassert(comp != nullptr);
+
   /*
    * If pi su, pick the next pi comp & trigger it's FSM with InstEv.
    * If the component is marked failed (=> component has reinstantiated
@@ -2762,6 +2766,7 @@ uint32_t avnd_su_pres_inst_comprestart_hdler(AVND_CB *cb, AVND_SU *su,
   const std::string compname = comp ? comp->name : "none";
   TRACE_ENTER2("Component restart event in the Instantiated state, '%s' : '%s'",
                su->name.c_str(), compname.c_str());
+  osafassert(comp != nullptr);
   if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
     TRACE("PI SU");
     for (AVND_COMP *curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(
@@ -2892,6 +2897,7 @@ uint32_t avnd_su_pres_terming_compinst_hdler(AVND_CB *cb, AVND_SU *su,
 
   if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
     bool is;
+    osafassert(comp != nullptr);
     if (m_AVND_COMP_IS_FAILED(comp)) {
       m_AVND_COMP_FAILED_RESET(comp);
     }
@@ -3145,6 +3151,7 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su,
       avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_INST);
       avnd_su_pres_state_set(cb, su, SA_AMF_PRESENCE_INSTANTIATING);
     } else {
+      osafassert(comp != nullptr);
       TRACE("Admin operation on SU");
       for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(
                m_NCS_DBLIST_FIND_PREV(&comp->su_dll_node));
@@ -3210,6 +3217,7 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su,
       (!m_AVND_SU_IS_FAILED(su) || m_AVND_SU_IS_RESTART(su))) {
     TRACE("NPI SU");
     /* get the only csi rec */
+    osafassert(comp != nullptr);
     curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
         m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
     osafassert(curr_csi);
@@ -3473,6 +3481,7 @@ uint32_t avnd_su_pres_restart_compinst_hdler(AVND_CB *cb, AVND_SU *su,
       "ComponentInstantiated event in the Restarting state:'%s' : '%s'",
       su->name.c_str(), compname.c_str());
   SaAmfPresenceStateT pres_init = su->pres;
+  osafassert(comp != nullptr);
   /*
    * If pi su, pick the next pi comp & trigger it's FSM with Inst Event.
    */
@@ -3516,6 +3525,7 @@ uint32_t avnd_su_pres_restart_compinst_hdler(AVND_CB *cb, AVND_SU *su,
   if (!m_AVND_SU_IS_PREINSTANTIABLE(su)) {
     TRACE("NPI SU:'%s'", su->name.c_str());
     /* get the only csi rec */
+    osafassert(comp != nullptr);
     curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
         m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
     osafassert(curr_csi);
@@ -3933,6 +3943,7 @@ uint32_t avnd_su_pres_terming_comprestart_hdler(AVND_CB *cb, AVND_SU *su,
   if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
     TRACE("PI SU");
     AVND_COMP *curr_comp = nullptr;
+    osafassert(comp != nullptr);
     for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(
              m_NCS_DBLIST_FIND_PREV(&comp->su_dll_node));
          curr_comp; curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(
@@ -4059,6 +4070,7 @@ uint32_t avnd_su_pres_inst_compinst_hdler(AVND_CB *cb, AVND_SU *su,
   TRACE_ENTER2(
       "Component Instantiated event in the Instantiated state:'%s' : '%s'",
       su->name.c_str(), compname.c_str());
+  osafassert(comp != nullptr);
 
   if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
     TRACE("PI SU");

@@ -1375,6 +1375,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp,
           m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
       if ((m_AVND_IS_SHUTTING_DOWN(cb)) &&
           (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(csi))) {
+        osafassert(csi != nullptr);
         TRACE_1("CSI marked Removed.");
         m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(
             csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVED);

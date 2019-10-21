@@ -461,12 +461,12 @@ SaAisErrorT SmfImmCcbAction::execute(SaImmOiHandleT i_oiHandle,
                                      const std::string* i_rollbackDn) {
   SaAisErrorT result = SA_AIS_OK;
   SmfRollbackCcb* rollbackCcb = NULL;
+  std::string immRollbackCcbDn;
 
   TRACE_ENTER();
 
   TRACE("Imm ccb actions id %d, size %zu", m_id, m_operations.size());
   if (i_rollbackDn != NULL) {
-    std::string immRollbackCcbDn;
     char idStr[16];
     snprintf(idStr, 16, "%08d", m_id);
     immRollbackCcbDn = "smfRollbackElement=ccb_";
@@ -481,27 +481,35 @@ SaAisErrorT SmfImmCcbAction::execute(SaImmOiHandleT i_oiHandle,
           immRollbackCcbDn.c_str(), saf_error(result));
       return result;
     }
-
-    rollbackCcb =
-        new (std::nothrow) SmfRollbackCcb(immRollbackCcbDn, i_oiHandle);
-    if (rollbackCcb == NULL) {
-      LOG_ER("SmfImmCcbAction::execute failed to create SmfRollbackCcb");
-      return SA_AIS_ERR_NO_MEMORY;
-    }
   }
 
   if (m_operations.size() > 0) {
-      SmfImmUtils immUtil;
-    if ((result = immUtil.doImmOperations(m_operations, rollbackCcb)) !=
-        SA_AIS_OK) {
-         delete rollbackCcb;
-         rollbackCcb = NULL;
+    TRACE("Imm Ccb Action");
+    SmfImmUtils smfImmUtils;
+
+    if (i_rollbackDn != NULL) {
+      rollbackCcb =
+          new (std::nothrow) SmfRollbackCcb(immRollbackCcbDn, i_oiHandle);
+      if (rollbackCcb == NULL) {
+        LOG_ER("SmfImmCcbAction::execute failed to create SmfRollbackCcb");
+        return SA_AIS_ERR_NO_MEMORY;
+      }
+    }
+
+    result = smfImmUtils.doImmOperations(m_operations, rollbackCcb);
+    if (result != SA_AIS_OK) {
+      LOG_ER("SmfImmCcbAction::execute failed, result=%s",
+              saf_error(result));
+      if (rollbackCcb != NULL) {
+        delete rollbackCcb;
+        rollbackCcb = NULL;
+      }
     }
   }
 
   if (rollbackCcb != NULL) {
     if ((result = rollbackCcb->execute()) != SA_AIS_OK) {
-      LOG_ER("SmfImmCcbAction::execute failed to store rollback CCB, rc=%s",
+      LOG_ER("SmfImmCcbAction::execute failed to store rollback CCB, result=%s",
              saf_error(result));
     }
     delete rollbackCcb;

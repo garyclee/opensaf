@@ -51,10 +51,6 @@ class SmfRollbackCcb;
  *   DATA DECLARATIONS
  * ========================================================================
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern bool smf_stringToImmType(char* i_type, SaImmValueTypeT& o_type);
 extern const char* smf_immTypeToString(SaImmValueTypeT i_type);
 extern SaImmAttrModificationTypeT smf_stringToImmAttrModType(char* i_type);
@@ -74,9 +70,6 @@ extern const std::string smfStateToString(const uint32_t& i_stateId,
 extern bool compare_du_part(unitNameAndState& first, unitNameAndState& second);
 extern bool unique_du_part(unitNameAndState& first, unitNameAndState& second);
 
-#ifdef __cplusplus
-}
-#endif
 extern bool waitForNodeDestination(const std::string& i_node,
                                    SmfndNodeDest* o_nodeDest);
 extern bool getNodeDestination(const std::string& i_node,

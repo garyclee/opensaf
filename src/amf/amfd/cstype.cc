@@ -62,6 +62,7 @@ static AVD_CS_TYPE *cstype_create(const std::string &dn,
  * @param cst
  */
 static void cstype_delete(AVD_CS_TYPE *cst) {
+  osafassert(cst != nullptr);
   cstype_db->erase(cst->name);
   cst->saAmfCSAttrName.clear();
   delete cst;
@@ -205,6 +206,7 @@ static SaAisErrorT cstype_ccb_completed_hdlr(CcbUtilOperationData_t *opdata) {
         opdata->userData = nullptr;
         break;
       }
+      osafassert(cst != nullptr);
       if (cst->list_of_csi != nullptr) {
         /* check whether there exists a delete operation for
          * each of the CSI in the cs_type list in the current CCB

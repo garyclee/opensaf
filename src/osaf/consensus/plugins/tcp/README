@@ -1,0 +1,38 @@
+TCP arbitrator
+
+The TCP arbitrator may be useful for deployments where deploying etcd is not
+feasible. An example arbitrator is provided to help prevent split brain in
+clusters that contain up to 2 system controllers.
+
+The example arbitrator is a simple python based program that can be deployed on
+a single payload or a node external to the cluster.
+
+Two main pieces of information are stored on the arbitrator: the hostname of the
+current active controller and a heartbeat timestamp.
+
+An active controller sends a heartbeat to the controller every 100ms using TLs
+over a persistent TCP connection. It should self-fence if it is unable to
+heartbeat, as it is likely to be separated from the arbitrator.
+
+A candidate active controller must check the existing controller is not
+heartbeating before promoting itself active. On a cluster using TIPC,
+the timeout value is the TIPC link tolerance timeout. On a TCP based cluster,
+the timeout is calculated from FMS_TAKEOVER_REQUEST_VALID_TIME.
+
+Suggested fmd.conf configuration:
+
+export FMS_SPLIT_BRAIN_PREVENTION=1
+export FMS_KEYVALUE_STORE_PLUGIN_CMD=/full/path/to/tcp.plugin
+export FMS_TAKEOVER_PRIORITISE_PARTITION_SIZE=0 (any other setting is ignored)
+export FMS_RELAXED_NODE_PROMOTION=1
+
+The above settings will allow a controller to be elected active during
+cluster startup, even if the arbitrator is not yet running.
+If the arbitrator becomes temporarily unavailable, the controllers will
+remain running if they can see each other. If an active controller becomes
+isolated from the standby *and* the arbitrator, it will self-fence and the
+standby will become active (if located in the same network partition as
+the arbitrator).
+
+An example script is provided to generate a test cerficate / key. Certification
+verification is disabled in tcp.plugin as the test cerficate is self-signed.

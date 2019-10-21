@@ -476,6 +476,7 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt) {
        * this resp */
       if (!csi) {
         AVND_COMP_CSI_REC *temp_csi = m_AVND_COMPDB_REC_CSI_GET_FIRST(*comp);
+        osafassert(temp_csi != nullptr);
 
         if (cbk_rec->cbk_info->param.csi_set.ha != temp_csi->si->curr_state) {
           avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec->opq_hdl, false);
@@ -1214,6 +1215,7 @@ void avnd_comp_unreg_cbk_process(AVND_CB *cb, AVND_COMP *comp) {
          * this resp */
         if (!csi) {
           AVND_COMP_CSI_REC *temp_csi = m_AVND_COMPDB_REC_CSI_GET_FIRST(*comp);
+          osafassert(temp_csi != nullptr);
 
           if (cbk->cbk_info->param.csi_set.ha != temp_csi->si->curr_state) {
             avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk->opq_hdl, true);

@@ -1924,14 +1924,15 @@ uint32_t tet_mds_cb_enc_flat(NCSMDS_CALLBACK_INFO *mds_to_svc_info)
 	mds_to_svc_info->info.enc_flat.o_msg_fmt_ver =
 	    mds_to_svc_info->info.enc_flat.i_rem_svc_pvt_ver;
 	printf(
-	    "Flat encoding the message sent from Sender svc = %d with msg_fmt_ver=%d\n",
+	    "Flat encoding the message sent (length=%d) from Sender svc = %d with msg_fmt_ver=%d\n",
+	    msg->send_len,
 	    mds_to_svc_info->i_yr_svc_id,
 	    mds_to_svc_info->info.enc_flat.o_msg_fmt_ver);
 
 	/* ENCODE length */
-	p8 = ncs_enc_reserve_space(mds_to_svc_info->info.enc_flat.io_uba, 2);
-	ncs_encode_16bit(&p8, msg->send_len);
-	ncs_enc_claim_space(mds_to_svc_info->info.enc_flat.io_uba, 2);
+	p8 = ncs_enc_reserve_space(mds_to_svc_info->info.enc_flat.io_uba, sizeof(uint32_t));
+	ncs_encode_32bit(&p8, msg->send_len);
+	ncs_enc_claim_space(mds_to_svc_info->info.enc_flat.io_uba, sizeof(uint32_t));
 
 	/* ENCODE data */
 	ncs_encode_n_octets_in_uba(mds_to_svc_info->info.enc_flat.io_uba,
@@ -1962,9 +1963,9 @@ uint32_t tet_mds_cb_dec_flat(NCSMDS_CALLBACK_INFO *mds_to_svc_info)
 
 	/* DECODE length */
 	p8 = ncs_dec_flatten_space(mds_to_svc_info->info.dec_flat.io_uba,
-				   (uint8_t *)&msg->recvd_len, 2);
-	msg->recvd_len = ncs_decode_16bit(&p8);
-	ncs_dec_skip_space(mds_to_svc_info->info.dec_flat.io_uba, 2);
+				   (uint8_t *)&msg->recvd_len, sizeof(uint32_t));
+	msg->recvd_len = ncs_decode_32bit(&p8);
+	ncs_dec_skip_space(mds_to_svc_info->info.dec_flat.io_uba, sizeof(uint32_t));
 
 	/*Decode data*/
 	/*msg->recvd_data = (char *) malloc(msg->recvd_len+1);*/
@@ -1974,9 +1975,9 @@ uint32_t tet_mds_cb_dec_flat(NCSMDS_CALLBACK_INFO *mds_to_svc_info)
 				     msg->recvd_len);
 	msg->recvd_data[msg->recvd_len] = 0; /* NULL termination for string */
 	if (mds_to_svc_info->info.dec_flat.i_is_resp)
-		printf("\nThis is a RESPONSE");
+		printf("\nThis is a RESPONSE (length=%d)", msg->recvd_len);
 	else
-		printf("\nThis is a MESSAGE");
+		printf("\nThis is a MESSAGE (length=%d)", msg->recvd_len);
 
 	return NCSCC_RC_SUCCESS;
 }

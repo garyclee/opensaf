@@ -128,6 +128,9 @@ class AVD_SI {
 
   void add_rankedsu(const std::string &suname, uint32_t saAmfRank);
   void remove_rankedsu(const std::string &suname);
+  void update_sisu_rank(const std::string& suname, uint32_t saAmfRank);
+
+  uint32_t get_sisu_rank(const std::string& suname) const;
 
   void set_si_switch(AVD_CL_CB *cb, const SaToggleState state);
 

@@ -164,6 +164,7 @@ static SaAisErrorT svctype_ccb_completed_cb(CcbUtilOperationData_t *opdata) {
       /* check whether there exists a delete operation for
        * each of the SI in the svc_type list in the current CCB
        */
+      osafassert(svc_type != nullptr);
       for (const auto &si : svc_type->list_of_si) {
         const SaNameTWrapper si_name(si->name);
         t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, si_name);

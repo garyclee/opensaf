@@ -31,6 +31,7 @@
 ******************************************************************************/
 
 #include "lck/lcknd/glnd.h"
+#include "lck/lcknd/glnd_clm.h"
 #include "base/osaf_poll.h"
 
 enum { FD_TERM = 0, FD_AMF, FD_MBX, FD_CLM, NUM_FD };
@@ -192,9 +193,8 @@ void glnd_main_process(SYSF_MBX *mbx)
 	TRACE_ENTER();
 
 	SaAmfHandleT amf_hdl;
-	SaClmHandleT clm_hdl;
 
-	SaSelectionObjectT amf_sel_obj, clm_sel_obj;
+	SaSelectionObjectT amf_sel_obj;
 	SaAisErrorT ais_error;
 
 	struct pollfd sel[NUM_FD];
@@ -208,7 +208,6 @@ void glnd_main_process(SYSF_MBX *mbx)
 	}
 
 	amf_hdl = glnd_cb->amf_hdl;
-	clm_hdl = glnd_cb->clm_hdl;
 
 	/*giveup the handle */
 	m_GLND_GIVEUP_GLND_CB;
@@ -216,12 +215,6 @@ void glnd_main_process(SYSF_MBX *mbx)
 	ais_error = saAmfSelectionObjectGet(amf_hdl, &amf_sel_obj);
 	if (ais_error != SA_AIS_OK) {
 		LOG_ER("GLND amf get sel obj error");
-		goto end;
-	}
-
-	ais_error = saClmSelectionObjectGet(clm_hdl, &clm_sel_obj);
-	if (ais_error != SA_AIS_OK) {
-		LOG_ER("GLND clm get sel obj error: %i", ais_error);
 		goto end;
 	}
 
@@ -233,17 +226,25 @@ void glnd_main_process(SYSF_MBX *mbx)
 	sel[FD_AMF].events = POLLIN;
 	sel[FD_MBX].fd = m_GET_FD_FROM_SEL_OBJ(mbx_fd);
 	sel[FD_MBX].events = POLLIN;
-	sel[FD_CLM].fd = clm_sel_obj;
 	sel[FD_CLM].events = POLLIN;
 
-	while (osaf_poll(&sel[0], NUM_FD, -1) > 0) {
+	while (true) {
+		sel[FD_CLM].fd = glnd_cb->clm_sel_obj;
+
+		if (poll(sel, NUM_FD, -1) < 0) {
+			if (errno == EINTR)
+				continue;
+			else {
+				LOG_ER("poll failed: %s", strerror(errno));
+				break;
+			}
+		}
 
 		if (sel[FD_TERM].revents & POLLIN) {
 			daemon_exit();
 		}
 
-		if (((sel[FD_AMF].revents | sel[FD_MBX].revents |
-		      sel[FD_CLM].revents) &
+		if (((sel[FD_AMF].revents | sel[FD_MBX].revents) &
 		     (POLLERR | POLLHUP | POLLNVAL)) != 0) {
 			LOG_ER("GLND poll() failure: %hd %hd",
 			       sel[FD_AMF].revents, sel[FD_MBX].revents);
@@ -272,10 +273,13 @@ void glnd_main_process(SYSF_MBX *mbx)
 		/* process all the AMF messages */
 		if (sel[FD_CLM].revents & POLLIN) {
 			/* dispatch all the CLM pending function */
-			ais_error = saClmDispatch(clm_hdl, SA_DISPATCH_ALL);
-			if (ais_error != SA_AIS_OK) {
-				TRACE_2("GLND clm dispatch failure: %i",
-					ais_error);
+			ais_error = saClmDispatch(glnd_cb->clm_hdl, SA_DISPATCH_ALL);
+			if (ais_error == SA_AIS_ERR_BAD_HANDLE) {
+				LOG_ER("saClmDispatch bad handle");
+				glnd_cb->clm_sel_obj = -1;
+				glnd_clm_reinit_bg(glnd_cb);
+			} else if (ais_error != SA_AIS_OK) {
+				LOG_ER("saClmDispatch failure: %i", ais_error);
 			}
 		}
 	}

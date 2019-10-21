@@ -1621,7 +1621,7 @@ done:
 unsigned int avnd_comp_config_get_su(AVND_SU *su) {
   unsigned int rc = NCSCC_RC_FAILURE;
   SaAisErrorT error;
-  SaImmSearchHandleT searchHandle;
+  SaImmSearchHandleT searchHandle{};
   SaImmSearchParametersT_2 searchParam;
   SaNameT comp_name;
   const SaImmAttrValuesT_2 **attributes;

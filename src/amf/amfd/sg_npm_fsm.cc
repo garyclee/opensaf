@@ -2773,23 +2773,26 @@ static uint32_t avd_sg_npm_susi_sucss_si_oper(AVD_CL_CB *cb, AVD_SU *su,
            * modify standby all to the Quiesced SU. Remove the SI from
            * admin pointer and add the quiesced SU to the SU oper list.
            */
-          if (su->sg_of_su->admin_si->list_of_sisu == i_susi) {
-            o_susi = i_susi->si_next;
-          } else {
-            o_susi = su->sg_of_su->admin_si->list_of_sisu;
-          }
+          i_susi = avd_su_susi_find(cb, su, su->sg_of_su->admin_si->name);
+          if (i_susi != nullptr) {
+            if (su->sg_of_su->admin_si->list_of_sisu == i_susi) {
+              o_susi = i_susi->si_next;
+            } else {
+              o_susi = su->sg_of_su->admin_si->list_of_sisu;
+            }
 
-          if (avd_sg_su_si_mod_snd(cb, o_susi->su, SA_AMF_HA_STANDBY) ==
-              NCSCC_RC_FAILURE) {
-            LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
-                   su->name.length());
-            return NCSCC_RC_FAILURE;
-          }
+            if (avd_sg_su_si_mod_snd(cb, o_susi->su, SA_AMF_HA_STANDBY) ==
+                NCSCC_RC_FAILURE) {
+              LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+                     su->name.length());
+              return NCSCC_RC_FAILURE;
+            }
 
-          avd_sg_su_oper_list_add(cb, o_susi->su, false);
-          su->sg_of_su->admin_si->set_si_switch(cb, AVSV_SI_TOGGLE_STABLE);
-          m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
-          su->sg_of_su->set_fsm_state(AVD_SG_FSM_SG_REALIGN);
+            avd_sg_su_oper_list_add(cb, o_susi->su, false);
+            su->sg_of_su->admin_si->set_si_switch(cb, AVSV_SI_TOGGLE_STABLE);
+            m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
+            su->sg_of_su->set_fsm_state(AVD_SG_FSM_SG_REALIGN);
+          }
         }
 
         /* if (i_susi == AVD_SU_SI_REL_NULL) */
@@ -4688,6 +4691,7 @@ SaAisErrorT SG_NPM::si_swap(AVD_SI *si, SaInvocationT invocation) {
     actv_susi = si->list_of_sisu->si_next;
     stdby_susi = si->list_of_sisu;
   }
+  osafassert(actv_susi != nullptr);
   actv_su = actv_susi->su;
   stdby_su = stdby_susi->su;
 

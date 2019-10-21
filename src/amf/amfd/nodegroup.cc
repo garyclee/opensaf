@@ -324,10 +324,11 @@ static SaAisErrorT ng_ccb_completed_modify_hdlr(
   TRACE_ENTER();
 
   ng = avd_ng_get(Amf::to_string(&opdata->objectName));
-  if (ng == nullptr) {
-    report_ccb_validation_error(opdata, "ng modify: nodegroup cannot be found");
-    goto done;
+  if (ng == nullptr && avd_cb->is_active() == false) {
+    LOG_WA("NG modify completed (STDBY): ng does not exist");
+    return SA_AIS_OK;
   }
+  assert(ng != nullptr);
 
   while ((mod = opdata->param.modify.attrMods[i++]) != nullptr) {
     if (mod->modType == SA_IMM_ATTR_VALUES_REPLACE) {

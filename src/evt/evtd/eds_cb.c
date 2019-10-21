@@ -273,7 +273,11 @@ void eds_main_process(SYSF_MBX *mbx)
 		if (fds[FD_CLM].revents & POLLIN) {
 			/* dispatch all the AMF pending callbacks */
 			error = saClmDispatch(eds_cb->clm_hdl, SA_DISPATCH_ALL);
-			if (error != SA_AIS_OK)
+			if (error == SA_AIS_ERR_BAD_HANDLE) {
+				LOG_ER("saClmDispatch bad handle");
+				eds_cb->clm_sel_obj = -1;
+				eds_clm_reinit_bg(eds_cb);
+			} else if (error != SA_AIS_OK)
 				LOG_ER("CLM Dispatch failed with rc = %d",
 				       error);
 		}
