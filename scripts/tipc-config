@@ -36,10 +36,12 @@ EOF
     exit 1
 fi
 
+tipc=$(which tipc 2> /dev/null)
+
 while [ $# -gt 0 ]; do
     case "$1" in
 	-addr)
-		addr=$(/sbin/tipc node get address)
+		addr=$("$tipc" node get address)
 		hex_pattern="^[0-9a-fA-F]+$"
 		if [[ $addr =~ $hex_pattern ]]; then
 			dec_addr=$((16#$addr))
@@ -53,36 +55,36 @@ while [ $# -gt 0 ]; do
 		echo "node address: $addr"
 	    ;;
 	-a=*)
-	    /sbin/tipc node set address "$(echo "$1" | cut -d= -f2)"
+	    "$tipc" node set address "$(echo "$1" | cut -d= -f2)"
 	    ;;
 	-b)
 	    echo "Bearers:"
-	    /sbin/tipc bearer list
+	    "$tipc" bearer list
 	    ;;
 	-bd=*)
-	    /sbin/tipc bearer disable media eth device "$(echo "$1" | cut -d: -f2)"
+	    "$tipc" bearer disable media eth device "$(echo "$1" | cut -d: -f2)"
 	    ;;
 	-be=*)
-	    /sbin/tipc bearer enable media eth device "$(echo "$1" | cut -d: -f2)"
+	    "$tipc" bearer enable media eth device "$(echo "$1" | cut -d: -f2)"
 	    ;;
 	-l)
 	    echo "Links:"
-	    /sbin/tipc link list
+	    "$tipc" link list
 	    ;;
 	-lt=*)
 	    tolerance=$(echo "$1" | cut -d= -f2)
 	    link=$(echo "$tolerance" | cut -d/ -f1)
 	    value=$(echo "$tolerance" | cut -d/ -f2)
-	    /sbin/tipc link set tolerance "$value" link "$link"
+	    "$tipc" link set tolerance "$value" link "$link"
 	    ;;
 	-netid)
-	    echo "current network id: $(/sbin/tipc node get netid)"
+	    echo "current network id: $("$tipc" node get netid)"
 	    ;;
 	-netid=*)
-	    /sbin/tipc node set netid "$(echo "$1" | cut -d= -f2)"
+	    "$tipc" node set netid "$(echo "$1" | cut -d= -f2)"
 	    ;;
 	-nt)
-	    /sbin/tipc nametable show
+	    "$tipc" nametable show
 	    ;;
 	*)
 	    echo "$0: unrecognized option '$1'" 1>&2
