@@ -339,7 +339,7 @@ static uint32_t mds_subtn_tbl_add_disc_queue(MDS_SUBSCRIPTION_INFO *sub_info,
 					     MDS_VDEST_ID dest_vdest_id,
 					     MDS_DEST dest, MDS_HDL env_hdl,
 					     MDS_SVC_ID fr_svc_id,
-					     bool time_wait);
+					     int64_t time_wait);
 
 static uint32_t mcm_pvt_red_snd_process_common(
     MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id, SEND_MSG msg, MDS_DEST to_dest,
@@ -1908,7 +1908,7 @@ mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_ID dest_svc_id,
 	V_DEST_QA anchor;
 	uint32_t disc_rc;
 	MDS_HDL env_hdl;
-	bool time_wait = false;
+	int64_t time_wait = 0;
 
 	MDS_SUBSCRIPTION_RESULTS_INFO *t_send_hdl =
 	    NULL; /* Subscription Result */
@@ -1950,7 +1950,7 @@ mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_ID dest_svc_id,
 	} else if (sub_info->tmr_flag != true) {
 		if ((MDS_SENDTYPE_RSP == req->i_sendtype) ||
 		    (MDS_SENDTYPE_RRSP == req->i_sendtype)) {
-			time_wait = true;
+			time_wait = MDS_SVC_UP_WAIT_LONG_TIME;
 			m_MDS_LOG_INFO(
 			    "MDS_SND_RCV:Disc queue: Subscr exists no timer running: Waiting for some time\n");
 		} else {
@@ -2070,15 +2070,10 @@ static uint32_t mds_subtn_tbl_add_disc_queue(MDS_SUBSCRIPTION_INFO *sub_info,
 					     MDS_VDEST_ID dest_vdest_id,
 					     MDS_DEST dest, MDS_HDL env_hdl,
 					     MDS_SVC_ID fr_svc_id,
-					     bool time_wait)
+					     int64_t time_wait)
 {
 	MDS_AWAIT_DISC_QUEUE *add_ptr = NULL, *mov_ptr = NULL;
 	uint32_t rc = NCSCC_RC_SUCCESS, status = 0;
-	int64_t timeout_val = 0;
-
-	if (true == time_wait) {
-		timeout_val = 150; /* This may need a tuning */
-	}
 
 	mov_ptr = sub_info->await_disc_queue;
 	add_ptr = m_MMGR_ALLOC_DISC_QUEUE;
@@ -2123,7 +2118,7 @@ static uint32_t mds_subtn_tbl_add_disc_queue(MDS_SUBSCRIPTION_INFO *sub_info,
 	case MDS_SENDTYPE_RBCAST: {
 		m_MDS_LOG_INFO("MDS_SND_RCV: Waiting for timeout\n");
 		if (NCSCC_RC_SUCCESS !=
-		    mds_mcm_time_wait(&add_ptr->sel_obj, timeout_val)) {
+		    mds_mcm_time_wait(&add_ptr->sel_obj, time_wait)) {
 			m_MDS_LOG_ERR(
 			    "MDS_SND_RCV: timeout or error occured\n");
 			rc = NCSCC_RC_REQ_TIMOUT;
@@ -2689,7 +2684,7 @@ static uint32_t mds_mcm_process_disc_queue_checks_redundant(
 	MDS_SUBSCRIPTION_INFO *sub_info = NULL;
 	MDS_SUBSCRIPTION_RESULTS_INFO *log_subtn_result_info = NULL;
 	uint32_t disc_rc;
-	bool time_wait = false;
+	int64_t time_wait = 0;
 
 	MDS_HDL env_hdl;
 
@@ -2716,9 +2711,23 @@ static uint32_t mds_mcm_process_disc_queue_checks_redundant(
 	} else if (sub_info->tmr_flag != true) {
 		if ((MDS_SENDTYPE_RSP == req->i_sendtype) ||
 		    (MDS_SENDTYPE_RRSP == req->i_sendtype)) {
-			time_wait = true;
-			m_MDS_LOG_INFO(
-			    "MDS_SND_RCV:Disc queue red: Subscr exists no timer running: Waiting for some time\n");
+			MDS_ADEST_INFO *adest_info =
+				(MDS_ADEST_INFO *)ncs_patricia_tree_get(
+					&gl_mds_mcm_cb->adest_list,
+					(uint8_t *)&anchor);
+			if (adest_info && adest_info->svc_cnt == 0) {
+				m_MDS_LOG_NOTIFY(
+				    "MDS_SND_RCV: Adest <0x%08x, %u> may down,"
+				    " wait for some time for sure",
+				    m_MDS_GET_NODE_ID_FROM_ADEST(anchor),
+				    m_MDS_GET_PROCESS_ID_FROM_ADEST(anchor));
+				time_wait = MDS_SVC_UP_WAIT_SHORT_TIME;
+			} else {
+				time_wait = MDS_SVC_UP_WAIT_LONG_TIME;
+				m_MDS_LOG_INFO(
+				    "MDS_SND_RCV:Disc queue red: Subscr exists"
+				    " no timer running: Waiting for some time");
+			}
 		} else {
 			m_MDS_LOG_INFO(
 			    "MDS_SND_RCV: Subscription exists but Timer has expired\n");

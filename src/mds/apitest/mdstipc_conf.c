@@ -2107,7 +2107,6 @@ uint32_t tet_mds_cb_direct_rcv(NCSMDS_CALLBACK_INFO *mds_to_svc_info)
 uint32_t tet_mds_svc_event(NCSMDS_CALLBACK_INFO *mds_to_svc_info)
 {
 	int i, j, k;
-	TET_EVENT_INFO gl_event_data;
 
 	gl_event_data.ur_svc_id = mds_to_svc_info->info.svc_evt.i_your_id;
 

@@ -998,6 +998,28 @@ uint32_t mds_tmr_mailbox_processing(void)
 					    info->mds_dest, info->pid);
 					(void)mds_process_info_del(info);
 					free(info);
+				} else {
+					MDS_DEST adest =
+						tmr_req_info->info
+						.down_event_tmr_info.adest;
+					m_MDS_LOG_INFO(
+					  "TIMEOUT Adest <0x%08x, %u> down",
+					  m_MDS_GET_NODE_ID_FROM_ADEST(adest),
+					  m_MDS_GET_PROCESS_ID_FROM_ADEST(
+					  adest));
+					MDS_ADEST_INFO *adest_info =
+					    (MDS_ADEST_INFO *)
+					    ncs_patricia_tree_get(
+					    &gl_mds_mcm_cb->adest_list,
+					    (uint8_t *)&adest);
+					if (adest_info &&
+					    adest_info->svc_cnt == 0) {
+						ncs_patricia_tree_del(
+						  &gl_mds_mcm_cb->adest_list,
+						  (NCS_PATRICIA_NODE *)
+						  adest_info);
+						m_MMGR_FREE_ADEST_INFO(adest_info);
+					}
 				}
 
 				if (tmr_req_info->info.down_event_tmr_info
@@ -1700,7 +1722,7 @@ uint16_t mds_checksum(uint32_t length, uint8_t buff[])
 	/* Take the one's complement of sum */
 	sum = ~sum;
 
-	return ((uint16_t)sum);
+	return (uint16_t)sum;
 }
 
 /****************************************************************************

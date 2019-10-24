@@ -204,12 +204,12 @@ typedef struct mds_subscription_info {
 #define m_GET_HDL_FROM_MDS_SVC_INFO(info) \
   ((info->svc-id)<<32 ||                        \
    (info->parent_pwe->pwe_id)<<16 ||            \
-   (info->parent_pwe->parent_vdest->vdest-id)))
+   (info->parent_pwe->parent_vdest->vdest-id))
 
 #define m_GET_HDL_FROM_MDS_SVC_PWE_VDEST(s, p, v) \
   ((s)<<32 ||                                   \
    (p)<<16 ||                                   \
-   (v)))
+   (v))
 
 /**************************************\
     MDS PWE related declarations
@@ -250,6 +250,16 @@ typedef struct mds_vdest_info {
   MDS_PWE_INFO *pwe_list;
 
 } MDS_VDEST_INFO;
+
+typedef struct mds_adest_info {
+  /* Indexing info */
+  NCS_PATRICIA_NODE node;
+  /* Adest info */
+  MDS_DEST adest; /* Key for Patricia node */
+  uint16_t svc_cnt; /* Adest SVC counter */
+  MDS_TMR_REQ_INFO *tmr_req_info;
+  uint32_t tmr_hdl;
+} MDS_ADEST_INFO;
 
 typedef struct mds_svc_info {
   /* Indexing info */
@@ -301,12 +311,18 @@ typedef struct mds_mcm_cb {
   NCS_PATRICIA_TREE subtn_results;
   NCS_PATRICIA_TREE svc_list;   /* Tree of MDS_SVC_INFO information */
   NCS_PATRICIA_TREE vdest_list; /* Tree of MDS_VDEST_INFO information */
+  NCS_PATRICIA_TREE adest_list; /* Tree of MDS_ADEST_INFO information */
 } MDS_MCM_CB;
 
 /* Global MDSCB */
 extern MDS_MCM_CB *gl_mds_mcm_cb;
 
+/* Time wait for SVC UP */
+extern uint32_t MDS_SVC_UP_WAIT_LONG_TIME;
+extern uint32_t MDS_SVC_UP_WAIT_SHORT_TIME;
+
 /* Global TMR Values */
+extern uint32_t MDS_DOWN_TMR_VAL;
 extern uint32_t MDS_QUIESCED_TMR_VAL;
 extern uint32_t MDS_AWAIT_ACTIVE_TMR_VAL;
 extern uint32_t MDS_SUBSCRIPTION_TMR_VAL;
@@ -681,6 +697,15 @@ uint32_t (*mds_mdtm_node_unsubscribe)(MDS_SUBTN_REF_VAL subtn_ref_val);
   m_NCS_MEM_FREE(p, NCS_MEM_REGION_TRANSIENT, NCS_SERVICE_ID_MDS, \
                  MDS_MEM_VDEST_INFO)
 
+#define m_MMGR_ALLOC_ADEST_INFO                               \
+  (MDS_ADEST_INFO *)m_NCS_MEM_ALLOC(sizeof(MDS_ADEST_INFO),   \
+                                    NCS_MEM_REGION_TRANSIENT, \
+                                    NCS_SERVICE_ID_MDS, MDS_MEM_ADEST_INFO)
+
+#define m_MMGR_FREE_ADEST_INFO(p)                                 \
+  m_NCS_MEM_FREE(p, NCS_MEM_REGION_TRANSIENT, NCS_SERVICE_ID_MDS, \
+                 MDS_MEM_ADEST_INFO)
+
 #define m_MMGR_ALLOC_PWE_INFO                               \
   (MDS_PWE_INFO *)m_NCS_MEM_ALLOC(sizeof(MDS_PWE_INFO),     \
                                   NCS_MEM_REGION_TRANSIENT, \
@@ -768,7 +793,6 @@ typedef struct mds_mcm_msg_elem {
       NCSMDS_CALLBACK_INFO cbinfo;
     } event;
   } info;
-
 } MDS_MCM_MSG_ELEM;
 
 /* ******************************************** */
