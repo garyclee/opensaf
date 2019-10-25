@@ -84,6 +84,12 @@ class LogServer {
     struct timespec last_write_;
     LogWriter log_writer_;
   };
+
+  void ProcessRecvData();
+  void PeriodicFlush();
+  std::string ExtractPid(const char* msg, size_t size);
+  bool is_stream_owner_alive(const std::string& name);
+
   LogStream* GetStream(const char* msg_id, size_t msg_id_size);
   // Validate the log stream name, for security reasons. This method will check
   // that the string, when used as a file name, does not traverse the directory
@@ -116,6 +122,7 @@ class LogServer {
 
   base::UnixServerSocket log_socket_;
   std::map<std::string, LogStream*> log_streams_;
+  std::map<std::string, std::string> stream_pid_map_{};
   LogStream* current_stream_;
   size_t no_of_log_streams_;
   static const Osaflog::ClientAddressConstantPrefix address_header_;
