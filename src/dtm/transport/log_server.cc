@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include "base/osaf_poll.h"
 #include "base/string_parse.h"
 #include "base/time.h"
@@ -271,51 +272,91 @@ bool LogServer::ValidateAddress(const struct sockaddr_un& addr,
   }
 }
 
+std::string LogServer::MaxFileSizeCmd(const std::string& cmd,
+                                      const std::string& arg) {
+  bool success = false;
+  uint64_t max_file_size = base::StrToUint64(arg.c_str(), &success);
+  if (success && max_file_size <= SIZE_MAX) max_file_size_ = max_file_size;
+  return std::string{"!max-file-size " + std::to_string(max_file_size_)};
+}
+
+std::string LogServer::MaxBackupCmd(const std::string& cmd,
+                                    const std::string& arg) {
+  bool success = false;
+  uint64_t max_backups = base::StrToUint64(arg.c_str(), &success);
+  if (success && max_backups <= SIZE_MAX) max_backups_ = max_backups;
+  return std::string{"!max-backups " + std::to_string(max_backups_)};
+}
+
+std::string LogServer::DeleteCmd(const std::string& cmd,
+                                 const std::string& arg) {
+  if (!ValidateLogName(arg.c_str(), arg.size()) ||
+      arg == kMdsLogStreamName) {
+    return std::string{"Invalid stream name"};
+  }
+  auto iter = log_streams_.find(arg);
+  if (iter == log_streams_.end()) {
+    return std::string{"Stream not found"};
+  }
+  LogStream* stream = iter->second;
+  log_streams_.erase(iter);
+  if (current_stream_ == stream) {
+    current_stream_ = log_streams_.begin()->second;
+  }
+  delete stream;
+  --no_of_log_streams_;
+  return std::string{"!delete " + arg};
+}
+
+std::string LogServer::FlushCmd(const std::string& cmd,
+                                const std::string& arg) {
+  for (const auto& s : log_streams_) {
+    LogStream* stream = s.second;
+    stream->Flush();
+  }
+  return std::string{"!flush"};
+}
+
+std::string LogServer::MaxIdleCmd(const std::string& cmd,
+                                  const std::string& arg) {
+  bool success = false;
+  uint64_t max_idle_time = base::StrToUint64(arg.c_str(), &success);
+  if (success && max_idle_time <= Osaflog::kOneDayInMinute) {
+    max_idle_time_.tv_sec = max_idle_time*60;
+  }
+  return std::string{"!max-idle-time " + std::to_string(max_idle_time)};
+}
+
+std::string LogServer::RotateCmd(const std::string& cmd,
+                                 const std::string& arg) {
+  for (const auto& s : log_streams_) {
+    LogStream* stream = s.second;
+    if (stream->name() == arg) {
+      stream->Rotate();
+      break;
+    }
+  }
+  return std::string{"!rotate " + arg};
+}
+
 std::string LogServer::ExecuteCommand(const std::string& command,
                                       const std::string& argument) {
-  if (command == "?max-file-size") {
-    bool success;
-    uint64_t max_file_size = base::StrToUint64(argument.c_str(), &success);
-    if (success && max_file_size <= SIZE_MAX) max_file_size_ = max_file_size;
-    return std::string{"!max-file-size " + std::to_string(max_file_size_)};
-  } else if (command == "?max-backups") {
-    bool success;
-    uint64_t max_backups = base::StrToUint64(argument.c_str(), &success);
-    if (success && max_backups <= SIZE_MAX) max_backups_ = max_backups;
-    return std::string{"!max-backups " + std::to_string(max_backups_)};
-  } else if (command == "?delete") {
-    if (!ValidateLogName(argument.c_str(), argument.size()) ||
-        argument == kMdsLogStreamName) {
-      return std::string{"Invalid stream name"};
-    }
-    auto iter = log_streams_.find(argument);
-    if (iter == log_streams_.end()) {
-      return std::string{"Stream not found"};
-    }
-    LogStream* stream = iter->second;
-    log_streams_.erase(iter);
-    if (current_stream_ == stream) {
-      current_stream_ = log_streams_.begin()->second;
-    }
-    delete stream;
-    --no_of_log_streams_;
-    return std::string{"!delete " + argument};
-  } else if (command == "?flush") {
-    for (const auto& s : log_streams_) {
-      LogStream* stream = s.second;
-      stream->Flush();
-    }
-    return std::string{"!flush"};
-  } else if (command == "?max-idle-time") {
-      bool success = false;
-      uint64_t max_idle_time = base::StrToUint64(argument.c_str(), &success);
-      if (success && max_idle_time <= Osaflog::kOneDayInMinute) {
-        max_idle_time_.tv_sec = max_idle_time*60;
-      }
-      return std::string{"!max-idle-time " + std::to_string(max_idle_time)};
-  } else {
-    return std::string{"!not_supported"};
+  using CmdPtr = std::string (LogServer::*)(const std::string&,
+                                            const std::string&);
+  std::map<std::string, CmdPtr> cmd_dispatcher = {
+    {"?max-file-size", &LogServer::MaxFileSizeCmd},
+    {"?max-backups", &LogServer::MaxBackupCmd},
+    {"?delete", &LogServer::DeleteCmd},
+    {"?flush", &LogServer::FlushCmd},
+    {"?max-idle-time", &LogServer::MaxIdleCmd},
+    {"?rotate", &LogServer::RotateCmd}
+  };
+
+  if (cmd_dispatcher.find(command) != cmd_dispatcher.end()) {
+    return (this->*cmd_dispatcher[command])(command, argument);
   }
+
+  return std::string{"!not_supported"};
 }
 
 LogServer::LogStream::LogStream(const std::string& log_name,

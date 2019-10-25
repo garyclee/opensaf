@@ -46,7 +46,6 @@ class LogServer {
   // process has received the SIGTERM signal, which is indicated by the caller
   // by making the term_fd (provided in the constructor) readable.
   void Run();
-  void CloseIdleStreams();
   // To read Transportd.conf
   bool ReadConfig(const char *transport_config_file);
 
@@ -69,6 +68,7 @@ class LogServer {
     // I/O.
     void Write(size_t size);
     void Flush();
+    void Rotate() { log_writer_.RotateLog(); }
     const char* name() const { return log_name_.c_str(); }
     struct timespec last_write() const { return last_write_; }
     struct timespec last_flush() const {
@@ -95,6 +95,15 @@ class LogServer {
                               socklen_t addrlen);
   std::string ExecuteCommand(const std::string& command,
                              const std::string& argument);
+  void CloseIdleStreams();
+
+  std::string MaxFileSizeCmd(const std::string& cmd, const std::string& arg);
+  std::string MaxBackupCmd(const std::string& cmd, const std::string& arg);
+  std::string DeleteCmd(const std::string& cmd, const std::string& arg);
+  std::string FlushCmd(const std::string& cmd, const std::string& arg);
+  std::string MaxIdleCmd(const std::string& cmd, const std::string& arg);
+  std::string RotateCmd(const std::string& cmd, const std::string& arg);
+
   int term_fd_;
   // Configuration for LogServer
   size_t max_backups_;
