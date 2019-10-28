@@ -30,6 +30,10 @@
 #include <saPlm.h>
 #include <saAis.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Common globals */
 extern SaVersionT PlmVersion;
 extern SaAisErrorT rc;
@@ -51,5 +55,33 @@ extern void TrackCallbackT(
     const SaNameT *rootCauseEntity, SaNtfIdentifierT rootCorrelationId,
     const SaPlmReadinessTrackedEntitiesT *trackedEntities,
     SaPlmChangeStepT step, SaAisErrorT error);
+
+SaAisErrorT plmInitialize(SaPlmHandleT *, const SaPlmCallbacksT *, SaVersionT *);
+SaAisErrorT plmFinalize(SaPlmHandleT);
+SaAisErrorT plmEntityGroupCreate(SaPlmHandleT, SaPlmEntityGroupHandleT *);
+SaAisErrorT plmEntityGroupAdd(SaPlmEntityGroupHandleT,
+                              const SaNameT *entityNames,
+                              SaUint32T entityNamesNumber,
+                              SaPlmGroupOptionsT);
+SaAisErrorT plmEntityGroupRemove(SaPlmEntityGroupHandleT,
+                                 const SaNameT *entityNames,
+                                 SaUint32T entityNamesNumber);
+SaAisErrorT plmEntityGroupDelete(SaPlmEntityGroupHandleT);
+SaAisErrorT plmReadinessTrack(SaPlmEntityGroupHandleT,
+                              SaUint8T trackFlags,
+                              SaUint64T trackCookie,
+                              SaPlmReadinessTrackedEntitiesT *);
+SaAisErrorT plmReadinessTrackStop(SaPlmEntityGroupHandleT);
+SaAisErrorT plmReadinessTrackResponse(SaPlmEntityGroupHandleT,
+                                      SaInvocationT,
+                                      SaPlmReadinessTrackResponseT);
+SaAisErrorT plmEntityReadinessImpact(SaPlmHandleT,
+                                     const SaNameT *impactedEntity,
+                                     SaPlmReadinessImpactT ,
+                                     SaNtfCorrelationIdsT *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // PLM_APITEST_PLMTEST_H_

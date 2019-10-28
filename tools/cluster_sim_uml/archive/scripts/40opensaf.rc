@@ -101,7 +101,16 @@ if test -e /etc/plmcd.conf; then
     /usr/sbin/openhpid -c /var/opt/openhpi.conf
 
     # wait for hpi to read in hardware info
-    sleep 10
+    echo "waiting for HPI to come up" && date
+    for i in `seq 1 180`; do
+        hpiinv &> /dev/null
+        if [ $? == 0 ]; then
+            break
+        else
+            sleep 1
+        fi
+    done
+    echo "HPI is up" && date
 
     /usr/local/sbin/plmcd&
 fi

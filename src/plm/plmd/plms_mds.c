@@ -22,6 +22,7 @@ Description: This function contains the PLMS routines for MDS interaction
 ****************************************************************************/
 #include "base/ncsgl_defs.h"
 #include "plm/common/plms.h"
+#include "plm/common/plms_common.h"
 #include "base/ncs_util.h"
 
 /****************** Function Prototypes ***********************************/
