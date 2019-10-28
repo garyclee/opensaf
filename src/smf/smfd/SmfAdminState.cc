@@ -858,7 +858,7 @@ bool SmfAdminStateHandler::deleteNodeGroup() {
 bool SmfAdminStateHandler::nodeGroupAdminOperation(
     SaAmfAdminOperationIdT adminOp) {
 
-  bool method_rc = true;
+  bool method_rc = false;
 
   TRACE_ENTER();
 
@@ -920,20 +920,17 @@ bool SmfAdminStateHandler::nodeGroupAdminOperation(
       } else if (imm_rc != SA_AIS_OK) {
         LOG_NO("%s adminOpTimeout Fail %s", __FUNCTION__, saf_error(imm_rc));
         errno_ = imm_rc;
-        method_rc = false;
       } else {
         LOG_NO("%s adminOpTimeout Fail %s", __FUNCTION__, saf_error(oi_rc));
         errno_ = oi_rc;
-        method_rc = false;
       }
     }
   } else {
     LOG_NO("%s: becomeAdminOwnerOf(%s) Fail", __FUNCTION__,
            nodeGroupName_s.c_str());
-    method_rc = false;
   }
 
-  if (method_rc == true) {
+  if (admset_rc == true) {
     TRACE("%s Admin operation is done. Release ownership if nodegroup",
           __FUNCTION__);
     if (releaseAdminOwnerOf(nodeGroupName_s) == false) {
