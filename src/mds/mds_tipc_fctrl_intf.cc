@@ -78,8 +78,8 @@ Timer txprob_timer(Event::Type::kEvtTmrTxProb);
 
 // chunk ack parameters
 // todo: The chunk ack timeout and chunk ack size should be configurable
-int kChunkAckTimeout = 1000;  // in miliseconds
-uint16_t kChunkAckSize = 3;
+int chunk_ack_timeout = 1000;  // in miliseconds
+uint16_t chunk_ack_size = 3;
 
 TipcPortId* portid_lookup(struct tipc_portid id) {
   uint64_t uid = TipcPortId::GetUniqueId(id);
@@ -130,13 +130,13 @@ uint32_t process_flow_event(const Event& evt) {
     // sent from BSRsock may come before reception of TIPC_PUBLISHED
     if (evt.type_ == Event::Type::kEvtRcvData) {
       portid = new TipcPortId(evt.id_, data_sock_fd,
-          kChunkAckSize, sock_buf_size);
+          chunk_ack_size, sock_buf_size);
       portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
       rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
             evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
     } else if (evt.type_ == Event::Type::kEvtRcvIntro) {
       portid = new TipcPortId(evt.id_, data_sock_fd,
-          kChunkAckSize, sock_buf_size);
+          chunk_ack_size, sock_buf_size);
       portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
       portid->ReceiveIntro();
     } else {
@@ -170,7 +170,7 @@ uint32_t process_flow_event(const Event& evt) {
 uint32_t process_all_events(void) {
   enum { FD_FCTRL = 0, NUM_FDS };
 
-  int poll_tmo = kChunkAckTimeout;
+  int poll_tmo = chunk_ack_timeout;
   struct pollfd pfd[NUM_FDS] = {{0, 0, 0}};
 
   pfd[FD_FCTRL].fd =
@@ -260,8 +260,8 @@ uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
   snd_rcv_portid = id;
   sock_buf_size = rcv_buf_size;
   is_mcast_enabled = mcast_enabled;
-  if (ackto != -1) kChunkAckTimeout = ackto;
-  if (acksize != -1) kChunkAckSize = acksize;
+  if (ackto != -1) chunk_ack_timeout = ackto;
+  if (acksize != -1) chunk_ack_size = acksize;
 
   if (create_ncs_task(&p_task_hdl) !=
       NCSCC_RC_SUCCESS) {
@@ -373,7 +373,7 @@ uint32_t mds_tipc_fctrl_portid_up(struct tipc_portid id, uint32_t type) {
   uint64_t uid = TipcPortId::GetUniqueId(id);
   if (portid == nullptr) {
     portid_map[uid] = portid = new TipcPortId(id, data_sock_fd,
-        kChunkAckSize, sock_buf_size);
+        chunk_ack_size, sock_buf_size);
     m_MDS_LOG_NOTIFY("FCTRL: Add portid[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
         id.node, id.ref, svc_id, portid->svc_cnt_);
   } else {

@@ -166,7 +166,9 @@ NCS_PATRICIA_TREE mdtm_reassembly_list;
 uint32_t mdtm_global_frag_num;
 
 const unsigned int MAX_RECV_THRESHOLD = 30;
-uint8_t gl_mds_pro_ver = MDS_PROT | MDS_VERSION;
+static uint8_t gl_mds_pro_ver = MDS_PROT | MDS_VERSION;
+static int gl_mds_fctrl_acksize = -1;
+static int gl_mds_fctrl_ackto = -1;
 
 static bool get_tipc_port_id(int sock, struct tipc_portid* port_id) {
 	struct sockaddr_tipc addr;
@@ -347,30 +349,47 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	if ((ptr = getenv("MDS_TIPC_FCTRL_ENABLED")) != NULL) {
 		if (atoi(ptr) == 1) {
 			gl_mds_pro_ver = MDS_PROT_FCTRL;
-			int ackto = -1;
-			int acksize = -1;
 			if ((ptr = getenv("MDS_TIPC_FCTRL_ACKTIMEOUT")) != NULL) {
-				ackto = atoi(ptr);
-				if (ackto == 0) {
+				gl_mds_fctrl_ackto = atoi(ptr);
+				if (gl_mds_fctrl_ackto == 0) {
 					syslog(LOG_ERR, "MDTM:TIPC Invalid "
 							"MDS_TIPC_FCTRL_ACKTIMEOUT, using default value");
-					ackto = -1;
+					gl_mds_fctrl_ackto = -1;
 				}
 			}
 			if ((ptr = getenv("MDS_TIPC_FCTRL_ACKSIZE")) != NULL) {
-				acksize = atoi(ptr);
-				if (acksize == 0) {
+				gl_mds_fctrl_acksize = atoi(ptr);
+				if (gl_mds_fctrl_acksize == 0) {
 					syslog(LOG_ERR, "MDTM:TIPC Invalid "
 							"MDS_TIPC_FCTRL_ACKSIZE, using default value");
-					acksize = -1;
+					gl_mds_fctrl_acksize = -1;
 				}
 			}
-			mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id, optval,
-				ackto, acksize, tipc_mcast_enabled);
+			/* unset the env var to prevent child process inheritance */
+			if (unsetenv("MDS_TIPC_FCTRL_ENABLED") != 0) {
+				syslog(LOG_ERR,
+					"MDTM:TIPC Failed to unset MDS_TIPC_FCTRL_ENABLED");
+			}
+			if (gl_mds_fctrl_ackto != -1 &&
+				unsetenv("MDS_TIPC_FCTRL_ACKTIMEOUT") != 0) {
+				syslog(LOG_ERR,
+					"MDTM:TIPC Failed to unset MDS_TIPC_FCTRL_ACKTIMEOUT");
+			}
+			if (gl_mds_fctrl_acksize != -1 &&
+				unsetenv("MDS_TIPC_FCTRL_ACKSIZE") != 0) {
+				syslog(LOG_ERR,
+					"MDTM:TIPC Failed to unset MDS_TIPC_FCTRL_ACKSIZE");
+			}
 		} else {
+			gl_mds_pro_ver = MDS_PROT | MDS_VERSION;
 			syslog(LOG_ERR, "MDTM:TIPC Invalid value of"
 				"MDS_TIPC_FCTRL_ENABLED");
 		}
+	}
+
+	if (gl_mds_pro_ver == MDS_PROT_FCTRL) {
+		mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id, optval,
+			gl_mds_fctrl_ackto, gl_mds_fctrl_acksize, tipc_mcast_enabled);
 	}
 
 	/* Create a task to receive the events and data */
