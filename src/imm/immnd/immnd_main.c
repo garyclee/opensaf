@@ -489,6 +489,7 @@ int main(int argc, char *argv[])
 	fds[FD_CLM_INIT].fd = immnd_cb->clm_init_sel_obj.rmv_obj;
 	fds[FD_CLM_INIT].events = POLLIN;
 
+	osaf_clock_gettime(CLOCK_MONOTONIC, &start_time);
 	while (1) {
 		/* Watch out for performance bug. Possibly change from
 		   event-count to recalculated timer. */

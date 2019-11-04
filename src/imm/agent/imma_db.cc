@@ -621,7 +621,7 @@ int imma_oi_ccb_record_note_callback(IMMA_CLIENT_NODE *cl_node,
       rs = 1;
     }
   }
-  if (callback) {
+  if (tmp && callback) {
     if (callback->type == IMMA_CALLBACK_OI_CCB_CREATE && !(tmp->adminOwner)) {
       SaImmAttrValuesT_2 **attributes =
           (SaImmAttrValuesT_2 **)callback->attrValsForCreateUc;
