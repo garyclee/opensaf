@@ -1931,7 +1931,7 @@ static uint32_t ckpt_proc_log_write(lgs_cb_t *cb, void *data) {
   /* If configured for split file system log records shall be written also if
    * we are standby.
    */
-  if (lgs_is_split_file_system()) {
+  if (lgs_is_split_file_system() && (logRecord != nullptr)) {
     size_t rec_len = strlen(logRecord);
     stream->act_last_close_timestamp = c_file_close_time_stamp;
 
