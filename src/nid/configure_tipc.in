@@ -21,7 +21,7 @@
 . $pkgsysconfdir/nid.conf
 
 MANAGE_TIPC=${OPENSAF_MANAGE_TIPC:-"yes"}
-TIPC_MODULE=/lib/modules/$(uname -r)/kernel/net/tipc.ko
+TIPC_MODULE=$(modinfo -n tipc 2> /dev/null) || TIPC_MODULE="/lib/modules/$(uname -r)/kernel/net/tipc/tipc.ko"
 CHASSIS_ID_FILE=$pkgsysconfdir/chassis_id
 SLOT_ID_FILE=$pkgsysconfdir/slot_id
 SUBSLOT_ID_FILE=$pkgsysconfdir/subslot_id
