@@ -149,7 +149,12 @@ class ArbitratorPlugin(object):
         params = []
         if args:
             params.append(args)
-        return getattr(self, command)(*params)
+        if command:
+            return getattr(self, command)(*params)
+        else:
+            ret = {'code': 0,
+                   'output': parser.format_help()}
+            return ret
 
     def get_node_name(self):
         node_file = open(self.node_name_file)
