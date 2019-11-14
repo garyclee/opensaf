@@ -581,6 +581,29 @@ void TipcPortId::ReceiveTmrChunkAck() {
   }
 }
 
+void TipcPortId::ChangeState(State newState) {
+  if (state_ == newState) return;
+
+  if (newState == State::kDisabled) {
+    // at kDisabled state, clear all message in sndqueue_,
+    // receiver is at old mds version
+    FlushData();
+  }
+  m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u], "
+      "ChangeState[%u -> %u], "
+      "TxProb[retries:%u], "
+      "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "], "
+      "rcvwnd[acked:%u, rcv:%u, nacked:%" PRIu64 "], "
+      "queue[size:%" PRIu64 "]",
+      id_.node, id_.ref,
+      (uint8_t)state_, (uint8_t)newState,
+      txprob_cnt_,
+      sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_,
+      rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_,
+      sndqueue_.Size());
+  state_ = newState;
+}
+
 void TipcPortId::ReceiveIntro() {
   m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
       "RcvIntro, "

@@ -166,7 +166,7 @@ NCS_PATRICIA_TREE mdtm_reassembly_list;
 uint32_t mdtm_global_frag_num;
 
 const unsigned int MAX_RECV_THRESHOLD = 30;
-static uint8_t gl_mds_pro_ver = MDS_PROT | MDS_VERSION;
+static uint8_t gl_mds_pro_ver = MDS_PROT_LEGACY;
 static int gl_mds_fctrl_acksize = -1;
 static int gl_mds_fctrl_ackto = -1;
 
@@ -381,7 +381,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 					"MDTM:TIPC Failed to unset MDS_TIPC_FCTRL_ACKSIZE");
 			}
 		} else {
-			gl_mds_pro_ver = MDS_PROT | MDS_VERSION;
+			gl_mds_pro_ver = MDS_PROT_LEGACY;
 			syslog(LOG_ERR, "MDTM:TIPC Invalid value of"
 				"MDS_TIPC_FCTRL_ENABLED");
 		}
@@ -3125,7 +3125,12 @@ uint32_t mdtm_add_frag_hdr(uint8_t *buf_ptr, uint16_t len, uint32_t seq_num,
 	 * hereafter, these 2 bytes will be used as sequence number in flow control
 	 * (per tipc portid)
 	 * */
-	ncs_encode_16bit(&data, fctrl_seq_num);
+	if (gl_mds_pro_ver == MDS_PROT_FCTRL) {
+		ncs_encode_16bit(&data, fctrl_seq_num);
+	} else {
+		ncs_encode_16bit(&data, len - MDTM_FRAG_HDR_LEN - 2);
+	}
+
 #endif
 	return NCSCC_RC_SUCCESS;
 }

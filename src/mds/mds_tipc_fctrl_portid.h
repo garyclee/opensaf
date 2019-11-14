@@ -141,6 +141,7 @@ class TipcPortId {
   bool ReceiveTmrTxProb(uint8_t max_txprob);
   void ReceiveTmrChunkAck();
   void ReceiveIntro();
+  void ChangeState(State newState);
   void FlushData();
   uint32_t Send(uint8_t* data, uint16_t length);
   uint32_t Queue(const uint8_t* data, uint16_t length, bool is_sent);

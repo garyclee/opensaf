@@ -243,6 +243,12 @@ bool mdtm_mailbox_mbx_cleanup(NCSCONTEXT arg, NCSCONTEXT msg);
 #define MDS_PROT_VER_MASK 0xFC
 #define MDTM_PRI_MASK 0x3
 
+/* Unknown or undefined MDS protocol/version */
+#define MDS_PROT_UNDEFINED 0x00
+
+/* MDS protocol/version for non flow control (legacy) */
+#define MDS_PROT_LEGACY (MDS_PROT | MDS_VERSION)
+
 /* MDS protocol/version for flow control */
 #define MDS_PROT_FCTRL (0xB0 | MDS_VERSION)
 #define MDS_PROT_FCTRL_ID 0xFDAC13F5

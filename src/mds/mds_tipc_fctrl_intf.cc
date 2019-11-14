@@ -132,8 +132,16 @@ uint32_t process_flow_event(const Event& evt) {
       portid = new TipcPortId(evt.id_, data_sock_fd,
           chunk_ack_size, sock_buf_size);
       portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
-      rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
-            evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
+      if (evt.legacy_data_ == true) {
+        // we create portid and set state kDisabled even though we know
+        // this portid has no flow control. It is because the 2nd, 3rd fragment
+        // could not reflect the protocol version, so need to keep this portid
+        // remained stateful
+        portid->ChangeState(TipcPortId::State::kDisabled);
+      } else {
+        rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
+              evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
+      }
     } else if (evt.type_ == Event::Type::kEvtRcvIntro) {
       portid = new TipcPortId(evt.id_, data_sock_fd,
           chunk_ack_size, sock_buf_size);
@@ -146,8 +154,12 @@ uint32_t process_flow_event(const Event& evt) {
     }
   } else {
     if (evt.type_ == Event::Type::kEvtRcvData) {
-      rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
-          evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
+      if (evt.legacy_data_ == true) {
+        portid->ChangeState(TipcPortId::State::kDisabled);
+      } else {
+        rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
+            evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
+      }
     }
     if (evt.type_ == Event::Type::kEvtRcvChunkAck) {
       portid->ReceiveChunkAck(evt.fseq_, evt.chunk_size_);
@@ -474,76 +486,88 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
     struct tipc_portid id) {
   if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
 
+  uint32_t rc = NCSCC_RC_SUCCESS;
   HeaderMessage header;
   header.Decode(buffer);
   Event* pevt = nullptr;
   // if mds support flow control
-  if ((header.pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) {
-    if (header.pro_id_ == MDS_PROT_FCTRL_ID) {
-      if (header.msg_type_ == ChunkAck::kChunkAckMsgType) {
-        // receive single ack message
-        ChunkAck ack;
-        ack.Decode(buffer);
-        // send to the event thread
-        pevt = new Event(Event::Type::kEvtRcvChunkAck, id, ack.svc_id_,
-            header.mseq_, header.mfrag_, ack.acked_fseq_);
-        pevt->chunk_size_ = ack.chunk_size_;
-        if (m_NCS_IPC_SEND(&mbx_events, pevt,
-                NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
-              strerror(errno));
-        }
-      } else if (header.msg_type_ == Nack::kNackMsgType) {
-        // receive nack message
-        Nack nack;
-        nack.Decode(buffer);
-        // send to the event thread
-        pevt = new Event(Event::Type::kEvtRcvNack, id, nack.svc_id_,
-            header.mseq_, header.mfrag_, nack.nacked_fseq_);
-        if (m_NCS_IPC_SEND(&mbx_events, pevt,
-                NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
-              strerror(errno));
-        }
-      } else if (header.msg_type_ == Intro::kIntroMsgType) {
-        // no need to decode intro message
-        // the decoding intro message type is done in header decoding
-        // send to the event thread
-        pevt = new Event(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0);
-        if (m_NCS_IPC_SEND(&mbx_events, pevt,
-                NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
-              strerror(errno));
-        }
-      } else {
-        m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
-            "[msg_type:%u], Error[not supported message type]",
-            id.node, id.ref, header.msg_type_);
+  if (header.IsControlMessage()) {
+    if (header.msg_type_ == ChunkAck::kChunkAckMsgType) {
+      // receive single ack message
+      ChunkAck ack;
+      ack.Decode(buffer);
+      // send to the event thread
+      pevt = new Event(Event::Type::kEvtRcvChunkAck, id, ack.svc_id_,
+          header.mseq_, header.mfrag_, ack.acked_fseq_);
+      pevt->chunk_size_ = ack.chunk_size_;
+      if (m_NCS_IPC_SEND(&mbx_events, pevt,
+          NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+            strerror(errno));
       }
-      // return NCSCC_RC_FAILURE, so the tipc receiving thread (legacy) will
-      // skip this data msg
-      return NCSCC_RC_FAILURE;
+    } else if (header.msg_type_ == Nack::kNackMsgType) {
+      // receive nack message
+      Nack nack;
+      nack.Decode(buffer);
+      // send to the event thread
+      pevt = new Event(Event::Type::kEvtRcvNack, id, nack.svc_id_,
+          header.mseq_, header.mfrag_, nack.nacked_fseq_);
+      if (m_NCS_IPC_SEND(&mbx_events, pevt,
+          NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+            strerror(errno));
+      }
+    } else if (header.msg_type_ == Intro::kIntroMsgType) {
+      // no need to decode intro message
+      // the decoding intro message type is done in header decoding
+      // send to the event thread
+      pevt = new Event(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0);
+      if (m_NCS_IPC_SEND(&mbx_events, pevt,
+          NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+            strerror(errno));
+      }
     } else {
-      // receive data message
-      DataMessage data;
-      data.Decode(buffer);
-      portid_map_mutex.lock();
-      Event evt(Event::Type::kEvtRcvData, id, data.svc_id_, header.mseq_,
-          header.mfrag_, header.fseq_);
-      evt.snd_type_ = data.snd_type_;
-      uint32_t rc = process_flow_event(evt);
-      if (rc == NCSCC_RC_CONTINUE) {
-        process_timer_event(Event(Event::Type::kEvtTmrChunkAck));
-        rc = NCSCC_RC_SUCCESS;
-      }
-      portid_map_mutex.unlock();
-      return rc;
+      m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
+          "[msg_type:%u], Error[not supported message type]",
+          id.node, id.ref, header.msg_type_);
     }
-  } else {
+    // return NCSCC_RC_FAILURE, so the tipc receiving thread (legacy) will
+    // skip this data msg
+    rc = NCSCC_RC_FAILURE;
+  }
+  if (header.IsLegacyMessage()) {
     m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
-        "Receive non-flow-control data message, "
+        "Receive legacy data message, "
         "header.pro_ver:%u",
         id.node, id.ref, header.pro_ver_);
+    // Receiving the first fragment legacy message, change the state to
+    // kDisabled so the subsequent fragment will skip the flow control
+    if ((header.mfrag_ & 0x7fff) == 1) {
+      portid_map_mutex.lock();
+      Event evt(Event::Type::kEvtRcvData, id, 0, 0, 0, 0);
+      evt.legacy_data_ = true;
+      process_flow_event(evt);
+      portid_map_mutex.unlock();
+    }
   }
-  return NCSCC_RC_SUCCESS;
+  if (header.IsFlowMessage() || header.IsUndefinedMessage()) {
+    // receive flow message explicitly identified by protocol version
+    // or if it is still undefined, then consult the stateful portid
+    // to proceed.
+    DataMessage data;
+    data.Decode(buffer);
+    portid_map_mutex.lock();
+    Event evt(Event::Type::kEvtRcvData, id, data.svc_id_, header.mseq_,
+        header.mfrag_, header.fseq_);
+    evt.snd_type_ = data.snd_type_;
+    rc = process_flow_event(evt);
+    if (rc == NCSCC_RC_CONTINUE) {
+      process_timer_event(Event(Event::Type::kEvtTmrChunkAck));
+      rc = NCSCC_RC_SUCCESS;
+    }
+    portid_map_mutex.unlock();
+  }
+
+  return rc;
 }
