@@ -209,17 +209,13 @@ bool TipcPortId::ReceiveCapable(uint16_t sending_len) {
     if (state_ == State::kTxProb) {
       // Too many msgs are not acked by receiver while in txprob state
       // disable flow control
-      state_ = State::kDisabled;
-      m_MDS_LOG_ERR("FCTRL: me --> [node:%x, ref:%u], [nacked:%" PRIu64
-          ", len:%u, rcv_buf_size:%" PRIu64 "], Warning[kTxProb -> kDisabled]",
-          id_.node, id_.ref, sndwnd_.nacked_space_,
-          sending_len, rcv_buf_size_);
+      m_MDS_LOG_ERR("FCTRL: me --> [node:%x, ref:%u], "
+          "Warning[Too many nacked in kTxProb]",
+          id_.node, id_.ref);
+      ChangeState(State::kDisabled);
       return true;
     } else if (state_ == State::kEnabled) {
-      state_ = State::kRcvBuffOverflow;
-      m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u] --> Overflow, %" PRIu64
-          ", %u, %" PRIu64, id_.node, id_.ref, sndwnd_.nacked_space_,
-          sending_len, rcv_buf_size_);
+      ChangeState(State::kRcvBuffOverflow);
     }
     return false;
   }
@@ -272,20 +268,18 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
   uint32_t rc = NCSCC_RC_SUCCESS;
   if (state_ == State::kDisabled) {
     m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
-        "RcvData, TxProb[retries:%u, state:%u], "
-        "Error[receive fseq:%u in invalid state]",
+        "RcvData[mseq:%u, mfrag:%u, fseq:%u], "
+        "rcvwnd[acked:%u, rcv:%u, nacked:%" PRIu64 "], "
+        "Warning[Invalid state:%u]",
         id_.node, id_.ref,
-        txprob_cnt_, (uint8_t)state_,
-        fseq);
+        mseq, mfrag, fseq,
+        rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_,
+        (uint8_t)state_);
     return rc;
   }
   // update state
   if (state_ == State::kTxProb || state_ == State::kStartup) {
-    state_ = State::kEnabled;
-    m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
-        "RcvData, TxProb[retries:%u, state:%u]",
-        id_.node, id_.ref,
-        txprob_cnt_, (uint8_t)state_);
+    ChangeState(State::kEnabled);
   }
   // if tipc multicast is enabled, receiver does not inspect sequence number
   // for both fragment/unfragment multicast/broadcast message
@@ -399,12 +393,7 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
   }
   // update state
   if (state_ == State::kTxProb) {
-    state_ = State::kEnabled;
-    m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
-        "RcvChkAck, "
-        "TxProb[retries:%u, state:%u]",
-        id_.node, id_.ref,
-        txprob_cnt_, (uint8_t)state_);
+    ChangeState(State::kEnabled);
   }
   // update sender sequence window
   if (sndwnd_.acked_ < Seq16(fseq)) {
@@ -472,9 +461,7 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
     }
     // no more unsent message, back to kEnabled
     if (msg == nullptr && state_ == State::kRcvBuffOverflow) {
-      state_ = State::kEnabled;
-      m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u] Overflow --> Enabled ",
-          id_.node, id_.ref);
+      ChangeState(State::kEnabled);
     }
   } else {
     m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
@@ -515,9 +502,7 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
     }
   }
   if (state_ != State::kRcvBuffOverflow) {
-    state_ = State::kRcvBuffOverflow;
-    m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u] --> Overflow ",
-        id_.node, id_.ref);
+    ChangeState(State::kRcvBuffOverflow);
     sndqueue_.MarkUnsentFrom(Seq16(fseq));
   }
   DataMessage* msg = sndqueue_.Find(Seq16(fseq));
@@ -543,26 +528,14 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
 
 bool TipcPortId::ReceiveTmrTxProb(uint8_t max_txprob) {
   bool restart_txprob = false;
-  if (state_ == State::kDisabled ||
-      sndwnd_.acked_ > Seq16(1) ||
-      rcvwnd_.rcv_ > Seq16(1)) return restart_txprob;
+  if (state_ == State::kDisabled) return restart_txprob;
   if (state_ == State::kTxProb || state_ == State::kRcvBuffOverflow) {
     txprob_cnt_++;
     if (txprob_cnt_ >= max_txprob) {
-      state_ = State::kDisabled;
+      ChangeState(State::kDisabled);
       restart_txprob = false;
     } else {
       restart_txprob = true;
-    }
-
-    // at kDisabled state, clear all message in sndqueue_,
-    // receiver is at old mds version
-    if (state_ == State::kDisabled) {
-      FlushData();
-      m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u], "
-          "TxProbExp, TxProb[retries:%u, state:%u]",
-          id_.node, id_.ref,
-          txprob_cnt_, (uint8_t)state_);
     }
   }
   return restart_txprob;
@@ -589,6 +562,7 @@ void TipcPortId::ChangeState(State newState) {
     // receiver is at old mds version
     FlushData();
   }
+  // state changes so print all counters
   m_MDS_LOG_NOTIFY("FCTRL: [node:%x, ref:%u], "
       "ChangeState[%u -> %u], "
       "TxProb[retries:%u], "
@@ -605,13 +579,10 @@ void TipcPortId::ChangeState(State newState) {
 }
 
 void TipcPortId::ReceiveIntro() {
-  m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
-      "RcvIntro, "
-      "TxProb[retries:%u, state:%u]",
-      id_.node, id_.ref,
-      txprob_cnt_, (uint8_t)state_);
+  m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], RcvIntro",
+      id_.node, id_.ref);
   if (state_ == State::kStartup || state_ == State::kTxProb) {
-    state_ = State::kEnabled;
+    ChangeState(State::kEnabled);
   }
 }
 
