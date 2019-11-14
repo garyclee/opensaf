@@ -13512,8 +13512,8 @@ void tet_mds_fctrl_compatibility_tp1(void)
 	uint32_t msg_num = 1000;
 	uint32_t msg_size = 500;
 
-	printf("\nTest Case 5: Sender enable MDS FCTRL but Receiver disable\n");
-	/*--------------------------------------------------------------------*/
+	printf("\nTest Case 5: Sender enable MDS FCTRL, Receiver disable\n");
+	/*-----------------------------------------------------------------*/
 	pid_t pid = fork();
 	if (pid == 0) {
 		/* child as sender */
@@ -13545,8 +13545,8 @@ void tet_mds_fctrl_compatibility_tp2(void)
 	uint32_t msg_num = 1000;
 	uint32_t msg_size = 500;
 
-	printf("\nTest Case 5: Sender diable MDS FCTRL but Receiver enable\n");
-	/*--------------------------------------------------------------------*/
+	printf("\nTest Case 6: Sender disable MDS FCTRL, Receiver enable\n");
+	/*-----------------------------------------------------------------*/
 	pid_t pid = fork();
 	if (pid == 0) {
 		/* child as sender */
@@ -13643,6 +13643,73 @@ void tet_mds_fctrl_with_sna_tp2(void)
 
 	test_validate(FAIL, 0);
 }
+
+
+void tet_mds_fctrl_compatibility_tp3(void)
+{
+	int FAIL = 1;
+	uint32_t msg_num = 5;
+	uint32_t msg_size = 130000;
+
+	printf("\nTest Case 9: Sender enable MDS FCTRL, Receiver disable\n");
+	/*-----------------------------------------------------------------*/
+	pid_t pid = fork();
+	if (pid == 0) {
+		/* child as sender */
+		setenv("MDS_TIPC_FCTRL_ENABLED", "1", 1);
+		mds_startup();
+		MDS_SVC_ID to_svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+		MDS_SVC_ID svc_id = NCSMDS_SVC_ID_INTERNAL_MIN;
+		tet_sender(svc_id, msg_num, msg_size, 1, to_svcids);
+		mds_shutdown();
+	} else if (pid > 0) {
+		/* parent as receiver */
+		mds_startup();
+		MDS_SVC_ID fr_svcids[] = {NCSMDS_SVC_ID_INTERNAL_MIN};
+		MDS_SVC_ID svc_id = NCSMDS_SVC_ID_EXTERNAL_MIN;
+		FAIL = tet_receiver(svc_id, msg_num, msg_size, 1, fr_svcids);
+		printf("\nReceiver finish, kill Sender\n");
+		kill(pid, SIGKILL);
+		mds_shutdown();
+	} else {
+		printf("\nFAIL to fork()\n");
+	}
+
+	test_validate(FAIL, 0);
+}
+
+void tet_mds_fctrl_compatibility_tp4(void)
+{
+	int FAIL = 1;
+	uint32_t msg_num = 10;
+	uint32_t msg_size = 130000;
+
+	printf("\nTest Case 10: Sender disable MDS FCTRL, Receiver enable\n");
+	/*------------------------------------------------------------------*/
+	pid_t pid = fork();
+	if (pid == 0) {
+		/* child as sender */
+		mds_startup();
+		MDS_SVC_ID to_svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+		MDS_SVC_ID svc_id = NCSMDS_SVC_ID_INTERNAL_MIN;
+		tet_sender(svc_id, msg_num, msg_size, 1, to_svcids);
+		mds_shutdown();
+	} else if (pid > 0) {
+		/* parent as receiver */
+		setenv("MDS_TIPC_FCTRL_ENABLED", "1", 1);
+		mds_startup();
+		MDS_SVC_ID fr_svcids[] = {NCSMDS_SVC_ID_INTERNAL_MIN};
+		MDS_SVC_ID svc_id = NCSMDS_SVC_ID_EXTERNAL_MIN;
+		FAIL = tet_receiver(svc_id, msg_num, msg_size, 1, fr_svcids);
+		printf("\nReceiver finish, kill Sender\n");
+		kill(pid, SIGKILL);
+		mds_shutdown();
+	} else {
+		printf("\nFAIL to fork()\n");
+	}
+	test_validate(FAIL, 0);
+}
+
 
 void Print_return_status(uint32_t rs)
 {
@@ -14384,7 +14451,7 @@ __attribute__((constructor)) static void mdsTipcAPI_constructor(void)
 		"Sender enable MDS FCTRL but Receiver disable");
 	test_case_add(
 		27, tet_mds_fctrl_compatibility_tp2,
-		"Sender diable MDS FCTRL but Receiver enable");
+		"Sender disable MDS FCTRL but Receiver enable");
 	test_case_add(
 		27, tet_mds_fctrl_with_sna_tp1,
 		"Sender gradually sends more than 65535"
@@ -14395,4 +14462,10 @@ __attribute__((constructor)) static void mdsTipcAPI_constructor(void)
 		"Sender gradually sends more than 65535"
 		" big messages (OVERLOAD happens)"
 		" and receiver should receive them all");
+	test_case_add(
+		27, tet_mds_fctrl_compatibility_tp3,
+		"Sender enable MDS FCTRL but Receiver disable");
+	test_case_add(
+		27, tet_mds_fctrl_compatibility_tp4,
+		"Sender disable MDS FCTRL but Receiver enable");
 }
