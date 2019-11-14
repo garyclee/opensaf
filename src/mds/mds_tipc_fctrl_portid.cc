@@ -190,6 +190,7 @@ uint32_t TipcPortId::Queue(const uint8_t* data, uint16_t length,
         sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
   } else {
     ++sndwnd_.send_;
+    sndwnd_.nacked_space_ += length;
     m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
         "QueData[mseq:%u, mfrag:%u, fseq:%u, len:%u], "
         "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
@@ -444,32 +445,29 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
     // the nacked_space_ of sender
     uint64_t acked_bytes = sndqueue_.Erase(Seq16(fseq) - (chksize-1),
         Seq16(fseq));
+    assert(sndwnd_.nacked_space_ >= acked_bytes);
     sndwnd_.nacked_space_ -= acked_bytes;
 
     // try to send a few pending msg
     DataMessage* msg = nullptr;
-    uint64_t resend_bytes = 0;
-    while (resend_bytes < acked_bytes) {
+    uint16_t send_msg_cnt = 0;
+    while (send_msg_cnt++ < chunk_size_) {
       // find the lowest sequence unsent yet
       msg = sndqueue_.FirstUnsent();
       if (msg == nullptr) {
         break;
       } else {
-        if (resend_bytes < acked_bytes) {
           if (Send(msg->msg_data_, msg->header_.msg_len_) == NCSCC_RC_SUCCESS) {
-            sndwnd_.nacked_space_ += msg->header_.msg_len_;
             msg->is_sent_ = true;
-            resend_bytes += msg->header_.msg_len_;
             m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
                 "SndQData[fseq:%u, len:%u], "
                 "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
                 id_.node, id_.ref,
                 msg->header_.fseq_, msg->header_.msg_len_,
                 sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
+          } else {
+            break;
           }
-        } else {
-          break;
-        }
       }
     }
     // no more unsent message, back to kEnabled
