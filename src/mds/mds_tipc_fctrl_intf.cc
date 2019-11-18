@@ -232,7 +232,7 @@ uint32_t process_all_events(void) {
   return NCSCC_RC_SUCCESS;
 }
 
-uint32_t create_ncs_task(void *task_hdl) {
+uint32_t create_ncs_task(NCSCONTEXT *task_hdl) {
   int policy = SCHED_OTHER; /*root defaults */
   int max_prio = sched_get_priority_max(policy);
   int min_prio = sched_get_priority_min(policy);
@@ -251,7 +251,7 @@ uint32_t create_ncs_task(void *task_hdl) {
   }
   if (ncs_task_create((NCS_OS_CB)process_all_events, 0,
           "OSAF_MDS", prio_val, policy, NCS_MDTM_STACKSIZE,
-          &task_hdl) != NCSCC_RC_SUCCESS) {
+          task_hdl) != NCSCC_RC_SUCCESS) {
     m_MDS_LOG_ERR("FCTRL: ncs_task_create(), Error[%s]",
         strerror(errno));
     m_NCS_IPC_RELEASE(&mbx_events, nullptr);

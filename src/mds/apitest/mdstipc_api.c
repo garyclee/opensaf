@@ -398,7 +398,7 @@ void tet_svc_install_tp_10()
 	printf(
 	    "\nTest case 10:Installing the External MIN service EXTMIN in a seperate thread and Uninstalling it here\n");
 	// Install thread
-	rc = tet_create_task((NCS_OS_CB)tet_vdest_install_thread, t_handle);
+	rc = tet_create_task((NCS_OS_CB)tet_vdest_install_thread, &t_handle);
 	if (rc != NCSCC_RC_SUCCESS) {
 		printf("\nFail to Install thread\n");
 		FAIL = 1;
@@ -999,7 +999,7 @@ void tet_svc_unstall_tp_5()
 	// Uninstalling the above service in a seperate thread
 	// Uninstall thread
 	rc = tet_create_task((NCS_OS_CB)tet_vdest_uninstall_thread,
-			     gl_tet_vdest[0].svc[0].task.t_handle);
+			     &gl_tet_vdest[0].svc[0].task.t_handle);
 	if (rc != NCSCC_RC_SUCCESS) {
 		printf("\nFail to create the uninstall thread\n");
 		FAIL = 1;
@@ -2141,12 +2141,18 @@ void cleanup_ADEST_srv()
 {
 	int id;
 	printf("\nUninstalling all the services on this ADESt\n");
-	for (id = gl_tet_adest.svc_count - 1; id >= 0; id--)
+	for (id = gl_tet_adest.svc_count - 1; id >= 0; id--) {
+		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
+					 gl_tet_adest.svc[id].svc_id,
+					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+			printf("Adest Svc  Retrieve Fail\n");
+		}
 		if (mds_service_uninstall(gl_tet_adest.mds_pwe1_hdl,
 					  gl_tet_adest.svc[id].svc_id) !=
 		    NCSCC_RC_SUCCESS) {
 			printf("\nFail mds_service_uninstall\n");
 		}
+	}
 }
 
 void tet_svc_subscr_ADEST_1()
@@ -2441,7 +2447,7 @@ void tet_svc_subscr_ADEST_8()
 		}
 		printf("\nAction: Cancel in a seperate thread\n");
 		if (tet_create_task((NCS_OS_CB)tet_adest_cancel_thread,
-				    gl_tet_adest.svc[0].task.t_handle) ==
+				    &gl_tet_adest.svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -2547,7 +2553,7 @@ void tet_svc_subscr_ADEST_10()
 		printf("\nAction: Retrieve in a seperate thread\n");
 		/*Retrieve thread*/
 		if (tet_create_task((NCS_OS_CB)tet_adest_retrieve_thread,
-				    gl_tet_adest.svc[0].task.t_handle) ==
+				    &gl_tet_adest.svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -2751,7 +2757,10 @@ uint32_t tet_cleanup_setup()
 				printf("Fail mds_service_retrieve\n");
 				FAIL = 1;
 			}
-
+			if (gl_rcvdmsginfo.msg) {
+				free(gl_rcvdmsginfo.msg);
+				gl_rcvdmsginfo.msg = NULL;
+			}
 			if (mds_service_uninstall(
 				gl_tet_vdest[i].mds_pwe1_hdl,
 				gl_tet_vdest[i].svc[id].svc_id) !=
@@ -2785,6 +2794,10 @@ uint32_t tet_cleanup_setup()
 			printf("Adest Svc  Retrieve Fail\n");
 			FAIL = 1;
 		}
+		if (gl_rcvdmsginfo.msg) {
+			free(gl_rcvdmsginfo.msg);
+			gl_rcvdmsginfo.msg = NULL;
+		}
 		if (mds_service_uninstall(gl_tet_adest.mds_pwe1_hdl, i) !=
 		    NCSCC_RC_SUCCESS) {
 			printf("Adest Svc  Uninstall Fail\n");
@@ -2799,6 +2812,10 @@ uint32_t tet_cleanup_setup()
 					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
 			printf("Adest Svc PWE 2 Retrieve Fail\n");
 			FAIL = 1;
+		}
+		if (gl_rcvdmsginfo.msg) {
+			free(gl_rcvdmsginfo.msg);
+			gl_rcvdmsginfo.msg = NULL;
 		}
 		if (mds_service_uninstall(gl_tet_adest.pwe[0].mds_pwe_hdl, i) !=
 		    NCSCC_RC_SUCCESS) {
@@ -4716,6 +4733,7 @@ void tet_adest_rcvr_svc_thread()
 	char tmp[] = " Hi Sender! My Name is RECEIVER ";
 	TET_MDS_MSG *mesg;
 	mesg = (TET_MDS_MSG *)malloc(sizeof(TET_MDS_MSG));
+	pthread_cleanup_push(free, mesg);
 	memset(mesg, 0, sizeof(TET_MDS_MSG));
 	memcpy(mesg->send_data, tmp, sizeof(tmp));
 	mesg->send_len = sizeof(tmp);
@@ -4748,7 +4766,7 @@ void tet_adest_rcvr_svc_thread()
 		}
 	}
 
-	free(mesg);
+	pthread_cleanup_pop(1);
 }
 
 void tet_vdest_rcvr_resp_thread()
@@ -4758,6 +4776,7 @@ void tet_vdest_rcvr_resp_thread()
 	char tmp[] = " Hi Sender! My Name is RECEIVER ";
 	TET_MDS_MSG *mesg;
 	mesg = (TET_MDS_MSG *)malloc(sizeof(TET_MDS_MSG));
+	pthread_cleanup_push(free, mesg);
 	memset(mesg, 0, sizeof(TET_MDS_MSG));
 	memcpy(mesg->send_data, tmp, sizeof(tmp));
 	mesg->send_len = sizeof(tmp);
@@ -4784,7 +4803,7 @@ void tet_vdest_rcvr_resp_thread()
 		}
 	}
 
-	free(mesg);
+	pthread_cleanup_pop(1);
 }
 
 void tet_send_response_tp_1()
@@ -4824,7 +4843,7 @@ void tet_send_response_tp_1()
 		    "\nTest Case 1: Svc INTMIN on PWE=2 of ADEST sends a LOW  Priority message to Svc NCSMDS_SVC_ID_EXTERNAL_MIN and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_adest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created");
 			fflush(stdout);
@@ -4901,7 +4920,7 @@ void tet_send_response_tp_2()
 		    "\nTest Case 2: Svc INTMIN on PWE=2 of ADEST sends a MEDIUM Priority message to Svc EXTMIN and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_adest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -4977,7 +4996,7 @@ void tet_send_response_tp_3()
 		    "\nTest Case 3: Svc INTMIN on Active VEST=200 sends a HIGH Priority message to Svc EXTERNAL_MIN on ADEST and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_adest_rcvr_svc_thread,
-				    gl_tet_adest.svc[0].task.t_handle) ==
+				    &gl_tet_adest.svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -5051,7 +5070,7 @@ void tet_send_response_tp_4()
 		    "\nTest Case 4: Svc EXTMIN of ADEST sends a VERYHIGH Priority message to Svc EXTMIN on Active Vdest=200 and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_resp_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -5126,7 +5145,7 @@ void tet_send_response_tp_5()
 		    "\nTest Case 5: While Await ActiveTimer ON:SvcEXTMIN of ADEST sends a message to Svc EXTMIN on Active Vdest=200 and Times out\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_resp_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -5213,7 +5232,7 @@ void tet_send_response_tp_6()
 		    "\nTest Case 6: Svc EXTMIN of ADEST sends a VERYHIGH Priority message to Svc EXTMIN on QUIESCED Vdest=200 and Times out\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_resp_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -5287,7 +5306,7 @@ void tet_send_response_tp_7()
 		    "\nTest Case 7: Implicit Subscription:Svc INTMIN on PWE=2 of ADEST sends a LOW Priority message to Svc EXTMIN and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_adest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -5324,7 +5343,7 @@ void tet_send_response_tp_7()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_adest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -5517,7 +5536,7 @@ void tet_send_response_tp_11()
 		mesg->send_len = 2 * MSG_SIZE + 2;
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_adest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -5621,6 +5640,7 @@ void tet_vdest_rcvr_thread()
 	char tmp[] = " Yes Sender! I am in. Message Delivered?";
 	TET_MDS_MSG *mesg;
 	mesg = (TET_MDS_MSG *)malloc(sizeof(TET_MDS_MSG));
+	pthread_cleanup_push(free, mesg);
 	memset(mesg, 0, sizeof(TET_MDS_MSG));
 	memcpy(mesg->send_data, tmp, sizeof(tmp));
 	mesg->send_len = sizeof(tmp);
@@ -5656,7 +5676,7 @@ void tet_vdest_rcvr_thread()
 		}
 	}
 	fflush(stdout);
-	free(mesg);
+	pthread_cleanup_pop(1);
 }
 
 void tet_Dadest_all_rcvr_thread()
@@ -5927,7 +5947,7 @@ void tet_adest_all_rcvrack_chgrole_thread()
 			}
 			if (tet_create_task(
 				(NCS_OS_CB)tet_adest_all_chgrole_rcvr_thread,
-				gl_tet_adest.svc[1].task.t_handle) ==
+				&gl_tet_adest.svc[1].task.t_handle) ==
 			    NCSCC_RC_SUCCESS) {
 				printf("\tTask has been Created\n");
 				fflush(stdout);
@@ -5978,7 +5998,7 @@ void tet_Dadest_all_rcvrack_chgrole_thread()
 			}
 			if (tet_create_task(
 				(NCS_OS_CB)tet_adest_all_chgrole_rcvr_thread,
-				gl_tet_adest.svc[1].task.t_handle) ==
+				&gl_tet_adest.svc[1].task.t_handle) ==
 			    NCSCC_RC_SUCCESS) {
 				printf("\tTask has been Created\n");
 				fflush(stdout);
@@ -6150,7 +6170,7 @@ void tet_send_all_tp_1()
 	}
 
 	if (tet_create_task((NCS_OS_CB)tet_adest_all_rcvr_thread,
-			    gl_tet_adest.svc[1].task.t_handle) ==
+			    &gl_tet_adest.svc[1].task.t_handle) ==
 	    NCSCC_RC_SUCCESS) {
 		printf("\nTask has been Created\n");
 		fflush(stdout);
@@ -6313,7 +6333,7 @@ void tet_send_all_tp_2()
 	/*Create thread to change role*/
 
 	if (tet_create_task((NCS_OS_CB)tet_change_role_thread,
-			    gl_tet_adest.svc[1].task.t_handle) ==
+			    &gl_tet_adest.svc[1].task.t_handle) ==
 	    NCSCC_RC_SUCCESS) {
 		printf("\nTask has been Created\n");
 		fflush(stdout);
@@ -6354,7 +6374,7 @@ void tet_send_all_tp_2()
 	else
 		printf("\nSuccess\n");
 	if (tet_create_task((NCS_OS_CB)tet_vdest_all_rcvr_thread,
-			    gl_tet_vdest[1].svc[1].task.t_handle) ==
+			    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 	    NCSCC_RC_SUCCESS) {
 		printf("\nTask has been Created\n");
 		fflush(stdout);
@@ -6377,7 +6397,7 @@ void tet_send_all_tp_2()
 		printf("\nTASK is released\n");
 	/*RSP*/
 	if (tet_create_task((NCS_OS_CB)tet_adest_all_chgrole_rcvr_thread,
-			    gl_tet_adest.svc[1].task.t_handle) ==
+			    &gl_tet_adest.svc[1].task.t_handle) ==
 	    NCSCC_RC_SUCCESS) {
 		printf("\nTask has been Created\n");
 		fflush(stdout);
@@ -6487,7 +6507,7 @@ void tet_send_response_ack_tp_1()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -6560,7 +6580,7 @@ void tet_send_response_ack_tp_2()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -6631,7 +6651,7 @@ void tet_send_response_ack_tp_3()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -6703,7 +6723,7 @@ void tet_send_response_ack_tp_4()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -6777,7 +6797,7 @@ void tet_send_response_ack_tp_5()
 		    "\nTest Case 5: While Await Active Timer ON:SvcEXTMIN of ADEST sends a message to Svc EXTMIN on Active Vdest=200 and Times out\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -6861,7 +6881,7 @@ void tet_send_response_ack_tp_6()
 		    "\nTest Case 6: SvcEXTMIN of ADEST sends message to SvcEXTMIN on QUIESCED Vdest=200 and Times out\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -6933,7 +6953,7 @@ void tet_send_response_ack_tp_7()
 		    "\nTest Case 7: Implicit Subscription: Svc EXTL_MIN on ADEST sends a LOWPriority message to Svc EXTMIN on VDEST=200 and expects Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -6969,7 +6989,7 @@ void tet_send_response_ack_tp_7()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -7030,7 +7050,7 @@ void tet_send_response_ack_tp_8()
 		mesg->send_len = 2 * MSG_SIZE + 2;
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_vdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -8678,7 +8698,7 @@ void tet_direct_send_all_tp_1()
 		/*SNDRSP*/
 		printf("\nDirect send with rsp\n");
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_all_thread,
-				    gl_tet_vdest[1].svc[0].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -8702,7 +8722,7 @@ void tet_direct_send_all_tp_1()
 		/*SNDRACK*/
 		printf("\n Direct send with response ack\n");
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_all_rack_thread,
-				    gl_tet_vdest[1].svc[0].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -8793,7 +8813,7 @@ void tet_direct_send_all_tp_2()
 		/*SNDRSP*/
 		printf("\nDirect send with rsp\n");
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_all_thread,
-				    gl_tet_vdest[1].svc[0].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -8816,7 +8836,7 @@ void tet_direct_send_all_tp_2()
 		/*SNDRACK*/
 		printf("\n Direct send with response ack\n");
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_all_rack_thread,
-				    gl_tet_vdest[1].svc[0].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -8907,7 +8927,7 @@ void tet_direct_send_all_tp_3()
 		/*SNDRSP*/
 		printf("\nDirect send with rsp\n");
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_all_thread,
-				    gl_tet_vdest[1].svc[0].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -8930,7 +8950,7 @@ void tet_direct_send_all_tp_3()
 		/*SNDRACK*/
 		printf("\n Direct send with response ack\n");
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_all_rack_thread,
-				    gl_tet_vdest[1].svc[0].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -9021,7 +9041,7 @@ void tet_direct_send_all_tp_4()
 		/*SNDRSP*/
 		printf("\nDirect send with rsp\n");
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_all_thread,
-				    gl_tet_vdest[1].svc[0].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -9044,7 +9064,7 @@ void tet_direct_send_all_tp_4()
 		/*SNDRACK*/
 		printf("\n Direct send with response ack\n");
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_all_rack_thread,
-				    gl_tet_vdest[1].svc[0].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[0].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -9163,7 +9183,7 @@ void tet_direct_send_all_tp_5()
 		/*Create thread to change role*/
 
 		if (tet_create_task((NCS_OS_CB)tet_change_role_thread,
-				    gl_tet_adest.svc[1].task.t_handle) ==
+				    &gl_tet_adest.svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -9208,7 +9228,7 @@ void tet_direct_send_all_tp_5()
 
 		if (tet_create_task(
 			(NCS_OS_CB)tet_Dvdest_rcvr_all_chg_role_thread,
-			gl_tet_vdest[1].svc[1].task.t_handle) ==
+			&gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -9235,7 +9255,7 @@ void tet_direct_send_all_tp_5()
 		/*RSP*/
 		if (tet_create_task(
 			(NCS_OS_CB)tet_Dadest_all_chgrole_rcvr_thread,
-			gl_tet_adest.svc[1].task.t_handle) ==
+			&gl_tet_adest.svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -9460,7 +9480,7 @@ void tet_direct_send_all_tp_6()
 		}
 
 		if (tet_create_task((NCS_OS_CB)tet_Dadest_all_rcvr_thread,
-				    gl_tet_adest.svc[1].task.t_handle) ==
+				    &gl_tet_adest.svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -10719,7 +10739,7 @@ void tet_direct_send_response_tp_1()
 		    "\nTest Case 1: Svc INTMIN on PWE=2 of ADEST sends a LOW Priority message to Svc EXTMIN and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dadest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -10796,7 +10816,7 @@ void tet_direct_send_response_tp_2()
 		    "\nTest Case 2: Svc INTMIN on PWE=2 of ADEST sends a MEDIUM Priority message to Svc EXTMIN and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dadest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -10864,7 +10884,7 @@ void tet_direct_send_response_tp_3()
 		    "\nTest Case 3: Svc INTMIN on PWE=2 of ADEST sends a HIGH Priority message to Svc EXTMIN and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dadest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -10930,7 +10950,7 @@ void tet_direct_send_response_tp_4()
 		    "\nTest Case 4: Svc INTMIN on PWE=2 of ADEST sends a VERYHIGH Priority message to Svc EXTMIN and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dadest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -11006,7 +11026,7 @@ void tet_direct_send_response_tp_5()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dadest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -11043,7 +11063,7 @@ void tet_direct_send_response_tp_5()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dadest_rcvr_thread,
-				    gl_tet_adest.svc[2].task.t_handle) ==
+				    &gl_tet_adest.svc[2].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -11115,7 +11135,7 @@ void tet_direct_send_response_ack_tp_1()
 		    "\nTest Case 1: Svc EXTMIN on ADEST sends a LOW priority message to Svc EXTMIN on VDEST=200 and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -11187,7 +11207,7 @@ void tet_direct_send_response_ack_tp_2()
 		    "\nTest Case 2: Svc EXTMIN on ADEST sends a MEDIUM priority message to Svc EXTMIN on VDEST=200 and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);
@@ -11259,7 +11279,7 @@ void tet_direct_send_response_ack_tp_3()
 
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -11330,7 +11350,7 @@ void tet_direct_send_response_ack_tp_4()
 		    "\nTest Case 4: Svc EXTMIN on ADEST sends a VERYHIGH priority  message to Svc EXTMIN on VDEST=200 and expects a Response\n");
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -11406,7 +11426,7 @@ void tet_direct_send_response_ack_tp_5()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\tTask has been Created\n");
 			fflush(stdout);
@@ -11440,7 +11460,7 @@ void tet_direct_send_response_ack_tp_5()
 		}
 		/*Receiver thread*/
 		if (tet_create_task((NCS_OS_CB)tet_Dvdest_rcvr_thread,
-				    gl_tet_vdest[1].svc[1].task.t_handle) ==
+				    &gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS) {
 			printf("\nTask has been Created\n");
 			fflush(stdout);

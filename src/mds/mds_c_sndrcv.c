@@ -2981,6 +2981,7 @@ mds_await_active_tbl_del_entry(MDS_PWE_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 					}
 					m_MDS_LOG_INFO(
 					    "MDS_SND_RCV: Await active entry successfully deleted\n");
+					mds_mcm_free_msg_uba_start(mov_ptr->req.msg);
 					m_MMGR_FREE_AWAIT_ACTIVE(mov_ptr);
 					return NCSCC_RC_SUCCESS;
 				}

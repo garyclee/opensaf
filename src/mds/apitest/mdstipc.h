@@ -203,7 +203,7 @@ uint32_t destroy_pwe_on_vdest(MDS_HDL);
 
 /**************     USER DEFINED WRAPPERS FOR MDS SERVICE APIs **************/
 
-uint32_t tet_create_task(NCS_OS_CB, NCSCONTEXT);
+uint32_t tet_create_task(NCS_OS_CB, NCSCONTEXT*);
 uint32_t tet_release_task(void *task_handle);
 int is_adest_sel_obj_found(int);
 int is_sel_obj_found(int);

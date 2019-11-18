@@ -1106,6 +1106,7 @@ uint32_t mds_send_get_response(MDS_HDL mds_hdl, MDS_SVC_ID svc_id,
 			    "The response got from the receiver is : \n message length \
 = %d \n message = %s",
 			    rsp->recvd_len, rsp->recvd_data);
+			free(rsp);
 		}
 		return NCSCC_RC_SUCCESS;
 	} else {
@@ -1623,7 +1624,7 @@ int is_adest_sel_obj_found(int si)
 	}
 	return 0;
 }
-uint32_t tet_create_task(NCS_OS_CB task_startup, NCSCONTEXT t_handle)
+uint32_t tet_create_task(NCS_OS_CB task_startup, NCSCONTEXT *t_handle)
 {
 	char taskname[] = "MDS_Tipc test";
 	int policy = SCHED_OTHER; /*root defaults */
@@ -1631,7 +1632,7 @@ uint32_t tet_create_task(NCS_OS_CB task_startup, NCSCONTEXT t_handle)
 
 	if (m_NCS_TASK_CREATE(task_startup, NULL, taskname, prio_val, policy,
 			      NCS_STACKSIZE_MEDIUM,
-			      &t_handle) == NCSCC_RC_SUCCESS)
+			      t_handle) == NCSCC_RC_SUCCESS)
 
 		return NCSCC_RC_SUCCESS;
 	else
@@ -2013,6 +2014,10 @@ uint32_t tet_mds_cb_rcv(NCSMDS_CALLBACK_INFO *mds_to_svc_info)
 	gl_rcvdmsginfo.yr_svc_hdl =
 	    mds_to_svc_info->i_yr_svc_hdl; /*the decider*/
 
+	if (gl_rcvdmsginfo.msg) {
+		free(gl_rcvdmsginfo.msg);
+		gl_rcvdmsginfo.msg = NULL;
+	}
 	gl_rcvdmsginfo.msg = mds_to_svc_info->info.receive.i_msg;
 	gl_rcvdmsginfo.rsp_reqd = mds_to_svc_info->info.receive.i_rsp_reqd;
 	if (gl_rcvdmsginfo.rsp_reqd) {
