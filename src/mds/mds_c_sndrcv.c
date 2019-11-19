@@ -2319,7 +2319,7 @@ static uint32_t mcm_query_for_node_dest(MDS_DEST adest, uint8_t *to)
 				*to = DESTINATION_SAME_PROCESS;
 			else
 				*to = DESTINATION_ON_NODE;
-		} else if (dest_node_id != src_node_id) {
+		} else {
 			*to = DESTINATION_OFF_NODE;
 		}
 		return NCSCC_RC_SUCCESS;

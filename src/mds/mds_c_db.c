@@ -433,6 +433,7 @@ uint32_t mds_vdest_tbl_get_role(MDS_VDEST_ID vdest_id, V_DEST_RL *role)
 	vdest_info = (MDS_VDEST_INFO *)ncs_patricia_tree_get(
 	    &gl_mds_mcm_cb->vdest_list, (uint8_t *)&vdest_id);
 	if (vdest_info == NULL) {
+		*role = V_DEST_RL_INVALID;
 		m_MDS_LOG_DBG("MDS:DB: VDEST not present");
 		m_MDS_LEAVE();
 		return NCSCC_RC_FAILURE;
