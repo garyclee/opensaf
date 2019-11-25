@@ -221,19 +221,17 @@ function tipc_duplicate_node_detect ()
 function tipc_configure ()
 {
     echo "Inserting TIPC mdoule..."
-    
-    if ! test -f "$TIPC_MODULE"  ; then
-      modprobe tipc
-      RM_TIPC_MODULE="modprobe -r tipc"
-    else 
-      insmod "$TIPC_MODULE"
-      RM_TIPC_MODULE="rmmod $TIPC_MODULE"
-    fi
 
-    ret_val=$?
-    if [ $ret_val -ne 0 ] ; then
-        logger -p user.err " TIPC Module could not be loaded "
-        exit 1
+    # Prefer using modprobe to insmod as modprobe takes care of
+    # loading all dependencies if any. If any dependent module
+    # has not yet loaded, insmod will get failed.
+    if modprobe tipc ; then
+      RM_TIPC_MODULE="modprobe -r tipc"
+    elif insmod "$TIPC_MODULE" ; then
+      RM_TIPC_MODULE="rmmod $TIPC_MODULE"
+    else
+      logger -p user.err " TIPC Module could not be loaded "
+      exit 1
     fi
 
     # max_nodes is not supported in TIPC 2.0
