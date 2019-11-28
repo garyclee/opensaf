@@ -298,7 +298,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
       }
     }
     if (rcving_mbcast_ == true) {
-      m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
+      m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
           "RcvData[mseq:%u, mfrag:%u, fseq:%u], "
           "rcvwnd[acked:%u, rcv:%u, nacked:%" PRIu64 "], "
           "Ignore bcast/mcast ",

@@ -390,7 +390,7 @@ uint32_t mds_tipc_fctrl_portid_up(struct tipc_portid id, uint32_t type) {
         id.node, id.ref, svc_id, portid->svc_cnt_);
   } else {
     portid->svc_cnt_++;
-    m_MDS_LOG_NOTIFY("FCTRL: Add svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
+    m_MDS_LOG_DBG("FCTRL: Add svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
         id.node, id.ref, svc_id, portid->svc_cnt_);
   }
 
@@ -410,7 +410,7 @@ uint32_t mds_tipc_fctrl_portid_down(struct tipc_portid id, uint32_t type) {
   TipcPortId *portid = portid_lookup(id);
   if (portid != nullptr) {
     portid->svc_cnt_--;
-    m_MDS_LOG_NOTIFY("FCTRL: Remove svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
+    m_MDS_LOG_DBG("FCTRL: Remove svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
         id.node, id.ref, svc_id, portid->svc_cnt_);
   }
   portid_map_mutex.unlock();
