@@ -51,6 +51,7 @@ void AVD_SU::initialize() {
   term_state = false;
   su_switch = AVSV_SI_TOGGLE_STABLE;
   su_is_external = false;
+  is_inst_msg_processed = true;
   su_act_state = 0;
   sg_of_su = nullptr;
   su_on_node = nullptr;
@@ -810,6 +811,12 @@ void AVD_SU::set_pres_state(SaAmfPresenceStateT pres_state) {
      */
     return;
 
+  if ((pres_state == SA_AMF_PRESENCE_INSTANTIATED) ||
+      (pres_state == SA_AMF_PRESENCE_INSTANTIATION_FAILED) ||
+      (pres_state == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+    set_inst_msg_processed(true);
+  }
+
   osafassert(pres_state <= SA_AMF_PRESENCE_TERMINATION_FAILED);
   TRACE_ENTER2("'%s' %s => %s", name.c_str(),
                avd_pres_state_name[saAmfSUPresenceState],
@@ -1082,6 +1089,12 @@ void AVD_SU::lock_instantiation(SaImmOiHandleT immoi_handle,
   if (saAmfSUPreInstantiable == false) {
     set_admin_state(SA_AMF_ADMIN_LOCKED_INSTANTIATION);
     avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+    goto done;
+  }
+
+  if (is_inst_msg_processed == false) {
+    report_admin_op_error(immoi_handle, invocation, SA_AIS_ERR_TRY_AGAIN,
+                          nullptr, "'%s' instantiate not done", name.c_str());
     goto done;
   }
 
@@ -2375,6 +2388,12 @@ void AVD_SU::set_term_state(bool state) {
   term_state = state;
   TRACE("%s term_state %u", name.c_str(), term_state);
   m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, this, AVSV_CKPT_SU_TERM_STATE);
+}
+
+void AVD_SU::set_inst_msg_processed(bool processed) {
+  is_inst_msg_processed = processed;
+  TRACE("%s inst_msg_processed %u", name.c_str(), processed);
+  m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, this, AVSV_CKPT_SU_INST_PROCESSED);
 }
 
 void AVD_SU::set_su_switch(SaToggleState state, bool wrt_to_imm) {

@@ -87,6 +87,8 @@ class AVD_SU {
 
   bool su_is_external; /* indicates if this SU is external */
 
+  bool is_inst_msg_processed; /* indicate inst msg sent to nd */
+
   int su_act_state;  // not used, kept for EDU, remove later
 
   bool wait_for_contained_to_quiesce;
@@ -122,6 +124,7 @@ class AVD_SU {
   void set_all_susis_assigned_quiesced(void);
   void set_all_susis_assigned(void);
   void set_term_state(bool state);
+  void set_inst_msg_processed(bool processed);
   void remove_from_model();
   void set_su_switch(SaToggleState state, bool wrt_to_imm = true);
   AVD_AVND *get_node_ptr(void) const;

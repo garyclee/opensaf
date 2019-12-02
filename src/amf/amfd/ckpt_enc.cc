@@ -62,6 +62,7 @@ static uint32_t enc_su_si_curr_active(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_si_curr_stby(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_term_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
+static uint32_t enc_su_inst_msg_processed(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_switch(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_pres_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
@@ -165,7 +166,7 @@ const AVSV_ENCODE_CKPT_DATA_FUNC_PTR avd_enc_ckpt_data_func_list[] = {
     enc_comp_pres_state, enc_comp_restart_count, nullptr, /* AVSV_SYNC_COMMIT */
     enc_su_restart_count, enc_si_dep_state, enc_ng_admin_state,
     enc_avd_to_avd_job_queue_status,
-    enc_node_failover_state};
+    enc_node_failover_state, enc_su_inst_msg_processed};
 
 /*
  * Function list for encoding the cold sync response data
@@ -419,6 +420,9 @@ static void encode_su(NCS_UBAID *ub, AVD_SU *su, uint16_t peer_version) {
 
   if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_2)
     osaf_encode_bool(ub, su->su_is_external);
+
+  if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_11)
+    osaf_encode_bool(ub, su->is_inst_msg_processed);
 }
 
 /****************************************************************************\
@@ -1293,6 +1297,30 @@ static uint32_t enc_su_term_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc) {
   const AVD_SU *su = (AVD_SU *)enc->io_reo_hdl;
   osaf_encode_sanamet_o2(&enc->io_uba, su->name.c_str());
   osaf_encode_bool(&enc->io_uba, su->term_state);
+  TRACE_LEAVE();
+  return NCSCC_RC_SUCCESS;
+}
+
+/****************************************************************************\
+ *
+ * Purpose:  Encode SU inst msg of service.
+ *
+ * Input: cb - CB pointer.
+ *        enc - Encode arguments passed by MBCSV.
+ *
+ * Returns: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ *
+ * NOTES:
+ *
+ *
+\**************************************************************************/
+static uint32_t enc_su_inst_msg_processed(
+                                     AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc) {
+  TRACE_ENTER();
+  osafassert(NCS_MBCSV_ACT_UPDATE == enc->io_action);
+  const AVD_SU *su = reinterpret_cast<AVD_SU *>(enc->io_reo_hdl);
+  osaf_encode_sanamet_o2(&enc->io_uba, su->name.c_str());
+  osaf_encode_bool(&enc->io_uba, su->is_inst_msg_processed);
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
 }

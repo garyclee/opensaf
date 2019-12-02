@@ -923,6 +923,14 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action,
         /* No need to send the message as standy would get the applier callback
          */
         return NCSCC_RC_SUCCESS;
+    case AVSV_CKPT_SU_INST_PROCESSED:
+      if (avd_cb->avd_peer_ver < AVD_MBCSV_SUB_PART_VERSION_11) {
+        /* No need to send the message to old std as this async is newly added.
+         */
+        return NCSCC_RC_SUCCESS;
+      }
+      cb->async_updt_cnt.su_updt++;
+      break;
     /* else fall through */
     case AVSV_CKPT_SU_SI_CURR_ACTIVE:
     case AVSV_CKPT_SU_SI_CURR_STBY:
@@ -1366,6 +1374,7 @@ static uint32_t avsv_validate_reo_type_in_csync(AVD_CL_CB *cb,
     case AVSV_CKPT_SU_SI_CURR_STBY:
     case AVSV_CKPT_SU_ADMIN_STATE:
     case AVSV_CKPT_SU_TERM_STATE:
+    case AVSV_CKPT_SU_INST_PROCESSED:
     case AVSV_CKPT_SU_SWITCH:
     case AVSV_CKPT_SU_OPER_STATE:
     case AVSV_CKPT_SU_PRES_STATE:
