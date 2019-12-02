@@ -51,6 +51,7 @@
 #include "mds_tipc_recvq_stats.h"
 #include "base/osaf_utility.h"
 #include "base/osaf_poll.h"
+#include "base/osaf_time.h"
 
 #ifndef SOCK_CLOEXEC
 enum { SOCK_CLOEXEC = 0x80000 };
@@ -523,10 +524,6 @@ uint32_t mdtm_tipc_destroy(void)
 	MDTM_REASSEMBLY_QUEUE *reassem_queue = NULL;
 	MDTM_REASSEMBLY_KEY reassembly_key;
 
-	/* close sockets first */
-	close(tipc_cb.BSRsock);
-	close(tipc_cb.Dsock);
-
 	/* Destroy receiving task */
 	if (mdtm_destroy_rcv_task() != NCSCC_RC_SUCCESS) {
 		m_MDS_LOG_ERR(
@@ -586,6 +583,9 @@ uint32_t mdtm_tipc_destroy(void)
 	num_subscriptions = 0;
 	handle = 0;
 	mdtm_global_frag_num = 0;
+
+	close(tipc_cb.BSRsock);
+	close(tipc_cb.Dsock);
 
 	return NCSCC_RC_SUCCESS;
 }
@@ -3169,6 +3169,37 @@ uint32_t mdtm_add_frag_hdr(uint8_t *buf_ptr, uint16_t len, uint32_t seq_num,
 
 /*********************************************************
 
+  Function NAME: mds_retry_sendto
+
+  DESCRIPTION: wrapper of sendto() for retry purpose
+
+  ARGUMENTS: same as sendto()
+
+  RETURNS: same as sendto()
+
+*********************************************************/
+ssize_t mds_retry_sendto(int sockfd, const void *buf, size_t len, int flags,
+		const struct sockaddr *dest_addr, socklen_t addrlen)
+{
+	int retry = 5;
+	ssize_t send_len = 0;
+	while (retry >= 0) {
+		send_len = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+		if (send_len == len) {
+			return send_len;
+		} else if (retry-- > 0) {
+			if (errno != ENOMEM &&
+			    errno != ENOBUFS &&
+			    errno != EINTR)
+				break;
+			osaf_nanosleep(&kTenMilliseconds);
+		}
+	}
+	return send_len;
+}
+
+/*********************************************************
+
   Function NAME: mdtm_sendto
 
   DESCRIPTION:
@@ -3210,7 +3241,8 @@ static uint32_t mdtm_sendto(uint8_t *buffer, uint16_t buff_len,
 
 	if (mds_tipc_fctrl_trysend(id, buffer, buff_len, is_queued)
 		== NCSCC_RC_SUCCESS) {
-		send_len = sendto(tipc_cb.BSRsock, buffer, buff_len, 0,
+		send_len = mds_retry_sendto(
+				tipc_cb.BSRsock, buffer, buff_len, 0,
 				(struct sockaddr *)&server_addr, sizeof(server_addr));
 		if (send_len == buff_len) {
 			m_MDS_LOG_INFO("MDTM: Successfully sent message");
@@ -3256,8 +3288,8 @@ static uint32_t mdtm_mcast_sendto(void *buffer, size_t size,
 	server_addr.addr.nameseq.lower = HTONL(MDS_MDTM_LOWER_INSTANCE);
 	/*This can be scope-down to dest_svc_id  server_inst TBD*/
 	server_addr.addr.nameseq.upper = HTONL(MDS_MDTM_UPPER_INSTANCE);
-	int send_len =
-	    sendto(tipc_cb.BSRsock, buffer, size, 0,
+	ssize_t send_len =
+	    mds_retry_sendto(tipc_cb.BSRsock, buffer, size, 0,
 		   (struct sockaddr *)&server_addr, sizeof(server_addr));
 
 	if (send_len == size) {

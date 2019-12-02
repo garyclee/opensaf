@@ -17,10 +17,13 @@
 
 #include "mds/mds_tipc_fctrl_portid.h"
 #include "base/ncssysf_def.h"
-#include "base/osaf_time.h"
 
 #include "mds/mds_dt.h"
 #include "mds/mds_log.h"
+
+extern "C" {
+#include "mds/mds_dt_tipc.h"
+}
 
 namespace mds {
 
@@ -156,18 +159,10 @@ uint32_t TipcPortId::Send(uint8_t* data, uint16_t length) {
   server_addr.family = AF_TIPC;
   server_addr.addrtype = TIPC_ADDR_ID;
   server_addr.addr.id = id_;
-  int retry = 5;
-  while (retry >= 0) {
-    ssize_t send_len = sendto(bsrsock_, data, length, 0,
-          (struct sockaddr *)&server_addr, sizeof(server_addr));
-
-    if (send_len == length) {
-      return NCSCC_RC_SUCCESS;
-    } else if (retry-- > 0) {
-      assert(errno == ENOMEM || errno == ENOBUFS);
-      osaf_nanosleep(&kTenMilliseconds);
-    }
-  }
+  ssize_t send_len = mds_retry_sendto(bsrsock_, data, length, 0,
+        (struct sockaddr *)&server_addr, sizeof(server_addr));
+  if (send_len == length)
+    return NCSCC_RC_SUCCESS;
   m_MDS_LOG_ERR("FCTRL: sendto() failed, Error[%s]", strerror(errno));
   return NCSCC_RC_FAILURE;
 }
@@ -288,13 +283,15 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
     if (mfrag == 0) {
       // this is not fragment, the snd_type field is always present in message
       rcving_mbcast_ = false;
-      if (snd_type == MDS_SENDTYPE_BCAST || snd_type == MDS_SENDTYPE_RBCAST) {
+      if (snd_type == MDS_SENDTYPE_BCAST ||
+          snd_type == MDS_SENDTYPE_RBCAST) {
         rcving_mbcast_ = true;
       }
     } else {
       // this is fragment, the snd_type is only present in the first fragment
       if ((mfrag & 0x7fff) == 1 &&
-          (snd_type == MDS_SENDTYPE_BCAST || snd_type == MDS_SENDTYPE_RBCAST)) {
+          (snd_type == MDS_SENDTYPE_BCAST ||
+           snd_type == MDS_SENDTYPE_RBCAST)) {
         rcving_mbcast_ = true;
       }
     }
@@ -448,25 +445,25 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
       if (msg == nullptr) {
         break;
       } else {
-          if (Send(msg->msg_data_, msg->header_.msg_len_) == NCSCC_RC_SUCCESS) {
-            retry = 0;
-            send_msg_cnt++;
-            msg->is_sent_ = true;
-            m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
-                "SndQData[fseq:%u, len:%u], "
-                "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
-                id_.node, id_.ref,
-                msg->header_.fseq_, msg->header_.msg_len_,
-                sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
-          } else if (send_msg_cnt == 0) {
-            // If not retry, all messages are kept in queue
-            // and no more trigger to send messages
-            retry++;
-            assert(retry < max_retry_send);
-            continue;
-          } else {
-            break;
-          }
+        if (Send(msg->msg_data_, msg->header_.msg_len_) == NCSCC_RC_SUCCESS) {
+          retry = 0;
+          send_msg_cnt++;
+          msg->is_sent_ = true;
+          m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
+              "SndQData[fseq:%u, len:%u], "
+              "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
+              id_.node, id_.ref,
+              msg->header_.fseq_, msg->header_.msg_len_,
+              sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
+        } else if (send_msg_cnt == 0) {
+          // If not retry, all messages are kept in queue
+          // and no more trigger to send messages
+          retry++;
+          assert(retry < max_retry_send);
+          continue;
+        } else {
+          break;
+        }
       }
     }
     // no more unsent message, back to kEnabled
