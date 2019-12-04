@@ -102,6 +102,8 @@ void tmr_exp_cbk(void* uarg) {
 
 void process_timer_event(const Event& evt) {
   bool txprob_restart = false;
+  m_MDS_LOG_DBG("FCTRL: process timer event start [evt:%d]",
+    static_cast<int>(evt.type_));
   for (auto i : portid_map) {
     TipcPortId* portid = i.second;
 
@@ -113,16 +115,20 @@ void process_timer_event(const Event& evt) {
 
     if (evt.type_ == Event::Type::kEvtTmrChunkAck) {
       portid->ReceiveTmrChunkAck();
+      portid->SendUnsentMsg(false);
     }
   }
   if (txprob_restart) {
     txprob_timer.Start(kBaseTimerInt, tmr_exp_cbk);
     m_MDS_LOG_DBG("FCTRL: Restart txprob");
   }
+  m_MDS_LOG_DBG("FCTRL: process timer event end");
 }
 
 uint32_t process_flow_event(const Event& evt) {
   uint32_t rc = NCSCC_RC_SUCCESS;
+  m_MDS_LOG_DBG("FCTRL: process flow event start [evt:%d]",
+    static_cast<int>(evt.type_));
   TipcPortId *portid = portid_lookup(evt.id_);
   if (portid == nullptr) {
     // the null portid normally should not happen; however because the
@@ -150,7 +156,7 @@ uint32_t process_flow_event(const Event& evt) {
     } else {
       m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
           "RcvEvt[evt:%d], Error[PortId not found]",
-          evt.id_.node, evt.id_.ref, (int)evt.type_);
+          evt.id_.node, evt.id_.ref, static_cast<int>(evt.type_));
     }
   } else {
     if (evt.type_ == Event::Type::kEvtRcvData) {
@@ -176,6 +182,7 @@ uint32_t process_flow_event(const Event& evt) {
       portid->ReceiveIntro();
     }
   }
+  m_MDS_LOG_DBG("FCTRL: process flow event end");
   return rc;
 }
 
@@ -495,6 +502,7 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
   // if mds support flow control
   if (header.IsControlMessage()) {
     if (header.msg_type_ == ChunkAck::kChunkAckMsgType) {
+      m_MDS_LOG_DBG("FCTRL: Receive ChunkAck");
       // receive single ack message
       ChunkAck ack;
       ack.Decode(buffer);
@@ -508,6 +516,7 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
             strerror(errno));
       }
     } else if (header.msg_type_ == Nack::kNackMsgType) {
+      m_MDS_LOG_DBG("FCTRL: Receive Nack");
       // receive nack message
       Nack nack;
       nack.Decode(buffer);
@@ -520,6 +529,7 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
             strerror(errno));
       }
     } else if (header.msg_type_ == Intro::kIntroMsgType) {
+      m_MDS_LOG_DBG("FCTRL: Receive Intro");
       // no need to decode intro message
       // the decoding intro message type is done in header decoding
       // send to the event thread

@@ -27,8 +27,6 @@ extern "C" {
 
 namespace mds {
 
-int max_retry_send = 100;
-
 Timer::Timer(Event::Type type) {
   tmr_id_ = nullptr;
   type_ = type;
@@ -134,6 +132,39 @@ uint64_t TipcPortId::GetUniqueId(struct tipc_portid id) {
   return uid;
 }
 
+bool TipcPortId::SendUnsentMsg(bool by_chunkAck) {
+  if ((by_chunkAck == false) && (tmr_trigger_send_ == false))
+    return true;
+  // try to send a few pending msg
+  DataMessage* msg = nullptr;
+  uint16_t send_msg_cnt = 0;
+  while (send_msg_cnt < chunk_size_) {
+    // find the lowest sequence unsent yet
+    msg = sndqueue_.FirstUnsent();
+    if (msg == nullptr) {
+      // return false only if no more unsent msg
+      return false;
+    } else {
+      if (Send(msg->msg_data_, msg->header_.msg_len_) == NCSCC_RC_SUCCESS) {
+        tmr_trigger_send_ = false;  // timer will not trigger send anymore
+        send_msg_cnt++;
+        msg->is_sent_ = true;
+        m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
+            "SndQData[fseq:%u, len:%u], "
+            "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
+            id_.node, id_.ref,
+            msg->header_.fseq_, msg->header_.msg_len_,
+            sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
+      } else {
+        if (by_chunkAck && (send_msg_cnt == 0))
+          tmr_trigger_send_ = true;  // need timer to trigger send later
+        break;
+      }
+    }
+  }
+  return true;
+}
+
 void TipcPortId::FlushData() {
   DataMessage* msg = nullptr;
   do {
@@ -159,11 +190,11 @@ uint32_t TipcPortId::Send(uint8_t* data, uint16_t length) {
   server_addr.family = AF_TIPC;
   server_addr.addrtype = TIPC_ADDR_ID;
   server_addr.addr.id = id_;
-  ssize_t send_len = mds_retry_sendto(bsrsock_, data, length, 0,
+  ssize_t send_len = mds_retry_sendto(bsrsock_, data, length, MSG_DONTWAIT,
         (struct sockaddr *)&server_addr, sizeof(server_addr));
   if (send_len == length)
     return NCSCC_RC_SUCCESS;
-  m_MDS_LOG_ERR("FCTRL: sendto() failed, Error[%s]", strerror(errno));
+  m_MDS_LOG_ERR("FCTRL: TipcPortId::Send() failed, Err[%s]", strerror(errno));
   return NCSCC_RC_FAILURE;
 }
 
@@ -435,39 +466,9 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
     assert(sndwnd_.nacked_space_ >= acked_bytes);
     sndwnd_.nacked_space_ -= acked_bytes;
 
-    // try to send a few pending msg
-    DataMessage* msg = nullptr;
-    uint16_t send_msg_cnt = 0;
-    int retry = 0;
-    while (send_msg_cnt < chunk_size_) {
-      // find the lowest sequence unsent yet
-      msg = sndqueue_.FirstUnsent();
-      if (msg == nullptr) {
-        break;
-      } else {
-        if (Send(msg->msg_data_, msg->header_.msg_len_) == NCSCC_RC_SUCCESS) {
-          retry = 0;
-          send_msg_cnt++;
-          msg->is_sent_ = true;
-          m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
-              "SndQData[fseq:%u, len:%u], "
-              "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
-              id_.node, id_.ref,
-              msg->header_.fseq_, msg->header_.msg_len_,
-              sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
-        } else if (send_msg_cnt == 0) {
-          // If not retry, all messages are kept in queue
-          // and no more trigger to send messages
-          retry++;
-          assert(retry < max_retry_send);
-          continue;
-        } else {
-          break;
-        }
-      }
-    }
+    bool res = SendUnsentMsg(true);
     // no more unsent message, back to kEnabled
-    if (msg == nullptr && state_ == State::kRcvBuffOverflow) {
+    if (res == false && state_ == State::kRcvBuffOverflow) {
       ChangeState(State::kEnabled);
     }
   } else {
@@ -515,21 +516,15 @@ void TipcPortId::ReceiveNack(uint32_t mseq, uint16_t mfrag,
   DataMessage* msg = sndqueue_.Find(Seq16(fseq));
   if (msg != nullptr) {
     // Resend the msg found
-    int retry = 0;
-    while (Send(msg->msg_data_, msg->header_.msg_len_) != NCSCC_RC_SUCCESS) {
-      // If not retry, all messages are kept in queue
-      // and no more trigger to send messages
-      retry++;
-      assert(retry < max_retry_send);
-      continue;
+    if (Send(msg->msg_data_, msg->header_.msg_len_) == NCSCC_RC_SUCCESS) {
+      msg->is_sent_ = true;
+      m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
+          "RsndData[mseq:%u, mfrag:%u, fseq:%u], "
+          "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
+          id_.node, id_.ref,
+          mseq, mfrag, fseq,
+          sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
     }
-    msg->is_sent_ = true;
-    m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
-        "RsndData[mseq:%u, mfrag:%u, fseq:%u], "
-        "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
-        id_.node, id_.ref,
-        mseq, mfrag, fseq,
-        sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
   } else {
     m_MDS_LOG_ERR("FCTRL: [me] --> [node:%x, ref:%u], "
         "RsndData[mseq:%u, mfrag:%u, fseq:%u], "

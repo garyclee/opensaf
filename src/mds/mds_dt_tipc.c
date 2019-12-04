@@ -3183,13 +3183,13 @@ ssize_t mds_retry_sendto(int sockfd, const void *buf, size_t len, int flags,
 {
 	int retry = 5;
 	ssize_t send_len = 0;
-	while (retry >= 0) {
+	while (retry-- >= 0) {
 		send_len = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 		if (send_len == len) {
 			return send_len;
-		} else if (retry-- > 0) {
-			if (errno != ENOMEM &&
-			    errno != ENOBUFS &&
+		} else if (retry >= 0) {
+			if (errno != EAGAIN && errno != EWOULDBLOCK &&
+			    errno != ENOMEM && errno != ENOBUFS &&
 			    errno != EINTR)
 				break;
 			osaf_nanosleep(&kTenMilliseconds);
@@ -3242,7 +3242,7 @@ static uint32_t mdtm_sendto(uint8_t *buffer, uint16_t buff_len,
 	if (mds_tipc_fctrl_trysend(id, buffer, buff_len, is_queued)
 		== NCSCC_RC_SUCCESS) {
 		send_len = mds_retry_sendto(
-				tipc_cb.BSRsock, buffer, buff_len, 0,
+				tipc_cb.BSRsock, buffer, buff_len, MSG_DONTWAIT,
 				(struct sockaddr *)&server_addr, sizeof(server_addr));
 		if (send_len == buff_len) {
 			m_MDS_LOG_INFO("MDTM: Successfully sent message");
@@ -3289,7 +3289,7 @@ static uint32_t mdtm_mcast_sendto(void *buffer, size_t size,
 	/*This can be scope-down to dest_svc_id  server_inst TBD*/
 	server_addr.addr.nameseq.upper = HTONL(MDS_MDTM_UPPER_INSTANCE);
 	ssize_t send_len =
-	    mds_retry_sendto(tipc_cb.BSRsock, buffer, size, 0,
+	    mds_retry_sendto(tipc_cb.BSRsock, buffer, size, MSG_DONTWAIT,
 		   (struct sockaddr *)&server_addr, sizeof(server_addr));
 
 	if (send_len == size) {
