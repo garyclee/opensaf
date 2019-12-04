@@ -138,7 +138,7 @@ void DataMessage::Decode(uint8_t *msg) {
 
 DataMessage::~DataMessage() {
   if (msg_data_ != nullptr) {
-    delete[] msg_data_;
+    free(msg_data_);
     msg_data_ = nullptr;
   }
 }

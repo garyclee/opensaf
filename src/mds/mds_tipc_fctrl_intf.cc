@@ -339,8 +339,9 @@ uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id,
   return rc;
 }
 
-uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
-    struct tipc_portid id) {
+uint32_t mds_tipc_fctrl_trysend(struct tipc_portid id, const uint8_t *buffer,
+    uint16_t len, uint8_t* is_queued) {
+  *is_queued = 0;
   if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
 
   uint32_t rc = NCSCC_RC_SUCCESS;
@@ -357,6 +358,7 @@ uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
     if (portid->state_ != TipcPortId::State::kDisabled) {
       bool sendable = portid->ReceiveCapable(len);
       portid->Queue(buffer, len, sendable);
+      *is_queued = 1;
       // start txprob timer for the first msg sent out
       // do not start for other states
       if (sendable && portid->state_ == TipcPortId::State::kStartup) {

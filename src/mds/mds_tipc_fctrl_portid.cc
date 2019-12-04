@@ -179,13 +179,12 @@ uint32_t TipcPortId::Queue(const uint8_t* data, uint16_t length,
   DataMessage *msg = new DataMessage;
   msg->header_.Decode(const_cast<uint8_t*>(data));
   msg->Decode(const_cast<uint8_t*>(data));
-  msg->msg_data_ = new uint8_t[length];
   msg->is_sent_ = is_sent;
-  memcpy(msg->msg_data_, data, length);
+  msg->msg_data_ = const_cast<uint8_t*>(data);
   sndqueue_.Queue(msg);
+  ++sndwnd_.send_;
+  sndwnd_.nacked_space_ += length;
   if (is_sent) {
-    ++sndwnd_.send_;
-    sndwnd_.nacked_space_ += length;
     m_MDS_LOG_DBG("FCTRL: [me] --> [node:%x, ref:%u], "
         "SndData[mseq:%u, mfrag:%u, fseq:%u, len:%u], "
         "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
@@ -193,8 +192,6 @@ uint32_t TipcPortId::Queue(const uint8_t* data, uint16_t length,
         msg->header_.mseq_, msg->header_.mfrag_, msg->header_.fseq_, length,
         sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_);
   } else {
-    ++sndwnd_.send_;
-    sndwnd_.nacked_space_ += length;
     m_MDS_LOG_NOTIFY("FCTRL: [me] --> [node:%x, ref:%u], "
         "QueData[mseq:%u, mfrag:%u, fseq:%u, len:%u], "
         "sndwnd[acked:%u, send:%u, nacked:%" PRIu64 "]",
