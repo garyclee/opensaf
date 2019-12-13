@@ -3661,7 +3661,7 @@ uint32_t mds_mcm_svc_down(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 			(MDS_ADEST_INFO *)ncs_patricia_tree_get(
 				&gl_mds_mcm_cb->adest_list,
 				(uint8_t *)&adest);
-		if (adest_info) {
+		if (adest_info && adest_info->svc_cnt > 0) {
 			adest_info->svc_cnt--;
 			if (adest_info->svc_cnt == 0) {
 				m_MDS_LOG_INFO(
