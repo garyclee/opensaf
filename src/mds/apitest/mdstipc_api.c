@@ -13612,10 +13612,13 @@ void tet_overload_tp_4(void)
 						1, fr_svcids);
 			mds_shutdown();
 			if (FAIL == 0) {
+				pid_t rc;
 				int status;
-				wait(&status);
-				if (WIFEXITED(status) && \
-					(WEXITSTATUS(status) != 0)) {
+				do {
+					rc = waitpid(pid2, &status, 0);
+				} while ((rc == -1) && (errno == EINTR));
+				if ((rc == -1) || \
+				    (WIFEXITED(status) && (WEXITSTATUS(status) != 0))) {
 					printf("\nThe other receiver FAIL\n");
 					FAIL = 1;
 				}
