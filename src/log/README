@@ -764,3 +764,46 @@ on AMF role is unnecessary delay the CLM state of a Node
 (CLM state will available as soon as CLM started), so LGS is a taking
 AVD Up event as trigger to do CLM initialize.
  
+
+4. Improve the resilience of OpenSAF LOG service (#3116)
+---------------------------------------------------------
+When the file system is unresponsive, log client gets try-again from write
+callback very shortly after I/O timeout reaches the value that is given to
+`logFileIoTimeout` attribute. The attribute is configurable and its valid range
+is within the range [500ms – 5000ms]. This is legacy behavior.
+
+This ticket improves the resilience of LOG service so that log service can
+cache async write requests up to a configurable time that is around 15-30
+seconds before returning status to log client via write async callback.
+
+The cache size is configurable via a new attribute `logMaxPendingWriteRequests`.
+The default value is zero (0) - means this feature is disabled. The valid range
+is [current queue size - 1000]. To find the current size of the queue, fetch the
+value of pure runtime attribute `logCurrentPendingWriteRequests` of
+`OpenSafLogCurrentConfig` class. When the cache size reaches the limit, all
+coming requests will get acknowledgment right away with SA_AIS_ERR_TRY_AGAIN.
+
+The resilient timeout can also be configurable via a new attribute
+`logResilienceTimeout`. The valid range is [15-30] seconds. A pending write
+async can be dropped and removed from the queue in either following cases:
+a) The request has stayed in the queue longer than the given resilient time
+b) The targeting stream has been closed.
+
+The queue is always kept in sync with standby.
+
+If the log client is interested in getting the acknowledgment from the log
+server to know if their invocations have been successfully written or not, the
+client should poll with a timeout larger than the setting
+`logResilienceTimeout`.
+
+Besides, log agent has a light list keeping track all invocations which not yet
+get acknowledgments from the log server. If the cluster goes to headless; in
+other words, log server is disappeared and all cached data has been lost, log
+agent (library) will notify all lost invocations to log client via write async
+callback with SA_AIS_ERR_TRY_AGAIN error code.
+
+To test this feature, a GCC flag is added during compile time to simulate,
+SIMULATE_NFS_UNRESPONSE, the case the underlying file system is unresponsive,
+and it only takes effect when the cache size is given to a non-zero value. With
+that, the I/O thread will sleep *16 seconds* every 02 write requests. The flag
+is disabled in default.
