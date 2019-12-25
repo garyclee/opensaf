@@ -1479,6 +1479,15 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,
     goto done;
   }
 
+  if ((su->pend_cbk.admin_oper == SA_AMF_ADMIN_RESTART) &&
+      ((op_id == SA_AMF_ADMIN_UNLOCK) || (op_id == SA_AMF_ADMIN_LOCK))) {
+    report_admin_op_error(
+        immoi_handle, invocation, SA_AIS_ERR_TRY_AGAIN, nullptr,
+        "SU'%s', undergoing admin operation'%u'",
+        su->name.c_str(), su->pend_cbk.admin_oper);
+    goto done;
+  }
+
   /* Validation has passed and admin operation should be done. Proceed with
    * it... */
   switch (op_id) {
