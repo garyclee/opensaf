@@ -17,6 +17,7 @@
 
 #include "log/logd/lgs_file.h"
 
+#include <atomic>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -34,6 +35,10 @@
 #include "log/logd/lgs.h"
 #include "log/logd/lgs_config.h"
 #include "log/logd/lgs_filehdl.h"
+
+// This global variable shows if the I/O thread is ready
+// or it is being stuck due to underlying file system status.
+std::atomic<bool> is_filehdl_thread_ready{true};
 
 pthread_mutex_t lgs_ftcom_mutex;  /* For locking communication */
 static pthread_cond_t request_cv; /* File thread waiting for request */
@@ -132,6 +137,7 @@ static void *file_hndl_thread(void *noparam) {
        * file I/O functions. Mutex is locked when _hdl function returns.
        */
 
+      is_filehdl_thread_ready = false;
       /* Invoke requested handler function */
       switch (lgs_com_data.request_code) {
         case LGSF_FILEOPEN:
@@ -208,7 +214,7 @@ static void *file_hndl_thread(void *noparam) {
        */
       lgs_com_data.request_f = false; /* Prepare to take a new request */
       lgs_com_data.request_code = LGSF_NOREQ;
-
+      is_filehdl_thread_ready = true;
       /* The following cannot be done if the API has timed out */
       if (lgs_com_data.timeout_f == false) {
         lgs_com_data.answer_f = true;

@@ -50,7 +50,7 @@ enum ErrCode {
 };
 
 // Type of modification on multiple attribute values.
-// Introduce this own enum as (xvunguy) don't want to
+// Introduce this own enum as (vu.m.nguyen) don't want to
 // have dependent to IMM header file just because we need IMM modification type.
 // Their meanings are equivelent to `SaImmAttrModificationTypeT`
 enum ModifyType { kAdd = 1, kDelete = 2, kReplace = 3 };

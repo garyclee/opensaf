@@ -65,6 +65,9 @@
 #define LOG_FILE_SYS_CONFIG "logFileSysConfig"
 #define LOG_RECORD_DESTINATION_CONFIGURATION "logRecordDestinationConfiguration"
 #define LOG_RECORD_DESTINATION_STATUS "logRecordDestinationStatus"
+#define LOG_RESILIENCE_TIMEOUT "logResilienceTimeout"
+#define LOG_MAX_PENDING_WRITE_REQ "logMaxPendingWriteRequests"
+#define LOG_CURRENT_PENDING_WRITE_REQ "logCurrentPendingWriteRequests"
 
 typedef enum {
   LGS_IMM_LOG_ROOT_DIRECTORY,
@@ -80,7 +83,8 @@ typedef enum {
   LGS_IMM_LOG_FILE_SYS_CONFIG,
   LGS_IMM_LOG_RECORD_DESTINATION_CONFIGURATION,
   LGS_IMM_LOG_RECORD_DESTINATION_STATUS,
-
+  LGS_IMM_LOG_RESILIENCE_TIMEOUT,
+  LGS_IMM_LOG_MAX_PENDING_WRITE_REQ,
   LGS_IMM_LOG_NUMBER_OF_PARAMS,
   LGS_IMM_LOG_OPENSAFLOGCONFIG_CLASS_EXIST,
 
@@ -114,6 +118,10 @@ static inline lgs_logconfGet_t param_name_to_id(const std::string &param_name) {
     return LGS_IMM_LOG_RECORD_DESTINATION_CONFIGURATION;
   } else if (param_name == LOG_RECORD_DESTINATION_STATUS) {
     return LGS_IMM_LOG_RECORD_DESTINATION_STATUS;
+  } else if (param_name == LOG_MAX_PENDING_WRITE_REQ) {
+    return LGS_IMM_LOG_MAX_PENDING_WRITE_REQ;
+  } else if (param_name == LOG_RESILIENCE_TIMEOUT) {
+    return LGS_IMM_LOG_RESILIENCE_TIMEOUT;
   } else {
     return LGS_IMM_LOG_NUMEND;  // Error
   }

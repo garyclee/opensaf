@@ -32,6 +32,8 @@
 #include "log/logd/lgs_clm.h"
 #include "log/logd/lgs_dest.h"
 #include "log/logd/lgs_oi_admin.h"
+#include "log/logd/lgs_mbcsv.h"
+#include "log/logd/lgs_cache.h"
 
 void *client_db = nullptr; /* used for C++ STL map */
 
@@ -1284,17 +1286,11 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
   lgsv_write_log_async_req_t *param =
       &(evt->info.msg.info.api_info.param).write_log_async;
   log_stream_t *stream = nullptr;
-  SaAisErrorT error = SA_AIS_OK;
   SaStringT logOutputString = nullptr;
   SaUint32T buf_size;
-  int n, rc = 0;
-  lgsv_ckpt_msg_v1_t ckpt_v1;
-  lgsv_ckpt_msg_v2_t ckpt_v2;
-  void *ckpt_ptr;
+  int n = 0;
   uint32_t max_logrecsize = 0;
   char node_name[_POSIX_HOST_NAME_MAX];
-  RecordData data;
-  timespec time;
 
   memset(node_name, 0, _POSIX_HOST_NAME_MAX);
   strncpy(node_name, evt->node_name, _POSIX_HOST_NAME_MAX);
@@ -1305,20 +1301,20 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
   // Client should try again when role changes is in transition.
   if (cb->is_quiesced_set) {
     TRACE("Log service is in quiesced state");
-    error = SA_AIS_ERR_TRY_AGAIN;
-    goto done;
+    AckToWriteAsync(param, evt->fr_dest, SA_AIS_ERR_TRY_AGAIN);
+    return NCSCC_RC_SUCCESS;
   }
 
   if (lgs_client_get_by_id(param->client_id) == nullptr) {
     TRACE("Bad client ID: %u", param->client_id);
-    error = SA_AIS_ERR_BAD_HANDLE;
-    goto done;
+    AckToWriteAsync(param, evt->fr_dest, SA_AIS_ERR_BAD_HANDLE);
+    return NCSCC_RC_SUCCESS;
   }
 
   if ((stream = log_stream_get_by_id(param->lstr_id)) == nullptr) {
     TRACE("Bad stream ID: %u", param->lstr_id);
-    error = SA_AIS_ERR_BAD_HANDLE;
-    goto done;
+    AckToWriteAsync(param, evt->fr_dest, SA_AIS_ERR_BAD_HANDLE);
+    return NCSCC_RC_SUCCESS;
   }
 
   /* Apply filtering only to system and application streams */
@@ -1326,7 +1322,8 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
       ((stream->severityFilter &
         (1 << param->logRecord->logHeader.genericHdr.logSeverity)) == 0)) {
     stream->filtered++;
-    goto done;
+    AckToWriteAsync(param, evt->fr_dest, SA_AIS_OK);
+    return NCSCC_RC_SUCCESS;
   }
 
   /*
@@ -1342,127 +1339,23 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
       calloc(1, buf_size + 1)); /* Make room for a '\0' termination */
   if (logOutputString == nullptr) {
     LOG_ER("Could not allocate %d bytes", stream->fixedLogRecordSize + 1);
-    error = SA_AIS_ERR_NO_MEMORY;
-    goto done;
+    AckToWriteAsync(param, evt->fr_dest, SA_AIS_ERR_NO_MEMORY);
+    return NCSCC_RC_SUCCESS;
   }
 
   if ((n = lgs_format_log_record(
            param->logRecord, stream->logFileFormat, stream->maxLogFileSize,
            stream->fixedLogRecordSize, buf_size, logOutputString,
            ++stream->logRecordId, node_name)) == 0) {
-    error = SA_AIS_ERR_INVALID_PARAM;
-    goto done;
+    AckToWriteAsync(param, evt->fr_dest, SA_AIS_ERR_INVALID_PARAM);
+    return NCSCC_RC_SUCCESS;
   }
 
-  rc = log_stream_write_h(stream, logOutputString, n);
-
-  /* '\0' terminate log record string before check pointing.
-   * Since the log record always is a string '\0' can be used instead of
-   * using an extra parameter for buffer size.
-   */
   logOutputString[n] = '\0';
-
-  /* Always return try again on stream write error */
-  if ((rc == -1) || (rc == -2)) {
-    error = SA_AIS_ERR_TRY_AGAIN;
-    goto done;
-  }
-
-  //>
-  // Has successfully written log record to file.
-  // Now, send to destination if any destination name set.
-  //<
-
-  // Streaming not support on alarm/notif streams.
-  if ((stream->name == SA_LOG_STREAM_ALARM) ||
-      (stream->name == SA_LOG_STREAM_NOTIFICATION)) {
-    goto checkpoint;
-  }
-
-  // Packing Record data that carry necessary information
-  // to form RFC5424 syslog msg, then send to destination name(s).
-  data.name = stream->name.c_str();
-  data.logrec = logOutputString;
-  data.hostname = node_name;
-  data.networkname = lgs_get_networkname().c_str();
-  data.appname = osaf_extended_name_borrow(
-      param->logRecord->logHeader.genericHdr.logSvcUsrName);
-  data.msgid = stream->rfc5424MsgId.c_str();
-  data.isRtStream = stream->isRtStream;
-  data.recordId = stream->logRecordId;
-  data.sev = param->logRecord->logHeader.genericHdr.logSeverity;
-  time.tv_sec = (param->logRecord->logTimeStamp / (SaTimeT)SA_TIME_ONE_SECOND);
-  time.tv_nsec = (param->logRecord->logTimeStamp % (SaTimeT)SA_TIME_ONE_SECOND);
-  data.time = time;
-
-  WriteToDestination(data, stream->dest_names);
-
-checkpoint:
-  /* TODO: send fail back if ack is wanted, Fix counter for application stream!!
-   */
-  if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-    if (lgs_is_peer_v2()) {
-      memset(&ckpt_v2, 0, sizeof(ckpt_v2));
-      ckpt_v2.header.ckpt_rec_type = LGS_CKPT_LOG_WRITE;
-      ckpt_v2.header.num_ckpt_records = 1;
-      ckpt_v2.header.data_len = 1;
-      ckpt_v2.ckpt_rec.write_log.recordId = stream->logRecordId;
-      ckpt_v2.ckpt_rec.write_log.streamId = stream->streamId;
-      ckpt_v2.ckpt_rec.write_log.curFileSize = stream->curFileSize;
-      ckpt_v2.ckpt_rec.write_log.logFileCurrent =
-          const_cast<char *>(stream->logFileCurrent.c_str());
-      ckpt_v2.ckpt_rec.write_log.logRecord = logOutputString;
-      ckpt_v2.ckpt_rec.write_log.c_file_close_time_stamp =
-          stream->act_last_close_timestamp;
-      ckpt_ptr = &ckpt_v2;
-    } else {
-      memset(&ckpt_v1, 0, sizeof(ckpt_v1));
-      ckpt_v1.header.ckpt_rec_type = LGS_CKPT_LOG_WRITE;
-      ckpt_v1.header.num_ckpt_records = 1;
-      ckpt_v1.header.data_len = 1;
-      ckpt_v1.ckpt_rec.write_log.recordId = stream->logRecordId;
-      ckpt_v1.ckpt_rec.write_log.streamId = stream->streamId;
-      ckpt_v1.ckpt_rec.write_log.curFileSize = stream->curFileSize;
-      ckpt_v1.ckpt_rec.write_log.logFileCurrent =
-          const_cast<char *>(stream->logFileCurrent.c_str());
-      ckpt_ptr = &ckpt_v1;
-    }
-
-    (void)lgs_ckpt_send_async(cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);
-  }
-
-  /* Save stb_recordId. Used by standby if configured for split file system.
-   * It's save here in order to contain a correct value if this node becomes
-   * standby.
-   */
-  stream->stb_logRecordId = stream->logRecordId;
-
-done:
-  /*
-    Since the logOutputString is referred by the log handler thread, in timeout
-    case, the log API thread might be still using the log record memory.
-
-    To make sure there is no corruption of memory usage in case of time-out (rc
-    = -2), We leave the log record memory freed to the log handler thread..
-
-    It is never a good idea to allocate and free memory in different places.
-    But consider it as a trade-off to have a better performance of LOGsv
-    as time-out occurs very rarely.
-
-    Other cases, the allocator frees it.
-  */
-  if ((rc != -2) && (logOutputString != nullptr)) {
-    free(logOutputString);
-    logOutputString = nullptr;
-  }
-
-  if (param->ack_flags == SA_LOG_RECORD_WRITE_ACK)
-    lgs_send_write_log_ack(param->client_id, param->invocation, error,
-                           evt->fr_dest);
-
-  lgs_free_write_log(param);
-
-  TRACE_LEAVE2("write status %s", saf_error(error));
+  auto info = std::make_shared<Cache::WriteAsyncInfo>(param,
+                                                      evt->fr_dest, node_name);
+  auto data = std::make_shared<Cache::Data>(info, logOutputString, n);
+  Cache::instance()->Write(data);
   return NCSCC_RC_SUCCESS;
 }
 
@@ -1572,3 +1465,19 @@ void lgs_process_mbx(SYSF_MBX *mbx) {
     lgs_evt_destroy(msg);
   }
 }
+
+//>
+// Below code are added in the scope of improving the resilience of log server
+//<
+
+void AckToWriteAsync(WriteAsyncParam* req, MDS_DEST dest,
+                     SaAisErrorT code) {
+  if (req->ack_flags != SA_LOG_RECORD_WRITE_ACK) {
+    lgs_free_write_log(req);
+    return;
+  }
+  lgs_send_write_log_ack(req->client_id, req->invocation, code, dest);
+  lgs_free_write_log(req);
+}
+
+bool is_active() { return lgs_cb->ha_state == SA_AMF_HA_ACTIVE; }

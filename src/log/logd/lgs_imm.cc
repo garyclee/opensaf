@@ -49,13 +49,14 @@
 #include "log/logd/lgs_config.h"
 #include "log/logd/lgs_dest.h"
 #include "log/logd/lgs_oi_admin.h"
-#include "base/saf_error.h"
+#include "log/logd/lgs_cache.h"
 
-#include "lgs_mbcsv_v1.h"
-#include "lgs_mbcsv_v2.h"
-#include "lgs_mbcsv_v3.h"
-#include "lgs_mbcsv_v5.h"
-#include "lgs_mbcsv_v6.h"
+#include "log/logd/lgs_mbcsv_v1.h"
+#include "log/logd/lgs_mbcsv_v2.h"
+#include "log/logd/lgs_mbcsv_v3.h"
+#include "log/logd/lgs_mbcsv_v5.h"
+#include "log/logd/lgs_mbcsv_v6.h"
+#include "base/saf_error.h"
 
 /* TYPE DEFINITIONS
  * ----------------
@@ -770,6 +771,24 @@ static SaAisErrorT config_ccb_completed_modify(
         goto done;
       }
       TRACE("logFileIoTimeout: %d value is accepted", logFileIoTimeout);
+    } else if (!strcmp(attribute->attrName, LOG_RESILIENCE_TIMEOUT)) {
+      SaUint32T timeout = *((SaUint32T *)value);
+      if (!Cache::instance()->VerifyResilienceTime(timeout)) {
+        report_oi_error(immOiHandle, opdata->ccbId, "%s value is NOT accepted",
+                        attribute->attrName);
+        ais_rc = SA_AIS_ERR_INVALID_PARAM;
+        goto done;
+      }
+      TRACE("logResilienceTimeout: %u value is accepted", timeout);
+    } else if (!strcmp(attribute->attrName, LOG_MAX_PENDING_WRITE_REQ)) {
+      SaUint32T max = *((SaUint32T *)value);
+      if (!Cache::instance()->VerifyMaxQueueSize(max)) {
+        report_oi_error(immOiHandle, opdata->ccbId, "%s value is NOT accepted",
+                        attribute->attrName);
+        ais_rc = SA_AIS_ERR_INVALID_PARAM;
+        goto done;
+      }
+      TRACE("logMaxPendingWriteRequests: %u value is accepted", max);
     } else if (!strcmp(attribute->attrName, LOG_FILE_SYS_CONFIG)) {
       report_oi_error(immOiHandle, opdata->ccbId, "%s cannot be changed",
                       attribute->attrName);
@@ -2081,6 +2100,15 @@ static void config_ccb_apply_modify(const CcbUtilOperationData_t *opdata) {
       uint32_val = *(SaUint32T *)value;
       snprintf(uint32_str, 20, "%u", uint32_val);
       lgs_cfgupd_list_create(LOG_FILE_IO_TIMEOUT, uint32_str, &config_data);
+    } else if (!strcmp(attribute->attrName, LOG_RESILIENCE_TIMEOUT)) {
+      uint32_val = *(SaUint32T *)value;
+      snprintf(uint32_str, 20, "%u", uint32_val);
+      lgs_cfgupd_list_create(LOG_RESILIENCE_TIMEOUT, uint32_str, &config_data);
+    } else if (!strcmp(attribute->attrName, LOG_MAX_PENDING_WRITE_REQ)) {
+      uint32_val = *(SaUint32T *)value;
+      snprintf(uint32_str, 20, "%u", uint32_val);
+      lgs_cfgupd_list_create(LOG_MAX_PENDING_WRITE_REQ, uint32_str,
+                             &config_data);
     } else if (!strcmp(attribute->attrName,
                        LOG_RECORD_DESTINATION_CONFIGURATION)) {
       // Note: Multi value attribute
