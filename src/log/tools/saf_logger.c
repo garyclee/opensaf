@@ -55,7 +55,7 @@
 #define TEN_SECONDS 10 * 1000 * 1000
 /* Sleep for 100 ms before retrying an API */
 #define HUNDRED_MS 100 * 1000
-
+#define ONE_SECOND_TO_NS 1000*1000
 static void logWriteLogCallbackT(SaInvocationT invocation, SaAisErrorT error);
 
 static SaLogCallbacksT logCallbacks = {0, 0, logWriteLogCallbackT};
@@ -63,7 +63,7 @@ static SaLogCallbacksT logCallbacks = {0, 0, logWriteLogCallbackT};
 static char *progname = "saflogger";
 static SaInvocationT cb_invocation;
 static SaAisErrorT cb_error;
-
+static int64_t g_timeout = 20; // in second
 const SaVersionT kLogVersion = {'A', 2, 3};
 
 static SaTimeT get_current_SaTime(void)
@@ -110,6 +110,8 @@ static void usage(void)
 	printf(
 	    "\t-s SEV or --severity=SEV       use severity SEV, default INFO\n");
 	printf(
+            "\t-t second or --timeout=second  waiting time for acknowledgement\n");
+	printf(
 	    "\t\tvalid severity names: emerg, alert, crit, error, warn, notice, info\n");
 	printf("\nNOTES\n");
 	printf("\t1) -f is only applicable for runtime app stream.\n");
@@ -155,7 +157,8 @@ static SaAisErrorT write_log_record(SaLogHandleT logHandle,
 retry:
 	errorCode = saLogWriteLogAsync(logStreamHandle, invocation,
 				       SA_LOG_RECORD_WRITE_ACK, logRecord);
-	if (errorCode == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+	if (errorCode == SA_AIS_ERR_TRY_AGAIN &&
+	    wait_time < g_timeout*ONE_SECOND_TO_NS) {
 		usleep(HUNDRED_MS);
 		wait_time += HUNDRED_MS;
 		goto retry;
@@ -174,9 +177,9 @@ retry:
 	fds[0].events = POLLIN;
 
 poll_retry:
-	ret = poll(fds, 1, 20000);
+	ret = poll(fds, 1, g_timeout*1000);
 
-	if (ret == EINTR)
+	if (ret == -1 && errno == EINTR)
 		goto poll_retry;
 
 	if (ret == -1) {
@@ -203,7 +206,8 @@ poll_retry:
 		return SA_AIS_ERR_BAD_OPERATION;
 	}
 
-	if (cb_error == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+	if (cb_error == SA_AIS_ERR_TRY_AGAIN &&
+	    wait_time < g_timeout*ONE_SECOND_TO_NS) {
 		usleep(HUNDRED_MS);
 		wait_time += HUNDRED_MS;
 		goto retry;
@@ -271,6 +275,7 @@ int main(int argc, char *argv[])
 	    {"notification", no_argument, 0, 'n'},
 	    {"system", no_argument, 0, 'y'},
 	    {"severity", required_argument, 0, 's'},
+	    {"timeout", required_argument, 0, 't'},
 	    {"help", no_argument, 0, 'h'},
 	    {0, 0, 0, 0}};
 	char hostname[_POSIX_HOST_NAME_MAX];
@@ -325,7 +330,7 @@ int main(int argc, char *argv[])
 	appLogFileCreateAttributes.logFileName = NULL;
 
 	while (1) {
-		c = getopt_long(argc, argv, "?hlnya:s:f:", long_options, NULL);
+		c = getopt_long(argc, argv, "?hlnya:s:f:t:", long_options, NULL);
 		if (c == -1) {
 			break;
 		}
@@ -386,6 +391,16 @@ int main(int argc, char *argv[])
 			logRecord.logHeader.genericHdr.logSeverity =
 			    get_severity(optarg);
 			break;
+		case 't': {
+			char* endptr = NULL;
+			int64_t tmp = strtol(optarg, &endptr, 0);
+			if (endptr == optarg || *endptr != '\0') {
+				fprintf(stderr, "Invalid input (%s)\n", endptr);
+				exit(EXIT_FAILURE);
+			}
+			g_timeout = tmp;
+			break;
+		}
 		case 'h':
 			usage();
 			exit(EXIT_SUCCESS);
