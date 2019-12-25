@@ -52,15 +52,7 @@ void cond_check(void)
 int systemCall(const char *command)
 {
 	int rc = system(command);
-	if (rc == -1) {
-		fprintf(stderr, "system() retuned -1 Failed \n");
-	} else {
-		rc = WEXITSTATUS(rc);
-		if (rc != 0)
-			fprintf(stderr, " Failed in command: %s \n", command);
-	}
-
-	return rc;
+	return WEXITSTATUS(rc);
 }
 
 /*
@@ -144,8 +136,8 @@ logAppStreamOpen(const SaNameT *logStreamName,
  */
 SaAisErrorT logWriteAsync(const SaLogRecordT *logRecord)
 {
-	SaAisErrorT rc =
-	    saLogWriteLogAsync(logStreamHandle, invocation, 0, logRecord);
+	SaAisErrorT rc = saLogWriteLogAsync(logStreamHandle, invocation,
+					    ack_flags, logRecord);
 	unsigned int nTries = 1;
 	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < logProfile.nTries) {
 		usleep(logProfile.retryInterval * 1000);

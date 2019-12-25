@@ -76,7 +76,7 @@ extern SaSelectionObjectT selectionObject;
 extern SaNameT logSvcUsrName;
 extern SaLogRecordT genLogRecord;
 extern char log_root_path[];
-
+extern SaLogAckFlagsT ack_flags;
 const static SaVersionT kLogVersion = {'A', 0x02, 0x03};
 const static SaVersionT kImmVersion = {'A', 02, 11};
 
@@ -105,6 +105,11 @@ void add_suite_12(void);
 void add_suite_14();
 void add_suite_15();
 void add_suite_16();
+
+#ifdef SIMULATE_NFS_UNRESPONSE
+void add_suite_21();
+#endif
+
 int get_active_sc(void);
 int get_attr_value(SaNameT *inObjName, char *inAttr, void *outValue);
 

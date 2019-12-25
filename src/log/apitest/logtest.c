@@ -96,6 +96,7 @@ SaLogCallbacksT logCallbacks = {NULL, NULL, NULL};
 SaInvocationT invocation = 0;
 SaSelectionObjectT selectionObject;
 char log_root_path[PATH_MAX];
+SaLogAckFlagsT ack_flags = 0;
 
 void init_logrootpath(void)
 {
@@ -465,6 +466,9 @@ int main(int argc, char **argv)
 			add_suite_14();
 			add_suite_15();
 			add_suite_16();
+#ifdef SIMULATE_NFS_UNRESPONSE
+			add_suite_21();
+#endif
 			test_list();
 			exit(0);
 		case 'e':
@@ -493,6 +497,9 @@ int main(int argc, char **argv)
 			add_suite_14();
 			add_suite_15();
 			add_suite_16();
+#ifdef SIMULATE_NFS_UNRESPONSE
+			add_suite_21();
+#endif
 			break;
 		case 'v':
 			if (silent_flg == true) {

@@ -131,7 +131,7 @@ bin_osaflogd_CPPFLAGS = \
 # When enabled, log handle thread will be suspended 17 seconds every 02 write
 # requests and only take affect if the `logMaxPendingWriteRequests` is set
 # to an non-zero value.
-bin_osaflogd_CPPFLAGS += -DSIMULATE_NFS_UNRESPONSE
+# bin_osaflogd_CPPFLAGS += -DSIMULATE_NFS_UNRESPONSE
 
 
 bin_osaflogd_SOURCES = \
@@ -198,7 +198,7 @@ bin_logtest_CPPFLAGS = \
 
 # Enable this flag to add test cases for following enhancement:
 # log: improve the resilience of log service [#3116].
-bin_logtest_CPPFLAGS += -DSIMULATE_NFS_UNRESPONSE
+# bin_logtest_CPPFLAGS += -DSIMULATE_NFS_UNRESPONSE
 
 bin_logtest_SOURCES = \
 	src/log/apitest/logtest.c \
@@ -224,7 +224,8 @@ bin_logtest_SOURCES = \
 	src/log/apitest/tet_log_longDN.c \
 	src/log/apitest/tet_Log_clm.c \
 	src/log/apitest/tet_cfg_destination.c \
-	src/log/apitest/tet_multiple_thread.c
+	src/log/apitest/tet_multiple_thread.c \
+	src/log/apitest/tet_saLogWriteLogAsync_cache.c
 
 bin_logtest_LDADD = \
 	lib/libapitest.la \
