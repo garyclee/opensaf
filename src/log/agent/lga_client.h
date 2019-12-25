@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include <list>
 #include <atomic>
 #include <saLog.h>
 #include "base/mutex.h"
@@ -169,6 +170,35 @@ class LogClient {
     return ref_counter_object_.RestoreRefCounter(caller, value, updated);
   }
 
+  // Track the number of write requests sent to log server but not yet
+  // get acknowledgement from it.
+  void KeepTrack(SaInvocationT inv, uint32_t ack_flags) {
+    if (ack_flags != SA_LOG_RECORD_WRITE_ACK) return;
+    unacked_invocations_.push_back(inv);
+  }
+
+  // Got an acknowledgment, so remove from the track list.
+  void RemoveTrack(SaInvocationT inv) { unacked_invocations_.remove(inv); }
+
+  void NotifyClientAboutLostInvocations() {
+    for (const auto& i : unacked_invocations_) {
+      TRACE("The write async with this invocation %lld has been lost", i);
+      // the below memory will be freed by lga_msg_destroy(cbk_msg)
+      // after done processing with this msg from the mailbox.
+      lgsv_msg_t* msg = static_cast<lgsv_msg_t*>(malloc(sizeof(lgsv_msg_t)));
+      assert(msg && "Failed to allocate memory for lgsv_msg_t");
+      memset(msg, 0, sizeof(lgsv_msg_t));
+      msg->type = LGSV_LGS_CBK_MSG;
+      msg->info.cbk_info.type = LGSV_WRITE_LOG_CALLBACK_IND;
+      msg->info.cbk_info.lgs_client_id = client_id_;
+      msg->info.cbk_info.write_cbk.error = SA_AIS_ERR_TRY_AGAIN;
+      msg->info.cbk_info.inv = i;
+
+      SendMsgToMbx(msg, MDS_SEND_PRIORITY_HIGH);
+    }
+    unacked_invocations_.clear();
+  }
+
   // true if the client is successfully done recovery.
   // or the client has just borned.
   // Introduce this method to avoid locking the successful recovered client
@@ -256,6 +286,10 @@ class LogClient {
   // Hold all log streams belong to @this client
   std::vector<LogStreamInfo*> stream_list_;
 
+  // Hold all invocations that not yet get acknowledgement from log server.
+  // If cluster goes to headless, log agent will inform to log client with
+  // SA_AIS_ERR_TRY_AGAIN code for these invocations.
+  std::list<SaInvocationT> unacked_invocations_{};
   // LOG handle (derived from hdl-mngr)
   SaLogHandleT handle_;
 

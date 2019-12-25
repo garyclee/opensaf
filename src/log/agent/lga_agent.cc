@@ -1296,6 +1296,8 @@ SaAisErrorT LogAgent::saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
   if (NCSCC_RC_SUCCESS !=
       lga_mds_msg_async_send(&msg, MDS_SEND_PRIORITY_MEDIUM)) {
     ais_rc = SA_AIS_ERR_TRY_AGAIN;
+  } else {
+    client->KeepTrack(invocation, ackFlags);
   }
 
   return ais_rc;
