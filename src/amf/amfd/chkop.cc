@@ -1347,6 +1347,7 @@ static uint32_t avsv_validate_reo_type_in_csync(AVD_CL_CB *cb,
     case AVSV_CKPT_AVND_NODE_STATE:
     case AVSV_CKPT_AVND_RCV_MSG_ID:
     case AVSV_CKPT_AVND_SND_MSG_ID:
+    case AVSV_CKPT_NODE_FAILOVER_STATE:
       if (cb->synced_reo_type >= AVSV_CKPT_AVD_NODE_CONFIG)
         status = NCSCC_RC_SUCCESS;
       break;
