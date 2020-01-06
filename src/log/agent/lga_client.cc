@@ -86,7 +86,7 @@ LogClient::~LogClient() {
   }
 
   stream_list_.clear();
-  unacked_invocations_.clear();
+  CleanUnackedList();
 
   // Free the client handle allocated to this log client
   if (handle_ != 0) {
