@@ -55,6 +55,7 @@ uint64_t Random64Bits(uint64_t seed);
 bool PrettyPrint(const std::string& log_stream);
 bool Delete(const std::string& log_stream);
 bool Rotate(const std::string& log_stream);
+bool RotateAll();
 std::list<int> OpenLogFiles(const std::string& log_stream);
 std::string PathName(const std::string& log_stream, int suffix);
 uint64_t GetInode(int fd);
@@ -72,6 +73,7 @@ int main(int argc, char** argv) {
                                   {"print", no_argument, nullptr, 'p'},
                                   {"delete", no_argument, nullptr, 'd'},
                                   {"rotate", no_argument, nullptr, 'r'},
+                                  {"all", no_argument, nullptr, 'a'},
                                   {"extract-trace", required_argument, 0, 'e'},
                                   {"max-idle", required_argument, 0, 'i'},
                                   {0, 0, 0, 0}};
@@ -93,6 +95,7 @@ int main(int argc, char** argv) {
   bool pretty_print_set = false;
   bool delete_set = false;
   bool rotate_set = false;
+  bool rotate_all = false;
   bool max_file_size_set = false;
   bool max_backups_set = false;
   bool max_idle_set = false;
@@ -105,7 +108,7 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
 
-  while ((option = getopt_long(argc, argv, "m:b:p:f:e:i:r",
+  while ((option = getopt_long(argc, argv, "m:b:p:f:e:i:ra",
                                long_options, &long_index)) != -1) {
     switch (option) {
       case 'p':
@@ -120,6 +123,9 @@ int main(int argc, char** argv) {
         break;
       case 'r':
         rotate_set = true;
+        break;
+      case 'a':
+        rotate_all = true;
         break;
       case 'm':
         max_file_size = base::StrToUint64(optarg,
@@ -175,15 +181,15 @@ int main(int argc, char** argv) {
     pretty_print_set = true;
     flush_set = true;
   }
-
-  if ((argc <= optind && (pretty_print_set || delete_set || rotate_set)) ||
-      (pretty_print_set && delete_set)) {
-     PrintUsage(argv[0]);
-     exit(EXIT_FAILURE);
-  }
-
+  if ((argc <= optind && (pretty_print_set || delete_set)) ||
+      (pretty_print_set && delete_set) ||
+      (rotate_all && !rotate_set) ||
+      (argc == optind && rotate_set && !rotate_all)) {
+    PrintUsage(argv[0]);
+    exit(EXIT_FAILURE);
+   }
   if (flush_set == true) {
-     flush_result = Flush();
+    flush_result = Flush();
   }
   if (pretty_print_set == true) {
     while (print_result && optind < argc) {
@@ -195,16 +201,18 @@ int main(int argc, char** argv) {
       delete_result = Delete(argv[optind++]);
     }
   }
-  if (rotate_set == true) {
+  if (rotate_all == true) {
+    rotate_result = RotateAll();
+  } else {
     while (rotate_result && optind < argc) {
       rotate_result = Rotate(argv[optind++]);
     }
   }
   if (max_backups_set == true) {
-     number_of_backups_result = NoOfBackupFiles(max_backups);
+    number_of_backups_result = NoOfBackupFiles(max_backups);
   }
   if (max_file_size_set == true) {
-     max_file_size_result = MaxTraceFileSize(max_file_size);
+    max_file_size_result = MaxTraceFileSize(max_file_size);
   }
   if (max_idle_set == true) {
     max_idle_result = SetMaxIdleTime(max_idle);
@@ -237,6 +245,8 @@ void PrintUsage(const char* program_name) {
           "                      removing allocated resources in the log\n"
           "                      server. Does not delete log files from disk.\n"
           "--rotate              Rotate the specified LOGSTREAM(s).\n"
+          "--all                 Rotate all LOGSTREAM(s).\n"
+          "                      This option only works with '--rotate'.\n"
           "--max-file-size=SIZE  Set the maximum size of the log file to\n"
           "                      SIZE bytes. The log file will be rotated\n"
           "                      when it exceeds this size. Suffixes k, M and\n"
@@ -396,6 +406,10 @@ bool Delete(const std::string& log_stream) {
 
 bool Rotate(const std::string& log_stream) {
   return SendCommand(std::string("rotate ") + log_stream);
+}
+
+bool RotateAll() {
+  return SendCommand(std::string("rotate-all"));
 }
 
 std::list<int> OpenLogFiles(const std::string& log_stream) {

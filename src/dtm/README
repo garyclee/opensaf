@@ -190,6 +190,9 @@ Options:
 --delete              Delete the specified LOGSTREAM(s) by
                       removing allocated resources in the log
                       server. Does not delete log files from disk.
+--rotate              Rotate the specified LOGSTREAM(s).
+--all                 Rotate all LOGSTREAM(s).
+                      This option only works with '--rotate'.
 --max-file-size=SIZE  Set the maximum size of the log file to
                       SIZE bytes. The log file will be rotated
                       when it exceeds this size. Suffixes k, M and
@@ -197,4 +200,14 @@ Options:
                       gigabytes.
 --max-backups=NUM     Set the maximum number of backup files to
                       retain during log rotation to NUM.
-
+--extract-trace <corefile> <tracefile>
+                      If a process produces a core dump file has
+                      THREAD_TRACE_BUFFER enabled, this option
+                      reads the <corefile> to extract the trace
+                      strings in all threads and writes them to
+                      the <tracefile> file.
+--max-idle=NUM        Set the maximum number of idle time to NUM"
+                      minutes. If a stream has not been used for
+                      the given time, the stream will be closed.
+                      Given zero (default) to max-idle to disable
+                      this functionality.

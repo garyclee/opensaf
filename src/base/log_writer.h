@@ -47,6 +47,7 @@ class LogWriter {
   void Flush();
   void RotateLog();
   void SetLogFile(const std::string& log_file) { log_file_ = log_file; }
+  size_t file_size() const { return current_file_size_; }
 
  private:
   constexpr static const size_t kBufferSize = 128 * size_t{1024};

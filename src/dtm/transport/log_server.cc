@@ -339,6 +339,15 @@ std::string LogServer::RotateCmd(const std::string& cmd,
   return std::string{"!rotate " + arg};
 }
 
+std::string LogServer::RotateAllCmd(const std::string& /*cmd*/,
+                                    const std::string& /*arg*/) {
+  for (const auto& s : log_streams_) {
+    LogStream* stream = s.second;
+    stream->Rotate();
+  }
+  return std::string{"!rotate-all"};
+}
+
 std::string LogServer::ExecuteCommand(const std::string& command,
                                       const std::string& argument) {
   using CmdPtr = std::string (LogServer::*)(const std::string&,
@@ -349,7 +358,8 @@ std::string LogServer::ExecuteCommand(const std::string& command,
     {"?delete", &LogServer::DeleteCmd},
     {"?flush", &LogServer::FlushCmd},
     {"?max-idle-time", &LogServer::MaxIdleCmd},
-    {"?rotate", &LogServer::RotateCmd}
+    {"?rotate", &LogServer::RotateCmd},
+    {"?rotate-all", &LogServer::RotateAllCmd}
   };
 
   if (cmd_dispatcher.find(command) != cmd_dispatcher.end()) {
