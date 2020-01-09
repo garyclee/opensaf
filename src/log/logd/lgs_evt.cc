@@ -1348,6 +1348,7 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
            stream->fixedLogRecordSize, buf_size, logOutputString,
            ++stream->logRecordId, node_name)) == 0) {
     AckToWriteAsync(param, evt->fr_dest, SA_AIS_ERR_INVALID_PARAM);
+    free(logOutputString);
     return NCSCC_RC_SUCCESS;
   }
 
@@ -1356,6 +1357,8 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
                                                       evt->fr_dest, node_name);
   auto data = std::make_shared<Cache::Data>(info, logOutputString, n);
   Cache::instance()->Write(data);
+
+  lgs_free_write_log(param);
   return NCSCC_RC_SUCCESS;
 }
 

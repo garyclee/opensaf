@@ -230,6 +230,8 @@ uint32_t ckpt_proc_pop_write_async(lgs_cb_t* cb, void* data) {
   if (top->seq_id_ != seq_id) {
     LOG_ER("Out of sync! Expected seq: (%" PRIu64 "), Got: (%" PRIu64 ")",
            seq_id, top->seq_id_);
+    lgs_free_edu_mem(param->log_record);
+    lgs_free_edu_mem(param->log_file);
     return NCSCC_RC_FAILURE;
   }
 
