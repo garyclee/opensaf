@@ -107,6 +107,9 @@ void Role::PromoteNode(const uint64_t cluster_size,
   rc = consensus_service.PromoteThisNode(true, cluster_size);
   if (rc == SA_AIS_ERR_EXIST) {
     LOG_WA("Another controller is already active");
+    // a reboot is required, as clmna on other nodes may not start
+    // an election because it thinks this node is going to be active
+    opensaf_quick_reboot("Another controller is already active");
     return;
   } else if (rc != SA_AIS_OK && relaxed_mode == true) {
     LOG_WA("Unable to set active controller in consensus service");
