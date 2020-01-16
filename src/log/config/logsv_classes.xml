@@ -78,6 +78,12 @@
 			<type>SA_UINT64_T</type>
 			<category>SA_RUNTIME</category>
 		</attr>
+		<attr>
+			<name>saLogStreamFacilityId</name>
+			<type>SA_UINT32_T</type>
+			<category>SA_RUNTIME</category>
+			<flag>SA_CACHED</flag>
+		</attr>
 	</class>
 	<class name="SaLogStreamConfig">
 		<category>SA_CONFIG</category>
@@ -170,6 +176,14 @@
 			<name>logStreamDiscardedCounter</name>
 			<type>SA_UINT64_T</type>
 			<category>SA_RUNTIME</category>
+		</attr>
+		<attr>
+			<name>saLogStreamFacilityId</name>
+			<type>SA_UINT32_T</type>
+			<category>SA_CONFIG</category>
+			<flag>SA_WRITABLE</flag>
+			<flag>SA_STRONG_DEFAULT</flag>
+			<default-value>16</default-value>
 		</attr>
 	</class>
 	<class name="OpenSafLogConfig">

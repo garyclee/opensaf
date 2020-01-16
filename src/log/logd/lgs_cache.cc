@@ -161,6 +161,7 @@ void Cache::Data::Streaming() const {
   data.hostname    = param_->from_node;
   data.appname     = param_->svc_name;
   data.sev         = param_->severity;
+  data.facilityId  = stream->facilityId;
   time.tv_sec      = (param_->log_stamp / (SaTimeT)SA_TIME_ONE_SECOND);
   time.tv_nsec     = (param_->log_stamp % (SaTimeT)SA_TIME_ONE_SECOND);
   data.time        = time;

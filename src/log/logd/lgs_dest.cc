@@ -392,6 +392,7 @@ bool WriteToDestination(const RecordData& data, const VectorString& destnames) {
   info.stream_dn = data.name;
   info.app_name = data.appname;
   info.severity = data.sev;
+  info.facilityId = data.facilityId;
   info.time = data.time;
   info.origin = origin.c_str();
 

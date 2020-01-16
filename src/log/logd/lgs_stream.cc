@@ -40,6 +40,7 @@
 #include "log/logd/lgs_mbcsv_v1.h"
 #include "log/logd/lgs_mbcsv_v2.h"
 #include "log/logd/lgs_oi_admin.h"
+#include "log/logd/lgs_dest.h"
 
 #define DEFAULT_NUM_APP_LOG_STREAMS 64
 
@@ -418,6 +419,7 @@ void log_stream_print(log_stream_t *stream) {
   TRACE_2("  filtered:             %llu", stream->filtered);
   TRACE_2("  stb_dest_names:       %s", stream->stb_dest_names.c_str());
   TRACE_2("  isRtStream:           %d", stream->isRtStream);
+  TRACE_2("  facilityId:           %u", stream->facilityId);
 }
 
 /**
@@ -665,6 +667,12 @@ SaAisErrorT lgs_create_appstream_rt_object(log_stream_t *const stream) {
         .attrValueType = SA_IMM_ATTR_SATIMET,
         .attrValuesNumber = 1,
         .attrValues = arr11};
+    void *arr12[] = {&stream->facilityId};
+    const SaImmAttrValuesT_2 attr_saLogStreamFacilityId = {
+        .attrName = const_cast<SaImmAttrNameT>("saLogStreamFacilityId"),
+        .attrValueType = SA_IMM_ATTR_SAUINT32T,
+        .attrValuesNumber = 1,
+        .attrValues = arr12};
     const SaImmAttrValuesT_2 *attrValues[] = {
         &attr_safLgStr,
         &attr_safLogStreamFileName,
@@ -677,6 +685,7 @@ SaAisErrorT lgs_create_appstream_rt_object(log_stream_t *const stream) {
         &attr_saLogStreamLogFileFormat,
         &attr_saLogStreamSeverityFilter,
         &attr_saLogStreamCreationTimestamp,
+        &attr_saLogStreamFacilityId,
         NULL};
 
     SaNameT object_name;
@@ -723,6 +732,7 @@ log_stream_t *log_stream_new(const std::string &name, int stream_id) {
   stream->severityFilter = 0x7f; /* by default all levels are allowed */
   stream->isRtStream = SA_FALSE;
   stream->dest_names.clear();
+  stream->facilityId = Facility::kLocal0;
 
   /* Initiate local or shared stream file descriptor dependant on shared or
    * split file system

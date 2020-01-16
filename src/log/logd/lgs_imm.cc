@@ -56,6 +56,7 @@
 #include "log/logd/lgs_mbcsv_v3.h"
 #include "log/logd/lgs_mbcsv_v5.h"
 #include "log/logd/lgs_mbcsv_v6.h"
+#include "log/logd/lgs_mbcsv_v9.h"
 #include "base/saf_error.h"
 
 /* TYPE DEFINITIONS
@@ -245,12 +246,40 @@ static uint32_t ckpt_stream_config(log_stream_t *stream) {
   lgsv_ckpt_msg_v1_t ckpt_v1;
   lgsv_ckpt_msg_v2_t ckpt_v2;
   lgsv_ckpt_msg_v6_t ckpt_v3;
+  lgsv_ckpt_msg_v9_t ckpt_v9;
 
   void *ckpt_ptr;
 
   TRACE_ENTER();
 
-  if (lgs_is_peer_v6()) {
+  if (lgs_is_peer_v9()) {
+    memset(&ckpt_v9, 0, sizeof(ckpt_v9));
+    ckpt_v9.header.ckpt_rec_type = LGS_CKPT_CFG_STREAM;
+    ckpt_v9.header.num_ckpt_records = 1;
+    ckpt_v9.header.data_len = 1;
+
+    ckpt_v9.ckpt_rec.stream_cfg.name = const_cast<char *>(stream->name.c_str());
+    ckpt_v9.ckpt_rec.stream_cfg.fileName =
+        const_cast<char *>(stream->fileName.c_str());
+    ckpt_v9.ckpt_rec.stream_cfg.pathName =
+        const_cast<char *>(stream->pathName.c_str());
+    ckpt_v9.ckpt_rec.stream_cfg.maxLogFileSize = stream->maxLogFileSize;
+    ckpt_v9.ckpt_rec.stream_cfg.fixedLogRecordSize = stream->fixedLogRecordSize;
+    ckpt_v9.ckpt_rec.stream_cfg.logFullAction = stream->logFullAction;
+    ckpt_v9.ckpt_rec.stream_cfg.logFullHaltThreshold =
+        stream->logFullHaltThreshold;
+    ckpt_v9.ckpt_rec.stream_cfg.maxFilesRotated = stream->maxFilesRotated;
+    ckpt_v9.ckpt_rec.stream_cfg.logFileFormat = stream->logFileFormat;
+    ckpt_v9.ckpt_rec.stream_cfg.severityFilter = stream->severityFilter;
+    ckpt_v9.ckpt_rec.stream_cfg.logFileCurrent =
+        const_cast<char *>(stream->logFileCurrent.c_str());
+    ckpt_v9.ckpt_rec.stream_cfg.dest_names =
+        const_cast<char *>(stream->stb_dest_names.c_str());
+    ckpt_v9.ckpt_rec.stream_cfg.c_file_close_time_stamp =
+        stream->act_last_close_timestamp;
+    ckpt_v9.ckpt_rec.stream_cfg.facilityId = stream->facilityId;
+    ckpt_ptr = &ckpt_v9;
+  } else if (lgs_is_peer_v6()) {
     memset(&ckpt_v3, 0, sizeof(ckpt_v3));
     ckpt_v3.header.ckpt_rec_type = LGS_CKPT_CFG_STREAM;
     ckpt_v3.header.num_ckpt_records = 1;
@@ -1281,6 +1310,8 @@ static SaAisErrorT check_attr_validity(
   bool i_maxFilesRotated_mod = false;
   SaUint32T i_severityFilter = 0;
   bool i_severityFilter_mod = false;
+  SaUint32T i_facilityId = 0;
+  bool i_facilityId_mod = false;
 
   TRACE_ENTER();
 
@@ -1338,7 +1369,8 @@ static SaAisErrorT check_attr_validity(
     if (attribute->attrValuesNumber > 0) {
       value = attribute->attrValues[0];
     } else if (opdata->operationType == CCBUTIL_MODIFY) {
-      if (!strcmp(attribute->attrName, "saLogRecordDestination")) {
+      if (!strcmp(attribute->attrName, "saLogRecordDestination") ||
+          !strcmp(attribute->attrName, "saLogStreamFacilityId")) {
         // do nothing
       } else {
         /* An attribute without a value is never valid if modify */
@@ -1403,6 +1435,11 @@ static SaAisErrorT check_attr_validity(
       i_severityFilter_mod = true;
       TRACE("Saved attribute \"%s\" = %d", attribute->attrName,
             i_severityFilter);
+    } else if (!strcmp(attribute->attrName, "saLogStreamFacilityId") &&
+               attribute->attrValuesNumber > 0) {
+      i_facilityId = *(reinterpret_cast<SaUint32T *>(value));
+      i_facilityId_mod = true;
+      TRACE("Saved attribute \"%s\"", attribute->attrName);
     } else if (!strcmp(attribute->attrName, "saLogRecordDestination")) {
       std::vector<std::string> vstring{};
       for (unsigned i = 0; i < attribute->attrValuesNumber; i++) {
@@ -1638,6 +1675,18 @@ static SaAisErrorT check_attr_validity(
                         i_severityFilter);
         rc = SA_AIS_ERR_BAD_OPERATION;
         TRACE("Invalid severity: %x", i_severityFilter);
+        goto done;
+      }
+    }
+
+    /* saLogStreamFacilityId <= 23 */
+    if (i_facilityId_mod) {
+      TRACE("Checking saLogStreamFacilityId");
+      if (i_facilityId > 23) {
+        report_oi_error(immOiHandle, opdata->ccbId, "Invalid facility ID: %u",
+                        i_facilityId);
+        rc = SA_AIS_ERR_BAD_OPERATION;
+        TRACE("Invalid facility ID: %u", i_facilityId);
         goto done;
       }
     }
@@ -2269,6 +2318,10 @@ static SaAisErrorT stream_create_and_configure1(
         (*stream)->severityFilter = *((SaUint32T *)value);
         TRACE("severityFilter: %u", (*stream)->severityFilter);
       } else if (!strcmp(ccb->param.create.attrValues[i]->attrName,
+                         "saLogStreamFacilityId")) {
+        (*stream)->facilityId = *(reinterpret_cast<SaUint32T *>(value));
+        TRACE("facilityId: %u", (*stream)->facilityId);
+      } else if (!strcmp(ccb->param.create.attrValues[i]->attrName,
                          "saLogRecordDestination")) {
         std::vector<std::string> vstring{};
         for (unsigned ii = 0;
@@ -2403,6 +2456,11 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata) {
         log_stream_delete_dest_name(stream, dname);
         attrMod = opdata->param.modify.attrMods[i++];
         continue;
+      } else if (!strcmp(attribute->attrName, "saLogStreamFacilityId")) {
+        LOG_NO("%s deleted", __func__);
+        stream->facilityId = Facility::kLocal0;
+        attrMod = opdata->param.modify.attrMods[i++];
+        continue;
       }
     }
 
@@ -2464,6 +2522,8 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata) {
         TRACE("%s: stream %s - msgid = %s", __func__, stream->name.c_str(),
               stream->rfc5424MsgId.c_str());
       }
+    } else if (!strcmp(attribute->attrName, "saLogStreamFacilityId")) {
+      stream->facilityId = *(reinterpret_cast<SaUint32T *>(value));
     } else {
       LOG_ER("Error: Unknown attribute name");
       osafassert(0);
@@ -2795,6 +2855,9 @@ static SaAisErrorT stream_create_and_configure(
          */
         stream->creationTimeStamp = *(static_cast<SaTimeT *>(value));
       }
+    } else if (!strcmp(attribute->attrName, "saLogStreamFacilityId")) {
+      stream->facilityId = *(reinterpret_cast<SaUint32T *>(value));
+      TRACE("facilityId: %u", stream->facilityId);
     }
   }
 
@@ -3184,6 +3247,7 @@ int lgs_get_streamobj_attr(SaImmAttrValuesT_2 ***attrib_out,
       const_cast<char *>("saLogStreamLogFileFormat"),
       const_cast<char *>("saLogStreamSeverityFilter"),
       const_cast<char *>("saLogStreamCreationTimestamp"),
+      const_cast<char *>("saLogStreamFacilityId"),
       NULL};
 
   TRACE_ENTER2("object_name_in \"%s\"", object_name_in.c_str());

@@ -87,6 +87,7 @@ noinst_HEADERS += \
 	src/log/logd/lgs_mbcsv_v3.h \
 	src/log/logd/lgs_mbcsv_v5.h \
 	src/log/logd/lgs_mbcsv_v6.h \
+	src/log/logd/lgs_mbcsv_v9.h \
 	src/log/logd/lgs_oi_admin.h \
 	src/log/logd/lgs_recov.h \
 	src/log/logd/lgs_stream.h \
@@ -151,6 +152,7 @@ bin_osaflogd_SOURCES = \
 	src/log/logd/lgs_mbcsv_v3.cc \
 	src/log/logd/lgs_mbcsv_v5.cc \
 	src/log/logd/lgs_mbcsv_v6.cc \
+	src/log/logd/lgs_mbcsv_v9.cc \
 	src/log/logd/lgs_mds.cc \
 	src/log/logd/lgs_oi_admin.cc \
 	src/log/logd/lgs_recov.cc \

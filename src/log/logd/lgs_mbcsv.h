@@ -43,9 +43,10 @@
 #define LGS_MBCSV_VERSION_6 6
 #define LGS_MBCSV_VERSION_7 7
 #define LGS_MBCSV_VERSION_8 8
+#define LGS_MBCSV_VERSION_9 9
 
 /* Current version */
-#define LGS_MBCSV_VERSION 8
+#define LGS_MBCSV_VERSION 9
 #define LGS_MBCSV_VERSION_MIN 1
 
 /* Checkpoint message types(Used as 'reotype' w.r.t mbcsv)  */
@@ -108,6 +109,7 @@ typedef struct {
   char *dest_names;
   logStreamTypeT streamType;
   uint32_t logRecordId; /* log record identifier increased for each record */
+  uint32_t facilityId;
 } lgs_ckpt_stream_open_t;
 
 uint32_t lgs_mbcsv_init(lgs_cb_t *lgs_cb, SaAmfHAStateT ha_state);
@@ -121,6 +123,7 @@ bool lgs_is_peer_v6();
 // lgs_ckpt_stream_open_t structure
 bool lgs_is_peer_v7();
 bool lgs_is_peer_v8();
+bool lgs_is_peer_v9();
 
 bool lgs_is_split_file_system();
 uint32_t lgs_mbcsv_dispatch(NCS_MBCSV_HDL mbcsv_hdl);

@@ -24,6 +24,11 @@
 #include "log/logd/lgs_common.h"
 #include "base/time.h"
 
+namespace Facility {
+const uint32_t kAuth = 4;
+const uint32_t kLocal0 = 16;
+};
+
 //>
 // @CfgDestination - Configure Destinations.
 // @input vdest: a vector of destination configurations.
@@ -75,6 +80,7 @@ struct RecordData {
   bool isRtStream;
   uint32_t recordId;
   uint16_t sev;
+  uint32_t facilityId;
   timespec time;
 
   RecordData()
@@ -86,7 +92,8 @@ struct RecordData {
         msgid{nullptr},
         isRtStream{false},
         recordId{0},
-        sev{0} {
+        sev{0},
+        facilityId{Facility::kLocal0} {
     time = base::ReadRealtimeClock();
   }
 };
@@ -175,6 +182,7 @@ class DestinationHandler {
     const char* log_record;
     const char* app_name;
     uint16_t severity;
+    uint32_t facilityId;
     uint32_t record_id;
     struct timespec time;
 
@@ -186,6 +194,7 @@ class DestinationHandler {
           log_record{nullptr},
           app_name{nullptr},
           severity{0},
+          facilityId{Facility::kLocal0},
           record_id{0} {
       time = base::ReadRealtimeClock();
     }

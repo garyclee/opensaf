@@ -20,6 +20,7 @@
 #include "log/logd/lgs_file.h"
 #include "log/logd/lgs_filehdl.h"
 #include "log/logd/lgs_imm.h"
+#include "log/logd/lgs_dest.h"
 
 /***
  * The following functions are used to handle a list of runtime stream objects
@@ -320,6 +321,7 @@ int lgs_restore_one_app_stream(const std::string &stream_name,
   log_stream_t *log_stream = nullptr;
   SaTimeT restored_creationTimeStamp = 0;
   SaUint32T restored_severityFilter = 0;
+  SaUint32T restored_facilityId = Facility::kLocal0;
 
   std::string fileName;
   std::string pathName, fullPathName;
@@ -501,6 +503,14 @@ int lgs_restore_one_app_stream(const std::string &stream_name,
       }
       restored_severityFilter = *(static_cast<SaUint32T *>(value));
       TRACE("\t saLogStreamSeverityFilter=%d", restored_severityFilter);
+    } else if (!strcmp(name, "saLogStreamFacilityId")) {
+      if (value == nullptr) {
+        TRACE("%s: Fail, has empty value", name);
+        rc_out = -1;
+        goto done_free_attr;
+      }
+      restored_facilityId = *(static_cast<SaUint32T *>(value));
+      TRACE("\t saLogStreamFacilityId=%d", restored_facilityId);
     }
   }
 
@@ -567,6 +577,7 @@ int lgs_restore_one_app_stream(const std::string &stream_name,
   log_stream->severityFilter = restored_severityFilter;
   log_stream->filtered = 0;
   log_stream->isRtStream = SA_TRUE;
+  log_stream->facilityId = restored_facilityId;
 
   TRACE("\t Stream obj attributes handled and stream is created");
 
