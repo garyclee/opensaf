@@ -190,7 +190,8 @@ bin_PROGRAMS += bin/logtest bin/saflogtest bin/logtestfr
 noinst_HEADERS += \
 	src/log/apitest/logtest.h \
 	src/log/apitest/logutil.h \
-	src/log/apitest/imm_tstutil.h
+	src/log/apitest/imm_tstutil.h \
+	src/log/apitest/log_server.h
 
 bin_logtest_CFLAGS = $(AM_CFLAGS) -Wformat=1
 
@@ -227,7 +228,9 @@ bin_logtest_SOURCES = \
 	src/log/apitest/tet_Log_clm.c \
 	src/log/apitest/tet_cfg_destination.c \
 	src/log/apitest/tet_multiple_thread.c \
-	src/log/apitest/tet_saLogWriteLogAsync_cache.c
+	src/log/apitest/tet_saLogWriteLogAsync_cache.c \
+	src/log/apitest/tet_saLogStreamConfigFacilityId.c \
+	src/log/apitest/log_server.cc
 
 bin_logtest_LDADD = \
 	lib/libapitest.la \
