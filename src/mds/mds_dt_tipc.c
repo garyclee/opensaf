@@ -46,7 +46,6 @@
 
 #include "mds_dt_tipc.h"
 #include "mds_dt_tcp_disc.h"
-#include "mds_core.h"
 #include "mds_tipc_fctrl_intf.h"
 #include "mds_tipc_recvq_stats.h"
 #include "base/osaf_utility.h"

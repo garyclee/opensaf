@@ -131,7 +131,7 @@ static uint32_t mds_mcm_del_all_bcast_list(SEND_MSG *msg);
 
 uint32_t mds_send(NCSMDS_INFO *info);
 
-static uint32_t mds_mcm_free_msg_memory(MDS_ENCODED_MSG msg);
+uint32_t mds_mcm_free_msg_memory(MDS_ENCODED_MSG msg);
 
 static uint32_t mcm_pvt_normal_svc_snd(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 				       NCSCONTEXT msg, MDS_DEST to_dest,
@@ -4842,7 +4842,7 @@ uint32_t mds_mcm_ll_data_rcv(MDS_DATA_RECV *recv)
  *
  *
  ****************************************************************************/
-static uint32_t mds_mcm_free_msg_memory(MDS_ENCODED_MSG msg)
+uint32_t mds_mcm_free_msg_memory(MDS_ENCODED_MSG msg)
 {
 	switch (msg.encoding) {
 	case MDS_ENC_TYPE_CPY:

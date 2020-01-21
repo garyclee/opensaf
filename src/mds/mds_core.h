@@ -585,6 +585,7 @@ extern uint32_t mds_mcm_validate_scope(NCSMDS_SCOPE_TYPE local_scope,
                                        MDS_SVC_ID remote_svc_id, bool my_pcon);
 
 extern uint32_t mds_mcm_free_msg_uba_start(MDS_ENCODED_MSG msg);
+extern uint32_t mds_mcm_free_msg_memory(MDS_ENCODED_MSG msg);
 
 extern void get_adest_details(MDS_DEST adest, char *adest_details);
 extern void get_subtn_adest_details(MDS_PWE_HDL pwe_hdl, MDS_SVC_ID svc_id,

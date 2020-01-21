@@ -16,6 +16,7 @@
  *
  */
 
+#include "mds/mds_core.h"
 #include "mds/mds_papi.h"
 #include "base/ncs_mda_papi.h"
 #include "base/ncssysf_tsk.h"
@@ -540,16 +541,15 @@ uint32_t mds_service_uninstall(MDS_HDL mds_hdl, MDS_SVC_ID svc_id)
 		return NCSCC_RC_FAILURE;
 	}
 }
+
 void tet_mds_free_msg(NCSCONTEXT msg_to_be_freed)
 {
-	TET_MDS_RECVD_MSG_INFO *p_recvd_info;
+	MDS_MCM_MSG_ELEM *msgelem = (MDS_MCM_MSG_ELEM *)msg_to_be_freed;
 
-	p_recvd_info = (TET_MDS_RECVD_MSG_INFO *)msg_to_be_freed;
-	if (p_recvd_info != NULL) {
-		printf("Freeing up all the messages in the MDS Q");
-		if (p_recvd_info->msg)
-			free(p_recvd_info->msg);
-		free(p_recvd_info);
+	if (msgelem != NULL) {
+		if (msgelem->type == MDS_DATA_TYPE)
+			mds_mcm_free_msg_memory(msgelem->info.data.enc_msg);
+		m_MMGR_FREE_MSGELEM(msgelem);
 	}
 }
 
@@ -1864,9 +1864,9 @@ uint32_t tet_mds_cb_enc(NCSMDS_CALLBACK_INFO *mds_to_svc_info)
 	    mds_to_svc_info->info.enc.o_msg_fmt_ver);
 
 	/* ENCODE length */
-	p8 = ncs_enc_reserve_space(mds_to_svc_info->info.enc.io_uba, 2);
-	ncs_encode_16bit(&p8, msg->send_len);
-	ncs_enc_claim_space(mds_to_svc_info->info.enc.io_uba, 2);
+	p8 = ncs_enc_reserve_space(mds_to_svc_info->info.enc.io_uba, sizeof(uint32_t));
+	ncs_encode_32bit(&p8, msg->send_len);
+	ncs_enc_claim_space(mds_to_svc_info->info.enc.io_uba, sizeof(uint32_t));
 
 	/* ENCODE data */
 	ncs_encode_n_octets_in_uba(mds_to_svc_info->info.enc.io_uba,
@@ -1898,9 +1898,9 @@ uint32_t tet_mds_cb_dec(NCSMDS_CALLBACK_INFO *mds_to_svc_info)
 
 	/* DECODE length */
 	p8 = ncs_dec_flatten_space(mds_to_svc_info->info.dec.io_uba,
-				   (uint8_t *)&msg->recvd_len, 2);
-	msg->recvd_len = ncs_decode_16bit(&p8);
-	ncs_dec_skip_space(mds_to_svc_info->info.dec.io_uba, 2);
+				   (uint8_t *)&msg->recvd_len, sizeof(uint32_t));
+	msg->recvd_len = ncs_decode_32bit(&p8);
+	ncs_dec_skip_space(mds_to_svc_info->info.dec.io_uba, sizeof(uint32_t));
 
 	/*Decode data*/
 	/*msg->recvd_data = (char *) malloc(msg->recvd_len+1);*/

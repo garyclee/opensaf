@@ -186,6 +186,13 @@ uint32_t process_flow_event(const Event& evt) {
   return rc;
 }
 
+bool mds_fctrl_mbx_cleanup(NCSCONTEXT arg, NCSCONTEXT msg) {
+  Event *evt = reinterpret_cast<Event*>(msg);
+  if (evt != nullptr)
+    delete evt;
+  return true;
+}
+
 uint32_t process_all_events(void) {
   enum { FD_FCTRL = 0, NUM_FDS };
 
@@ -305,7 +312,7 @@ uint32_t mds_tipc_fctrl_shutdown(void) {
         strerror(errno));
   }
 
-  m_NCS_IPC_DETACH(&mbx_events, nullptr, nullptr);
+  m_NCS_IPC_DETACH(&mbx_events, mds_fctrl_mbx_cleanup, nullptr);
   m_NCS_IPC_RELEASE(&mbx_events, nullptr);
 
   for (auto i : portid_map) delete i.second;

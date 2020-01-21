@@ -16,7 +16,6 @@
  */
 
 #include "mds_dt.h"
-#include "mds_core.h"
 #include "mds_log.h"
 #include "mds_core.h"
 #include "base/ncssysf_def.h"
