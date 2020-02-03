@@ -283,6 +283,7 @@ uint32_t glnd_client_node_del(GLND_CB *glnd_cb, GLND_CLIENT_INFO *client_info)
 {
 	GLND_CLIENT_LIST_RESOURCE *res_list, *tmp_res_list;
 	GLND_RESOURCE_INFO *res_info;
+	GLND_RESOURCE_REQ_LIST *req_list;
 	SaLckLockModeT mode;
 	bool orphan = false;
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -335,11 +336,12 @@ uint32_t glnd_client_node_del(GLND_CB *glnd_cb, GLND_CLIENT_INFO *client_info)
 	}
 
 	/* free up any stale res_requests from this finalized client ... */
-	while (glnd_cb->res_req_list != NULL) {
-		if (client_info->app_handle_id ==
-		    glnd_cb->res_req_list->client_handle_id)
+	for (req_list = glnd_cb->res_req_list; req_list; /*empty*/) {
+		GLND_RESOURCE_REQ_LIST *tmp_req_list = req_list->next;
+		if (client_info->app_handle_id == req_list->client_handle_id)
 			glnd_resource_req_node_del(
-			    glnd_cb, glnd_cb->res_req_list->res_req_hdl_id);
+			    glnd_cb, req_list->res_req_hdl_id);
+		req_list = tmp_req_list;
 	}
 
 	/* free the memory */

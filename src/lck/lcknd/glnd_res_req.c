@@ -149,6 +149,7 @@ void glnd_resource_req_node_del(GLND_CB *glnd_cb, uint32_t res_req_hdl)
 	GLND_RESOURCE_REQ_LIST *res_req_info;
 	res_req_info = (GLND_RESOURCE_REQ_LIST *)ncshm_take_hdl(
 	    NCS_SERVICE_ID_GLND, res_req_hdl);
+	TRACE_ENTER();
 
 	if (res_req_info != NULL) {
 		/* delete it from the list and return the pointer */
@@ -169,6 +170,7 @@ void glnd_resource_req_node_del(GLND_CB *glnd_cb, uint32_t res_req_hdl)
 		/* free the memory */
 		m_MMGR_FREE_GLND_RESOURCE_REQ_LIST(res_req_info);
 	}
+	TRACE_LEAVE();
 	return;
 }
 
