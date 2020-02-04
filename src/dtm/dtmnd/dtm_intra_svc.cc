@@ -1523,7 +1523,7 @@ uint32_t dtm_intranode_process_node_up(NODE_ID node_id, char *node_name,
     uint8_t buffer[DTM_LIB_NODE_UP_MSG_SIZE_FULL];
     node_up_msg.node_id = node_id;
     node_up_msg.i_addr_family = i_addr_family;
-    strncpy(node_up_msg.node_ip, node_ip, INET6_ADDRSTRLEN);
+    strncpy(node_up_msg.node_ip, node_ip, INET6_ADDRSTRLEN - 1);
     strncpy(node_up_msg.node_name, node_db_info->node_name,
             _POSIX_HOST_NAME_MAX);
     TRACE("DTM: node_ip:%s, node_id:%u i_addr_family:%d ", node_up_msg.node_ip,

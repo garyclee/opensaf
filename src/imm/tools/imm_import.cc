@@ -588,8 +588,7 @@ static void getClassFromImm(ParserState *state,
         state->parsingStatus = 1;
         break;
       }
-      strncpy(values.attrName, attr->attrName, len);
-      values.attrName[len] = '\0';
+      strcpy(values.attrName, attr->attrName);
 
       values.attrValueType = attr->attrValueType;
       values.attrValuesNumber = 1;
@@ -1442,7 +1441,7 @@ static void startElementHandler(void *userData, const xmlChar *name,
       len = strlen(classAttr);
 
       state->objectClass = (char *)malloc(len + 1);
-      strncpy(state->objectClass, classAttr, len);
+      strcpy(state->objectClass, classAttr);
       state->objectClass[len] = '\0';
 
       TRACE_8("OBJECT CLASS NAME: %s", state->objectClass);
@@ -1853,7 +1852,7 @@ static void charactersHandler(void *userData, const xmlChar *chars, int len) {
             state->parsingStatus = 1;
             return;
           }
-          strncpy(str, state->attrValueBuffers.front(), oldsize + 1);
+          strcpy(str, state->attrValueBuffers.front());
           TRACE_8("COPIED OLD VALUE %u %s", oldsize, str);
 
           strncpy(str + oldsize, (const char *)chars, (size_t)len + 1);
@@ -2220,8 +2219,7 @@ static void addObjectAttributeDefinition(ParserState *state) {
       stopParser(state);
       state->parsingStatus = 1;
     } else {
-      strncpy(attrValues.attrName, state->attrName, len);
-      attrValues.attrName[len] = '\0';
+      strcpy(attrValues.attrName, state->attrName);
 
       /* Add attrValues to the list */
       state->attrValues.push_front(attrValues);
@@ -2273,8 +2271,7 @@ static void saveRDNAttribute(ParserState *state) {
       return;
     }
 
-    strncpy(values.attrName, state->attrName, len);
-    values.attrName[len] = '\0';
+    strcpy(values.attrName, state->attrName);
 
     /* Set the valueType */
     values.attrValueType = state->attrValueType;
@@ -2524,8 +2521,7 @@ static int charsToValueHelper(SaImmAttrValueT *value, SaImmValueTypeT type,
       len = strlen(str);
       *value = malloc(sizeof(SaStringT));
       *((SaStringT *)*value) = (SaStringT)malloc(len + 1);
-      strncpy(*((SaStringT *)*value), str, len);
-      (*((SaStringT *)*value))[len] = '\0';
+      strcpy(*((SaStringT *)*value), str);
       break;
     case SA_IMM_ATTR_SAANYT:
       len = strlen(str) / 2;

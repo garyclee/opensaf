@@ -4142,9 +4142,9 @@ uint32_t mds_mcm_node_up(MDS_SVC_HDL local_svc_hdl, NODE_ID node_id,
 	    cbinfo->info.node_evt.node_id, cbinfo->info.node_evt.addr_family,
 	    cbinfo->info.node_evt.node_chg);
 	if (node_name) {
-		cbinfo->info.node_evt.i_node_name_len = strlen(node_name);
+		cbinfo->info.node_evt.i_node_name_len = strlen(node_name) + 1;
 		strncpy(cbinfo->info.node_evt.i_node_name, node_name,
-			cbinfo->info.node_evt.i_node_name_len);
+			_POSIX_HOST_NAME_MAX - 1);
 	}
 
 	/* Post to mail box If Q Ownership is enabled Else Call user callback */

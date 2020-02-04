@@ -2162,7 +2162,7 @@ static bool read_and_compare(SaConstStringT objectName,
  */
 void check_logRecordDestinationConfigurationAdd(void)
 {
-	char command[MAX_DATA];
+	char command[MAX_DATA * 2];
 	const int num_values = 5;
 	char set_values[num_values][SET_VALUES_MAX_DATA];
 	int test_result = 0; /* -1 if Fail */
@@ -2221,7 +2221,7 @@ void check_logRecordDestinationConfigurationAdd(void)
  */
 void check_logRecordDestinationConfigurationDelete(void)
 {
-	char command[MAX_DATA];
+	char command[MAX_DATA * 2];
 	const int num_values = 5;
 	char set_values[num_values][SET_VALUES_MAX_DATA];
 	int test_result = 0; /* -1 if Fail */

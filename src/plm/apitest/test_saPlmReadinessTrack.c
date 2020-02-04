@@ -40,7 +40,7 @@ void getDn(int i)
 		strcpy(entarr[0].enitytype, "HE");
 		num_elements = 1;
 		no_of_trk_elements = 1;
-		strncpy(groupaddoption, "single", strlen("single"));
+		strncpy(groupaddoption, "single", strlen("single") + 1);
 		break;
 	case 2:
 		num_elements = 4;
@@ -62,7 +62,7 @@ void getDn(int i)
 		entarr[3].testDnptr.length = f120_slot_1_eedn.length;
 		strcpy(entarr[3].enitytype, "EE");
 		no_of_trk_elements = 1;
-		strncpy(groupaddoption, "subtree", strlen("subtree"));
+		strncpy(groupaddoption, "subtree", strlen("subtree") + 1);
 		break;
 	case 3:
 		num_elements = 3;
@@ -80,7 +80,7 @@ void getDn(int i)
 		entarr[2].testDnptr.length = amc_slot_1_eedn.length;
 		strcpy(entarr[2].enitytype, "EE");
 		no_of_trk_elements = 1;
-		strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE"));
+		strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE") + 1);
 		break;
 	case 4:
 		memset(&entarr[0], 0, sizeof(entity_array));
@@ -95,7 +95,7 @@ void getDn(int i)
 		strcpy(entarr[1].enitytype, "HE");
 		num_elements = 2;
 		no_of_trk_elements = 1;
-		strncpy(groupaddoption, "subtreeHE", strlen("subtreeHE"));
+		strncpy(groupaddoption, "subtreeHE", strlen("subtreeHE") + 1);
 		break;
 	default:
 		printf("\n The testcase id provided is invalid ");
@@ -823,7 +823,7 @@ void saPlmReadinessTrack_23(void)
 	strcpy(entarr[1].enitytype, "HE");
 	num_elements = 2;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "single", strlen("single"));
+	strncpy(groupaddoption, "single", strlen("single") + 1);
 	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -1112,7 +1112,7 @@ void saPlmReadinessTrack_28(void)
 	num_elements = 4;
 	no_of_trk_elements = 2;
 	memset(groupaddoption, 0, 10 * sizeof(char));
-	strncpy(groupaddoption, "subtreeHE", strlen("subtreeHE"));
+	strncpy(groupaddoption, "subtreeHE", strlen("subtreeHE") + 1);
 	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[2].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
@@ -1173,7 +1173,7 @@ void saPlmReadinessTrack_29(void)
 	strcpy(entarr[5].enitytype, "EE");
 	num_elements = 6;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE"));
+	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE") + 1);
 	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[3].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
@@ -1342,7 +1342,7 @@ void saPlmReadinessTrack_32(void)
 	strcpy(entarr[1].enitytype, "HE");
 	num_elements = 2;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "single", strlen("single"));
+	strncpy(groupaddoption, "single", strlen("single") + 1);
 	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -1573,7 +1573,7 @@ void saPlmReadinessTrack_36(void)
 	strcpy(entarr[0].enitytype, "HE");
 	num_elements = 1;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "single", strlen("single"));
+	strncpy(groupaddoption, "single", strlen("single") + 1);
 	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
@@ -1624,7 +1624,7 @@ void saPlmReadinessTrack_37(void)
 	strcpy(entarr[0].enitytype, "HE");
 	num_elements = 1;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "single", strlen("single"));
+	strncpy(groupaddoption, "single", strlen("single") + 1);
 	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -1687,7 +1687,7 @@ void saPlmReadinessTrack_38(void)
 	entarr[2].testDnptr.length = amc_slot_16_eedn.length;
 	strcpy(entarr[2].enitytype, "EE");
 
-	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE"));
+	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE") + 1);
 	num_elements = 3;
 	no_of_trk_elements = 2;
 	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
@@ -1748,7 +1748,7 @@ void saPlmReadinessTrack_39(void)
 	       amc_slot_16_eedn.length);
 	entarr[2].testDnptr.length = amc_slot_16_eedn.length;
 	strcpy(entarr[2].enitytype, "EE");
-	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE"));
+	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE") + 1);
 	num_elements = 3;
 	no_of_trk_elements = 2;
 	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,

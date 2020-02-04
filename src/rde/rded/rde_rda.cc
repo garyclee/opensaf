@@ -417,7 +417,7 @@ uint32_t rde_rda_open(const char *sock_name, RDE_RDA_CB *rde_rda_cb) {
   TRACE_ENTER();
 
   strncpy(rde_rda_cb->sock_address.sun_path, sock_name,
-          sizeof(rde_rda_cb->sock_address.sun_path));
+          sizeof(rde_rda_cb->sock_address.sun_path) - 1);
   rde_rda_cb->sock_address.sun_family = AF_UNIX;
   rde_rda_cb->fd = -1;
 

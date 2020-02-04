@@ -383,7 +383,7 @@ static SaAisErrorT amf_healthcheck_start(smfd_cb_t *cb) {
       LOG_ER("amf_healthcheck_start(): Helthcheck key to long");
       return SA_AIS_ERR_NAME_TOO_LONG;
     }
-    strncpy((char *)healthy.key, health_key,
+    memcpy(healthy.key, health_key,
             strlen(health_key));  // The key does not need to be null terminated
   }
 

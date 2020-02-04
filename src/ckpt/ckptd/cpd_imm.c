@@ -138,8 +138,8 @@ cpd_saImmOiRtAttrUpdateCallback(SaImmOiHandleT immOiHandle,
 		ckpt_name = strdup(object_name);
 	}
 
-	TRACE_4("ckpt_name: %s", ckpt_name);
-	TRACE_4("node_name: %s", node_name);
+	TRACE_4("ckpt_name: %s", ckpt_name ? ckpt_name : "n/a");
+	TRACE_4("node_name: %s", node_name ? node_name : "n/a");
 
 	cpd_ckpt_map_node_get(&cb->ckpt_map_tree, ckpt_name, &map_info);
 

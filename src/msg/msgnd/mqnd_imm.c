@@ -95,7 +95,7 @@ mqnd_saImmOiRtAttrUpdateCallback(SaImmOiHandleT immOiHandle,
 		if (mQPrio != NULL) {
 			mQPrio++;
 			strncpy((char *)mQueueName.value, mQPrio,
-				strlen(mQPrio));
+				sizeof(mQueueName.value) - 1);
 			mQueueName.length = strlen(mQPrio);
 		} else
 			return SA_AIS_ERR_FAILED_OPERATION;
@@ -472,7 +472,8 @@ SaAisErrorT mqnd_create_runtime_MsgQPriorityobject(SaStringT rname,
 	memset(&mqp_parent, 0, sizeof(SaNameT));
 	char *mqprdn = (char *)malloc(sizeof(char) * SA_MAX_NAME_LENGTH);
 
-	strncpy((char *)mqp_parent.value, (char *)rname, strlen((char *)rname));
+	strncpy((char *)mqp_parent.value, (char *)rname,
+		       	sizeof(mqp_parent.value) - 1);
 	mqp_parent.length = strlen((char *)rname);
 
 	mQPrioDn = &mqp_parent;

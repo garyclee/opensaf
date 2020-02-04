@@ -442,12 +442,10 @@ bool SmfImmUtils::getChildren(const std::string &i_dn,
         &immSearchHandle);
     if (result != SA_AIS_OK) {
       if (result == SA_AIS_ERR_NOT_EXIST) {
-        TRACE("immutil_saImmOmSearchInitialize_2, rc=%s, class name=[%s]",
-              saf_error(result), i_className);
+        TRACE("immutil_saImmOmSearchInitialize_2, rc=%s", saf_error(result));
         goto done;
       } else {
-        LOG_NO("immutil_saImmOmSearchInitialize_2, rc=%s, class name=[%s]",
-               saf_error(result), i_className);
+        LOG_NO("immutil_saImmOmSearchInitialize_2, rc=%s", saf_error(result));
         rc = false;
         goto done;
       }
@@ -533,12 +531,10 @@ bool SmfImmUtils::getChildrenAndAttrBySearchHandle(
         &io_immSearchHandle);
     if (result != SA_AIS_OK) {
       if (result == SA_AIS_ERR_NOT_EXIST) {
-        TRACE("immutil_saImmOmSearchInitialize_2, rc=%s, class name=[%s]",
-              saf_error(result), i_className);
+        TRACE("immutil_saImmOmSearchInitialize_2, rc=%s", saf_error(result));
         goto done;
       } else {
-        LOG_NO("immutil_saImmOmSearchInitialize_2, rc=%s, class name=[%s]",
-               saf_error(result), i_className);
+        LOG_NO("immutil_saImmOmSearchInitialize_2, rc=%s", saf_error(result));
         (void)immutil_saImmOmSearchFinalize(io_immSearchHandle);
         rc = false;
         goto done;
@@ -997,7 +993,7 @@ bool smf_stringToValue(SaImmValueTypeT i_type, SaImmAttrValueT *i_value,
       len = strlen(i_str);
       *i_value = malloc(sizeof(SaStringT));
       *((SaStringT *)*i_value) = (SaStringT)malloc(len + 1);
-      strncpy(*((SaStringT *)*i_value), i_str, len);
+      memcpy(*((SaStringT *)*i_value), i_str, len);
       (*((SaStringT *)*i_value))[len] = '\0';
       break;
     case SA_IMM_ATTR_SAANYT:

@@ -198,9 +198,9 @@ void DestinationHandler::FormCfgDestMsg(const std::string& dest,
                                         CfgDestMsg* msg) {
   osafassert(msg != nullptr);
   const VectorString tmp = logutil::Parser(dest, kDelimeter);
-  strncpy(msg->name, tmp[kName].c_str(), kMaxChar);
+  strncpy(msg->name, tmp[kName].c_str(), kMaxChar - 1);
   if (tmp.size() > 1) {
-    strncpy(msg->type, tmp[kType].c_str(), kMaxChar);
+    strncpy(msg->type, tmp[kType].c_str(), kMaxChar - 1);
   }
   if (tmp.size() == kSize) strncpy(msg->value, tmp[kValue].c_str(), kMaxChar);
 }
@@ -341,7 +341,7 @@ ErrCode DestinationHandler::ProcessWriteReq(const RecordInfo& info,
   RecordMsg record;
 
   msg.type = MsgType::kSendRecord;
-  strncpy(record.name, name.c_str(), kMaxChar);
+  strncpy(record.name, name.c_str(), kMaxChar - 1);
   memcpy(&record.rec, &info, sizeof(RecordInfo));
   memcpy(&msg.info.rec, &record, sizeof(RecordMsg));
   return DispatchTo(msg, name);

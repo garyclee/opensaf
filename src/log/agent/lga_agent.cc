@@ -1077,7 +1077,7 @@ SaAisErrorT LogAgent::HandleLogRecord(const SaLogRecordT* logRecord,
         ais_rc = SA_AIS_ERR_INVALID_PARAM;
         return ais_rc;
       }
-      strncpy(logSvcUsrName, logSvcUsrChars, strlen(logSvcUsrChars) + 1);
+      strncpy(logSvcUsrName, logSvcUsrChars, kOsafMaxDnLength - 1);
       osaf_extended_name_lend(logSvcUsrName, write_param->logSvcUsrName);
     } else {
       if (lga_is_extended_name_valid(

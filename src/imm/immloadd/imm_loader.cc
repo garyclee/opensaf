@@ -878,7 +878,7 @@ static void startElementHandler(void *userData, const xmlChar *name,
       len = strlen(classAttr);
 
       state->objectClass = (char *)malloc(len + 1);
-      strncpy(state->objectClass, classAttr, len);
+      strncpy(state->objectClass, classAttr, len + 1);
       state->objectClass[len] = '\0';
 
       TRACE_8("OBJECT CLASS NAME: %s", state->objectClass);
@@ -1807,8 +1807,7 @@ void addObjectAttributeDefinition(
     LOG_ER("Failed to malloc attrValues.attrName");
     exit(1);
   }
-  strncpy(attrValues.attrName, attrName, len);
-  attrValues.attrName[len] = '\0';
+  strcpy(attrValues.attrName, attrName);
 
   /* Add attrValues to the list */
   attrValuesList->push_front(attrValues);
@@ -1842,8 +1841,7 @@ static void saveRDNAttribute(ParserState *state) {
       exit(1);
     }
 
-    strncpy(values.attrName, state->attrName, len);
-    values.attrName[len] = '\0';
+    strcpy(values.attrName, state->attrName);
 
     /* Set the valueType */
     values.attrValueType = state->attrValueType;
@@ -1980,7 +1978,7 @@ static void charsToValueHelper(SaImmAttrValueT *value, SaImmValueTypeT type,
       len = strlen(str);
       *value = malloc(sizeof(SaStringT));
       *((SaStringT *)*value) = (SaStringT)malloc(len + 1);
-      strncpy(*((SaStringT *)*value), str, len);
+      strncpy(*((SaStringT *)*value), str, len + 1);
       (*((SaStringT *)*value))[len] = '\0';
       break;
     case SA_IMM_ATTR_SAANYT:

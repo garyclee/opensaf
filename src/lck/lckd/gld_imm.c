@@ -221,7 +221,7 @@ SaAisErrorT create_runtime_object(SaStringT rname, SaTimeT create_time,
 		parent_name++;
 		parentName = &parent;
 		strncpy((char *)parent.value, parent_name,
-			sizeof(parent.value));
+			sizeof(parent.value) - 1);
 		parent.length = strlen((char *)parent.value);
 	} else
 		rdnstr = rname;

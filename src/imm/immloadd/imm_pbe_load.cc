@@ -449,7 +449,6 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
   sqlite3 *dbHandle = (sqlite3 *)pbeHandle;
   sqlite3_stmt *stmt = NULL;
   int rc = 0;
-  char *zErr = NULL;
   int ncols = 0;
   int c;
   std::string sqlF("select \"");
@@ -506,9 +505,8 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
 
   rc = sqlite3_step(stmt);
   if (rc != SQLITE_ROW && rc != SQLITE_DONE) {
-    LOG_IN("Could not access table '%s', error:%s",
-           class_info->className.c_str(), zErr);
-    sqlite3_free(zErr);
+    LOG_IN("Could not access table '%s'",
+           class_info->className.c_str());
     goto bailout;
   }
 
@@ -575,7 +573,6 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
   rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     LOG_ER("Expected 1 row got more rows");
-    sqlite3_free(zErr);
     goto bailout;
   }
 

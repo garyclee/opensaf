@@ -169,22 +169,22 @@ int plmc_read_config(char *plmc_config_file, PLMC_config_data *config)
 			switch (tag) {
 			case PLMC_EE_ID:
 				strncpy(config->ee_id, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_MSG_PROTOCOL_VERSION:
 				strncpy(config->msg_protocol_version, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_CONTROLLER_1_IP:
 				strncpy(config->controller_1_ip, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_CONTROLLER_2_IP:
 				strncpy(config->controller_2_ip, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_SERVICES:
@@ -200,7 +200,7 @@ int plmc_read_config(char *plmc_config_file, PLMC_config_data *config)
 				}
 #endif
 				strncpy(config->services[num_services], line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				num_services++;
 				/*
 				 * Don't want to overrun our array of
@@ -229,22 +229,22 @@ int plmc_read_config(char *plmc_config_file, PLMC_config_data *config)
 				}
 #endif
 				strncpy(config->osaf, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_TCP_PLMS_LISTENING_PORT:
 				strncpy(config->tcp_plms_listening_port, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_UDP_BROADCAST_PORT:
 				strncpy(config->udp_broadcast_port, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_OS_TYPE:
 				strncpy(config->os_type, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_CMD_TIMEOUT_SECS:
@@ -268,7 +268,7 @@ int plmc_read_config(char *plmc_config_file, PLMC_config_data *config)
 					return -1;
 				}
 				strncpy(config->os_reboot_cmd, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case PLMC_OS_SHUTDOWN_CMD:
@@ -282,7 +282,7 @@ int plmc_read_config(char *plmc_config_file, PLMC_config_data *config)
 					return -1;
 				}
 				strncpy(config->os_shutdown_cmd, line,
-					PLMC_MAX_TAG_LEN - 1);
+					PLMC_MAX_TAG_LEN);
 				tag = 0;
 				break;
 			case SKEEPALIVE:

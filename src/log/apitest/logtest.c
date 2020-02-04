@@ -123,7 +123,7 @@ void init_logrootpath(void)
 	if (ais_rc == SA_AIS_OK) {
 		attribute = attributes[0];
 		void *value = attribute->attrValues[0];
-		strncpy(log_root_path, *((char **)value), PATH_MAX);
+		strncpy(log_root_path, *((char **)value), PATH_MAX - 1);
 	} else {
 		/* We didn't get a root path from IMM. Use default */
 		strncpy(log_root_path, PKGLOGDIR, PATH_MAX);
