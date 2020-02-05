@@ -13,7 +13,7 @@ static SaVersionT lck3_1 = { 'B', 3, 0 };
 
 static SaImmAccessorHandleT accessorHandle;
 
-static SaNameT resourceName = {
+static const SaNameT resourceName = {
   sizeof("safLock=resource1_101") - 1,
   "safLock=resource1_101"
 };
@@ -37,17 +37,49 @@ static void immInit(void)
   assert(rc == SA_AIS_OK);
 }
 
+static SaAisErrorT _saImmOmAccessorGet_2(SaImmAccessorHandleT aHandle,
+                                         const SaNameT &objectName,
+                                         const SaImmAttrNameT& attributeNames,
+                                         SaImmAttrValuesT_2 **& attributes)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saImmOmAccessorGet_2(aHandle,
+                              &objectName,
+                              &attributeNames,
+                              &attributes);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else if (rc == SA_AIS_ERR_NO_RESOURCES) {
+      printf("got no resources; reiniting %llu\n", aHandle);
+      exit(1);
+    }
+    else
+      break;
+  }
+
+  return rc;
+}
+
 static const SaInvocationT ASYNC_HANDLE_1 = 1;
 static const SaInvocationT ASYNC_HANDLE_2 = 2;
 
 static SaLckResourceHandleT asyncLockResourceHandle1;
 static SaLckResourceHandleT asyncLockResourceHandle2;
 
+static bool redo = false;
+
 static void resourceOpenCallback(SaInvocationT invocation,
                                  SaLckResourceHandleT lockResourceHandle,
                                  SaAisErrorT error)
 {
-  assert(error == SA_AIS_OK);
+  if (error == SA_AIS_ERR_TIMEOUT || error == SA_AIS_ERR_TRY_AGAIN) {
+    redo = true;
+    sleep(1);
+  } else
+    assert(error == SA_AIS_OK);
 
   if (invocation == ASYNC_HANDLE_1)
     asyncLockResourceHandle1 = lockResourceHandle;
@@ -59,8 +91,13 @@ static void lockGrantCallback(SaInvocationT invocation,
                               SaLckLockStatusT lockStatus,
                               SaAisErrorT error)
 {
-  assert(error == SA_AIS_OK);
-  assert(lockStatus == SA_LCK_LOCK_GRANTED);
+  if (error == SA_AIS_ERR_TIMEOUT || error == SA_AIS_ERR_TRY_AGAIN) {
+    redo = true;
+    sleep(1);
+  } else {
+    assert(error == SA_AIS_OK);
+    assert(lockStatus == SA_LCK_LOCK_GRANTED);
+  }
 }
 
 static void verifyOutput(SaUint32T strippedCount,
@@ -69,7 +106,7 @@ static void verifyOutput(SaUint32T strippedCount,
 {
   SaImmAttrValuesT_2 **attributes(0);
 
-  SaAisErrorT rc(saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes));
+  SaAisErrorT rc(_saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes));
   if (rc != SA_AIS_OK)
     std::cerr << "saImmOmAccessorGet_2 returned: " << rc << std::endl;
   assert(rc == SA_AIS_OK);
@@ -101,17 +138,17 @@ static void saLckResourceClass_01(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
   verifyOutput(0, 1, false);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -129,20 +166,23 @@ static void saLckResourceClass_02(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
-  assert(rc == SA_AIS_OK);
+  do {
+    redo = false;
+    rc = lockResourceOpenAsync(lckHandle,
+                               ASYNC_HANDLE_1,
+                               resourceName,
+                               SA_LCK_RESOURCE_CREATE);
+    assert(rc == SA_AIS_OK);
 
-  sleep(1);
+    sleep(1);
 
-  rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
-  assert(rc == SA_AIS_OK);
+    rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
+    assert(rc == SA_AIS_OK);
+  } while (redo);
 
   verifyOutput(0, 1, false);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 }
 
@@ -154,20 +194,20 @@ static void saLckResourceClass_03(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -185,10 +225,10 @@ static void saLckResourceClass_04(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -196,13 +236,13 @@ static void saLckResourceClass_04(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ONE);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -214,27 +254,27 @@ static void saLckResourceClass_05(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle1;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle1);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle2;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle2);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(0, 2, false);
 
-  rc = saLckResourceClose(lockResourceHandle1);
+  rc = lockResourceClose(lockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle2);
+  rc = lockResourceClose(lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 }
 
@@ -252,16 +292,16 @@ static void saLckResourceClass_06(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_2,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_2,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -271,10 +311,10 @@ static void saLckResourceClass_06(void)
 
   verifyOutput(0, 2, false);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle2);
+  rc = lockResourceClose(asyncLockResourceHandle2);
   assert(rc == SA_AIS_OK);
 }
 
@@ -286,31 +326,31 @@ static void saLckResourceClass_07(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle1;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle1);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle2;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle2);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle1);
+  rc = lockResourceClose(lockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle2);
+  rc = lockResourceClose(lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -328,16 +368,16 @@ static void saLckResourceClass_08(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_2,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_2,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -345,16 +385,16 @@ static void saLckResourceClass_08(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle2);
+  rc = lockResourceClose(asyncLockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -371,31 +411,31 @@ static void saLckResourceClass_09(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle1;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle1);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle2;
-  rc = saLckResourceOpen(lckHandle2,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle2);
+  rc = lockResourceOpen(lckHandle2,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle1);
+  rc = lockResourceClose(lockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle2);
+  rc = lockResourceClose(lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -418,16 +458,16 @@ static void saLckResourceClass_10(void)
   rc = saLckInitialize(&lckHandle2, &callbacks, &lck3_1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle2,
-                              ASYNC_HANDLE_2,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle2,
+                             ASYNC_HANDLE_2,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -438,16 +478,16 @@ static void saLckResourceClass_10(void)
   rc = saLckDispatch(lckHandle2, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle2);
+  rc = lockResourceClose(asyncLockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -459,22 +499,22 @@ static void saLckResourceClass_11(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle1;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle1);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle2;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle2);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle1);
+  rc = lockResourceClose(lockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   rc = saLckFinalize(lckHandle);
@@ -483,7 +523,7 @@ static void saLckResourceClass_11(void)
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -501,16 +541,16 @@ static void saLckResourceClass_12(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_2,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_2,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -518,7 +558,9 @@ static void saLckResourceClass_12(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
+  if (rc != SA_AIS_OK)
+    std::cerr << "lockResourceClose failed: " << rc << std::endl;
   assert(rc == SA_AIS_OK);
 
   rc = saLckFinalize(lckHandle);
@@ -527,7 +569,7 @@ static void saLckResourceClass_12(void)
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -539,32 +581,37 @@ static void saLckResourceClass_13(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(lockResourceHandle,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+#if 0
+  XXX bug here with IMM
+  printf("kill\n");
+  sleep(10);
+#endif
+  rc = lockResourceLock(lockResourceHandle,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -576,22 +623,22 @@ static void saLckResourceClass_14(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(lockResourceHandle,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(lockResourceHandle,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
@@ -601,7 +648,7 @@ static void saLckResourceClass_14(void)
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -619,10 +666,10 @@ static void saLckResourceClass_15(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -632,13 +679,13 @@ static void saLckResourceClass_15(void)
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(asyncLockResourceHandle1,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(asyncLockResourceHandle1,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
@@ -648,7 +695,7 @@ static void saLckResourceClass_15(void)
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -666,10 +713,10 @@ static void saLckResourceClass_16(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -679,23 +726,23 @@ static void saLckResourceClass_16(void)
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(asyncLockResourceHandle1,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(asyncLockResourceHandle1,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -713,30 +760,42 @@ static void saLckResourceClass_17(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
-  assert(rc == SA_AIS_OK);
+  do {
+    redo = false;
+    rc = lockResourceOpenAsync(lckHandle,
+                               ASYNC_HANDLE_1,
+                               resourceName,
+                               SA_LCK_RESOURCE_CREATE);
+    assert(rc == SA_AIS_OK);
 
-  sleep(1);
+    sleep(1);
 
-  rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
-  assert(rc == SA_AIS_OK);
+    rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
+    assert(rc == SA_AIS_OK);
+  } while (redo);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(asyncLockResourceHandle1,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              0,
-                              1);
-  assert(rc == SA_AIS_OK);
+#if 0
+  XXX bug here
+  printf("kill\n");
+  sleep(10);
+#endif
 
-  sleep(1);
+  do {
+    redo = false;
+    rc = lockResourceLockAsync(asyncLockResourceHandle1,
+                               1,
+                               &lockId,
+                               SA_LCK_PR_LOCK_MODE,
+                               0,
+                               1);
+    assert(rc == SA_AIS_OK);
 
-  rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
-  assert(rc == SA_AIS_OK);
+    sleep(1);
+
+    rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
+    assert(rc == SA_AIS_OK);
+  } while (redo);
 
   rc = saLckFinalize(lckHandle);
   assert(rc == SA_AIS_OK);
@@ -744,7 +803,7 @@ static void saLckResourceClass_17(void)
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -762,10 +821,10 @@ static void saLckResourceClass_18(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -774,12 +833,12 @@ static void saLckResourceClass_18(void)
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(asyncLockResourceHandle1,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              0,
-                              1);
+  rc = lockResourceLockAsync(asyncLockResourceHandle1,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             0,
+                             1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -787,13 +846,13 @@ static void saLckResourceClass_18(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -812,20 +871,20 @@ static void saLckResourceClass_19(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(lockResourceHandle,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              0,
-                              1);
+  rc = lockResourceLockAsync(lockResourceHandle,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             0,
+                             1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -839,7 +898,7 @@ static void saLckResourceClass_19(void)
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -858,11 +917,11 @@ static void saLckResourceClass_20(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -871,12 +930,12 @@ static void saLckResourceClass_20(void)
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(lockResourceHandle,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              0,
-                              1);
+  rc = lockResourceLockAsync(lockResourceHandle,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             0,
+                             1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -884,13 +943,13 @@ static void saLckResourceClass_20(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -902,51 +961,51 @@ static void saLckResourceClass_21(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(lockResourceHandle,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         SA_LCK_LOCK_ORPHAN,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(lockResourceHandle,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        SA_LCK_LOCK_ORPHAN,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(0, 0, true);
 
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckLockPurge(lockResourceHandle);
+  rc = lockPurge(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -964,10 +1023,10 @@ static void saLckResourceClass_22(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -977,42 +1036,42 @@ static void saLckResourceClass_22(void)
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(asyncLockResourceHandle1,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         SA_LCK_LOCK_ORPHAN,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(asyncLockResourceHandle1,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        SA_LCK_LOCK_ORPHAN,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(0, 0, true);
 
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &asyncLockResourceHandle1);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckLockPurge(asyncLockResourceHandle1);
+  rc = lockPurge(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1031,20 +1090,20 @@ static void saLckResourceClass_23(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(lockResourceHandle,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              SA_LCK_LOCK_ORPHAN,
-                              1);
+  rc = lockResourceLockAsync(lockResourceHandle,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             SA_LCK_LOCK_ORPHAN,
+                             1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1052,32 +1111,32 @@ static void saLckResourceClass_23(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(0, 0, true);
 
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckLockPurge(lockResourceHandle);
+  rc = lockPurge(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1095,10 +1154,10 @@ static void saLckResourceClass_24(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1107,12 +1166,12 @@ static void saLckResourceClass_24(void)
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(asyncLockResourceHandle1,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              SA_LCK_LOCK_ORPHAN,
-                              1);
+  rc = lockResourceLockAsync(asyncLockResourceHandle1,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             SA_LCK_LOCK_ORPHAN,
+                             1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1120,32 +1179,32 @@ static void saLckResourceClass_24(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(0, 0, true);
 
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &asyncLockResourceHandle1);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckLockPurge(asyncLockResourceHandle1);
+  rc = lockPurge(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1157,49 +1216,49 @@ static void saLckResourceClass_25(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle2;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle2);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(lockResourceHandle,
-                         &lockId,
-                         SA_LCK_EX_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(lockResourceHandle,
+                        &lockId,
+                        SA_LCK_EX_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(1, 1, false);
 
-  rc = saLckResourceClose(lockResourceHandle2);
+  rc = lockResourceClose(lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1211,69 +1270,69 @@ static void saLckResourceClass_26(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle2;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle2);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(lockResourceHandle,
-                         &lockId,
-                         SA_LCK_EX_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(lockResourceHandle,
+                        &lockId,
+                        SA_LCK_EX_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceLock(lockResourceHandle,
-                         &lockId,
-                         SA_LCK_EX_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(lockResourceHandle,
+                        &lockId,
+                        SA_LCK_EX_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(2, 1, false);
 
-  rc = saLckResourceClose(lockResourceHandle2);
+  rc = lockResourceClose(lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1292,28 +1351,28 @@ static void saLckResourceClass_27(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle2;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle2);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(lockResourceHandle,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              0,
-                              1);
+  rc = lockResourceLockAsync(lockResourceHandle,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             0,
+                             1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1321,22 +1380,22 @@ static void saLckResourceClass_27(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(1, 1, false);
 
-  rc = saLckResourceClose(lockResourceHandle2);
+  rc = lockResourceClose(lockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1355,17 +1414,17 @@ static void saLckResourceClass_28(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1374,12 +1433,12 @@ static void saLckResourceClass_28(void)
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(asyncLockResourceHandle1,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              0,
-                              1);
+  rc = lockResourceLockAsync(asyncLockResourceHandle1,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             0,
+                             1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1387,22 +1446,22 @@ static void saLckResourceClass_28(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(1, 1, false);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1420,16 +1479,16 @@ static void saLckResourceClass_29(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_2,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_2,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1438,12 +1497,12 @@ static void saLckResourceClass_29(void)
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(asyncLockResourceHandle1,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              0,
-                              1);
+  rc = lockResourceLockAsync(asyncLockResourceHandle1,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             0,
+                             1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1451,22 +1510,22 @@ static void saLckResourceClass_29(void)
   rc = saLckDispatch(lckHandle, SA_DISPATCH_ALL);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(1, 1, false);
 
-  rc = saLckResourceClose(asyncLockResourceHandle2);
+  rc = lockResourceClose(asyncLockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1484,16 +1543,16 @@ static void saLckResourceClass_30(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_2,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_2,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1503,32 +1562,32 @@ static void saLckResourceClass_30(void)
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(asyncLockResourceHandle1,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(asyncLockResourceHandle1,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(1, 1, false);
 
-  rc = saLckResourceClose(asyncLockResourceHandle2);
+  rc = lockResourceClose(asyncLockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1546,10 +1605,10 @@ static void saLckResourceClass_31(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1558,38 +1617,38 @@ static void saLckResourceClass_31(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
-  rc = saLckResourceLockAsync(asyncLockResourceHandle1,
-                              1,
-                              &lockId,
-                              SA_LCK_PR_LOCK_MODE,
-                              0,
-                              1);
+  rc = lockResourceLockAsync(asyncLockResourceHandle1,
+                             1,
+                             &lockId,
+                             SA_LCK_PR_LOCK_MODE,
+                             0,
+                             1);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(1, 1, false);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1607,10 +1666,10 @@ static void saLckResourceClass_32(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1619,41 +1678,41 @@ static void saLckResourceClass_32(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(lockResourceHandle,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(lockResourceHandle,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(1, 1, false);
 
-  rc = saLckResourceClose(asyncLockResourceHandle1);
+  rc = lockResourceClose(asyncLockResourceHandle1);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1672,17 +1731,17 @@ static void saLckResourceClass_33(void)
   assert(rc == SA_AIS_OK);
 
   SaLckResourceHandleT lockResourceHandle;
-  rc = saLckResourceOpen(lckHandle,
-                         &resourceName,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        resourceName,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_2,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_2,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
@@ -1692,32 +1751,32 @@ static void saLckResourceClass_33(void)
 
   SaLckLockIdT lockId;
   SaLckLockStatusT lockStatus;
-  rc = saLckResourceLock(lockResourceHandle,
-                         &lockId,
-                         SA_LCK_PR_LOCK_MODE,
-                         0,
-                         1,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockStatus);
+  rc = lockResourceLock(lockResourceHandle,
+                        &lockId,
+                        SA_LCK_PR_LOCK_MODE,
+                        0,
+                        1,
+                        SA_TIME_ONE_SECOND * 5,
+                        &lockStatus);
   assert(rc == SA_AIS_OK);
   assert(lockStatus == SA_LCK_LOCK_GRANTED);
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_OK);
 
   verifyOutput(1, 1, false);
 
-  rc = saLckResourceClose(asyncLockResourceHandle2);
+  rc = lockResourceClose(asyncLockResourceHandle2);
   assert(rc == SA_AIS_OK);
 
   sleep(1);
 
   attributes = 0;
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   assert(rc == SA_AIS_ERR_NOT_EXIST);
 }
 
@@ -1735,10 +1794,10 @@ static void saLckResourceClass_34(void)
   SaAisErrorT rc(saLckInitialize(&lckHandle, &callbacks, &lck3_1));
   assert(rc == SA_AIS_OK);
 
-  rc = saLckResourceOpenAsync(lckHandle,
-                              ASYNC_HANDLE_1,
-                              &resourceName,
-                              SA_LCK_RESOURCE_CREATE);
+  rc = lockResourceOpenAsync(lckHandle,
+                             ASYNC_HANDLE_1,
+                             resourceName,
+                             SA_LCK_RESOURCE_CREATE);
   assert(rc == SA_AIS_OK);
 
   rc = saLckFinalize(lckHandle);
@@ -1747,7 +1806,7 @@ static void saLckResourceClass_34(void)
   sleep(1);
 
   SaImmAttrValuesT_2 **attributes(0);
-  rc = saImmOmAccessorGet_2(accessorHandle, &resourceName, names, &attributes);
+  rc = _saImmOmAccessorGet_2(accessorHandle, resourceName, *names, attributes);
   aisrc_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 

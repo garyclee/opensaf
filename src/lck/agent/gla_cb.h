@@ -27,12 +27,6 @@ extern uint32_t gl_gla_hdl;
   ncshm_take_hdl(NCS_SERVICE_ID_GLA, gl_gla_hdl)
 #define m_GLSV_GLA_GIVEUP_GLA_CB ncshm_give_hdl(gl_gla_hdl)
 
-#define m_GLSV_MEMSET_SANAME(name)                       \
-  {                                                      \
-    memset((void *)&name->value[name->length], 0,        \
-           (size_t)(SA_MAX_NAME_LENGTH - name->length)); \
-  }
-
 typedef struct gla_client_info_tag {
   NCS_PATRICIA_NODE patnode;
   SaLckHandleT lock_handle_id;     /* index for the tree at GLND */

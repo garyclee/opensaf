@@ -171,6 +171,7 @@ GLSV_GLD_RSC_INFO *gld_add_rsc_info(GLSV_GLD_CB *gld_cb, SaNameT *rsc_name,
 
 	if (*error != SA_AIS_OK) {
 		LOG_ER("create_runtime_object failed %u\n", *error);
+		*error = SA_AIS_ERR_NO_RESOURCES;
 		if (ncs_patricia_tree_del(&gld_cb->rsc_map_info,
 					  (NCS_PATRICIA_NODE *)rsc_map_info) !=
 		    NCSCC_RC_SUCCESS) {

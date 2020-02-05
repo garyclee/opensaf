@@ -27,4 +27,36 @@
 #define TET_FAIL 1
 #define TET_UNRESOLVED 2
 
+#ifdef __cplusplus
+SaAisErrorT lockResourceOpen(SaLckHandleT lckHandle,
+                             const SaNameT& name,
+                             SaLckResourceOpenFlagsT flags,
+                             SaTimeT timeout,
+                             SaLckResourceHandleT& lockResourceHandle);
+
+SaAisErrorT lockResourceOpenAsync(SaLckHandleT lckHandle,
+                                  SaInvocationT invocation,
+                                  const SaNameT& name,
+                                  SaLckResourceOpenFlagsT flags);
+
+SaAisErrorT lockResourceClose(SaLckResourceHandleT);
+
+SaAisErrorT lockResourceLockAsync(SaLckResourceHandleT lockResourceHandle,
+                                  SaInvocationT invocation,
+                                  SaLckLockIdT *lockId,
+                                  SaLckLockModeT lockMode,
+                                  SaLckLockFlagsT lockFlags,
+                                  SaLckWaiterSignalT waiterSignal);
+
+SaAisErrorT lockResourceLock(SaLckResourceHandleT lockResourceHandle,
+                             SaLckLockIdT *lockId,
+                             SaLckLockModeT lockMode,
+                             SaLckLockFlagsT lockFlags,
+                             SaLckWaiterSignalT waiterSignal,
+                             SaTimeT timeout,
+                             SaLckLockStatusT *lockStatus);
+
+SaAisErrorT lockPurge(SaLckResourceHandleT lockResourceHandle);
+#endif
+
 #endif

@@ -99,11 +99,11 @@ void App_LockGrantCallback_withunlock_lock(SaInvocationT invocation,
 	gl_gla_env.gr_clbk_err = error;
 	gl_gla_env.gr_clbk_status = lockStatus;
 
-	gl_unlck_res = tet_test_lckResourceUnlockAsync(
+	gl_unlck_res = tet_test_red_lckResourceUnlockAsync(
 	    LCK_RSC_UNLOCK_ASYNC_SUCCESS_T, TEST_CONFIG_MODE);
 	sleep(3);
 	if (gl_unlck_res == TET_PASS) {
-		gl_lck_res = tet_test_lckResourceLockAsync(
+		gl_lck_res = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 		sleep(3);
 	}
@@ -219,7 +219,7 @@ void glsv_it_init_01()
 	int result;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_NONCONFIG_MODE);
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 
 	glsv_result(result);
@@ -229,7 +229,7 @@ void glsv_it_init_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_NULL_CBK_PARAM_T,
+	result = tet_test_red_lckInitialize(LCK_INIT_NULL_CBK_PARAM_T,
 					TEST_NONCONFIG_MODE);
 	glsv_init_cleanup(LCK_CLEAN_INIT_NULL_CBK_PARAM_T);
 
@@ -240,7 +240,7 @@ void glsv_it_init_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_NULL_VERSION_T,
+	result = tet_test_red_lckInitialize(LCK_INIT_NULL_VERSION_T,
 					TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
@@ -250,7 +250,7 @@ void glsv_it_init_04()
 	int result;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_NULL_HANDLE_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_NULL_HANDLE_T, TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
 
@@ -258,7 +258,7 @@ void glsv_it_init_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_NULL_VERSION_CBKS_T,
+	result = tet_test_red_lckInitialize(LCK_INIT_NULL_VERSION_CBKS_T,
 					TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
@@ -268,7 +268,7 @@ void glsv_it_init_06()
 	int result;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
 	glsv_restore_params(LCK_RESTORE_INIT_BAD_VERSION_T);
 	glsv_result(result);
 }
@@ -277,7 +277,7 @@ void glsv_it_init_07()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_BAD_REL_CODE_T,
+	result = tet_test_red_lckInitialize(LCK_INIT_BAD_REL_CODE_T,
 					TEST_NONCONFIG_MODE);
 	glsv_restore_params(LCK_RESTORE_INIT_BAD_REL_CODE_T);
 	glsv_result(result);
@@ -287,7 +287,7 @@ void glsv_it_init_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_BAD_MAJOR_VER_T,
+	result = tet_test_red_lckInitialize(LCK_INIT_BAD_MAJOR_VER_T,
 					TEST_NONCONFIG_MODE);
 	glsv_restore_params(LCK_RESTORE_INIT_BAD_MAJOR_VER_T);
 	glsv_result(result);
@@ -298,7 +298,7 @@ void glsv_it_init_09()
 	int result;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
 	if (result == TET_PASS) {
 		if (gl_gla_env.inv_params.inv_version.releaseCode == 'B' &&
 		    gl_gla_env.inv_params.inv_version.majorVersion == 1 &&
@@ -317,7 +317,7 @@ void glsv_it_init_10()
 	int result;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_NULL_CBKS_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_NULL_CBKS_T, TEST_NONCONFIG_MODE);
 	glsv_init_cleanup(LCK_CLEAN_INIT_NULL_CBKS_T);
 	glsv_result(result);
 }
@@ -328,11 +328,11 @@ void glsv_it_selobj_01()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckSelectionObject(LCK_SEL_OBJ_SUCCESS_T,
+	result = tet_test_red_lckSelectionObject(LCK_SEL_OBJ_SUCCESS_T,
 					     TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -345,11 +345,11 @@ void glsv_it_selobj_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckSelectionObject(LCK_SEL_OBJ_NULL_SEL_OBJ_T,
+	result = tet_test_red_lckSelectionObject(LCK_SEL_OBJ_NULL_SEL_OBJ_T,
 					     TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -362,7 +362,7 @@ void glsv_it_selobj_03()
 {
 	int result;
 
-	result = tet_test_lckSelectionObject(LCK_SEL_OBJ_BAD_HANDLE_T,
+	result = tet_test_red_lckSelectionObject(LCK_SEL_OBJ_BAD_HANDLE_T,
 					     TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
@@ -371,15 +371,15 @@ void glsv_it_selobj_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckSelectionObject(LCK_SEL_OBJ_FINALIZED_HDL_T,
+	result = tet_test_red_lckSelectionObject(LCK_SEL_OBJ_FINALIZED_HDL_T,
 					     TEST_NONCONFIG_MODE);
 
 final:
@@ -391,18 +391,18 @@ void glsv_it_selobj_05()
 	int result;
 	SaSelectionObjectT sel_obj;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckSelectionObject(LCK_SEL_OBJ_SUCCESS_T,
+	result = tet_test_red_lckSelectionObject(LCK_SEL_OBJ_SUCCESS_T,
 					     TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	sel_obj = gl_gla_env.sel_obj;
 
-	result = tet_test_lckSelectionObject(LCK_SEL_OBJ_SUCCESS_T,
+	result = tet_test_red_lckSelectionObject(LCK_SEL_OBJ_SUCCESS_T,
 					     TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -425,20 +425,20 @@ void glsv_it_option_chk_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_lckOptionCheck(LCK_OPT_CHCK_BAD_HDL_T,
+	result1 = tet_test_red_lckOptionCheck(LCK_OPT_CHCK_BAD_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_lckOptionCheck(LCK_OPT_CHCK_FINALIZED_HDL_T,
+	result2 = tet_test_red_lckOptionCheck(LCK_OPT_CHCK_FINALIZED_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -454,11 +454,11 @@ void glsv_it_option_chk_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckOptionCheck(LCK_OPT_CHCK_INVALID_PARAM,
+	result = tet_test_red_lckOptionCheck(LCK_OPT_CHCK_INVALID_PARAM,
 					 TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -471,11 +471,11 @@ void glsv_it_option_chk_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckOptionCheck(LCK_OPT_CHCK_SUCCESS_T,
+	result = tet_test_red_lckOptionCheck(LCK_OPT_CHCK_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -490,18 +490,18 @@ void glsv_it_dispatch_01()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.open_clbk_invo == 208 &&
 	    gl_gla_env.open_clbk_err == SA_AIS_OK)
@@ -520,35 +520,43 @@ void glsv_it_dispatch_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	printf("kill\n");
+	sleep(10);
+redo:
+	printf("redo\n");
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	sleep(2);
 
-	result = tet_test_lckResourceUnlockAsync(
+	result = tet_test_red_lckResourceUnlockAsync(
 	    LCK_RSC_UNLOCK_ASYNC_SUCCESS_ID2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
-	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 706 &&
-	    gl_gla_env.unlck_clbk_invo == 905)
+	if (result == TET_PASS) {
+		if (gl_gla_env.gr_clbk_err == SA_AIS_ERR_TRY_AGAIN ||
+			gl_gla_env.unlck_clbk_err == SA_AIS_ERR_TRY_AGAIN)
+			goto redo;
+		else if (gl_gla_env.gr_clbk_invo == 706 &&
+	    		gl_gla_env.unlck_clbk_invo == 905)
 		result = TET_PASS;
-	else
+	} else
 		result = TET_FAIL;
 
 final1:
@@ -562,13 +570,13 @@ void glsv_it_dispatch_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	glsv_createthread(&gl_gla_env.lck_hdl1);
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -583,7 +591,7 @@ void glsv_it_dispatch_03()
 
 	gl_gla_env.res_hdl1 = gl_gla_env.open_clbk_res_hdl;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -608,12 +616,12 @@ void glsv_it_dispatch_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckDispatch(LCK_DISPATCH_BAD_FLAGS_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_lckDispatch(LCK_DISPATCH_BAD_FLAGS_T, TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 
@@ -625,20 +633,20 @@ void glsv_it_dispatch_05()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_lckDispatch(LCK_DISPATCH_ONE_BAD_HANDLE_T,
+	result1 = tet_test_red_lckDispatch(LCK_DISPATCH_ONE_BAD_HANDLE_T,
 				       TEST_NONCONFIG_MODE);
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_lckDispatch(LCK_DISPATCH_ONE_FINALIZED_HDL_T,
+	result2 = tet_test_red_lckDispatch(LCK_DISPATCH_ONE_FINALIZED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -654,20 +662,20 @@ void glsv_it_dispatch_06()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_lckDispatch(LCK_DISPATCH_ALL_BAD_HANDLE_T,
+	result1 = tet_test_red_lckDispatch(LCK_DISPATCH_ALL_BAD_HANDLE_T,
 				       TEST_NONCONFIG_MODE);
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_lckDispatch(LCK_DISPATCH_ALL_FINALIZED_HDL_T,
+	result2 = tet_test_red_lckDispatch(LCK_DISPATCH_ALL_FINALIZED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -683,20 +691,20 @@ void glsv_it_dispatch_07()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_lckDispatch(LCK_DISPATCH_BLOCKING_BAD_HANDLE_T,
+	result1 = tet_test_red_lckDispatch(LCK_DISPATCH_BLOCKING_BAD_HANDLE_T,
 				       TEST_NONCONFIG_MODE);
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_lckDispatch(LCK_DISPATCH_BLOCKING_FINALIZED_HDL_T,
+	result2 = tet_test_red_lckDispatch(LCK_DISPATCH_BLOCKING_FINALIZED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -712,11 +720,11 @@ void glsv_it_dispatch_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -729,11 +737,11 @@ void glsv_it_dispatch_09()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -748,17 +756,17 @@ void glsv_it_finalize_01()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_ALL_FINALIZED_HDL_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_ALL_FINALIZED_HDL_T,
 				      TEST_NONCONFIG_MODE);
 
 final:
@@ -770,7 +778,7 @@ void glsv_it_finalize_02()
 	int result;
 
 	result =
-	    tet_test_lckFinalize(LCK_FINALIZE_BAD_HDL_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_lckFinalize(LCK_FINALIZE_BAD_HDL_T, TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
 
@@ -778,17 +786,17 @@ void glsv_it_finalize_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_FINALIZED_HDL_T,
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_FINALIZED_HDL_T,
 				      TEST_NONCONFIG_MODE);
 
 final:
@@ -801,18 +809,18 @@ void glsv_it_finalize_04()
 	fd_set read_fd;
 	struct timeval tv;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckSelectionObject(LCK_SEL_OBJ_SUCCESS_T,
+	result = tet_test_red_lckSelectionObject(LCK_SEL_OBJ_SUCCESS_T,
 					     TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
@@ -837,24 +845,24 @@ void glsv_it_finalize_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_HANDLE2_T,
+	result = tet_test_red_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_HANDLE2_T,
 					   TEST_NONCONFIG_MODE);
 
 final:
@@ -865,18 +873,18 @@ void glsv_it_finalize_06()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -885,13 +893,13 @@ void glsv_it_finalize_06()
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_FINALIZED_UNLOCKED_LOCKID_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_FINALIZED_UNLOCKED_LOCKID_T,
 					    TEST_NONCONFIG_MODE);
 
 final:
@@ -904,20 +912,20 @@ void glsv_it_res_open_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_BAD_HANDLE_T,
+	result1 = tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_BAD_HANDLE_T,
 					   TEST_NONCONFIG_MODE);
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_FINALIZED_HANDLE_T,
+	result2 = tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_FINALIZED_HANDLE_T,
 					   TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -933,11 +941,11 @@ void glsv_it_res_open_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_NULL_RSC_NAME_T,
+	result = tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_NULL_RSC_NAME_T,
 					  TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -950,11 +958,11 @@ void glsv_it_res_open_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_NULL_RSC_HDL_T,
+	result = tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_NULL_RSC_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -967,11 +975,11 @@ void glsv_it_res_open_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_BAD_FLAGS_T,
+	result = tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_BAD_FLAGS_T,
 					  TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -984,11 +992,11 @@ void glsv_it_res_open_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_TIMEOUT_T,
+	result = tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_TIMEOUT_T,
 					  TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -1001,11 +1009,11 @@ void glsv_it_res_open_06()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_RSC_NOT_EXIST_T,
+	result = tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_RSC_NOT_EXIST_T,
 					  TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -1018,11 +1026,11 @@ void glsv_it_res_open_07()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME2_SUCCESS_T, TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -1035,16 +1043,16 @@ void glsv_it_res_open_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME2_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME2_SUCCESS_T,
 	    TEST_NONCONFIG_MODE);
 
@@ -1059,16 +1067,16 @@ void glsv_it_res_open_09()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_NAME1_EXIST_SUCCESS_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -1082,21 +1090,21 @@ void glsv_it_res_open_10()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_NAME1_EXIST_SUCCESS_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -1112,20 +1120,20 @@ void glsv_it_res_open_async_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_lckResourceOpenAsync(
+	result1 = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_BAD_HANDLE_T, TEST_NONCONFIG_MODE);
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_lckResourceOpenAsync(
+	result2 = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_FINALIZED_HDL_T, TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -1141,11 +1149,11 @@ void glsv_it_res_open_async_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_NULL_RSC_NAME_T, TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -1158,11 +1166,11 @@ void glsv_it_res_open_async_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_BAD_FLAGS_T, TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -1175,18 +1183,18 @@ void glsv_it_res_open_async_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_RSC_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.open_clbk_invo == 206 &&
 	    gl_gla_env.open_clbk_err == SA_AIS_ERR_NOT_EXIST)
@@ -1205,18 +1213,18 @@ void glsv_it_res_open_async_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.open_clbk_invo == 208 &&
 	    gl_gla_env.open_clbk_err == SA_AIS_OK)
@@ -1235,18 +1243,18 @@ void glsv_it_res_open_async_06()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.open_clbk_invo == 208 &&
 	    gl_gla_env.open_clbk_err == SA_AIS_OK)
@@ -1265,11 +1273,11 @@ void glsv_it_res_open_async_07()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_NULL_OPEN_CBK_T, TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_NULL_CBKS_T);
@@ -1282,18 +1290,18 @@ void glsv_it_res_open_async_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 208 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_OK) {
@@ -1301,7 +1309,7 @@ void glsv_it_res_open_async_08()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_EXIST_SUCCESS_T,
 	    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
@@ -1309,7 +1317,7 @@ void glsv_it_res_open_async_08()
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 212 ||
@@ -1329,18 +1337,18 @@ void glsv_it_res_open_async_09()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 208 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_OK) {
@@ -1348,14 +1356,14 @@ void glsv_it_res_open_async_09()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_NAME1_EXIST_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 214 ||
@@ -1375,28 +1383,28 @@ void glsv_it_res_open_async_10()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 208 ||
@@ -1418,16 +1426,16 @@ void glsv_it_res_close_01()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME2_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL2_SUCCESS_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -1441,7 +1449,7 @@ void glsv_it_res_close_02()
 {
 	int result;
 
-	result = tet_test_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_RSC_HDL_T,
+	result = tet_test_red_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_RSC_HDL_T,
 					   TEST_NONCONFIG_MODE);
 
 	glsv_result(result);
@@ -1451,24 +1459,24 @@ void glsv_it_res_close_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME2_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_HANDLE2_T,
+	result = tet_test_red_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_HANDLE2_T,
 					   TEST_NONCONFIG_MODE);
 
 final:
@@ -1479,21 +1487,21 @@ void glsv_it_res_close_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_CLOSED_RSC_HDL_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_CLOSED_RSC_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -1507,16 +1515,16 @@ void glsv_it_res_close_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -1524,12 +1532,12 @@ void glsv_it_res_close_05()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_UNLOCKED_LOCKID_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_UNLOCKED_LOCKID_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
@@ -1543,16 +1551,16 @@ void glsv_it_res_close_06()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -1560,17 +1568,17 @@ void glsv_it_res_close_06()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_UNLOCKED_LOCKID_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_UNLOCKED_LOCKID_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
@@ -1585,28 +1593,28 @@ void glsv_it_res_close_07()
 	int result;
 	SaLckResourceHandleT lcl_res_hdl;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	lcl_res_hdl = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -1616,12 +1624,12 @@ void glsv_it_res_close_07()
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID2_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID2_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 
 final2:
@@ -1638,21 +1646,21 @@ void glsv_it_res_close_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_HANDLE_T,
+	result = tet_test_red_lckResourceClose(LCK_RESOURCE_CLOSE_BAD_HANDLE_T,
 					   TEST_NONCONFIG_MODE);
 
 final1:
@@ -1667,12 +1675,12 @@ void glsv_it_res_close_09()
 	int result;
 	SaLckResourceHandleT lcl_res_hdl;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
@@ -1682,7 +1690,7 @@ void glsv_it_res_close_09()
        &gl_gla_env.res_hdl1, SA_LCK_RESOURCE_CREATE, SA_AIS_OK},
        */
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -1695,7 +1703,7 @@ void glsv_it_res_close_09()
        &gl_gla_env.res_hdl1, SA_LCK_RESOURCE_CREATE, SA_AIS_OK},
        */
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -1707,14 +1715,14 @@ void glsv_it_res_close_09()
                SA_AIS_OK},
                */
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -1727,7 +1735,7 @@ void glsv_it_res_close_09()
                  SA_AIS_ERR_NOT_EXIST},
                  */
 
-	result = tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_RSC_NOT_EXIST_T,
+	result = tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_RSC_NOT_EXIST_T,
 					  TEST_NONCONFIG_MODE);
 
 final2:
@@ -1744,30 +1752,30 @@ void glsv_it_res_close_10()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	sleep(2);
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 0)
 		result = TET_PASS;
@@ -1786,23 +1794,23 @@ void glsv_it_res_close_11()
 	int result;
 	SaLckResourceHandleT lcl_res_hdl1, lcl_res_hdl2;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	lcl_res_hdl1 = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -1811,7 +1819,7 @@ void glsv_it_res_close_11()
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -1821,23 +1829,23 @@ void glsv_it_res_close_11()
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_ERR_TIMEOUT_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_ERR_TIMEOUT_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.waiter_sig == 0 &&
 	    gl_gla_env.waiter_clbk_lck_id == 0)
@@ -1861,7 +1869,7 @@ void glsv_it_res_lck_01()
 {
 	int result;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_BAD_RSC_HDL_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_BAD_RSC_HDL_T,
 					  TEST_CONFIG_MODE);
 	glsv_result(result);
 }
@@ -1870,17 +1878,17 @@ void glsv_it_res_lck_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_FINALIZED_HDL_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_FINALIZED_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 final:
@@ -1891,21 +1899,21 @@ void glsv_it_res_lck_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_CLOSED_RSC_HDL_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_CLOSED_RSC_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -1919,16 +1927,16 @@ void glsv_it_res_lck_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_NULL_LCKID_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_NULL_LCKID_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -1942,16 +1950,16 @@ void glsv_it_res_lck_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_NULL_LCK_STATUS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_NULL_LCK_STATUS_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -1965,16 +1973,16 @@ void glsv_it_res_lck_06()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_INVALID_LOCK_MODE_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_INVALID_LOCK_MODE_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -1988,16 +1996,16 @@ void glsv_it_res_lck_07()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_BAD_FLGS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_BAD_FLGS_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -2011,16 +2019,16 @@ void glsv_it_res_lck_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ZERO_TIMEOUT_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ZERO_TIMEOUT_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -2034,16 +2042,16 @@ void glsv_it_res_lck_09()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
 					  TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -2062,16 +2070,16 @@ void glsv_it_res_lck_10()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_NO_QUEUE_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_NO_QUEUE_PRLCK_T,
 					  TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -2090,16 +2098,16 @@ void glsv_it_res_lck_11()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -2120,16 +2128,16 @@ void glsv_it_res_lck_12()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -2148,16 +2156,16 @@ void glsv_it_res_lck_13()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_NO_QUEUE_EXLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_NO_QUEUE_EXLCK_T,
 					  TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -2176,16 +2184,16 @@ void glsv_it_res_lck_14()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_EXLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_EXLCK_T,
 					  TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -2206,21 +2214,21 @@ void glsv_it_res_lck_15()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -2228,12 +2236,12 @@ void glsv_it_res_lck_15()
 		goto final2;
 	}
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_ERR_TIMEOUT_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_ERR_TIMEOUT_T,
 					  TEST_NONCONFIG_MODE);
 
 final2:
@@ -2250,16 +2258,16 @@ void glsv_it_res_lck_16()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -2267,7 +2275,7 @@ void glsv_it_res_lck_16()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_DEADLOCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_DEADLOCK_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_DEADLOCK)
@@ -2284,16 +2292,16 @@ void glsv_it_res_lck_17()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -2301,7 +2309,7 @@ void glsv_it_res_lck_17()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_DUPLICATE_EXLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_DUPLICATE_EXLCK_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS ||
@@ -2319,21 +2327,21 @@ void glsv_it_res_lck_18()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -2341,12 +2349,12 @@ void glsv_it_res_lck_18()
 		goto final2;
 	}
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_NOT_QUEUED_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_NOT_QUEUED_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS ||
@@ -2369,7 +2377,7 @@ void glsv_it_res_lck_async_01()
 {
 	int result;
 
-	result = tet_test_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_BAD_RSC_HDL_T,
+	result = tet_test_red_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_BAD_RSC_HDL_T,
 					       TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
@@ -2378,24 +2386,24 @@ void glsv_it_res_lck_async_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_FINALIZED_HDL_T, TEST_NONCONFIG_MODE);
 
 final:
@@ -2406,21 +2414,21 @@ void glsv_it_res_lck_async_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_CLOSED_RSC_HDL_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -2434,16 +2442,16 @@ void glsv_it_res_lck_async_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_NULL_LCKID_T,
+	result = tet_test_red_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_NULL_LCKID_T,
 					       TEST_NONCONFIG_MODE);
 
 final1:
@@ -2457,16 +2465,16 @@ void glsv_it_res_lck_async_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_INVALID_LOCK_MODE_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -2480,16 +2488,16 @@ void glsv_it_res_lck_async_06()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_BAD_FLGS_T,
+	result = tet_test_red_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_BAD_FLGS_T,
 					       TEST_NONCONFIG_MODE);
 
 final1:
@@ -2504,16 +2512,16 @@ void glsv_it_res_lck_async_07()
 	int result;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_NULL_CBKS2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_NULL_CBKS2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_ERR_INIT_T,
+	result = tet_test_red_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_ERR_INIT_T,
 					       TEST_NONCONFIG_MODE);
 
 final1:
@@ -2527,23 +2535,23 @@ void glsv_it_res_lck_async_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 706 &&
@@ -2564,23 +2572,23 @@ void glsv_it_res_lck_async_09()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_NO_QUEUE_PRLCK_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 710 &&
@@ -2601,23 +2609,23 @@ void glsv_it_res_lck_async_10()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_NO_QUEUE_PRLCK_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 710 &&
@@ -2638,23 +2646,23 @@ void glsv_it_res_lck_async_11()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_ORPHAN_PRLCK_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 712 &&
@@ -2677,23 +2685,23 @@ void glsv_it_res_lck_async_12()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 707 &&
@@ -2714,23 +2722,23 @@ void glsv_it_res_lck_async_13()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_NO_QUEUE_EXLCK_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 711 &&
@@ -2751,23 +2759,23 @@ void glsv_it_res_lck_async_14()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_ORPHAN_EXLCK_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 713 &&
@@ -2790,21 +2798,21 @@ void glsv_it_res_lck_async_15()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -2812,19 +2820,19 @@ void glsv_it_res_lck_async_15()
 		goto final2;
 	}
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	sleep(15);
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 706 &&
@@ -2847,16 +2855,16 @@ void glsv_it_res_lck_async_16()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -2864,7 +2872,7 @@ void glsv_it_res_lck_async_16()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -2872,7 +2880,7 @@ void glsv_it_res_lck_async_16()
 	sleep(17);
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.waiter_sig == 5600 &&
@@ -2897,16 +2905,16 @@ void glsv_it_res_lck_async_17()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -2914,14 +2922,14 @@ void glsv_it_res_lck_async_17()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 707 &&
@@ -2942,21 +2950,21 @@ void glsv_it_res_lck_async_18()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -2964,19 +2972,19 @@ void glsv_it_res_lck_async_18()
 		goto final2;
 	}
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_NO_QUEUE_PRLCK_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 710 &&
@@ -3000,23 +3008,23 @@ void glsv_it_res_lck_async_19()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	sleep(2);
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
@@ -3030,28 +3038,28 @@ void glsv_it_res_lck_async_20()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
 						 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.unlck_clbk_invo == 904 &&
 	    gl_gla_env.unlck_clbk_err == SA_AIS_OK)
@@ -3072,7 +3080,7 @@ void glsv_it_res_unlck_01()
 {
 	int result;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_BAD_LOCKID_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_BAD_LOCKID_T,
 					    TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
@@ -3081,26 +3089,26 @@ void glsv_it_res_unlck_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_UNLOCKED_LOCKID_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_UNLOCKED_LOCKID_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
@@ -3114,18 +3122,18 @@ void glsv_it_res_unlck_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -3133,13 +3141,13 @@ void glsv_it_res_unlck_03()
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_FINALIZED_UNLOCKED_LOCKID_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_FINALIZED_UNLOCKED_LOCKID_T,
 					    TEST_NONCONFIG_MODE);
 
 final:
@@ -3150,21 +3158,21 @@ void glsv_it_res_unlck_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_ERR_TIMEOUT_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_ERR_TIMEOUT_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
@@ -3178,20 +3186,20 @@ void glsv_it_res_unlck_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID2_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID2_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
@@ -3205,43 +3213,43 @@ void glsv_it_res_unlck_06()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final2;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 707 &&
 	    gl_gla_env.gr_clbk_err == SA_AIS_ERR_NOT_EXIST &&
@@ -3264,26 +3272,26 @@ void glsv_it_res_unlck_07()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_UNLOCKED_LOCKID_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_UNLOCKED_LOCKID_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
@@ -3297,30 +3305,30 @@ void glsv_it_res_unlck_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	sleep(2);
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 707 &&
 	    gl_gla_env.gr_clbk_err == SA_AIS_ERR_NOT_EXIST &&
@@ -3342,7 +3350,7 @@ void glsv_it_res_unlck_async_01()
 {
 	int result;
 
-	result = tet_test_lckResourceUnlockAsync(
+	result = tet_test_red_lckResourceUnlockAsync(
 	    LCK_RSC_UNLOCK_ASYNC_BAD_LOCKID_T, TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
@@ -3351,26 +3359,26 @@ void glsv_it_res_unlck_async_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceUnlockAsync(
+	result = tet_test_red_lckResourceUnlockAsync(
 	    LCK_RSC_UNLOCK_ASYNC_UNLOCKED_LOCKID_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -3384,18 +3392,18 @@ void glsv_it_res_unlck_async_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -3403,13 +3411,13 @@ void glsv_it_res_unlck_async_03()
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceUnlockAsync(
+	result = tet_test_red_lckResourceUnlockAsync(
 	    LCK_RSC_FINALIZED_ASYNC_UNLOCKED_LOCKID_T, TEST_NONCONFIG_MODE);
 
 final:
@@ -3421,21 +3429,21 @@ void glsv_it_res_unlck_async_04()
 	int result;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_NULL_CBKS2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_NULL_CBKS2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceUnlockAsync(
+	result = tet_test_red_lckResourceUnlockAsync(
 	    LCK_RSC_UNLOCK_ASYNC_ERR_INIT_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -3449,28 +3457,28 @@ void glsv_it_res_unlck_async_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
 						 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.unlck_clbk_invo == 904 &&
@@ -3490,43 +3498,43 @@ void glsv_it_res_unlck_async_06()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final2;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
 						 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS && gl_gla_env.unlck_clbk_invo == 904 &&
@@ -3552,26 +3560,26 @@ void glsv_it_res_unlck_async_07()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceUnlockAsync(
+	result = tet_test_red_lckResourceUnlockAsync(
 	    LCK_RSC_UNLOCK_ASYNC_UNLOCKED_LOCKID_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -3585,30 +3593,30 @@ void glsv_it_res_unlck_async_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	sleep(2);
 
-	result = tet_test_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
 						 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.unlck_clbk_invo == 904 &&
 	    gl_gla_env.unlck_clbk_err == SA_AIS_OK &&
@@ -3629,35 +3637,35 @@ void glsv_it_res_unlck_async_09()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
 						 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	sleep(2);
 
-	result = tet_test_lckResourceUnlock(
+	result = tet_test_red_lckResourceUnlock(
 	    LCK_RSC_UNLOCK_ASYNC_UNLOCKED_LOCKID_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.unlck_clbk_invo == 904 &&
 	    gl_gla_env.unlck_clbk_err == SA_AIS_OK)
@@ -3676,35 +3684,35 @@ void glsv_it_res_unlck_async_10()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
 		goto final1;
 
-	result = tet_test_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_SUCCESS_T,
 						 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	sleep(2);
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.unlck_clbk_invo == 904 &&
 	    gl_gla_env.unlck_clbk_err == SA_AIS_ERR_NOT_EXIST)
@@ -3725,7 +3733,7 @@ void glsv_it_lck_purge_01()
 {
 	int result;
 
-	result = tet_test_lckLockPurge(LCK_LOCK_PURGE_BAD_HDL_T,
+	result = tet_test_red_lckLockPurge(LCK_LOCK_PURGE_BAD_HDL_T,
 				       TEST_NONCONFIG_MODE);
 	glsv_result(result);
 }
@@ -3734,21 +3742,21 @@ void glsv_it_lck_purge_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckLockPurge(LCK_LOCK_PURGE_CLOSED_HDL_T,
+	result = tet_test_red_lckLockPurge(LCK_LOCK_PURGE_CLOSED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 final1:
@@ -3762,24 +3770,24 @@ void glsv_it_lck_purge_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckLockPurge(LCK_LOCK_PURGE_FINALIZED_HDL_T,
+	result = tet_test_red_lckLockPurge(LCK_LOCK_PURGE_FINALIZED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 final:
@@ -3790,16 +3798,16 @@ void glsv_it_lck_purge_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckLockPurge(LCK_LOCK_PURGE_NO_ORPHAN_T,
+	result = tet_test_red_lckLockPurge(LCK_LOCK_PURGE_NO_ORPHAN_T,
 				       TEST_NONCONFIG_MODE);
 
 final1:
@@ -3813,18 +3821,18 @@ void glsv_it_lck_purge_05()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -3832,7 +3840,7 @@ void glsv_it_lck_purge_05()
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_orphan_cleanup(LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T);
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -3840,16 +3848,16 @@ void glsv_it_lck_purge_05()
 	}
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_ORPHANED_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_ORPHANED_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_ORPHANED) {
@@ -3857,12 +3865,12 @@ void glsv_it_lck_purge_05()
 		goto final1;
 	}
 
-	result = tet_test_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T,
+	result = tet_test_red_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
 	gl_gla_env.lck_status = 0;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_NONCONFIG_MODE);
 	if (result == TET_PASS || gl_gla_env.lck_status == SA_LCK_LOCK_GRANTED)
 		result = TET_PASS;
@@ -3884,16 +3892,16 @@ void glsv_it_res_cr_del_01()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME2_SUCCESS_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -3907,18 +3915,18 @@ void glsv_it_res_cr_del_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 208 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_OK) {
@@ -3928,14 +3936,14 @@ void glsv_it_res_cr_del_02()
 
 	glsv_clean_clbk_params();
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME2_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 209 ||
@@ -3956,18 +3964,18 @@ void glsv_it_res_cr_del_03()
 	int result;
 	SaLckResourceHandleT lcl_res_hdl1;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 208 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_OK) {
@@ -3975,33 +3983,33 @@ void glsv_it_res_cr_del_03()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_NAME1_EXIST_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	lcl_res_hdl1 = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	gl_gla_env.res_hdl1 = gl_gla_env.open_clbk_res_hdl;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 
 final1:
@@ -4015,18 +4023,18 @@ void glsv_it_res_cr_del_04()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_RSC_NOT_EXIST_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 206 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_ERR_NOT_EXIST) {
@@ -4036,7 +4044,7 @@ void glsv_it_res_cr_del_04()
 
 	gl_gla_env.res_hdl1 = gl_gla_env.open_clbk_res_hdl;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_BAD_HDL_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_BAD_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -4053,14 +4061,14 @@ void glsv_it_res_cr_del_05()
 
 	gl_open_clbk_iter = 0;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	glsv_createthread(&gl_gla_env.lck_hdl1);
 
 	for (i = 0; i < 10; i++) {
-		result = tet_test_lckResourceOpenAsync(
+		result = tet_test_red_lckResourceOpenAsync(
 		    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T,
 		    TEST_CONFIG_MODE);
 		if (result != TET_PASS)
@@ -4091,18 +4099,18 @@ static void glsv_it_res_cr_del_06_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	lcl_res_hdl1 = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_EXIST_SUCCESS_T,
 	    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
@@ -4110,7 +4118,7 @@ static void glsv_it_res_cr_del_06_sync_async(int async)
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 212 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_OK) {
@@ -4123,14 +4131,14 @@ static void glsv_it_res_cr_del_06_sync_async(int async)
 	if (gl_glsv_async == 1) {
 		gl_gla_env.res_hdl1 = lcl_res_hdl2;
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.gr_clbk_invo != 707 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_OK ||
@@ -4141,7 +4149,7 @@ static void glsv_it_res_cr_del_06_sync_async(int async)
 	} else {
 		gl_gla_env.res_hdl1 = lcl_res_hdl2;
 
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_EX_LOCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4152,12 +4160,12 @@ static void glsv_it_res_cr_del_06_sync_async(int async)
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
+	result = tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_LCKID1_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
@@ -4185,11 +4193,11 @@ static void glsv_it_lck_modes_wt_clbk_01_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -4197,7 +4205,7 @@ static void glsv_it_lck_modes_wt_clbk_01_sync_async(int async)
 	if (gl_glsv_async == 1) {
 		glsv_createthread(&gl_gla_env.lck_hdl1);
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
@@ -4213,7 +4221,7 @@ static void glsv_it_lck_modes_wt_clbk_01_sync_async(int async)
 
 		glsv_clean_clbk_params();
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
@@ -4229,7 +4237,7 @@ static void glsv_it_lck_modes_wt_clbk_01_sync_async(int async)
 
 		glsv_clean_clbk_params();
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
@@ -4241,7 +4249,7 @@ static void glsv_it_lck_modes_wt_clbk_01_sync_async(int async)
 		    gl_gla_env.gr_clbk_status != SA_LCK_LOCK_GRANTED)
 			result = TET_FAIL;
 	} else {
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_PR_LOCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4250,7 +4258,7 @@ static void glsv_it_lck_modes_wt_clbk_01_sync_async(int async)
 		}
 
 		gl_gla_env.lck_status = 0;
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_PR_LOCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4259,7 +4267,7 @@ static void glsv_it_lck_modes_wt_clbk_01_sync_async(int async)
 		}
 
 		gl_gla_env.lck_status = 0;
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_PR_LOCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED)
@@ -4290,23 +4298,23 @@ static void glsv_it_lck_modes_wt_clbk_03_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	lcl_res_hdl1 = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -4316,14 +4324,14 @@ static void glsv_it_lck_modes_wt_clbk_03_sync_async(int async)
 	if (gl_glsv_async == 1) {
 		gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.gr_clbk_invo != 707 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_OK ||
@@ -4336,7 +4344,7 @@ static void glsv_it_lck_modes_wt_clbk_03_sync_async(int async)
 
 		gl_gla_env.res_hdl1 = lcl_res_hdl2;
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
@@ -4344,7 +4352,7 @@ static void glsv_it_lck_modes_wt_clbk_03_sync_async(int async)
 		sleep(15);
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS2_T, TEST_NONCONFIG_MODE);
 		if (gl_gla_env.gr_clbk_invo != 707 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_ERR_TIMEOUT)
@@ -4352,7 +4360,7 @@ static void glsv_it_lck_modes_wt_clbk_03_sync_async(int async)
 	} else {
 		gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_EX_LOCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4363,7 +4371,7 @@ static void glsv_it_lck_modes_wt_clbk_03_sync_async(int async)
 		gl_gla_env.res_hdl1 = lcl_res_hdl2;
 		gl_gla_env.lck_status = 0;
 
-		result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_ERR_TIMEOUT_T,
+		result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_ERR_TIMEOUT_T,
 						  TEST_NONCONFIG_MODE);
 	}
 
@@ -4394,18 +4402,18 @@ static void glsv_it_lck_modes_wt_clbk_05_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	lcl_res_hdl1 = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -4415,14 +4423,14 @@ static void glsv_it_lck_modes_wt_clbk_05_sync_async(int async)
 	if (gl_glsv_async == 1) {
 		gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.gr_clbk_invo != 707 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_OK ||
@@ -4435,14 +4443,14 @@ static void glsv_it_lck_modes_wt_clbk_05_sync_async(int async)
 
 		gl_gla_env.res_hdl1 = lcl_res_hdl2;
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (gl_gla_env.gr_clbk_invo != 707 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_OK ||
@@ -4451,7 +4459,7 @@ static void glsv_it_lck_modes_wt_clbk_05_sync_async(int async)
 	} else {
 		gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_EX_LOCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4462,7 +4470,7 @@ static void glsv_it_lck_modes_wt_clbk_05_sync_async(int async)
 		gl_gla_env.res_hdl1 = lcl_res_hdl2;
 		gl_gla_env.lck_status = 0;
 
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_EX_LOCK_DEADLOCK_T, TEST_NONCONFIG_MODE);
 	}
 
@@ -4490,25 +4498,25 @@ static void glsv_it_lck_modes_wt_clbk_07_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	glsv_createthread(&gl_gla_env.lck_hdl1);
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	lcl_res_hdl1 = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -4518,7 +4526,7 @@ static void glsv_it_lck_modes_wt_clbk_07_sync_async(int async)
 	if (gl_glsv_async == 1) {
 		gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
@@ -4535,7 +4543,7 @@ static void glsv_it_lck_modes_wt_clbk_07_sync_async(int async)
 		glsv_clean_clbk_params();
 
 		gl_gla_env.res_hdl1 = lcl_res_hdl2;
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
@@ -4552,7 +4560,7 @@ static void glsv_it_lck_modes_wt_clbk_07_sync_async(int async)
 	} else {
 		gl_gla_env.res_hdl1 = lcl_res_hdl1;
 
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_EX_LOCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4562,7 +4570,7 @@ static void glsv_it_lck_modes_wt_clbk_07_sync_async(int async)
 
 		gl_gla_env.res_hdl1 = lcl_res_hdl2;
 
-		result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_ERR_TIMEOUT_T,
+		result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_ERR_TIMEOUT_T,
 						  TEST_CONFIG_MODE);
 
 		if (gl_gla_env.waiter_sig == 1700 &&
@@ -4599,30 +4607,30 @@ void glsv_it_lck_modes_wt_clbk_09()
 	int result;
 	SaLckResourceHandleT lcl_res_hdl;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	glsv_createthread(&gl_gla_env.lck_hdl1);
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	lcl_res_hdl = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4632,7 +4640,7 @@ void glsv_it_lck_modes_wt_clbk_09()
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_ERR_TIMEOUT_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_ERR_TIMEOUT_T,
 					  TEST_CONFIG_MODE);
 
 	if (gl_gla_env.waiter_sig != 1700 ||
@@ -4661,31 +4669,31 @@ void glsv_it_lck_modes_wt_clbk_10()
 
 	gl_wt_clbk_iter = 0;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	glsv_createthread(&gl_gla_env.lck_hdl1);
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	lcl_res_hdl = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	while (i++ < 5) {
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_PR_LOCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4701,7 +4709,7 @@ void glsv_it_lck_modes_wt_clbk_10()
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_ERR_TIMEOUT_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_ERR_TIMEOUT_T,
 					  TEST_CONFIG_MODE);
 
 	if (gl_wt_clbk_iter == 5)
@@ -4727,30 +4735,30 @@ void glsv_it_lck_modes_wt_clbk_11()
 
 	gl_wt_clbk_iter = 0;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	glsv_createthread(&gl_gla_env.lck_hdl1);
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	lcl_res_hdl = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4761,7 +4769,7 @@ void glsv_it_lck_modes_wt_clbk_11()
 	gl_gla_env.res_hdl1 = lcl_res_hdl;
 
 	while (i++ < 5) {
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			break;
@@ -4794,19 +4802,19 @@ void glsv_it_lck_modes_wt_clbk_12()
 
 	gl_gr_clbk_iter = 0;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	glsv_createthread(&gl_gla_env.lck_hdl1);
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	for (i = 0; i < 10; i++) {
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			break;
@@ -4834,23 +4842,23 @@ void glsv_it_lck_modes_wt_clbk_13()
 	int result;
 	SaLckResourceHandleT lcl_res_hdl;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	lcl_res_hdl = gl_gla_env.res_hdl1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4860,7 +4868,7 @@ void glsv_it_lck_modes_wt_clbk_13()
 
 	gl_gla_env.res_hdl1 = lcl_res_hdl;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_DEADLOCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_DEADLOCK_T,
 					  TEST_NONCONFIG_MODE);
 
 final1:
@@ -4876,18 +4884,18 @@ void glsv_it_ddlcks_orplks_01()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4896,18 +4904,18 @@ void glsv_it_ddlcks_orplks_01()
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_orphan_cleanup(LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T);
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T,
 	    TEST_NONCONFIG_MODE);
 
@@ -4925,18 +4933,18 @@ static void glsv_it_ddlcks_orplks_02_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -4945,31 +4953,31 @@ static void glsv_it_ddlcks_orplks_02_sync_async(int async)
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_orphan_cleanup(LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T);
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	if (gl_glsv_async == 1) {
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_ORPHAN_EXLCK_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 713 &&
 		    gl_gla_env.gr_clbk_err == SA_AIS_OK &&
@@ -4978,7 +4986,7 @@ static void glsv_it_ddlcks_orplks_02_sync_async(int async)
 		else
 			result = TET_FAIL;
 	} else {
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_EX_LOCK_ORPHANED_T, TEST_NONCONFIG_MODE);
 		if (result == TET_PASS &&
 		    gl_gla_env.lck_status == SA_LCK_LOCK_ORPHANED)
@@ -5011,18 +5019,18 @@ static void glsv_it_ddlcks_orplks_04_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5031,24 +5039,24 @@ static void glsv_it_ddlcks_orplks_04_sync_async(int async)
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_orphan_cleanup(LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T);
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	if (gl_glsv_async == 1) {
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
@@ -5056,7 +5064,7 @@ static void glsv_it_ddlcks_orplks_04_sync_async(int async)
 		sleep(15);
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 707 &&
 		    gl_gla_env.gr_clbk_err == SA_AIS_ERR_TIMEOUT)
@@ -5064,7 +5072,7 @@ static void glsv_it_ddlcks_orplks_04_sync_async(int async)
 		else
 			result = TET_FAIL;
 	} else {
-		result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_ERR_TIMEOUT_T,
+		result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_ERR_TIMEOUT_T,
 						  TEST_NONCONFIG_MODE);
 	}
 
@@ -5093,23 +5101,23 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 208 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_OK) {
@@ -5119,20 +5127,20 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 
 	gl_gla_env.res_hdl1 = gl_gla_env.open_clbk_res_hdl;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL2_NAME2_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	if (gl_glsv_async == 1) {
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_PRLCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.gr_clbk_invo != 706 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_OK ||
@@ -5145,14 +5153,14 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 
 		glsv_clean_clbk_params();
 
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_PRLCK_RSC2_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS2_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.gr_clbk_invo != 708 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_OK ||
@@ -5163,7 +5171,7 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 
 		pr_lck_id2 = gl_gla_env.pr_lck_id;
 	} else {
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_PR_LOCK_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5174,7 +5182,7 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 		pr_lck_id1 = gl_gla_env.pr_lck_id;
 		gl_gla_env.lck_status = 0;
 
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_PR_LOCK_RSC2_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5187,30 +5195,30 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 
 	glsv_clean_clbk_params();
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME2_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL2_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_EXLCK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	if (gl_glsv_async == 1) {
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_EXLCK_RSC2_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.gr_clbk_invo != 709 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_OK ||
@@ -5223,7 +5231,7 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 			goto final2;
 		}
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.waiter_sig != 5900 ||
 		    gl_gla_env.waiter_clbk_lck_id != pr_lck_id2 ||
@@ -5235,7 +5243,7 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 
 		sleep(15);
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.gr_clbk_invo != 707 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_ERR_TIMEOUT)
@@ -5245,7 +5253,7 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 	} else {
 		gl_gla_env.lck_status = 0;
 
-		result = tet_test_lckResourceLock(
+		result = tet_test_red_lckResourceLock(
 		    LCK_RSC_LOCK_EX_LOCK_RSC2_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS ||
 		    gl_gla_env.lck_status != SA_LCK_LOCK_DEADLOCK) {
@@ -5255,7 +5263,7 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS2_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.waiter_sig != 2100 ||
 		    gl_gla_env.waiter_clbk_lck_id != pr_lck_id2 ||
@@ -5265,7 +5273,7 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 			goto final2;
 		}
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.waiter_sig != 5700 ||
 		    gl_gla_env.waiter_clbk_lck_id != pr_lck_id1 ||
@@ -5277,7 +5285,7 @@ static void glsv_it_ddlcks_orplks_06_sync_async(int async)
 
 		sleep(15);
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ALL_SUCCESS2_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS || gl_gla_env.gr_clbk_invo != 707 ||
 		    gl_gla_env.gr_clbk_err != SA_AIS_ERR_TIMEOUT)
@@ -5310,23 +5318,23 @@ void glsv_it_ddlcks_orplks_08()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 208 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_OK) {
@@ -5334,7 +5342,7 @@ void glsv_it_ddlcks_orplks_08()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5345,7 +5353,7 @@ void glsv_it_ddlcks_orplks_08()
 	gl_gla_env.lck_status = 0;
 	gl_gla_env.res_hdl1 = gl_gla_env.open_clbk_res_hdl;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_DEADLOCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_DEADLOCK_T,
 					  TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.lck_status == SA_LCK_LOCK_DEADLOCK)
 		result = TET_PASS;
@@ -5363,18 +5371,18 @@ void glsv_it_ddlcks_orplks_09()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	glsv_createthread(&gl_gla_env.lck_hdl1);
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5382,17 +5390,17 @@ void glsv_it_ddlcks_orplks_09()
 		goto final1;
 	}
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_ORPHAN_PRLCK_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_NAME1_EXIST_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -5401,7 +5409,7 @@ void glsv_it_ddlcks_orplks_09()
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_ORPHAN_EXLCK_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -5432,18 +5440,18 @@ static void glsv_it_ddlcks_orplks_10_sync_async(int async)
 
 	gl_glsv_async = async;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5452,31 +5460,31 @@ static void glsv_it_ddlcks_orplks_10_sync_async(int async)
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_orphan_cleanup(LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T);
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	if (gl_glsv_async == 1) {
-		result = tet_test_lckResourceLockAsync(
+		result = tet_test_red_lckResourceLockAsync(
 		    LCK_RSC_LOCK_ASYNC_NO_QUEUE_EXLCK_T, TEST_NONCONFIG_MODE);
 		if (result != TET_PASS)
 			goto final1;
 
 		m_GLSV_WAIT;
 
-		result = tet_test_lckDispatch(
+		result = tet_test_red_lckDispatch(
 		    LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T, TEST_NONCONFIG_MODE);
 		if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 711 &&
 		    gl_gla_env.gr_clbk_err == SA_AIS_OK &&
@@ -5485,7 +5493,7 @@ static void glsv_it_ddlcks_orplks_10_sync_async(int async)
 		else
 			result = TET_FAIL;
 	} else {
-		result = tet_test_lckResourceLock(LCK_RSC_LOCK_NO_QUEUE_EXLCK_T,
+		result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_NO_QUEUE_EXLCK_T,
 						  TEST_NONCONFIG_MODE);
 		if (result == TET_PASS &&
 		    gl_gla_env.lck_status == SA_LCK_LOCK_NOT_QUEUED)
@@ -5518,23 +5526,23 @@ void glsv_it_lck_strip_purge_01(void)
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpenAsync(
+	result = tet_test_red_lckResourceOpenAsync(
 	    LCK_RESOURCE_OPEN_ASYNC_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_gla_env.open_clbk_invo != 208 ||
 	    gl_gla_env.open_clbk_err != SA_AIS_OK) {
@@ -5542,7 +5550,7 @@ void glsv_it_lck_strip_purge_01(void)
 		goto final1;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5553,7 +5561,7 @@ void glsv_it_lck_strip_purge_01(void)
 	gl_gla_env.res_hdl1 = gl_gla_env.open_clbk_res_hdl;
 	gl_gla_env.lck_status = 0;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5563,24 +5571,24 @@ void glsv_it_lck_strip_purge_01(void)
 		goto final;
 	}
 
-	result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_orphan_cleanup(LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T);
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	gl_gla_env.lck_status = 0;
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_ORPHANED_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_ORPHANED_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_ORPHANED) {
@@ -5589,12 +5597,12 @@ void glsv_it_lck_strip_purge_01(void)
 	}
 
 	result =
-	    tet_test_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	gl_gla_env.lck_status = 0;
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.lck_status == SA_LCK_LOCK_GRANTED)
 		result = TET_PASS;
@@ -5613,18 +5621,18 @@ void glsv_it_lck_strip_purge_02()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5633,7 +5641,7 @@ void glsv_it_lck_strip_purge_02()
 		goto final;
 	}
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_orphan_cleanup(LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T);
@@ -5641,13 +5649,13 @@ void glsv_it_lck_strip_purge_02()
 		goto final;
 	}
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	gl_gla_env.lck_status = 0;
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_ORPHANED_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_ORPHANED_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_ORPHANED) {
@@ -5656,12 +5664,12 @@ void glsv_it_lck_strip_purge_02()
 	}
 
 	result =
-	    tet_test_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	gl_gla_env.lck_status = 0;
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.lck_status == SA_LCK_LOCK_GRANTED)
 		result = TET_PASS;
@@ -5680,18 +5688,18 @@ void glsv_it_lck_strip_purge_03()
 {
 	int result;
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_ORPHAN_PRLCK_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5700,7 +5708,7 @@ void glsv_it_lck_strip_purge_03()
 		goto final;
 	}
 
-	result = tet_test_lckResourceClose(
+	result = tet_test_red_lckResourceClose(
 	    LCK_RESOURCE_CLOSE_RSC_HDL1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
 		glsv_orphan_cleanup(LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T);
@@ -5708,13 +5716,13 @@ void glsv_it_lck_strip_purge_03()
 		goto final;
 	}
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_RSC_EXIST_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	gl_gla_env.lck_status = 0;
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_PR_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_GRANTED) {
@@ -5723,7 +5731,7 @@ void glsv_it_lck_strip_purge_03()
 	}
 
 	gl_gla_env.lck_status = 0;
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_ORPHANED_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_ORPHANED_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_gla_env.lck_status != SA_LCK_LOCK_ORPHANED) {
@@ -5732,11 +5740,11 @@ void glsv_it_lck_strip_purge_03()
 	}
 
 	result =
-	    tet_test_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLockAsync(
+	result = tet_test_red_lckResourceLockAsync(
 	    LCK_RSC_LOCK_ASYNC_ORPHAN_EXLCK_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -5744,7 +5752,7 @@ void glsv_it_lck_strip_purge_03()
 	sleep(15);
 	m_GLSV_WAIT;
 
-	result = tet_test_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_lckDispatch(LCK_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_gla_env.gr_clbk_invo == 713 &&
 	    gl_gla_env.gr_clbk_err == SA_AIS_OK &&
@@ -5773,7 +5781,7 @@ void glsv_it_err_try_again_01()
 	printf(" KILL GLD/GLND AND PRESS ENTER TO CONTINUE\n");
 	getchar();
 
-	result = tet_test_lckInitialize(LCK_INIT_ERR_TRY_AGAIN_T,
+	result = tet_test_red_lckInitialize(LCK_INIT_ERR_TRY_AGAIN_T,
 					TEST_NONCONFIG_MODE);
 
 	glsv_result(result);
@@ -5786,26 +5794,26 @@ void glsv_it_err_try_again_02()
 	glsv_print_testcase(
 	    " \n\n ***** API TEST for SA_AIS_ERR_TRY_AGAIN (case 2) *****\n");
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	printf(" KILL GLD/GLND AND PRESS ENTER TO CONTINUE\n");
 	getchar();
 
-	tet_test_lckSelectionObject(LCK_SEL_OBJ_ERR_TRY_AGAIN_T,
+	tet_test_red_lckSelectionObject(LCK_SEL_OBJ_ERR_TRY_AGAIN_T,
 				    TEST_NONCONFIG_MODE);
 
-	tet_test_lckOptionCheck(LCK_OPT_CHCK_SUCCESS_T, TEST_NONCONFIG_MODE);
+	tet_test_red_lckOptionCheck(LCK_OPT_CHCK_SUCCESS_T, TEST_NONCONFIG_MODE);
 
-	tet_test_lckDispatch(LCK_DISPATCH_ERR_TRY_AGAIN_T, TEST_NONCONFIG_MODE);
+	tet_test_red_lckDispatch(LCK_DISPATCH_ERR_TRY_AGAIN_T, TEST_NONCONFIG_MODE);
 
-	tet_test_lckFinalize(LCK_FINALIZE_ERR_TRY_AGAIN_T, TEST_NONCONFIG_MODE);
+	tet_test_red_lckFinalize(LCK_FINALIZE_ERR_TRY_AGAIN_T, TEST_NONCONFIG_MODE);
 
-	tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_ERR_TRY_AGAIN_T,
+	tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_ERR_TRY_AGAIN_T,
 				 TEST_NONCONFIG_MODE);
 
-	tet_test_lckResourceOpenAsync(LCK_RESOURCE_OPEN_ASYNC_ERR_TRY_AGAIN_T,
+	tet_test_red_lckResourceOpenAsync(LCK_RESOURCE_OPEN_ASYNC_ERR_TRY_AGAIN_T,
 				      TEST_NONCONFIG_MODE);
 
 	glsv_init_cleanup(LCK_CLEAN_INIT_SUCCESS_T);
@@ -5821,11 +5829,11 @@ void glsv_it_err_try_again_03()
 	glsv_print_testcase(
 	    " \n\n ***** API TEST for SA_AIS_ERR_TRY_AGAIN (case 3) *****\n");
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -5833,16 +5841,16 @@ void glsv_it_err_try_again_03()
 	printf(" KILL GLD/GLND AND PRESS ENTER TO CONTINUE\n");
 	getchar();
 
-	tet_test_lckResourceClose(LCK_RESOURCE_CLOSE_ERR_TRY_AGAIN_T,
+	tet_test_red_lckResourceClose(LCK_RESOURCE_CLOSE_ERR_TRY_AGAIN_T,
 				  TEST_NONCONFIG_MODE);
 
-	tet_test_lckResourceLock(LCK_RSC_LOCK_ERR_TRY_AGAIN_T,
+	tet_test_red_lckResourceLock(LCK_RSC_LOCK_ERR_TRY_AGAIN_T,
 				 TEST_NONCONFIG_MODE);
 
-	tet_test_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_ERR_TRY_AGAIN_T,
+	tet_test_red_lckResourceLockAsync(LCK_RSC_LOCK_ASYNC_ERR_TRY_AGAIN_T,
 				      TEST_NONCONFIG_MODE);
 
-	tet_test_lckLockPurge(LCK_LOCK_PURGE_ERR_TRY_AGAIN_T,
+	tet_test_red_lckLockPurge(LCK_LOCK_PURGE_ERR_TRY_AGAIN_T,
 			      TEST_NONCONFIG_MODE);
 
 final1:
@@ -5859,16 +5867,16 @@ void glsv_it_err_try_again_04()
 	glsv_print_testcase(
 	    " \n\n ***** API TEST for SA_AIS_ERR_TRY_AGAIN (case 4) *****\n");
 
-	result = tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_lckResourceOpen(
+	result = tet_test_red_lckResourceOpen(
 	    LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
+	result = tet_test_red_lckResourceLock(LCK_RSC_LOCK_EX_LOCK_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -5876,10 +5884,10 @@ void glsv_it_err_try_again_04()
 	printf(" KILL GLD/GLND AND PRESS ENTER TO CONTINUE\n");
 	getchar();
 
-	tet_test_lckResourceUnlock(LCK_RSC_UNLOCK_ERR_TRY_AGAIN_T,
+	tet_test_red_lckResourceUnlock(LCK_RSC_UNLOCK_ERR_TRY_AGAIN_T,
 				   TEST_NONCONFIG_MODE);
 
-	tet_test_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_ERR_TRY_AGAIN_T,
+	tet_test_red_lckResourceUnlockAsync(LCK_RSC_UNLOCK_ASYNC_ERR_TRY_AGAIN_T,
 					TEST_NONCONFIG_MODE);
 
 final1:

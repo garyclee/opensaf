@@ -9,14 +9,24 @@
 
 static SaVersionT lck3_1 = { 'B', 3, 0 };
 
+static bool redo = false;
+
 static void lockGrantCallbackNoResources(SaInvocationT invocation,
                                          SaLckLockStatusT lockStatus,
                                          SaAisErrorT error)
 {
-  if (invocation == 1000)
+  if (error == SA_AIS_ERR_TIMEOUT || error == SA_AIS_ERR_TRY_AGAIN) {
+   redo = true;
+   printf("lockGrantCallbackNoResources received timeout/tryagain\n");
+   sleep(1);
+  } else if (invocation == 1000)
     test_validate(error, SA_AIS_ERR_NO_RESOURCES);
-  else
+  else {
+    if (error != SA_AIS_OK)
+      printf("error: %i\n", error);
+
     assert(error == SA_AIS_OK);
+  }
 }
 
 static void lockGrantCallbackNoMore(SaInvocationT invocation,
@@ -26,6 +36,151 @@ static void lockGrantCallbackNoMore(SaInvocationT invocation,
   assert(error == SA_AIS_OK);
   if (invocation == 1000)
     test_validate(lockStatus, SA_LCK_LOCK_NO_MORE);
+}
+
+SaAisErrorT lockResourceOpen(SaLckHandleT lckHandle,
+                             const SaNameT& name,
+                             SaLckResourceOpenFlagsT flags,
+                             SaTimeT timeout,
+                             SaLckResourceHandleT& lockResourceHandle)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saLckResourceOpen(lckHandle,
+                           &name,
+                           flags,
+                           timeout,
+                           &lockResourceHandle);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
+}
+
+SaAisErrorT lockResourceOpenAsync(SaLckHandleT lckHandle,
+                                  SaInvocationT invocation,
+                                  const SaNameT& name,
+                                  SaLckResourceOpenFlagsT flags)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saLckResourceOpenAsync(lckHandle, invocation, &name, flags);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
+}
+
+SaAisErrorT lockResourceLockAsync(SaLckResourceHandleT lockResourceHandle,
+                                  SaInvocationT invocation,
+                                  SaLckLockIdT *lockId,
+                                  SaLckLockModeT lockMode,
+                                  SaLckLockFlagsT lockFlags,
+                                  SaLckWaiterSignalT waiterSignal)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saLckResourceLockAsync(lockResourceHandle,
+                                invocation,
+                                lockId,
+                                lockMode,
+                                lockFlags,
+                                waiterSignal);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
+}
+
+SaAisErrorT lockResourceLock(SaLckResourceHandleT lockResourceHandle,
+                             SaLckLockIdT *lockId,
+                             SaLckLockModeT lockMode,
+                             SaLckLockFlagsT lockFlags,
+                             SaLckWaiterSignalT waiterSignal,
+                             SaTimeT timeout,
+                             SaLckLockStatusT *lockStatus)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saLckResourceLock(lockResourceHandle,
+                           lockId,
+                           lockMode,
+                           lockFlags,
+                           waiterSignal,
+                           timeout,
+                           lockStatus);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
+}
+
+SaAisErrorT lockResourceUnlock(SaLckLockIdT lockId, SaTimeT timeout)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saLckResourceUnlock(lockId, timeout);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
+}
+
+SaAisErrorT lockResourceClose(SaLckResourceHandleT handle)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saLckResourceClose(handle);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
+}
+
+SaAisErrorT lockPurge(SaLckResourceHandleT handle)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saLckLockPurge(handle);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
 }
 
 static void saLckLimitGet_01(void)
@@ -135,11 +290,11 @@ static void saLckLimitGet_08(void)
     char *temp = strstr(reinterpret_cast<char *>(name.value), "XXXX");
     sprintf(temp, "%.4i", i);
 
-    rc = saLckResourceOpen(lckHandle,
-                           &name,
-                           SA_LCK_RESOURCE_CREATE,
-                           SA_TIME_ONE_SECOND * 5,
-                           &resHandles[i]);
+    rc = lockResourceOpen(lckHandle,
+                          name,
+                          SA_LCK_RESOURCE_CREATE,
+                          SA_TIME_ONE_SECOND * 5,
+                          resHandles[i]);
 
     if (i != 1000)
       assert(rc == SA_AIS_OK);
@@ -148,7 +303,7 @@ static void saLckLimitGet_08(void)
   test_validate(rc, SA_AIS_ERR_NO_RESOURCES);
 
   for (int i(0); i < 1000; i++) {
-    rc = saLckResourceClose(resHandles[i]);
+    rc = lockResourceClose(resHandles[i]);
     assert(rc == SA_AIS_OK);
   }
 
@@ -172,24 +327,24 @@ static void saLckLimitGet_09(void)
     "safLock=TestLockUp"
   };
 
-  rc = saLckResourceOpen(lckHandle,
-                         &name,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        name,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId[1000];
 
   for (int i(0); i < 1001; i++) {
     SaLckLockStatusT lockStatus;
-    rc = saLckResourceLock(lockResourceHandle,
-                           &lockId[i],
-                           SA_LCK_PR_LOCK_MODE,
-                           0,
-                           1,
-                           SA_TIME_ONE_SECOND * 5,
-                           &lockStatus);
+    rc = lockResourceLock(lockResourceHandle,
+                          &lockId[i],
+                          SA_LCK_PR_LOCK_MODE,
+                          0,
+                          1,
+                          SA_TIME_ONE_SECOND * 5,
+                          &lockStatus);
 
     if (i != 1000) {
       assert(lockStatus == SA_LCK_LOCK_GRANTED);
@@ -200,11 +355,11 @@ static void saLckLimitGet_09(void)
   test_validate(rc, SA_AIS_ERR_NO_RESOURCES);
 
   for (int i(0); i < 1000; i++) {
-    rc = saLckResourceUnlock(lockId[i], SA_TIME_ONE_SECOND * 5);
+    rc = lockResourceUnlock(lockId[i], SA_TIME_ONE_SECOND * 5);
     assert(rc == SA_AIS_OK);
   }
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   rc = saLckFinalize(lckHandle);
@@ -231,11 +386,11 @@ static void saLckLimitGet_10(void)
     "safLock=TestLockUp"
   };
 
-  rc = saLckResourceOpen(lckHandle,
-                         &name,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        name,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId[1000];
@@ -250,28 +405,31 @@ static void saLckLimitGet_10(void)
   };
 
   for (int i(0); i < 1001; i++) {
-    rc = saLckResourceLockAsync(lockResourceHandle,
-                                i,
-                                &lockId[i],
-                                SA_LCK_PR_LOCK_MODE,
-                                0,
-                                1);
-    assert(rc == SA_AIS_OK);
+    do {
+      rc = saLckResourceLockAsync(lockResourceHandle,
+                                  i,
+                                  &lockId[i],
+                                  SA_LCK_PR_LOCK_MODE,
+                                  0,
+                                  1);
+      assert(rc == SA_AIS_OK);
 
-    if (poll(fds, sizeof(fds) / sizeof(pollfd), -1) < 0)
-      assert(false);
+      if (poll(fds, sizeof(fds) / sizeof(pollfd), -1) < 0)
+        assert(false);
 
-    assert(fds[0].revents & POLLIN);
-    rc = saLckDispatch(lckHandle, SA_DISPATCH_ONE);
-    assert(rc == SA_AIS_OK);
+      assert(fds[0].revents & POLLIN);
+      redo = false;
+      rc = saLckDispatch(lckHandle, SA_DISPATCH_ONE);
+      assert(rc == SA_AIS_OK);
+    } while (redo);
   }
 
   for (int i(0); i < 1000; i++) {
-    rc = saLckResourceUnlock(lockId[i], SA_TIME_ONE_SECOND * 5);
+    rc = lockResourceUnlock(lockId[i], SA_TIME_ONE_SECOND * 5);
     assert(rc == SA_AIS_OK);
   }
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   rc = saLckFinalize(lckHandle);
@@ -292,24 +450,24 @@ static void saLckLimitGet_11(void)
     "safLock=TestLockUp"
   };
 
-  rc = saLckResourceOpen(lckHandle,
-                         &name,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        name,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId[1000];
   SaLckLockStatusT lockStatus;
 
   for (int i(0); i < 1001; i++) {
-    rc = saLckResourceLock(lockResourceHandle,
-                           &lockId[i],
-                           SA_LCK_PR_LOCK_MODE,
-                           0,
-                           1,
-                           SA_TIME_ONE_SECOND * 5,
-                           &lockStatus);
+    rc = lockResourceLock(lockResourceHandle,
+                          &lockId[i],
+                          SA_LCK_PR_LOCK_MODE,
+                          0,
+                          1,
+                          SA_TIME_ONE_SECOND * 5,
+                          &lockStatus);
 
     if (i != 1000)
       assert(lockStatus == SA_LCK_LOCK_GRANTED);
@@ -319,11 +477,11 @@ static void saLckLimitGet_11(void)
   test_validate(lockStatus, SA_LCK_LOCK_NO_MORE);
 
   for (int i(0); i < 1000; i++) {
-    rc = saLckResourceUnlock(lockId[i], SA_TIME_ONE_SECOND * 5);
+    rc = lockResourceUnlock(lockId[i], SA_TIME_ONE_SECOND * 5);
     assert(rc == SA_AIS_OK);
   }
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   rc = saLckFinalize(lckHandle);
@@ -351,11 +509,11 @@ static void saLckLimitGet_12(void)
     "safLock=TestLockUp"
   };
 
-  rc = saLckResourceOpen(lckHandle,
-                         &name,
-                         SA_LCK_RESOURCE_CREATE,
-                         SA_TIME_ONE_SECOND * 5,
-                         &lockResourceHandle);
+  rc = lockResourceOpen(lckHandle,
+                        name,
+                        SA_LCK_RESOURCE_CREATE,
+                        SA_TIME_ONE_SECOND * 5,
+                        lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   SaLckLockIdT lockId[1000];
@@ -387,11 +545,11 @@ static void saLckLimitGet_12(void)
   }
 
   for (int i(0); i < 1000; i++) {
-    rc = saLckResourceUnlock(lockId[i], SA_TIME_ONE_SECOND * 5);
+    rc = lockResourceUnlock(lockId[i], SA_TIME_ONE_SECOND * 5);
     assert(rc == SA_AIS_OK);
   }
 
-  rc = saLckResourceClose(lockResourceHandle);
+  rc = lockResourceClose(lockResourceHandle);
   assert(rc == SA_AIS_OK);
 
   rc = saLckFinalize(lckHandle);

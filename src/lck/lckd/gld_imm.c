@@ -279,7 +279,7 @@ SaAisErrorT gld_imm_init(GLSV_GLD_CB *cb)
 }
 
 /****************************************************************************
- * Name          : _gld_imm_declare_implementer
+ * Name          : gld_imm_declare_implementer
  *
  * Description   : Become a OI implementer
  *
@@ -289,7 +289,7 @@ SaAisErrorT gld_imm_init(GLSV_GLD_CB *cb)
  *
  * Notes         : None.
  *****************************************************************************/
-void *_gld_imm_declare_implementer(void *cb)
+void gld_imm_declare_implementer(GLSV_GLD_CB *cb)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	GLSV_GLD_CB *gld_cb = (GLSV_GLD_CB *)cb;
@@ -306,26 +306,6 @@ void *_gld_imm_declare_implementer(void *cb)
 		exit(EXIT_FAILURE);
 	}
 	gld_cb->is_impl_set = true;
-	return NULL;
-}
-
-/**
- * Become object implementer, non-blocking.
- * @param cb
- */
-void gld_imm_declare_implementer(GLSV_GLD_CB *cb)
-{
-	pthread_t thread;
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-	if (pthread_create(&thread, &attr, _gld_imm_declare_implementer, cb) !=
-	    0) {
-		LOG_CR("pthread_create FAILED: %s", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	pthread_attr_destroy(&attr);
 }
 
 /**
@@ -344,7 +324,7 @@ static void *gld_imm_reinit_thread(void *_cb)
 	if (error == SA_AIS_OK) {
 		/* If this is the active server, become implementer again. */
 		if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-			_gld_imm_declare_implementer(cb);
+			gld_imm_declare_implementer(cb);
 		}
 	} else {
 
