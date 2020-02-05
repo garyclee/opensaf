@@ -339,7 +339,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
   }
 
   // update receiver sequence window
-  if (rcvwnd_.acked_ < Seq16(fseq) && rcvwnd_.rcv_ + Seq16(1) == Seq16(fseq)) {
+  if (rcvwnd_.acked_ < Seq16(fseq) && rcvwnd_.rcv_ + 1 == Seq16(fseq)) {
     m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
         "RcvData[mseq:%u, mfrag:%u, fseq:%u], "
         "rcvwnd[acked:%u, rcv:%u, nacked:%" PRIu64 "]",
@@ -370,7 +370,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
     // It is not used for now, so ignore it.
 
     // check for transmission error
-    if (rcvwnd_.rcv_ + Seq16(1) < Seq16(fseq)) {
+    if (rcvwnd_.rcv_ + 1 < Seq16(fseq)) {
       if (rcvwnd_.rcv_ == 0 && rcvwnd_.acked_ == 0) {
         // peer does not realize that this portid reset
         m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
@@ -382,7 +382,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
             rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_);
 
         SendChunkAck(fseq, svc_id, 1);
-        rcvwnd_.rcv_ = fseq;
+        rcvwnd_.rcv_ = Seq16(fseq);
         rcvwnd_.acked_ = rcvwnd_.rcv_;
       } else {
         rc = NCSCC_RC_FAILURE;
@@ -395,7 +395,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
             mseq, mfrag, fseq,
             rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_);
         // send nack
-        SendNack((rcvwnd_.rcv_ + Seq16(1)).v(), svc_id);
+        SendNack((rcvwnd_.rcv_ + 1).v(), svc_id);
       }
     } else if (fseq == 1) {
       // sender realize me as portid reset
@@ -408,7 +408,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
           rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_);
 
       SendChunkAck(fseq, svc_id, 1);
-      rcvwnd_.rcv_ = fseq;
+      rcvwnd_.rcv_ = Seq16(fseq);
       rcvwnd_.acked_ = rcvwnd_.rcv_;
     } else if (Seq16(fseq) <= rcvwnd_.rcv_) {
       rc = NCSCC_RC_FAILURE;
@@ -471,13 +471,12 @@ void TipcPortId::ReceiveChunkAck(uint16_t fseq, uint16_t chksize) {
         sndwnd_.acked_.v(), sndwnd_.send_.v(), sndwnd_.nacked_space_,
         sndqueue_.Size());
 
-    // fast forward the sndwnd_.acked_ sequence to fseq
-    sndwnd_.acked_ = fseq;
-
     // remove a number @chksize messages out of sndqueue_ and decrease
     // the nacked_space_ of sender
-    uint64_t acked_bytes = sndqueue_.Erase(Seq16(fseq) - (chksize-1),
-        Seq16(fseq));
+    uint64_t acked_bytes = sndqueue_.Erase(sndwnd_.acked_ + 1, Seq16(fseq));
+    // fast forward the sndwnd_.acked_ sequence to fseq
+    sndwnd_.acked_ = Seq16(fseq);
+
     assert(sndwnd_.nacked_space_ >= acked_bytes);
     sndwnd_.nacked_space_ -= acked_bytes;
 

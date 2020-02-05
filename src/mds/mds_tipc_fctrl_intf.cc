@@ -106,7 +106,7 @@ void process_timer_event(const Event& evt) {
     static_cast<int>(evt.type_));
   for (auto i : portid_map) {
     TipcPortId* portid = i.second;
-
+    if (!portid) continue;
     if (evt.type_ == Event::Type::kEvtTmrTxProb) {
       if (portid->ReceiveTmrTxProb(kTxProbMaxRetries) == true) {
         txprob_restart = true;

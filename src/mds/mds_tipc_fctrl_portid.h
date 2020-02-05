@@ -24,72 +24,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <deque>
+#include "base/sna.h"
 #include "mds/mds_tipc_fctrl_msg.h"
 
 namespace mds {
-
-class Seq16 {
- public:
-#define SEQ16_MAX 65536
-#define SEQ16_SPACE 32768
-  uint16_t value_;
-  explicit Seq16(uint16_t v) {
-    value_ = uint16_t((uint32_t)v % SEQ16_MAX);
-  }
-  uint16_t v() {
-    return value_;
-  }
-  Seq16 operator + (const Seq16 add) const {
-    return Seq16(((uint32_t)value_ + (uint32_t)add.value_) % SEQ16_MAX);
-  }
-
-  int16_t operator - (const Seq16 sub) const {
-    if (value_ < sub.value_ && (sub.value_ - value_ < SEQ16_SPACE)) {
-      return value_ - sub.value_;
-    }
-    if (value_ > sub.value_ && (value_ - sub.value_ > SEQ16_SPACE)) {
-      return (int32_t)value_ + SEQ16_MAX -  (int32_t)sub.value_;
-    }
-    if (value_ < sub.value_ && (sub.value_ - value_ > SEQ16_SPACE)) {
-      return (int32_t)value_ + SEQ16_MAX -  (int32_t)sub.value_;
-    }
-    if (value_ > sub.value_ && (value_ - sub.value_ < SEQ16_SPACE)) {
-      return value_ - sub.value_;
-    }
-    return 0;
-  }
-  Seq16 operator - (const uint16_t sub) const {
-    return Seq16(((uint32_t)value_ + 65536 - sub) % SEQ16_MAX);
-  }
-  void operator ++() {
-    value_ = (value_ + 1) % SEQ16_MAX;
-  }
-  void operator = (const uint16_t v) {
-    value_ = v % SEQ16_MAX;
-  }
-  bool operator == (const Seq16& seq) const {
-    return value_ == seq.value_;
-  }
-  bool operator == (uint16_t val) const {
-    return value_ == val;
-  }
-  bool operator <= (const Seq16& seq) {
-    return *this == seq || *this < seq;
-  }
-  bool operator < (const Seq16& seq) {
-    if (value_ < seq.value_ && (seq.value_ - value_ < SEQ16_SPACE)) return true;
-    if (value_ > seq.value_ && (value_ - seq.value_ > SEQ16_SPACE)) return true;
-    return false;
-  }
-  bool operator > (const Seq16& seq) {
-    if (value_ < seq.value_ && (seq.value_ - value_ > SEQ16_SPACE)) return true;
-    if (value_ > seq.value_ && (value_ - seq.value_ < SEQ16_SPACE)) return true;
-    return false;
-  }
-  bool operator >= (const Seq16& seq) {
-    return *this == seq || *this > seq;
-  }
-};
 
 class MessageQueue {
  public:
