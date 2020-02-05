@@ -1492,7 +1492,8 @@ bool IsCompQualifiedAssignment(const AVND_COMP *comp) {
       LOG_IN("Ignoring Unregistered comp:'%s'", comp->name.c_str());
       rc = false;
     } else if (!m_AVND_COMP_PRES_STATE_IS_INSTANTIATED(comp) &&
-               comp->su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED &&
+               (comp->su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED ||
+               comp->su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED) &&
                !m_AVND_COMP_PRES_STATE_IS_ORPHANED(comp)) {
       LOG_IN(
           "Ignoring comp with invalid presence state:'%s', comp_flag %x, comp_pres=%u, su_pres=%u",
