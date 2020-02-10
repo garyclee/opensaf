@@ -428,6 +428,12 @@ uint32_t mds_tipc_fctrl_portid_down(struct tipc_portid id, uint32_t type) {
     portid->svc_cnt_--;
     m_MDS_LOG_DBG("FCTRL: Remove svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
         id.node, id.ref, svc_id, portid->svc_cnt_);
+    if (portid->svc_cnt_ == 0) {
+      delete portid;
+      portid_map.erase(TipcPortId::GetUniqueId(id));
+      m_MDS_LOG_NOTIFY("FCTRL: Remove portid[node:%x, ref:%u]",
+                      id.node, id.ref);
+    }
   }
   portid_map_mutex.unlock();
 

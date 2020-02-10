@@ -373,7 +373,7 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
     if (rcvwnd_.rcv_ + Seq16(1) < Seq16(fseq)) {
       if (rcvwnd_.rcv_ == 0 && rcvwnd_.acked_ == 0) {
         // peer does not realize that this portid reset
-        m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
+        m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
             "RcvData[mseq:%u, mfrag:%u, fseq:%u], "
             "rcvwnd[acked:%u, rcv:%u, nacked:%" PRIu64 "], "
             "Warning[portid reset]",
@@ -381,7 +381,9 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
             mseq, mfrag, fseq,
             rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_);
 
+        SendChunkAck(fseq, svc_id, 1);
         rcvwnd_.rcv_ = fseq;
+        rcvwnd_.acked_ = rcvwnd_.rcv_;
       } else {
         rc = NCSCC_RC_FAILURE;
         // msg loss
@@ -395,6 +397,19 @@ uint32_t TipcPortId::ReceiveData(uint32_t mseq, uint16_t mfrag,
         // send nack
         SendNack((rcvwnd_.rcv_ + Seq16(1)).v(), svc_id);
       }
+    } else if (fseq == 1) {
+      // sender realize me as portid reset
+      m_MDS_LOG_NOTIFY("FCTRL: [me] <-- [node:%x, ref:%u], "
+          "RcvData[mseq:%u, mfrag:%u, fseq:%u], "
+          "rcvwnd[acked:%u, rcv:%u, nacked:%" PRIu64 "], "
+          "Warning[portid reset on sender]",
+          id_.node, id_.ref,
+          mseq, mfrag, fseq,
+          rcvwnd_.acked_.v(), rcvwnd_.rcv_.v(), rcvwnd_.nacked_space_);
+
+      SendChunkAck(fseq, svc_id, 1);
+      rcvwnd_.rcv_ = fseq;
+      rcvwnd_.acked_ = rcvwnd_.rcv_;
     } else if (Seq16(fseq) <= rcvwnd_.rcv_) {
       rc = NCSCC_RC_FAILURE;
       // unexpected retransmission
