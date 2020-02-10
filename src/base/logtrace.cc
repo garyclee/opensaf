@@ -97,7 +97,7 @@ void trace_output(const char *file, unsigned line, unsigned priority,
     if (!entry) {
       entry = gl_local_thread_trace->CreateLogEntry(
           static_cast<base::LogMessage::Severity>(priority),
-          preamble, ap);
+          base::ReadRealtimeClock(), preamble, ap);
     }
     gl_thread_buffer.WriteToBuffer(entry);
   }
