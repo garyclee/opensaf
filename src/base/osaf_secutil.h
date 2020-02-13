@@ -89,6 +89,15 @@ int osaf_auth_server_create(const char *_pathname,
 bool osaf_user_is_member_of_group(uid_t uid, const char *groupname);
 
 /**
+ * Checks if the `groupname` belongs to supplementary group of the process PID
+ *
+ * @param pid
+ * @param groupname
+ * @return true if `groupname` is one of the process ID's supplementary groups.
+ */
+bool osaf_pid_has_supplementary_group(pid_t pid, const char *groupname);
+
+/**
  * Get list of groups that a user belong to
  * There already is a function in LSB for this purpose (getgrouplist) but it is
  * not standard.
