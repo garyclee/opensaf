@@ -17,6 +17,7 @@
  */
 
 #include <thread>
+#include <atomic>
 #include "amf/amfnd/avnd.h"
 #include <poll.h>
 #include "amf/amfnd/imm.h"
@@ -24,6 +25,7 @@
 ir_cb_t ir_cb;
 struct pollfd ImmReader::fds[];
 extern const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX];
+std::atomic<bool> imm_reader_thread_ready{false};
 
 /**
  * This thread will read classes and object information thereby allowing main
@@ -54,6 +56,7 @@ void ImmReader::imm_reader_thread() {
     LOG_CR("Ir mailbox attach failed");
     exit(EXIT_FAILURE);
   }
+  imm_reader_thread_ready = true;
 
   mbx_fd = ncs_ipc_get_sel_obj(&ir_cb.mbx);
   fds[FD_MBX].fd = mbx_fd.rmv_obj;

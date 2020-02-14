@@ -22,6 +22,7 @@
 #include <poll.h>
 #include <sched.h>
 #include <stdlib.h>
+#include <atomic>
 
 #include "amf/amfnd/avnd.h"
 #include "amf/common/amf_d2nedu.h"
@@ -129,6 +130,7 @@ extern const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX] = {
 };
 
 extern struct ImmutilWrapperProfile immutilWrapperProfile;
+extern std::atomic<bool> imm_reader_thread_ready;
 
 /* global task handle */
 NCSCONTEXT gl_avnd_task_hdl = 0;
@@ -547,6 +549,7 @@ void avnd_main_process(void) {
   AVND_EVT *evt;
   SaAisErrorT result = SA_AIS_OK;
   SaAisErrorT rc = SA_AIS_OK;
+  int counter = 0;
 
   TRACE_ENTER();
 
@@ -564,6 +567,12 @@ void avnd_main_process(void) {
     goto done;
   }
   ImmReader::imm_reader_thread_create();
+  while (imm_reader_thread_ready == false && counter < 20) {
+    osaf_nanosleep(&kHundredMilliseconds);
+    counter++;
+  }
+  osafassert(imm_reader_thread_ready);
+
   mbx_fd = ncs_ipc_get_sel_obj(&avnd_cb->mbx);
   fds[FD_MBX].fd = mbx_fd.rmv_obj;
   fds[FD_MBX].events = POLLIN;
