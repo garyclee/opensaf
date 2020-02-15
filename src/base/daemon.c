@@ -510,6 +510,7 @@ void daemonize(int argc, char *argv[])
 void daemonize_as_user(const char *username, int argc, char *argv[])
 {
 	strncpy(__runas_username, username, sizeof(__runas_username));
+	__runas_username[sizeof(__runas_username) - 1] = '\0';
 	daemonize(argc, argv);
 }
 

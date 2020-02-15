@@ -14,7 +14,7 @@ int gl_tetlist_index;
 int gl_msg_red_flg;
 int gl_mqsv_wait_time;
 int gl_red_node;
-SaTimeT gl_queue_ret_time = 10000000000ULL;
+SaTimeT gl_queue_ret_time = 50000000000ULL;
 SaMsgSenderIdT gl_sender_id;
 
 int TET_MQSV_NODE1;
@@ -130,6 +130,11 @@ void App_saMsgQueueOpenCallback(SaInvocationT invocation,
 				SaMsgQueueHandleT queueHandle,
 				SaAisErrorT error)
 {
+	if (gl_mqa_env.open_clbk_invo) {
+		gl_mqa_env.open_clbk_invo_2 = invocation;
+		gl_mqa_env.open_clbk_err_2 = error;
+	}
+
 	gl_mqa_env.open_clbk_invo = invocation;
 	gl_mqa_env.open_clbk_err = error;
 
@@ -172,7 +177,7 @@ void App_saMsgMessageReceivedCallback_withMsgGet(SaMsgQueueHandleT queueHandle)
 {
 	gl_mqa_env.rcv_clbk_qhdl = queueHandle;
 
-	gl_get_result = tet_test_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
+	gl_get_result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
 					       TEST_CONFIG_MODE);
 }
 
@@ -182,7 +187,7 @@ void App_saMsgMessageReceivedCallback_withMsgGet_cleanup(
 	gl_mqa_env.rcv_clbk_qhdl = queueHandle;
 	gl_rcv_clbk_iter++;
 
-	tet_test_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
+	tet_test_red_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
 			       TEST_CONFIG_MODE);
 	gl_sender_id = gl_mqa_env.sender_id;
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
@@ -192,10 +197,10 @@ void App_saMsgMessageReceivedCallback_withReply(SaMsgQueueHandleT queueHandle)
 {
 	gl_mqa_env.rcv_clbk_qhdl = queueHandle;
 
-	tet_test_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
+	tet_test_red_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
 			       TEST_CONFIG_MODE);
 	if (gl_mqa_env.sender_id != 0)
-		gl_reply_result = tet_test_msgMessageReply(
+		gl_reply_result = tet_test_red_msgMessageReply(
 		    MSG_MESSAGE_REPLY_SUCCESS_T, TEST_CONFIG_MODE);
 }
 
@@ -204,10 +209,10 @@ void App_saMsgMessageReceivedCallback_withReply_nospace(
 {
 	gl_mqa_env.rcv_clbk_qhdl = queueHandle;
 
-	tet_test_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
+	tet_test_red_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
 			       TEST_CONFIG_MODE);
 	if (gl_mqa_env.sender_id != 0)
-		gl_reply_result = tet_test_msgMessageReply(
+		gl_reply_result = tet_test_red_msgMessageReply(
 		    MSG_MESSAGE_REPLY_ERR_NO_SPACE_T, TEST_CONFIG_MODE);
 }
 
@@ -216,10 +221,10 @@ void App_saMsgMessageReceivedCallback_withReply_nullSname(
 {
 	gl_mqa_env.rcv_clbk_qhdl = queueHandle;
 
-	tet_test_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
+	tet_test_red_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
 			       TEST_CONFIG_MODE);
 	if (gl_mqa_env.sender_id != 0)
-		gl_reply_result = tet_test_msgMessageReply(
+		gl_reply_result = tet_test_red_msgMessageReply(
 		    MSG_MESSAGE_REPLY_NULL_SNDR_NAME_T, TEST_CONFIG_MODE);
 }
 
@@ -228,10 +233,10 @@ void App_saMsgMessageReceivedCallback_withReplyAsync(
 {
 	gl_mqa_env.rcv_clbk_qhdl = queueHandle;
 
-	tet_test_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
+	tet_test_red_msgMessageGet(MSG_MESSAGE_GET_RECV_SUCCESS_T,
 			       TEST_CONFIG_MODE);
 	if (gl_mqa_env.sender_id != 0)
-		gl_reply_result = tet_test_msgMessageReplyAsync(
+		gl_reply_result = tet_test_red_msgMessageReplyAsync(
 		    MSG_MESSAGE_REPLY_ASYNC_SUCCESS_T, TEST_CONFIG_MODE);
 }
 
@@ -452,8 +457,8 @@ void mqsv_it_init_01()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_NONCONFIG_MODE);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_NONCONFIG_MODE);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 	mqsv_result(result);
 }
@@ -462,9 +467,9 @@ void mqsv_it_init_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CLBK_PARAM_T,
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CLBK_PARAM_T,
 					TEST_NONCONFIG_MODE);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CLBK_PARAM_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CLBK_PARAM_T);
 
 	mqsv_result(result);
 }
@@ -473,7 +478,7 @@ void mqsv_it_init_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_VERSION_T,
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_VERSION_T,
 					TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
@@ -483,7 +488,7 @@ void mqsv_it_init_04()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_NULL_HANDLE_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_NULL_HANDLE_T, TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
 
@@ -491,7 +496,7 @@ void mqsv_it_init_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_VERSION_CBKS_T,
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_VERSION_CBKS_T,
 					TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
@@ -501,7 +506,7 @@ void mqsv_it_init_06()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
 	mqsv_restore_params(MSG_RESTORE_INIT_BAD_VERSION_T);
 	mqsv_result(result);
 }
@@ -510,7 +515,7 @@ void mqsv_it_init_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_BAD_REL_CODE_T,
+	result = tet_test_red_msgInitialize(MSG_INIT_BAD_REL_CODE_T,
 					TEST_NONCONFIG_MODE);
 	mqsv_restore_params(MSG_RESTORE_INIT_BAD_REL_CODE_T);
 	mqsv_result(result);
@@ -520,7 +525,7 @@ void mqsv_it_init_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_BAD_MAJOR_VER_T,
+	result = tet_test_red_msgInitialize(MSG_INIT_BAD_MAJOR_VER_T,
 					TEST_NONCONFIG_MODE);
 	mqsv_restore_params(MSG_RESTORE_INIT_BAD_MAJOR_VER_T);
 	mqsv_result(result);
@@ -531,7 +536,7 @@ void mqsv_it_init_09()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_BAD_VERSION_T, TEST_NONCONFIG_MODE);
 	if (result == TET_PASS) {
 		if (gl_mqa_env.inv_params.inv_version.releaseCode == 'B' &&
 		    gl_mqa_env.inv_params.inv_version.majorVersion == 1 &&
@@ -550,8 +555,8 @@ void mqsv_it_init_10()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_NONCONFIG_MODE);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	    tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_NONCONFIG_MODE);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 	mqsv_result(result);
 }
 
@@ -561,14 +566,14 @@ void mqsv_it_selobj_01()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgSelectionObject(MSG_SEL_OBJ_SUCCESS_T,
+	result = tet_test_red_msgSelectionObject(MSG_SEL_OBJ_SUCCESS_T,
 					     TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -578,14 +583,14 @@ void mqsv_it_selobj_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgSelectionObject(MSG_SEL_OBJ_NULL_SEL_OBJ_T,
+	result = tet_test_red_msgSelectionObject(MSG_SEL_OBJ_NULL_SEL_OBJ_T,
 					     TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -595,7 +600,7 @@ void mqsv_it_selobj_03()
 {
 	int result;
 
-	result = tet_test_msgSelectionObject(MSG_SEL_OBJ_BAD_HANDLE_T,
+	result = tet_test_red_msgSelectionObject(MSG_SEL_OBJ_BAD_HANDLE_T,
 					     TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
@@ -604,15 +609,15 @@ void mqsv_it_selobj_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgSelectionObject(MSG_SEL_OBJ_FINALIZED_HDL_T,
+	result = tet_test_red_msgSelectionObject(MSG_SEL_OBJ_FINALIZED_HDL_T,
 					     TEST_NONCONFIG_MODE);
 
 final:
@@ -625,18 +630,18 @@ void mqsv_it_dispatch_01()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 114 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -644,10 +649,10 @@ void mqsv_it_dispatch_01()
 	else
 		result = TET_FAIL;
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -657,37 +662,49 @@ void mqsv_it_dispatch_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(
+open1:
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	sleep(2);
+open2:
+	result = tet_test_red_msgQueueOpenAsync(
+	    MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T, TEST_CONFIG_MODE);
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
-					      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
-	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 115 &&
-	    gl_mqa_env.del_clbk_invo == 309)
-		result = TET_PASS;
-	else
+	if (result == TET_PASS) {
+		if (gl_mqa_env.open_clbk_err == SA_AIS_OK &&
+				gl_mqa_env.open_clbk_err_2 == SA_AIS_OK &&
+				gl_mqa_env.open_clbk_invo == 115 &&
+	    			gl_mqa_env.open_clbk_invo_2 == 114)
+			result = TET_PASS;
+		else if (gl_mqa_env.open_clbk_err == SA_AIS_ERR_TRY_AGAIN)
+			goto open1;
+		else if (gl_mqa_env.open_clbk_err_2 == SA_AIS_ERR_TRY_AGAIN)
+			goto open2;
+		else
+			result = TET_FAIL;
+	} else
 		result = TET_FAIL;
 
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -697,20 +714,27 @@ void mqsv_it_dispatch_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpenAsync(
-	    MSG_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T, TEST_CONFIG_MODE);
-	if (result != TET_PASS)
-		goto final1;
+	do {
+		result = tet_test_red_msgQueueOpenAsync(
+	    		MSG_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T, TEST_CONFIG_MODE);
+		if (result != TET_PASS)
+			goto final1;
 
-	sleep(2);
+		sleep(2);
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
+		if (gl_mqa_env.open_clbk_err != SA_AIS_OK) {
+			m_TET_MQSV_PRINTF("open async callback returned: %i\n",
+						gl_mqa_env.open_clbk_err);
+		}
+	} while (gl_mqa_env.open_clbk_err != SA_AIS_OK);
+
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
 					      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -723,10 +747,10 @@ void mqsv_it_dispatch_03()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -736,14 +760,14 @@ void mqsv_it_dispatch_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgDispatch(MSG_DISPATCH_BAD_FLAGS_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_msgDispatch(MSG_DISPATCH_BAD_FLAGS_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -753,20 +777,20 @@ void mqsv_it_dispatch_05()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgDispatch(MSG_DISPATCH_ONE_BAD_HDL_T,
+	result1 = tet_test_red_msgDispatch(MSG_DISPATCH_ONE_BAD_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgDispatch(MSG_DISPATCH_ONE_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgDispatch(MSG_DISPATCH_ONE_FINALIZED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -782,20 +806,20 @@ void mqsv_it_dispatch_06()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgDispatch(MSG_DISPATCH_ALL_BAD_HDL_T,
+	result1 = tet_test_red_msgDispatch(MSG_DISPATCH_ALL_BAD_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgDispatch(MSG_DISPATCH_ALL_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgDispatch(MSG_DISPATCH_ALL_FINALIZED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -811,20 +835,20 @@ void mqsv_it_dispatch_07()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgDispatch(MSG_DISPATCH_BLKING_BAD_HDL_T,
+	result1 = tet_test_red_msgDispatch(MSG_DISPATCH_BLKING_BAD_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgDispatch(MSG_DISPATCH_BLKING_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgDispatch(MSG_DISPATCH_BLKING_FINALIZED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -840,14 +864,14 @@ void mqsv_it_dispatch_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -857,14 +881,14 @@ void mqsv_it_dispatch_09()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -876,17 +900,17 @@ void mqsv_it_finalize_01()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_ALL_FINALIZED_HDL_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_ALL_FINALIZED_HDL_T,
 				      TEST_NONCONFIG_MODE);
 
 final:
@@ -898,7 +922,7 @@ void mqsv_it_finalize_02()
 	int result;
 
 	result =
-	    tet_test_msgFinalize(MSG_FINALIZE_BAD_HDL_T, TEST_NONCONFIG_MODE);
+	    tet_test_red_msgFinalize(MSG_FINALIZE_BAD_HDL_T, TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
 
@@ -906,17 +930,17 @@ void mqsv_it_finalize_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_FINALIZED_HDL_T,
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_FINALIZED_HDL_T,
 				      TEST_NONCONFIG_MODE);
 
 final:
@@ -929,20 +953,20 @@ void mqsv_it_finalize_04()
 	fd_set read_fd;
 	struct timeval tv;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgSelectionObject(MSG_SEL_OBJ_SUCCESS_T,
+	result = tet_test_red_msgSelectionObject(MSG_SEL_OBJ_SUCCESS_T,
 					     TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
@@ -965,30 +989,30 @@ void mqsv_it_finalize_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_BAD_HDL2_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_BAD_HDL2_T,
 					TEST_NONCONFIG_MODE);
 
-	tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CLEANUP_MODE);
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CLEANUP_MODE);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -998,36 +1022,36 @@ void mqsv_it_finalize_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_UNTRACKED_T,
+	result = tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_UNTRACKED_T,
 					    TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1039,14 +1063,14 @@ void mqsv_it_qopen_01()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NULL_Q_HDL_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NULL_Q_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1056,14 +1080,14 @@ void mqsv_it_qopen_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NULL_NAME_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NULL_NAME_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1073,14 +1097,14 @@ void mqsv_it_qopen_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_NULL_NAME_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_NULL_NAME_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1090,7 +1114,7 @@ void mqsv_it_qopen_04()
 {
 	int result;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_BAD_HANDLE_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_BAD_HANDLE_T,
 				       TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
@@ -1099,17 +1123,17 @@ void mqsv_it_qopen_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_FINALIZED_HDL_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_FINALIZED_HDL_T,
 				       TEST_NONCONFIG_MODE);
 
 final:
@@ -1120,7 +1144,7 @@ void mqsv_it_qopen_06()
 {
 	int result;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_BAD_HANDLE_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_BAD_HANDLE_T,
 					    TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
@@ -1129,17 +1153,17 @@ void mqsv_it_qopen_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_FINALIZED_HDL_T, TEST_NONCONFIG_MODE);
 
 final:
@@ -1150,14 +1174,14 @@ void mqsv_it_qopen_08()
 {
 	int result, result1, result2;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result1 = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM_T,
+	result1 = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM_T,
 					TEST_NONCONFIG_MODE);
 
-	result2 = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM_EMPTY_T,
+	result2 = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM_EMPTY_T,
 					TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -1165,7 +1189,7 @@ void mqsv_it_qopen_08()
 	else
 		result = TET_FAIL;
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1175,14 +1199,14 @@ void mqsv_it_qopen_09()
 {
 	int result, result1, result2;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result1 = tet_test_msgQueueOpenAsync(
+	result1 = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_INVALID_PARAM_T, TEST_NONCONFIG_MODE);
 
-	result2 = tet_test_msgQueueOpenAsync(
+	result2 = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_INVALID_PARAM_EMPTY_T, TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -1190,7 +1214,7 @@ void mqsv_it_qopen_09()
 	else
 		result = TET_FAIL;
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1200,17 +1224,17 @@ void mqsv_it_qopen_10()
 {
 	int result, result1, result2, result3;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result1 = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM2_EMPTY_T,
+	result1 = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM2_EMPTY_T,
 					TEST_NONCONFIG_MODE);
 
-	result2 = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM2_ZERO_T,
+	result2 = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM2_ZERO_T,
 					TEST_NONCONFIG_MODE);
 
-	result3 = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM2_RC_CBK_T,
+	result3 = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_INVALID_PARAM2_RC_CBK_T,
 					TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS && result3 == TET_PASS)
@@ -1218,7 +1242,7 @@ void mqsv_it_qopen_10()
 	else
 		result = TET_FAIL;
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1228,17 +1252,17 @@ void mqsv_it_qopen_11()
 {
 	int result, result1, result2, result3;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result1 = tet_test_msgQueueOpenAsync(
+	result1 = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_INVALID_PARAM2_EMPTY_T, TEST_NONCONFIG_MODE);
 
-	result2 = tet_test_msgQueueOpenAsync(
+	result2 = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_INVALID_PARAM2_ZERO_T, TEST_NONCONFIG_MODE);
 
-	result3 = tet_test_msgQueueOpenAsync(
+	result3 = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_INVALID_PARAM2_RC_CBK_T, TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS && result3 == TET_PASS)
@@ -1246,7 +1270,7 @@ void mqsv_it_qopen_11()
 	else
 		result = TET_FAIL;
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1256,14 +1280,14 @@ void mqsv_it_qopen_12()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_BAD_FLAGS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_BAD_FLAGS_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1273,14 +1297,14 @@ void mqsv_it_qopen_13()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_BAD_FLGS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_BAD_FLGS_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1290,14 +1314,14 @@ void mqsv_it_qopen_14()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_BAD_FLAGS2_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_BAD_FLAGS2_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1307,14 +1331,14 @@ void mqsv_it_qopen_15()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_BAD_FLGS2_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_BAD_FLGS2_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1324,15 +1348,15 @@ void mqsv_it_qopen_16()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1342,18 +1366,18 @@ void mqsv_it_qopen_17()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 115 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -1364,10 +1388,10 @@ void mqsv_it_qopen_17()
 	m_MQSV_WAIT;
 	m_MQSV_WAIT;
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1377,18 +1401,18 @@ void mqsv_it_qopen_18()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 115 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -1396,10 +1420,10 @@ void mqsv_it_qopen_18()
 	else
 		result = TET_FAIL;
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1409,15 +1433,15 @@ void mqsv_it_qopen_19()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1427,18 +1451,18 @@ void mqsv_it_qopen_20()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 114 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -1446,10 +1470,10 @@ void mqsv_it_qopen_20()
 	else
 		result = TET_FAIL;
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1459,15 +1483,15 @@ void mqsv_it_qopen_21()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_EMPTY_CREATE_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_EMPTY_CREATE_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_EMPTY_CREATE_T);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_EMPTY_CREATE_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1477,18 +1501,18 @@ void mqsv_it_qopen_22()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_EMPTY_CREATE_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_EMPTY_CREATE_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 116 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -1496,10 +1520,10 @@ void mqsv_it_qopen_22()
 	else
 		result = TET_FAIL;
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_EMPTY_CREATE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_EMPTY_CREATE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1509,15 +1533,15 @@ void mqsv_it_qopen_23()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1527,11 +1551,11 @@ void mqsv_it_qopen_24()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_NPERS_RECV_CLBK_SUCCESS_T,
 	    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
@@ -1539,7 +1563,7 @@ void mqsv_it_qopen_24()
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 124 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -1547,10 +1571,10 @@ void mqsv_it_qopen_24()
 	else
 		result = TET_FAIL;
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1560,14 +1584,14 @@ void mqsv_it_qopen_25()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_RET_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_RET_T,
 				       TEST_NONCONFIG_MODE);
 	if (result == TET_PASS) {
-		result = tet_test_msgQueueStatusGet(
+		result = tet_test_red_msgQueueStatusGet(
 		    MSG_QUEUE_STATUS_GET_SUCCESS_Q4_T, TEST_NONCONFIG_MODE);
 		if (result == TET_PASS &&
 		    gl_mqa_env.q_status.retentionTime == 0)
@@ -1576,8 +1600,8 @@ void mqsv_it_qopen_25()
 			result = TET_FAIL;
 	}
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_RET_T);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_RET_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1587,22 +1611,22 @@ void mqsv_it_qopen_26()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ZERO_RET_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ZERO_RET_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 126 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK) {
-		result = tet_test_msgQueueStatusGet(
+		result = tet_test_red_msgQueueStatusGet(
 		    MSG_QUEUE_STATUS_GET_SUCCESS_Q4_T, TEST_NONCONFIG_MODE);
 		if (result == TET_PASS &&
 		    gl_mqa_env.q_status.retentionTime == 0)
@@ -1612,10 +1636,10 @@ void mqsv_it_qopen_26()
 	} else
 		result = TET_FAIL;
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_ZERO_RET_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_ZERO_RET_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1625,14 +1649,14 @@ void mqsv_it_qopen_27()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T,
 				       TEST_NONCONFIG_MODE);
 	if (result == TET_PASS) {
-		result = tet_test_msgQueueStatusGet(
+		result = tet_test_red_msgQueueStatusGet(
 		    MSG_QUEUE_STATUS_GET_SUCCESS_Q5_T, TEST_NONCONFIG_MODE);
 		if (result == TET_PASS &&
 		    gl_mqa_env.q_status.saMsgQueueUsage[0].queueSize == 0 &&
@@ -1644,8 +1668,8 @@ void mqsv_it_qopen_27()
 			result = TET_FAIL;
 	}
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1655,22 +1679,22 @@ void mqsv_it_qopen_28()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ZERO_SIZE_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ZERO_SIZE_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 127 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK) {
-		result = tet_test_msgQueueStatusGet(
+		result = tet_test_red_msgQueueStatusGet(
 		    MSG_QUEUE_STATUS_GET_SUCCESS_Q5_T, TEST_NONCONFIG_MODE);
 		if (result == TET_PASS &&
 		    gl_mqa_env.q_status.saMsgQueueUsage[0].queueSize == 0 &&
@@ -1683,10 +1707,10 @@ void mqsv_it_qopen_28()
 	} else
 		result = TET_FAIL;
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1696,14 +1720,14 @@ void mqsv_it_qopen_29()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_TIMEOUT_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_TIMEOUT_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1713,22 +1737,22 @@ void mqsv_it_qopen_30()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_ERR_EXIST_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_ERR_EXIST_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1738,28 +1762,28 @@ void mqsv_it_qopen_31()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NPERS_ERR_EXIST_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NPERS_ERR_EXIST_T,
 				       TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1769,23 +1793,23 @@ void mqsv_it_qopen_32()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_EXIST_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_EXIST_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 117 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_ERR_EXIST)
@@ -1794,10 +1818,10 @@ void mqsv_it_qopen_32()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1807,28 +1831,28 @@ void mqsv_it_qopen_33()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_EXIST2_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_EXIST2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 118 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_ERR_EXIST)
@@ -1837,10 +1861,10 @@ void mqsv_it_qopen_33()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1850,14 +1874,14 @@ void mqsv_it_qopen_34()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_ER_NOT_EXIST_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_ER_NOT_EXIST_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1867,14 +1891,14 @@ void mqsv_it_qopen_35()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_ER_NOT_EXIST2_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_ER_NOT_EXIST2_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1884,18 +1908,18 @@ void mqsv_it_qopen_36()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_ERR_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 111 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_ERR_NOT_EXIST)
@@ -1904,7 +1928,7 @@ void mqsv_it_qopen_36()
 		result = TET_FAIL;
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1914,18 +1938,18 @@ void mqsv_it_qopen_37()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_ERR_NOT_EXIST2_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 112 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_ERR_NOT_EXIST)
@@ -1934,7 +1958,7 @@ void mqsv_it_qopen_37()
 		result = TET_FAIL;
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1944,22 +1968,22 @@ void mqsv_it_qopen_38()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ERR_BUSY_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ERR_BUSY_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -1969,23 +1993,23 @@ void mqsv_it_qopen_39()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_BUSY_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_BUSY_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 113 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_ERR_BUSY)
@@ -1994,10 +2018,10 @@ void mqsv_it_qopen_39()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2007,22 +2031,22 @@ void mqsv_it_qopen_40()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_EXIST_ERR_BUSY_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_EXIST_ERR_BUSY_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2032,23 +2056,23 @@ void mqsv_it_qopen_41()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_EXIST_ERR_BUSY_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 128 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_ERR_BUSY)
@@ -2057,10 +2081,10 @@ void mqsv_it_qopen_41()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2071,14 +2095,14 @@ void mqsv_it_qopen_42()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_NULL_CBKS2_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_INIT_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_INIT_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS2_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS2_T);
 
 final:
 	mqsv_result(result);
@@ -2089,14 +2113,14 @@ void mqsv_it_qopen_43()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_NULL_RCV_CBK_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_NULL_RCV_CBK_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ERR_INIT_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ERR_INIT_T,
 				       TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_RCV_CBK_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_RCV_CBK_T);
 
 final:
 	mqsv_result(result);
@@ -2107,14 +2131,14 @@ void mqsv_it_qopen_44()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_NULL_RCV_CBK_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_NULL_RCV_CBK_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_INIT2_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_INIT2_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_RCV_CBK_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_RCV_CBK_T);
 
 final:
 	mqsv_result(result);
@@ -2124,28 +2148,28 @@ void mqsv_it_qopen_45()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_EXIST_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_EXIST_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 117 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_ERR_EXIST) {
@@ -2154,14 +2178,14 @@ void mqsv_it_qopen_45()
 	}
 
 	gl_mqa_env.pers_q_hdl = gl_mqa_env.open_clbk_qhdl;
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_BAD_HANDLE1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_BAD_HANDLE1_T,
 					TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2171,28 +2195,28 @@ void mqsv_it_qopen_46()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2202,28 +2226,28 @@ void mqsv_it_qopen_47()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NPERS_EMPTY_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NPERS_EMPTY_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2233,28 +2257,28 @@ void mqsv_it_qopen_48()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_EXIST_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_EXIST_RECV_CLBK_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2264,28 +2288,28 @@ void mqsv_it_qopen_49()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_EXIST_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 119 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -2294,10 +2318,10 @@ void mqsv_it_qopen_49()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2307,28 +2331,28 @@ void mqsv_it_qopen_50()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_NPERS_EMPTY_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 120 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -2337,10 +2361,10 @@ void mqsv_it_qopen_50()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2350,21 +2374,21 @@ void mqsv_it_qopen_51()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_EXIST_RECV_CLBK_SUCCESS_T,
 	    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
@@ -2372,7 +2396,7 @@ void mqsv_it_qopen_51()
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.open_clbk_invo == 125 &&
 	    gl_mqa_env.open_clbk_err == SA_AIS_OK)
@@ -2381,10 +2405,10 @@ void mqsv_it_qopen_51()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2396,7 +2420,7 @@ void mqsv_it_close_01()
 {
 	int result;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_INV_HANDLE_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_INV_HANDLE_T,
 					TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
@@ -2405,28 +2429,28 @@ void mqsv_it_close_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_BAD_HANDLE1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_BAD_HANDLE1_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_AFTER_FINALIZE);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_AFTER_FINALIZE);
 
 final:
 	mqsv_result(result);
@@ -2436,21 +2460,21 @@ void mqsv_it_close_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.q_status.closeTime != 0)
 		result = TET_PASS;
@@ -2458,10 +2482,10 @@ void mqsv_it_close_03()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2471,28 +2495,28 @@ void mqsv_it_close_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_BAD_HANDLE1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_BAD_HANDLE1_T,
 					TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2502,30 +2526,30 @@ void mqsv_it_close_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q1_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q1_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2535,18 +2559,18 @@ void mqsv_it_close_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ZERO_RET_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ZERO_RET_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 126 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK) {
@@ -2554,20 +2578,20 @@ void mqsv_it_close_06()
 		goto final1;
 	}
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL5_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL5_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q4_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q4_T,
 					    TEST_NONCONFIG_MODE);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_ZERO_RET_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_ZERO_RET_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2577,28 +2601,28 @@ void mqsv_it_close_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.rcv_clbk_qhdl == 0)
 		result = TET_PASS;
@@ -2606,10 +2630,10 @@ void mqsv_it_close_07()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2621,20 +2645,20 @@ void mqsv_it_qstatus_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_BAD_HANDLE_T,
+	result1 = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_BAD_HANDLE_T,
 					     TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_FINALIZED_HDL_T,
 					     TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -2650,14 +2674,14 @@ void mqsv_it_qstatus_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_NULL_NAME_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_NULL_NAME_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2667,14 +2691,14 @@ void mqsv_it_qstatus_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_NULL_STATUS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_NULL_STATUS_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2684,16 +2708,16 @@ void mqsv_it_qstatus_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result == TET_PASS) {
 		if (gl_mqa_env.q_status.creationFlags ==
@@ -2721,10 +2745,10 @@ void mqsv_it_qstatus_04()
 			result = TET_FAIL;
 	}
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2734,14 +2758,14 @@ void mqsv_it_qstatus_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q1_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q1_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2751,18 +2775,18 @@ void mqsv_it_qstatus_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 114 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK) {
@@ -2770,12 +2794,12 @@ void mqsv_it_qstatus_06()
 		goto final1;
 	}
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL5_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL5_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result == TET_PASS) {
 		if (gl_mqa_env.q_status.closeTime != 0)
@@ -2785,10 +2809,10 @@ void mqsv_it_qstatus_06()
 	}
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2798,21 +2822,21 @@ void mqsv_it_qstatus_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result == TET_PASS) {
 		if (gl_mqa_env.q_status.saMsgQueueUsage[0].queueSize == 1000 &&
@@ -2825,10 +2849,10 @@ void mqsv_it_qstatus_07()
 	}
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2840,20 +2864,20 @@ void mqsv_it_qunlink_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_BAD_HANDLE_T,
+	result1 = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_BAD_HANDLE_T,
 					  TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_FINALIZED_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -2869,14 +2893,14 @@ void mqsv_it_qunlink_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_NULL_NAME_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_NULL_NAME_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2886,14 +2910,14 @@ void mqsv_it_qunlink_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_ERR_NOT_EXIST_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_ERR_NOT_EXIST_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2903,23 +2927,23 @@ void mqsv_it_qunlink_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q2_T,
 					 TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2929,29 +2953,29 @@ void mqsv_it_qunlink_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_NONCONFIG_MODE);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2961,27 +2985,27 @@ void mqsv_it_qunlink_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 		goto final1;
 	}
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_NONCONFIG_MODE);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -2991,27 +3015,27 @@ void mqsv_it_qunlink_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q2_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 		goto final1;
 	}
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q2_T,
 					    TEST_NONCONFIG_MODE);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3023,20 +3047,20 @@ void mqsv_it_qgrp_create_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgGroupCreate(MSG_GROUP_CREATE_BAD_HDL_T,
+	result1 = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_BAD_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgGroupCreate(MSG_GROUP_CREATE_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_FINALIZED_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -3052,14 +3076,14 @@ void mqsv_it_qgrp_create_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_NULL_NAME_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_NULL_NAME_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3069,14 +3093,14 @@ void mqsv_it_qgrp_create_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_BAD_POL_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_BAD_POL_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3086,15 +3110,15 @@ void mqsv_it_qgrp_create_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3104,22 +3128,22 @@ void mqsv_it_qgrp_create_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_ERR_EXIST_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_ERR_EXIST_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3129,22 +3153,22 @@ void mqsv_it_qgrp_create_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_ERR_EXIST2_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_ERR_EXIST2_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3154,22 +3178,22 @@ void mqsv_it_qgrp_create_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_ERR_EXIST3_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_ERR_EXIST3_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3179,22 +3203,22 @@ void mqsv_it_qgrp_create_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_ERR_EXIST4_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_ERR_EXIST4_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3204,14 +3228,14 @@ void mqsv_it_qgrp_create_09()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_LOCAL_RR_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_LOCAL_RR_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3221,16 +3245,16 @@ void mqsv_it_qgrp_create_10()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_LCL_BSTQ_NOT_SUPP_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_LCL_BSTQ_NOT_SUPP_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_LCL_BSTQ_NOT_SUPP_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_LCL_BSTQ_NOT_SUPP_T);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3240,16 +3264,16 @@ void mqsv_it_qgrp_create_11()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_BROADCAST_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_BROADCAST_T);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3261,20 +3285,20 @@ void mqsv_it_qgrp_insert_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgGroupInsert(MSG_GROUP_INSERT_BAD_HDL_T,
+	result1 = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_BAD_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgGroupInsert(MSG_GROUP_INSERT_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_FINALIZED_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -3290,14 +3314,14 @@ void mqsv_it_qgrp_insert_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_NULL_GR_NAME_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_NULL_GR_NAME_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3307,14 +3331,14 @@ void mqsv_it_qgrp_insert_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_NULL_Q_NAME_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_NULL_Q_NAME_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3324,30 +3348,30 @@ void mqsv_it_qgrp_insert_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3357,22 +3381,22 @@ void mqsv_it_qgrp_insert_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_BAD_QUEUE_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_BAD_QUEUE_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3382,22 +3406,22 @@ void mqsv_it_qgrp_insert_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_BAD_GR_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_BAD_GR_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3407,36 +3431,36 @@ void mqsv_it_qgrp_insert_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_ERR_EXIST_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_ERR_EXIST_T,
 					 TEST_NONCONFIG_MODE);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3446,18 +3470,18 @@ void mqsv_it_qgrp_insert_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 114 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK) {
@@ -3465,35 +3489,35 @@ void mqsv_it_qgrp_insert_08()
 		goto final1;
 	}
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_NONCONFIG_MODE);
 
 final4:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3503,44 +3527,44 @@ void mqsv_it_qgrp_insert_09()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
 					 TEST_NONCONFIG_MODE);
 
 final4:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3552,20 +3576,20 @@ void mqsv_it_qgrp_remove_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_BAD_HDL_T,
+	result1 = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_BAD_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_FINALIZED_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -3581,14 +3605,14 @@ void mqsv_it_qgrp_remove_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_NULL_Q_NAME_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_NULL_Q_NAME_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3598,14 +3622,14 @@ void mqsv_it_qgrp_remove_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_NULL_GR_NAME_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_NULL_GR_NAME_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3615,36 +3639,36 @@ void mqsv_it_qgrp_remove_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3654,22 +3678,22 @@ void mqsv_it_qgrp_remove_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_BAD_GROUP_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_BAD_GROUP_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3679,22 +3703,22 @@ void mqsv_it_qgrp_remove_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_BAD_QUEUE_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_BAD_QUEUE_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3704,34 +3728,34 @@ void mqsv_it_qgrp_remove_07()
 {
 	int result, result1, result2;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result1 = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_NOT_EXIST_T,
+	result1 = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_NOT_EXIST_T,
 					  TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result2 = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_NOT_EXIST_T,
+	result2 = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_NOT_EXIST_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -3740,16 +3764,16 @@ void mqsv_it_qgrp_remove_07()
 		result = TET_FAIL;
 
 final4:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3761,20 +3785,20 @@ void mqsv_it_qgrp_delete_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgGroupDelete(MSG_GROUP_DELETE_BAD_HDL_T,
+	result1 = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_BAD_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgGroupDelete(MSG_GROUP_DELETE_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_FINALIZED_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -3790,14 +3814,14 @@ void mqsv_it_qgrp_delete_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_NULL_NAME_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_NULL_NAME_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3807,23 +3831,23 @@ void mqsv_it_qgrp_delete_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS)
-		mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+		mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3833,14 +3857,14 @@ void mqsv_it_qgrp_delete_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_BAD_GROUP_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_BAD_GROUP_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3850,37 +3874,37 @@ void mqsv_it_qgrp_delete_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_WITH_MEM_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_WITH_MEM_T,
 					 TEST_NONCONFIG_MODE);
 
 final3:
 	if (result != TET_PASS)
-		mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+		mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3890,23 +3914,23 @@ void mqsv_it_qgrp_delete_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_WO_MEM_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_WO_MEM_T,
 					 TEST_NONCONFIG_MODE);
 
 	if (result != TET_PASS)
-		mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
+		mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3916,27 +3940,27 @@ void mqsv_it_qgrp_delete_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
+		mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
 		goto final1;
 	}
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_BAD_GROUP_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_BAD_GROUP_T,
 					 TEST_NONCONFIG_MODE);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3948,20 +3972,20 @@ void mqsv_it_qgrp_track_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgGroupTrack(MSG_GROUP_TRACK_BAD_HDL_T,
+	result1 = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_BAD_HDL_T,
 					 TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgGroupTrack(MSG_GROUP_TRACK_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_FINALIZED_HDL_T,
 					 TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -3977,14 +4001,14 @@ void mqsv_it_qgrp_track_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_NULL_NAME_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_NULL_NAME_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -3994,14 +4018,14 @@ void mqsv_it_qgrp_track_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_BAD_GROUP_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_BAD_GROUP_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4011,22 +4035,22 @@ void mqsv_it_qgrp_track_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_BAD_FLAGS_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_BAD_FLAGS_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4036,22 +4060,22 @@ void mqsv_it_qgrp_track_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_WRONG_FLGS_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_WRONG_FLGS_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4061,22 +4085,22 @@ void mqsv_it_qgrp_track_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_INV_PARAM_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_INV_PARAM_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4086,22 +4110,22 @@ void mqsv_it_qgrp_track_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CURR_NULBUF_ERINIT_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CURR_NULBUF_ERINIT_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 
 final:
 	mqsv_result(result);
@@ -4111,22 +4135,22 @@ void mqsv_it_qgrp_track_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CURR_ERR_INIT_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CURR_ERR_INIT_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 
 final:
 	mqsv_result(result);
@@ -4136,22 +4160,22 @@ void mqsv_it_qgrp_track_09()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ERR_INIT_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ERR_INIT_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 
 final:
 	mqsv_result(result);
@@ -4161,22 +4185,22 @@ void mqsv_it_qgrp_track_10()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHONLY_ERR_INIT_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHONLY_ERR_INIT_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 
 final:
 	mqsv_result(result);
@@ -4186,26 +4210,26 @@ void mqsv_it_qgrp_track_11()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T,
 					TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS &&
@@ -4227,13 +4251,13 @@ void mqsv_it_qgrp_track_11()
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4244,28 +4268,28 @@ void mqsv_it_qgrp_track_12()
 	int result;
 	SaMsgQueueGroupNotificationT *notification = NULL;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 114 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK) {
@@ -4273,12 +4297,12 @@ void mqsv_it_qgrp_track_12()
 		goto final3;
 	}
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -4288,7 +4312,7 @@ void mqsv_it_qgrp_track_12()
 	mqsv_fill_grp_notif_buffer(&gl_mqa_env.buffer_non_null_notif, 2,
 				   notification);
 
-	result = tet_test_msgGroupTrack(
+	result = tet_test_red_msgGroupTrack(
 	    MSG_GROUP_TRACK_CURRENT_NON_NULL_NOTIF_T, TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS &&
@@ -4318,16 +4342,16 @@ void mqsv_it_qgrp_track_12()
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_NON_NULL_NOTIF_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4337,51 +4361,51 @@ void mqsv_it_qgrp_track_13()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_NO_SPACE_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_NO_SPACE_T,
 					TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CUR_NO_SPACE_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4391,36 +4415,36 @@ void mqsv_it_qgrp_track_14()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_NO_SPACE_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_NO_SPACE_T,
 					TEST_NONCONFIG_MODE);
 
 	if (result == TET_PASS &&
@@ -4432,16 +4456,16 @@ void mqsv_it_qgrp_track_14()
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CUR_NO_SPACE_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4451,33 +4475,33 @@ void mqsv_it_qgrp_track_15()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_NULL_BUF_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_NULL_BUF_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.track_clbk_err != SA_AIS_OK) {
 		result = TET_FAIL;
@@ -4505,13 +4529,13 @@ void mqsv_it_qgrp_track_15()
 		result = TET_FAIL;
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4521,24 +4545,24 @@ void mqsv_it_qgrp_track_16()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CH_BAD_BUF_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CH_BAD_BUF_T,
 					TEST_NONCONFIG_MODE);
 
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4548,24 +4572,24 @@ void mqsv_it_qgrp_track_17()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHONLY_BAD_BUF_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHONLY_BAD_BUF_T,
 					TEST_NONCONFIG_MODE);
 
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4575,22 +4599,22 @@ void mqsv_it_qgrp_track_18()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_CH_BAD_BUF_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_CH_BAD_BUF_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4600,22 +4624,22 @@ void mqsv_it_qgrp_track_19()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_CHONLY_BAD_BUF_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_CHONLY_BAD_BUF_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4625,28 +4649,28 @@ void mqsv_it_qgrp_track_20()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -4658,7 +4682,7 @@ void mqsv_it_qgrp_track_20()
 		goto final5;
 	}
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -4687,7 +4711,7 @@ void mqsv_it_qgrp_track_20()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -4723,16 +4747,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4742,28 +4766,28 @@ void mqsv_it_qgrp_track_21()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -4775,7 +4799,7 @@ void mqsv_it_qgrp_track_21()
 		goto final5;
 	}
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -4800,7 +4824,7 @@ void mqsv_it_qgrp_track_21()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -4825,16 +4849,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHGS_ONLY_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4844,45 +4868,45 @@ void mqsv_it_qgrp_track_22()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -4912,16 +4936,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -4931,43 +4955,43 @@ void mqsv_it_qgrp_track_23()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -4992,16 +5016,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHGS_ONLY_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5011,28 +5035,28 @@ void mqsv_it_qgrp_track_24()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_CH_NUL_BUF_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_CH_NUL_BUF_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -5053,14 +5077,14 @@ void mqsv_it_qgrp_track_24()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -5090,7 +5114,7 @@ void mqsv_it_qgrp_track_24()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -5120,16 +5144,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHGS_ONLY_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5139,28 +5163,28 @@ void mqsv_it_qgrp_track_25()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_CHLY_NUL_BUF_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_CHLY_NUL_BUF_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -5181,14 +5205,14 @@ void mqsv_it_qgrp_track_25()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -5213,7 +5237,7 @@ void mqsv_it_qgrp_track_25()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -5238,16 +5262,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHGS_ONLY_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5257,28 +5281,28 @@ void mqsv_it_qgrp_track_26()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_CH_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_CH_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -5298,7 +5322,7 @@ void mqsv_it_qgrp_track_26()
 		goto final4;
 	}
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -5324,13 +5348,13 @@ final4:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CUR_CH_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5340,28 +5364,28 @@ void mqsv_it_qgrp_track_27()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_CHLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_CHLY_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -5381,7 +5405,7 @@ void mqsv_it_qgrp_track_27()
 		goto final4;
 	}
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -5407,13 +5431,13 @@ final4:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CUR_CHLY_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5423,38 +5447,38 @@ void mqsv_it_qgrp_track_28()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -5482,12 +5506,12 @@ void mqsv_it_qgrp_track_28()
 		goto final5;
 	}
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -5514,16 +5538,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHGS_ONLY_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5533,38 +5557,38 @@ void mqsv_it_qgrp_track_29()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -5588,11 +5612,11 @@ void mqsv_it_qgrp_track_29()
 	}
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -5624,16 +5648,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5643,16 +5667,16 @@ void mqsv_it_qgrp_track_30()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(
+	result = tet_test_red_msgGroupTrack(
 	    MSG_GROUP_TRACK_CURRENT_NON_NULL_NOTIF_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_mqa_env.buffer_non_null_notif.numberOfItems != 0 ||
@@ -5662,19 +5686,19 @@ void mqsv_it_qgrp_track_30()
 		goto final2;
 	}
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_NON_NULL_NOTIF_T);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_LOCAL_RR_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_LOCAL_RR_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(
+	result = tet_test_red_msgGroupTrack(
 	    MSG_GROUP_TRACK_CURRENT_NON_NULL_NOTIF_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_mqa_env.buffer_non_null_notif.numberOfItems != 0 ||
@@ -5684,19 +5708,19 @@ void mqsv_it_qgrp_track_30()
 		goto final2;
 	}
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_NON_NULL_NOTIF_T);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(
+	result = tet_test_red_msgGroupTrack(
 	    MSG_GROUP_TRACK_CURRENT_NON_NULL_NOTIF_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_mqa_env.buffer_non_null_notif.numberOfItems != 0 ||
@@ -5706,10 +5730,10 @@ void mqsv_it_qgrp_track_30()
 
 final2:
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_NON_NULL_NOTIF_T);
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5719,28 +5743,28 @@ void mqsv_it_qgrp_track_31()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -5758,24 +5782,24 @@ void mqsv_it_qgrp_track_31()
 		goto final3;
 	}
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_LOCAL_RR_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_LOCAL_RR_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -5793,24 +5817,24 @@ void mqsv_it_qgrp_track_31()
 		goto final3;
 	}
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -5828,13 +5852,13 @@ void mqsv_it_qgrp_track_31()
 
 final3:
 	mqsv_clean_clbk_params();
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5844,28 +5868,28 @@ void mqsv_it_qgrp_track_32()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_mqa_env.track_clbk_err != SA_AIS_ERR_NOT_EXIST)
@@ -5877,10 +5901,10 @@ void mqsv_it_qgrp_track_32()
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+		mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5890,28 +5914,28 @@ void mqsv_it_qgrp_track_33()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
+	result = tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS ||
 	    gl_mqa_env.track_clbk_err != SA_AIS_ERR_NOT_EXIST)
@@ -5923,10 +5947,10 @@ void mqsv_it_qgrp_track_33()
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+		mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5938,20 +5962,20 @@ void mqsv_it_qgrp_track_stop_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_BAD_HDL_T,
+	result1 = tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_BAD_HDL_T,
 					     TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgGroupTrackStop(
+	result2 = tet_test_red_msgGroupTrackStop(
 	    MSG_GROUP_TRACK_STOP_FINALIZED_HDL_T, TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -5967,14 +5991,14 @@ void mqsv_it_qgrp_track_stop_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_NULL_NAME_T,
+	result = tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_NULL_NAME_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -5984,14 +6008,14 @@ void mqsv_it_qgrp_track_stop_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_BAD_NAME_T,
+	result = tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_BAD_NAME_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6001,30 +6025,30 @@ void mqsv_it_qgrp_track_stop_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_SUCCESS_T,
+	result = tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6034,30 +6058,30 @@ void mqsv_it_qgrp_track_stop_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_SUCCESS_T,
+	result = tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHGS_ONLY_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6067,30 +6091,30 @@ void mqsv_it_qgrp_track_stop_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_UNTRACKED_T,
+	result = tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_UNTRACKED_T,
 					    TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6100,22 +6124,22 @@ void mqsv_it_qgrp_track_stop_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_UNTRACKED_T,
+	result = tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_UNTRACKED_T,
 					    TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6127,20 +6151,20 @@ void mqsv_it_msg_send_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgMessageSend(MSG_MESSAGE_SEND_BAD_HDL_T,
+	result1 = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_BAD_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgMessageSend(MSG_MESSAGE_SEND_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_FINALIZED_HDL_T,
 					  TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -6156,20 +6180,20 @@ void mqsv_it_msg_send_02()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_BAD_HDL_T,
+	result1 = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_BAD_HDL_T,
 					       TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgMessageSendAsync(
+	result2 = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_FINALIZED_HDL_T, TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -6185,14 +6209,14 @@ void mqsv_it_msg_send_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_NULL_NAME_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_NULL_NAME_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6202,14 +6226,14 @@ void mqsv_it_msg_send_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_NULL_NAME_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6219,14 +6243,14 @@ void mqsv_it_msg_send_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_ASYNC_NULL_MSG_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_ASYNC_NULL_MSG_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6236,14 +6260,14 @@ void mqsv_it_msg_send_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NULL_MSG_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NULL_MSG_T,
 					      TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6253,18 +6277,18 @@ void mqsv_it_msg_send_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 114 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK) {
@@ -6272,13 +6296,13 @@ void mqsv_it_msg_send_07()
 		goto final1;
 	}
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_ERR_TIMEOUT_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_ERR_TIMEOUT_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6288,14 +6312,14 @@ void mqsv_it_msg_send_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_NOT_EXIST_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_NOT_EXIST_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6305,14 +6329,14 @@ void mqsv_it_msg_send_09()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6322,14 +6346,14 @@ void mqsv_it_msg_send_10()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_BAD_GROUP_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_BAD_GROUP_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6339,14 +6363,14 @@ void mqsv_it_msg_send_11()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_BAD_GROUP_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6356,21 +6380,21 @@ void mqsv_it_msg_send_12()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -6383,10 +6407,10 @@ void mqsv_it_msg_send_12()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6396,21 +6420,21 @@ void mqsv_it_msg_send_13()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
 					      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -6423,10 +6447,10 @@ void mqsv_it_msg_send_13()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6436,31 +6460,31 @@ void mqsv_it_msg_send_14()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -6473,13 +6497,13 @@ void mqsv_it_msg_send_14()
 		result = TET_FAIL;
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6489,31 +6513,31 @@ void mqsv_it_msg_send_15()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_GR_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -6526,13 +6550,13 @@ void mqsv_it_msg_send_15()
 		result = TET_FAIL;
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6542,31 +6566,31 @@ void mqsv_it_msg_send_16()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -6579,13 +6603,13 @@ void mqsv_it_msg_send_16()
 		result = TET_FAIL;
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6595,31 +6619,31 @@ void mqsv_it_msg_send_17()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
 					      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -6632,13 +6656,13 @@ void mqsv_it_msg_send_17()
 		result = TET_FAIL;
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6648,23 +6672,23 @@ void mqsv_it_msg_send_18()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
 					      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -6676,10 +6700,10 @@ void mqsv_it_msg_send_18()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6689,23 +6713,23 @@ void mqsv_it_msg_send_19()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
 					      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -6717,10 +6741,10 @@ void mqsv_it_msg_send_19()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6730,23 +6754,23 @@ void mqsv_it_msg_send_20()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_NO_ACK_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -6757,10 +6781,10 @@ void mqsv_it_msg_send_20()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6770,22 +6794,22 @@ void mqsv_it_msg_send_21()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_ERR_INIT2_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 
 final:
 	mqsv_result(result);
@@ -6795,22 +6819,22 @@ void mqsv_it_msg_send_22()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_ERR_INIT_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_ERR_INIT_T,
 					      TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 
 final:
 	mqsv_result(result);
@@ -6820,22 +6844,22 @@ void mqsv_it_msg_send_23()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_BAD_FLAGS_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6846,11 +6870,11 @@ void mqsv_it_msg_send_24()
 	int result;
 	int size;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_SMALL_SIZE_ATTR_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_SMALL_SIZE_ATTR_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -6861,7 +6885,7 @@ void mqsv_it_msg_send_24()
 	while (size > 0) {
 		sleep(2);
 
-		result = tet_test_msgMessageSend(
+		result = tet_test_red_msgMessageSend(
 		    MSG_MESSAGE_SEND_SUCCESS_NAME1_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
@@ -6869,14 +6893,14 @@ void mqsv_it_msg_send_24()
 		size -= gl_mqa_env.send_msg.size;
 	}
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_QUEUE_FULL_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_QUEUE_FULL_T,
 					 TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6887,11 +6911,11 @@ void mqsv_it_msg_send_25()
 	int result;
 	int size;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_SMALL_SIZE_ATTR_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_SMALL_SIZE_ATTR_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -6902,7 +6926,7 @@ void mqsv_it_msg_send_25()
 	while (size > 0) {
 		sleep(2);
 
-		result = tet_test_msgMessageSend(
+		result = tet_test_red_msgMessageSend(
 		    MSG_MESSAGE_SEND_SUCCESS_NAME1_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
@@ -6910,14 +6934,14 @@ void mqsv_it_msg_send_25()
 		size -= gl_mqa_env.send_msg.size;
 	}
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_QUEUE_FULL_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -6929,10 +6953,10 @@ void mqsv_it_msg_send_25()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6942,22 +6966,22 @@ void mqsv_it_msg_send_26()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_UNAVAILABLE_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_UNAVAILABLE_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6967,22 +6991,22 @@ void mqsv_it_msg_send_27()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_UNAVAILABLE_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -6992,22 +7016,22 @@ void mqsv_it_msg_send_28()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_WITH_BAD_PR_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_WITH_BAD_PR_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7017,22 +7041,22 @@ void mqsv_it_msg_send_29()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_WITH_BAD_PR_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7042,22 +7066,22 @@ void mqsv_it_msg_send_30()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_TO_ZERO_QUEUE_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_TO_ZERO_QUEUE_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7067,22 +7091,22 @@ void mqsv_it_msg_send_31()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_ZERO_QUEUE_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7092,29 +7116,29 @@ void mqsv_it_msg_send_32()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_ERR_NOT_EXIST_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_ERR_NOT_EXIST_T,
 					 TEST_NONCONFIG_MODE);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7124,29 +7148,29 @@ void mqsv_it_msg_send_33()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_ERR_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7156,21 +7180,21 @@ void mqsv_it_msg_send_34()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7181,10 +7205,10 @@ void mqsv_it_msg_send_34()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7194,23 +7218,23 @@ void mqsv_it_msg_send_35()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_SUCCESS_Q1_MSG2_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7221,7 +7245,7 @@ void mqsv_it_msg_send_35()
 		goto final2;
 	}
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7232,10 +7256,10 @@ void mqsv_it_msg_send_35()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7245,22 +7269,22 @@ void mqsv_it_msg_send_36()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_BIG_MSG_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_BIG_MSG_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7270,23 +7294,23 @@ void mqsv_it_msg_send_37()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_BIG_MSG_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_BIG_MSG_T,
 					      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7298,10 +7322,10 @@ void mqsv_it_msg_send_37()
 		result = TET_PASS;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7311,36 +7335,36 @@ void mqsv_it_msg_send_38()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_GR_QUEUE_FULL_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_GR_QUEUE_FULL_T,
 					 TEST_NONCONFIG_MODE);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7350,33 +7374,33 @@ void mqsv_it_msg_send_39()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_GR_QUEUE_FULL_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -7388,13 +7412,13 @@ void mqsv_it_msg_send_39()
 	}
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7404,21 +7428,21 @@ void mqsv_it_msg_send_40()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_ZERO_SIZE_MSG_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_ZERO_SIZE_MSG_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7439,10 +7463,10 @@ void mqsv_it_msg_send_40()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7452,23 +7476,23 @@ void mqsv_it_msg_send_41()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_ZERO_SIZE_MSG_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7479,7 +7503,7 @@ void mqsv_it_msg_send_41()
 	else
 		result = TET_PASS;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7500,10 +7524,10 @@ void mqsv_it_msg_send_41()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7513,62 +7537,62 @@ void mqsv_it_msg_send_42()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_MULTI_CAST_GR_FULL_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_MULTI_CAST_GR_FULL_T,
 					 TEST_NONCONFIG_MODE);
 
 final5:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7578,72 +7602,72 @@ void mqsv_it_msg_send_43()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_MULTI_CAST_GR_FULL_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.del_clbk_invo != 331 ||
 	    gl_mqa_env.del_clbk_err != SA_AIS_ERR_QUEUE_FULL)
 		result = TET_FAIL;
 
 final5:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7655,24 +7679,24 @@ void mqsv_it_msg_get_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgMessageGet(MSG_MESSAGE_GET_BAD_HDL_T,
+	result1 = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_BAD_HDL_T,
 					 TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result2 = tet_test_msgMessageGet(MSG_MESSAGE_GET_CLOSED_Q_HDL_T,
+	result2 = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_CLOSED_Q_HDL_T,
 					 TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -7681,10 +7705,10 @@ void mqsv_it_msg_get_01()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7694,28 +7718,28 @@ void mqsv_it_msg_get_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_CLOSED_Q_HDL_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_CLOSED_Q_HDL_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_AFTER_FINALIZE);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_AFTER_FINALIZE);
 
 final:
 	mqsv_result(result);
@@ -7725,22 +7749,22 @@ void mqsv_it_msg_get_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_NULL_MSG_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_NULL_MSG_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7750,22 +7774,22 @@ void mqsv_it_msg_get_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_NULL_SENDER_ID_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_NULL_SENDER_ID_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7775,22 +7799,22 @@ void mqsv_it_msg_get_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ERR_TIMEOUT_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ERR_TIMEOUT_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7800,21 +7824,21 @@ void mqsv_it_msg_get_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7834,10 +7858,10 @@ void mqsv_it_msg_get_06()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_ZERO_TIMEOUT_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7847,21 +7871,21 @@ void mqsv_it_msg_get_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7881,10 +7905,10 @@ void mqsv_it_msg_get_07()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7894,21 +7918,21 @@ void mqsv_it_msg_get_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_NULL_SEND_TIME_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_NULL_SEND_TIME_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -7928,10 +7952,10 @@ void mqsv_it_msg_get_08()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7941,26 +7965,26 @@ void mqsv_it_msg_get_09()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -7977,10 +8001,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -7990,26 +8014,26 @@ void mqsv_it_msg_get_10()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -8021,7 +8045,7 @@ void mqsv_it_msg_get_10()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -8034,10 +8058,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8048,28 +8072,28 @@ void mqsv_it_msg_get_11()
 	int result;
 	SaUint32T type1, type2;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	type1 = gl_mqa_env.send_msg.type;
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	gl_mqa_env.send_msg.type = type2 = 12;
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -8081,7 +8105,7 @@ void mqsv_it_msg_get_11()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -8093,10 +8117,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8106,21 +8130,21 @@ void mqsv_it_msg_get_12()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -8140,10 +8164,10 @@ void mqsv_it_msg_get_12()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_ZERO_TIMEOUT_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8153,21 +8177,21 @@ void mqsv_it_msg_get_13()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -8187,10 +8211,10 @@ void mqsv_it_msg_get_13()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_ZERO_TIMEOUT_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8200,16 +8224,16 @@ void mqsv_it_msg_get_14()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -8218,7 +8242,7 @@ void mqsv_it_msg_get_14()
 	gl_mqa_env.rcv_msg.data =
 	    calloc(gl_mqa_env.send_msg.size, sizeof(char));
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result == TET_PASS &&
 	    !strncmp(gl_mqa_env.rcv_msg.data, gl_mqa_env.send_msg.data,
@@ -8233,10 +8257,10 @@ void mqsv_it_msg_get_14()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8246,30 +8270,30 @@ void mqsv_it_msg_get_15()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ERR_NO_SPACE_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ERR_NO_SPACE_T,
 					TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_ERR_NO_SPACE_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8279,21 +8303,21 @@ void mqsv_it_msg_get_16()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ERR_NO_SPACE_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ERR_NO_SPACE_T,
 					TEST_NONCONFIG_MODE);
 	if (result == TET_PASS &&
 	    gl_mqa_env.no_space_rcv_msg.size == gl_mqa_env.send_msg.size)
@@ -8304,10 +8328,10 @@ void mqsv_it_msg_get_16()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_ERR_NO_SPACE_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8317,16 +8341,16 @@ void mqsv_it_msg_get_17()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -8334,7 +8358,7 @@ void mqsv_it_msg_get_17()
 	gl_mqa_env.rcv_msg.size = gl_mqa_env.send_msg.size + 10;
 	gl_mqa_env.rcv_msg.data = calloc(gl_mqa_env.rcv_msg.size, sizeof(char));
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result == TET_PASS &&
 	    !strncmp(gl_mqa_env.rcv_msg.data, gl_mqa_env.send_msg.data,
@@ -8350,10 +8374,10 @@ void mqsv_it_msg_get_17()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8364,28 +8388,28 @@ void mqsv_it_msg_get_18()
 	int result;
 	SaMsgSenderIdT sender_id1, sender_id2;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME1_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME1_T,
 					      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.del_clbk_invo != 308 ||
 	    gl_mqa_env.del_clbk_err != SA_AIS_OK) {
@@ -8393,7 +8417,7 @@ void mqsv_it_msg_get_18()
 		goto final2;
 	}
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -8402,7 +8426,7 @@ void mqsv_it_msg_get_18()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -8418,10 +8442,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8431,21 +8455,21 @@ void mqsv_it_msg_get_19()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -8458,10 +8482,10 @@ void mqsv_it_msg_get_19()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8471,21 +8495,21 @@ void mqsv_it_msg_get_20()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_NULL_SNDR_NAME_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_NULL_SNDR_NAME_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -8498,10 +8522,10 @@ void mqsv_it_msg_get_20()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_NULL_SNDR_NAME_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8511,21 +8535,21 @@ void mqsv_it_msg_get_21()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -8538,10 +8562,10 @@ void mqsv_it_msg_get_21()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8551,26 +8575,26 @@ void mqsv_it_msg_get_22()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ERR_NO_SPACE_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ERR_NO_SPACE_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -8584,10 +8608,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_ERR_NO_SPACE_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8599,24 +8623,24 @@ void mqsv_it_msg_cancel_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgMessageCancel(MSG_MESSAGE_CANCEL_BAD_HDL_T,
+	result1 = tet_test_red_msgMessageCancel(MSG_MESSAGE_CANCEL_BAD_HDL_T,
 					    TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result2 = tet_test_msgMessageCancel(MSG_MESSAGE_CANCEL_CLOSED_Q_HDL_T,
+	result2 = tet_test_red_msgMessageCancel(MSG_MESSAGE_CANCEL_CLOSED_Q_HDL_T,
 					    TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -8625,10 +8649,10 @@ void mqsv_it_msg_cancel_01()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8638,28 +8662,28 @@ void mqsv_it_msg_cancel_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result = tet_test_msgMessageCancel(MSG_MESSAGE_CANCEL_CLOSED_Q_HDL_T,
+	result = tet_test_red_msgMessageCancel(MSG_MESSAGE_CANCEL_CLOSED_Q_HDL_T,
 					   TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_AFTER_FINALIZE);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_AFTER_FINALIZE);
 
 final:
 	mqsv_result(result);
@@ -8669,22 +8693,22 @@ void mqsv_it_msg_cancel_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageCancel(MSG_MESSAGE_CANCEL_NO_BLKING_T,
+	result = tet_test_red_msgMessageCancel(MSG_MESSAGE_CANCEL_NO_BLKING_T,
 					   TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8694,24 +8718,24 @@ void mqsv_it_msg_cancel_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	mqsv_createcancelthread(&gl_mqa_env.pers_q_hdl);
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ERR_INTERRUPT_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ERR_INTERRUPT_T,
 					TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8723,20 +8747,20 @@ void mqsv_it_msg_sendrcv_01()
 {
 	int result, result1, result2;
 
-	result1 = tet_test_msgMessageSendReceive(
+	result1 = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_BAD_HDL_T, TEST_NONCONFIG_MODE);
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgMessageSendReceive(
+	result2 = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_FINALIZED_HDL_T, TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -8752,14 +8776,14 @@ void mqsv_it_msg_sendrcv_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_NULL_NAME_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8769,22 +8793,22 @@ void mqsv_it_msg_sendrcv_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_NULL_MSG_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8794,22 +8818,22 @@ void mqsv_it_msg_sendrcv_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_NULL_RMSG_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -8824,18 +8848,18 @@ void mqsv_it_msg_sendrcv_05()
 	    App_saMsgMessageReceivedCallback_withReply;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_NULL_STIME_T, TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_reply_result == TET_PASS)
 		result = TET_PASS;
@@ -8846,10 +8870,10 @@ void mqsv_it_msg_sendrcv_05()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_NULL_STIME_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -8867,18 +8891,18 @@ void mqsv_it_msg_sendrcv_06()
 	    App_saMsgMessageReceivedCallback_withReplyAsync;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_SUCCESS_T,
+	result = tet_test_red_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_SUCCESS_T,
 						TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -8900,10 +8924,10 @@ void mqsv_it_msg_sendrcv_06()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -8922,38 +8946,38 @@ void mqsv_it_msg_sendrcv_07()
 	    App_saMsgMessageReceivedCallback_withReply;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(
+	result = tet_test_red_msgQueueOpen(
 	    MSG_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_SUCCESS_GR_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -8976,16 +9000,16 @@ void mqsv_it_msg_sendrcv_07()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9003,18 +9027,18 @@ void mqsv_it_msg_sendrcv_08()
 	    App_saMsgMessageReceivedCallback_withReply;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_SUCCESS_T,
+	result = tet_test_red_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_SUCCESS_T,
 						TEST_NONCONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.reply_send_time == 0)
 		result = TET_FAIL;
@@ -9023,10 +9047,10 @@ void mqsv_it_msg_sendrcv_08()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9041,11 +9065,11 @@ void mqsv_it_msg_sendrcv_09()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_ERR_TIMEOUT_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -9055,7 +9079,7 @@ void mqsv_it_msg_sendrcv_09()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.sender_id == 0)
 		result = TET_FAIL;
 	else
@@ -9067,10 +9091,10 @@ void mqsv_it_msg_sendrcv_09()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9081,11 +9105,11 @@ void mqsv_it_msg_sendrcv_10()
 	int result;
 	int size;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_SMALL_SIZE_ATTR_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_SMALL_SIZE_ATTR_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -9096,7 +9120,7 @@ void mqsv_it_msg_sendrcv_10()
 	while (size > 0) {
 		sleep(2);
 
-		result = tet_test_msgMessageSend(
+		result = tet_test_red_msgMessageSend(
 		    MSG_MESSAGE_SEND_SUCCESS_NAME1_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			break;
@@ -9107,16 +9131,16 @@ void mqsv_it_msg_sendrcv_10()
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_QUEUE_FULL_T, TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9126,24 +9150,24 @@ void mqsv_it_msg_sendrcv_11()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_ZERO_Q_T,
+	result = tet_test_red_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_ZERO_Q_T,
 						TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9153,22 +9177,22 @@ void mqsv_it_msg_sendrcv_12()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_ERR_TIMEOUT_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9178,14 +9202,14 @@ void mqsv_it_msg_sendrcv_13()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_ERR_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9195,14 +9219,14 @@ void mqsv_it_msg_sendrcv_14()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_NOT_EXIST_GR_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9216,18 +9240,18 @@ void mqsv_it_msg_sendrcv_15()
 	    App_saMsgMessageReceivedCallback_withReply_nospace;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_ERR_NO_SPACE_T, TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -9236,10 +9260,10 @@ void mqsv_it_msg_sendrcv_15()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_ERR_NO_SPACE_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9253,29 +9277,29 @@ void mqsv_it_msg_sendrcv_16()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_ERR_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9285,22 +9309,22 @@ void mqsv_it_msg_sendrcv_17()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_UNAVALABLE_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9314,13 +9338,13 @@ void mqsv_it_msg_sendrcv_18()
 	    App_saMsgMessageReceivedCallback_withReply;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -9329,7 +9353,7 @@ void mqsv_it_msg_sendrcv_18()
 	gl_mqa_env.reply_msg.data =
 	    calloc(gl_mqa_env.send_msg.size, sizeof(char));
 
-	result = tet_test_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_SUCCESS_T,
+	result = tet_test_red_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_SUCCESS_T,
 						TEST_NONCONFIG_MODE);
 	if (result == TET_PASS &&
 	    !strncmp(gl_mqa_env.reply_msg.data, gl_mqa_env.send_msg.data,
@@ -9342,10 +9366,10 @@ void mqsv_it_msg_sendrcv_18()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9359,22 +9383,22 @@ void mqsv_it_msg_sendrcv_19()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_BAD_PR_T,
+	result = tet_test_red_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_BAD_PR_T,
 						TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9388,28 +9412,28 @@ void mqsv_it_msg_sendrcv_20()
 	    App_saMsgMessageReceivedCallback_withReplyAsync;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(
+	result = tet_test_red_msgQueueOpen(
 	    MSG_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_SUCCESS_Q2_T, TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
@@ -9417,13 +9441,13 @@ void mqsv_it_msg_sendrcv_20()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9437,38 +9461,38 @@ void mqsv_it_msg_sendrcv_21()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	result =
-	    tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ZERO_SIZE_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_ZEROQ_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_GR_QUEUE_FULL_T, TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ZERO_SIZE_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9482,28 +9506,28 @@ void mqsv_it_msg_sendrcv_22()
 	    App_saMsgMessageReceivedCallback_withReplyAsync;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_SUCCESS_MSG2_T, TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_MSG2_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9523,18 +9547,18 @@ void mqsv_it_msg_sendrcv_23()
 	    App_saMsgMessageReceivedCallback_withReplyAsync;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_NULL_SNAME_T, TEST_NONCONFIG_MODE);
 
 	m_MQSV_WAIT;
@@ -9549,10 +9573,10 @@ void mqsv_it_msg_sendrcv_23()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_MSG2_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9572,18 +9596,18 @@ void mqsv_it_msg_sendrcv_24()
 	    App_saMsgMessageReceivedCallback_withReply_nullSname;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_REPLY_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_SUCCESS_T,
+	result = tet_test_red_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_SUCCESS_T,
 						TEST_NONCONFIG_MODE);
 
 	m_MQSV_WAIT;
@@ -9598,10 +9622,10 @@ void mqsv_it_msg_sendrcv_24()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_MSG2_T);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9620,18 +9644,18 @@ void mqsv_it_msg_sendrcv_25()
 	    App_saMsgMessageReceivedCallback_withMsgGet;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_ZERO_SIZE_MSG_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -9655,10 +9679,10 @@ void mqsv_it_msg_sendrcv_25()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -9673,36 +9697,36 @@ void mqsv_it_msg_sendrcv_26()
 	int result;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_MULTI_CAST_GR_T, TEST_NONCONFIG_MODE);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9716,11 +9740,11 @@ void mqsv_it_msg_reply_01()
 	int result, result1, result2;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_ERR_TIMEOUT_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -9730,22 +9754,22 @@ void mqsv_it_msg_reply_01()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result1 = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_BAD_HANDLE_T,
+	result1 = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_BAD_HANDLE_T,
 					   TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_FINALIZED_HDL_T,
+	result2 = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_FINALIZED_HDL_T,
 					   TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -9759,10 +9783,10 @@ void mqsv_it_msg_reply_01()
 	goto final;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9774,11 +9798,11 @@ void mqsv_it_msg_reply_02()
 
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_ERR_TIMEOUT_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -9788,22 +9812,22 @@ void mqsv_it_msg_reply_02()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result1 = tet_test_msgMessageReplyAsync(
+	result1 = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_BAD_HDL_T, TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
-	result = tet_test_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgFinalize(MSG_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS) {
-		mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+		mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 		goto final;
 	}
 
-	result2 = tet_test_msgMessageReplyAsync(
+	result2 = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_FINALIZED_HDL_T, TEST_NONCONFIG_MODE);
 
 	if (result1 == TET_PASS && result2 == TET_PASS)
@@ -9817,10 +9841,10 @@ void mqsv_it_msg_reply_02()
 	goto final;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9830,14 +9854,14 @@ void mqsv_it_msg_reply_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_NULL_MSG_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_NULL_MSG_T,
 					  TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9847,14 +9871,14 @@ void mqsv_it_msg_reply_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_NULL_MSG_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9864,14 +9888,14 @@ void mqsv_it_msg_reply_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_NULL_SID_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_NULL_SID_T,
 					  TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9881,14 +9905,14 @@ void mqsv_it_msg_reply_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_NULL_SID_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9898,14 +9922,14 @@ void mqsv_it_msg_reply_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_ERR_NOT_EXIST_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_ERR_NOT_EXIST_T,
 					  TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9915,14 +9939,14 @@ void mqsv_it_msg_reply_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_ERR_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9933,11 +9957,11 @@ void mqsv_it_msg_reply_09()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_ERR_NO_SPACE_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -9947,11 +9971,11 @@ void mqsv_it_msg_reply_09()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_ERR_NO_SPACE_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_ERR_NO_SPACE_T,
 					  TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -9961,10 +9985,10 @@ void mqsv_it_msg_reply_09()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_ERR_NO_SPACE_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -9975,11 +9999,11 @@ void mqsv_it_msg_reply_10()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_ERR_NO_SPACE_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -9989,18 +10013,18 @@ void mqsv_it_msg_reply_10()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_ERR_NO_SPACE_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ALL_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ALL_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.del_clbk_invo != 511 ||
 	    gl_mqa_env.del_clbk_err != SA_AIS_ERR_NO_SPACE)
@@ -10015,10 +10039,10 @@ void mqsv_it_msg_reply_10()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_ERR_NO_SPACE_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10030,11 +10054,11 @@ void mqsv_it_msg_reply_11()
 
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10044,11 +10068,11 @@ void mqsv_it_msg_reply_11()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_ERR_INIT_T, TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -10058,10 +10082,10 @@ void mqsv_it_msg_reply_11()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 
 final:
 	mqsv_result(result);
@@ -10073,11 +10097,11 @@ void mqsv_it_msg_reply_12()
 
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_ERR_TIMEOUT_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_NULL_CBKS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10087,11 +10111,11 @@ void mqsv_it_msg_reply_12()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_ERR_INIT2_T, TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -10101,10 +10125,10 @@ void mqsv_it_msg_reply_12()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_NULL_CBKS_T);
 
 final:
 	mqsv_result(result);
@@ -10114,14 +10138,14 @@ void mqsv_it_msg_reply_13()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_BAD_FLAGS_T, TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10132,11 +10156,11 @@ void mqsv_it_msg_reply_14()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10146,11 +10170,11 @@ void mqsv_it_msg_reply_14()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_SUCCESS_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_SUCCESS_T,
 					  TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -10160,10 +10184,10 @@ void mqsv_it_msg_reply_14()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10174,11 +10198,11 @@ void mqsv_it_msg_reply_15()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10188,18 +10212,18 @@ void mqsv_it_msg_reply_15()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_SUCCESS_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.del_clbk_invo == 506 &&
 	    gl_mqa_env.del_clbk_err == SA_AIS_OK)
@@ -10214,10 +10238,10 @@ void mqsv_it_msg_reply_15()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10228,11 +10252,11 @@ void mqsv_it_msg_reply_16()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10242,18 +10266,18 @@ void mqsv_it_msg_reply_16()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_SUCCESS2_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.del_clbk_invo == 0 &&
 	    gl_mqa_env.del_clbk_err == 0)
@@ -10268,10 +10292,10 @@ void mqsv_it_msg_reply_16()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10282,11 +10306,11 @@ void mqsv_it_msg_reply_17()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10296,16 +10320,16 @@ void mqsv_it_msg_reply_17()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_SUCCESS_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_SUCCESS_T,
 					  TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_NOT_EXIST_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_NOT_EXIST_T,
 					  TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -10316,10 +10340,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10330,11 +10354,11 @@ void mqsv_it_msg_reply_18()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10344,16 +10368,16 @@ void mqsv_it_msg_reply_18()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_SUCCESS2_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -10364,10 +10388,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10378,11 +10402,11 @@ void mqsv_it_msg_reply_19()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10392,11 +10416,11 @@ void mqsv_it_msg_reply_19()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_NULL_SNDR_NAME_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_NULL_SNDR_NAME_T,
 					  TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -10406,10 +10430,10 @@ void mqsv_it_msg_reply_19()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10420,11 +10444,11 @@ void mqsv_it_msg_reply_20()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10434,18 +10458,18 @@ void mqsv_it_msg_reply_20()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_NULL_SNDR_NAME_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.del_clbk_invo == 512 &&
 	    gl_mqa_env.del_clbk_err == SA_AIS_OK)
@@ -10460,10 +10484,10 @@ void mqsv_it_msg_reply_20()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10473,35 +10497,35 @@ void mqsv_it_msg_reply_21()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_INV_PARAM_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_INV_PARAM_T,
 					  TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10511,35 +10535,35 @@ void mqsv_it_msg_reply_22()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_INV_PARAM_T, TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10550,11 +10574,11 @@ void mqsv_it_msg_reply_23()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10564,11 +10588,11 @@ void mqsv_it_msg_reply_23()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_ZERO_SIZE_MSG_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_ZERO_SIZE_MSG_T,
 					  TEST_NONCONFIG_MODE);
 
 	sleep(10);
@@ -10578,10 +10602,10 @@ void mqsv_it_msg_reply_23()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10592,11 +10616,11 @@ void mqsv_it_msg_reply_24()
 	int result;
 	MSG_MESSAGE_SEND_RECV_TC_TYPE tc = MSG_MESSAGE_SEND_RECV_SUCCESS_T;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -10606,16 +10630,16 @@ void mqsv_it_msg_reply_24()
 	m_MQSV_WAIT;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_ZERO_SIZE_MSG_T, TEST_NONCONFIG_MODE);
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result == TET_PASS && gl_mqa_env.del_clbk_invo == 513 &&
 	    gl_mqa_env.del_clbk_err == SA_AIS_OK)
@@ -10630,10 +10654,10 @@ void mqsv_it_msg_reply_24()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_SEND_RECV_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10647,21 +10671,21 @@ void mqsv_it_msgqs_01()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -10674,10 +10698,10 @@ void mqsv_it_msgqs_01()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10687,21 +10711,21 @@ void mqsv_it_msgqs_02()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -10721,10 +10745,10 @@ void mqsv_it_msgqs_02()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_ZERO_TIMEOUT_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10734,21 +10758,21 @@ void mqsv_it_msgqs_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ZERO_TIMEOUT_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -10768,10 +10792,10 @@ void mqsv_it_msgqs_03()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_ZERO_TIMEOUT_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10781,32 +10805,32 @@ void mqsv_it_msgqs_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	sleep(11);
+	sleep(gl_queue_ret_time/SA_TIME_ONE_SECOND + 1);
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result == TET_PASS)
 		goto final1;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10816,18 +10840,18 @@ void mqsv_it_msgqs_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 115 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK) {
@@ -10835,23 +10859,23 @@ void mqsv_it_msgqs_05()
 		goto final1;
 	}
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL5_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL5_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	sleep(11);
+	sleep(gl_queue_ret_time/SA_TIME_ONE_SECOND + 1);
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_NOT_EXIST_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result == TET_PASS)
 		goto final1;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_NPERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10861,30 +10885,30 @@ void mqsv_it_msgqs_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	sleep(13);
+	sleep(gl_queue_ret_time/SA_TIME_ONE_SECOND + 3);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10894,18 +10918,18 @@ void mqsv_it_msgqs_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 114 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK) {
@@ -10913,21 +10937,21 @@ void mqsv_it_msgqs_07()
 		goto final1;
 	}
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL5_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL5_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	sleep(13);
+	sleep(gl_queue_ret_time/SA_TIME_ONE_SECOND + 3);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10937,30 +10961,30 @@ void mqsv_it_msgqs_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	sleep(5);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NPERS_EXIST_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NPERS_EXIST_SUCCESS_T,
 				       TEST_NONCONFIG_MODE);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -10970,30 +10994,30 @@ void mqsv_it_msgqs_09()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	sleep(5);
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_EXIST_SUCCESS2_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 129 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK)
@@ -11002,10 +11026,10 @@ void mqsv_it_msgqs_09()
 		result = TET_PASS;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11015,33 +11039,33 @@ void mqsv_it_msgqs_10()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	sleep(5);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NPERS_EXIST_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NPERS_EXIST_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11055,10 +11079,10 @@ void mqsv_it_msgqs_10()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11068,33 +11092,33 @@ void mqsv_it_msgqs_11()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	sleep(10);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11108,10 +11132,10 @@ void mqsv_it_msgqs_11()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11121,7 +11145,7 @@ void mqsv_it_msgqs_12()
 {
 	int result;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_BAD_HDL_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_BAD_HDL_T,
 					TEST_NONCONFIG_MODE);
 	mqsv_result(result);
 }
@@ -11130,36 +11154,36 @@ void mqsv_it_msgqs_13()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EMPTY_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EMPTY_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11177,10 +11201,10 @@ void mqsv_it_msgqs_13()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11190,38 +11214,38 @@ void mqsv_it_msgqs_14()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_NPERS_EMPTY_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.open_clbk_invo != 120 ||
 	    gl_mqa_env.open_clbk_err != SA_AIS_OK) {
@@ -11229,7 +11253,7 @@ void mqsv_it_msgqs_14()
 		goto final2;
 	}
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11247,10 +11271,10 @@ void mqsv_it_msgqs_14()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11260,26 +11284,26 @@ void mqsv_it_msgqs_15()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11293,10 +11317,10 @@ void mqsv_it_msgqs_15()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11306,28 +11330,28 @@ void mqsv_it_msgqs_16()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME1_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME1_T,
 					      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS || gl_mqa_env.del_clbk_invo != 308 ||
 	    gl_mqa_env.del_clbk_err != SA_AIS_OK) {
@@ -11335,7 +11359,7 @@ void mqsv_it_msgqs_16()
 		goto final2;
 	}
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11349,10 +11373,10 @@ void mqsv_it_msgqs_16()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11362,40 +11386,40 @@ void mqsv_it_msgqs_17()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_EXIST_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11405,23 +11429,23 @@ void mqsv_it_msgqs_18()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11432,10 +11456,10 @@ void mqsv_it_msgqs_18()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11445,13 +11469,13 @@ void mqsv_it_msgqs_19()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpenAsync(
+	result = tet_test_red_msgQueueOpenAsync(
 	    MSG_QUEUE_OPEN_ASYNC_PERS_RECV_CLBK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -11464,7 +11488,7 @@ void mqsv_it_msgqs_19()
 		goto final1;
 	}
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11477,10 +11501,10 @@ void mqsv_it_msgqs_19()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11490,33 +11514,33 @@ void mqsv_it_msgqs_20()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_EXIST_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_EXIST_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11527,10 +11551,10 @@ void mqsv_it_msgqs_20()
 		result = TET_PASS;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11540,23 +11564,23 @@ void mqsv_it_msgqs_21()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -11567,10 +11591,10 @@ void mqsv_it_msgqs_21()
 		result = TET_PASS;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11580,13 +11604,13 @@ void mqsv_it_msgqs_22()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -11599,28 +11623,28 @@ void mqsv_it_msgqs_22()
 		goto final1;
 	}
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	gl_mqa_env.pers_q_hdl = gl_mqa_env.open_clbk_qhdl;
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_ASYNC_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11630,36 +11654,36 @@ void mqsv_it_msgqs_23()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_HDL2_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_HDL2_T,
 					TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11671,27 +11695,27 @@ void mqsv_it_msgq_grps_01()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
@@ -11707,13 +11731,13 @@ void mqsv_it_msgq_grps_01()
 
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_T);
 
-	result = tet_test_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
+	result = tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
@@ -11725,13 +11749,13 @@ void mqsv_it_msgq_grps_01()
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11742,41 +11766,41 @@ void mqsv_it_msgq_grps_02()
 	int result;
 	int numOfMsgs = 0;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -11785,7 +11809,7 @@ void mqsv_it_msgq_grps_02()
 
 	mqsv_clean_q_status();
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_Q2_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -11797,16 +11821,16 @@ void mqsv_it_msgq_grps_02()
 		result = TET_FAIL;
 
 final4:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11820,38 +11844,38 @@ void mqsv_it_msgq_grps_03()
 	    App_saMsgMessageReceivedCallback_withMsgGet;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(
+	result = tet_test_red_msgQueueOpen(
 	    MSG_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -11867,7 +11891,7 @@ void mqsv_it_msgq_grps_03()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -11883,7 +11907,7 @@ void mqsv_it_msgq_grps_03()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_GR_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -11905,16 +11929,16 @@ void mqsv_it_msgq_grps_03()
 		result = TET_FAIL;
 
 final4:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_RECV_CLBK_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -11928,24 +11952,24 @@ void mqsv_it_msgq_grps_04()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST2_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_BROADCAST2_T,
 					 TEST_NONCONFIG_MODE);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_BROADCAST2_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_BROADCAST2_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -11955,32 +11979,32 @@ void mqsv_it_msgq_grps_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CURRENT_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
@@ -11992,14 +12016,14 @@ void mqsv_it_msgq_grps_05()
 	mqsv_restore_params(MSG_RESTORE_GROUP_TRACK_CURRENT_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12009,38 +12033,38 @@ void mqsv_it_msgq_grps_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	sleep(10);
+	sleep(gl_queue_ret_time/SA_TIME_ONE_SECOND);
 
 	m_MQSV_WAIT;
 
@@ -12064,14 +12088,15 @@ final4:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
-	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	if (result != TET_PASS) {
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	}
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12081,38 +12106,38 @@ void mqsv_it_msgq_grps_07()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	sleep(10);
+	sleep(gl_queue_ret_time/SA_TIME_ONE_SECOND);
 
 	m_MQSV_WAIT;
 
@@ -12136,14 +12161,14 @@ final4:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHGS_ONLY_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12153,53 +12178,53 @@ void mqsv_it_msgq_grps_08()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_GR2_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_GR2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final6;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final6;
@@ -12224,7 +12249,7 @@ void mqsv_it_msgq_grps_08()
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final6;
@@ -12250,17 +12275,17 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
 final4:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12270,53 +12295,53 @@ void mqsv_it_msgq_grps_09()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
 	result =
-	    tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_GR2_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_GR2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
+	result = tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_SUCCESS_Q1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final6;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final6;
@@ -12341,7 +12366,7 @@ void mqsv_it_msgq_grps_09()
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final6;
@@ -12367,17 +12392,17 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
 final4:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final2:
 	if (result != TET_PASS)
-		mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+		mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12387,28 +12412,28 @@ void mqsv_it_msgq_grps_10()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHANGES_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -12420,12 +12445,12 @@ void mqsv_it_msgq_grps_10()
 		goto final5;
 	}
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12434,12 +12459,12 @@ void mqsv_it_msgq_grps_10()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12455,16 +12480,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHANGES_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12474,28 +12499,28 @@ void mqsv_it_msgq_grps_11()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CHGS_ONLY_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
@@ -12507,12 +12532,12 @@ void mqsv_it_msgq_grps_11()
 		goto final5;
 	}
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12521,12 +12546,12 @@ void mqsv_it_msgq_grps_11()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL2_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12542,16 +12567,16 @@ final5:
 	mqsv_q_grp_track_stop(MSG_STOP_GROUP_TRACK_CHGS_ONLY_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final3:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12563,38 +12588,38 @@ void mqsv_it_msgq_grps_12()
 
 	gl_track_clbk_iter = 0;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
+	result = tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_SUCCESS_GR2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final4;
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_Q2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_CH_NUL_BUF_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_CH_NUL_BUF_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12602,7 +12627,7 @@ void mqsv_it_msgq_grps_12()
 	sleep(2);
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupTrack(MSG_GROUP_TRACK_CUR_CHLY_NUL_BUF_GR2_T,
+	result = tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_CUR_CHLY_NUL_BUF_GR2_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12610,7 +12635,7 @@ void mqsv_it_msgq_grps_12()
 	sleep(2);
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_Q1_GROUP2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12618,7 +12643,7 @@ void mqsv_it_msgq_grps_12()
 	sleep(2);
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_SUCCESS_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12626,7 +12651,7 @@ void mqsv_it_msgq_grps_12()
 	sleep(2);
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgGroupInsert(MSG_GROUP_INSERT_Q2_GROUP2_T,
+	result = tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_Q2_GROUP2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final5;
@@ -12635,10 +12660,10 @@ void mqsv_it_msgq_grps_12()
 	mqsv_clean_clbk_params();
 
 final5:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final4:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 	if (result == TET_PASS && gl_track_clbk_iter == 9)
 		result = TET_PASS;
@@ -12646,13 +12671,13 @@ final4:
 		result = TET_FAIL;
 
 final3:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_GR2_T);
 
 final2:
-	mqsv_q_grp_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
+	mqsv_q_grp_red_cleanup(MSG_CLEAN_GROUP_CREATE_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12664,26 +12689,26 @@ void mqsv_it_msg_delprop_01()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_MSG2_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -12695,7 +12720,7 @@ void mqsv_it_msg_delprop_01()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -12708,10 +12733,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12722,28 +12747,28 @@ void mqsv_it_msg_delprop_02()
 	int result;
 	SaUint32T type1, type2;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	type1 = gl_mqa_env.send_msg.type;
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	gl_mqa_env.send_msg.type = type2 = 12;
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -12755,7 +12780,7 @@ void mqsv_it_msg_delprop_02()
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
-	result = tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
+	result = tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T,
 					TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -12767,10 +12792,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12780,26 +12805,26 @@ void mqsv_it_msg_delprop_03()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final3;
@@ -12814,10 +12839,10 @@ final3:
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12828,11 +12853,11 @@ void mqsv_it_msg_delprop_04()
 	int result;
 	int size;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_SMALL_SIZE_ATTR_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_SMALL_SIZE_ATTR_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -12843,7 +12868,7 @@ void mqsv_it_msg_delprop_04()
 	while (size > 0) {
 		sleep(2);
 
-		result = tet_test_msgMessageSend(
+		result = tet_test_red_msgMessageSend(
 		    MSG_MESSAGE_SEND_SUCCESS_NAME1_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			goto final2;
@@ -12851,14 +12876,14 @@ void mqsv_it_msg_delprop_04()
 		size -= gl_mqa_env.send_msg.size;
 	}
 
-	result = tet_test_msgMessageSendAsync(
+	result = tet_test_red_msgMessageSendAsync(
 	    MSG_MESSAGE_SEND_ASYNC_QUEUE_FULL_T, TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -12870,10 +12895,10 @@ void mqsv_it_msg_delprop_04()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12883,23 +12908,23 @@ void mqsv_it_msg_delprop_05()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_NON_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME2_T,
 					      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_NONCONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -12911,10 +12936,10 @@ void mqsv_it_msg_delprop_05()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_NON_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12924,28 +12949,28 @@ void mqsv_it_msg_delprop_06()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	sleep(10);
 
-	result = tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
+	result = tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_GET_SUCCESS_T,
 					    TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -12957,10 +12982,10 @@ void mqsv_it_msg_delprop_06()
 		result = TET_FAIL;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -12974,23 +12999,23 @@ void mqsv_it_msg_delprop_07()
 	    App_saMsgMessageReceivedCallback_withMsgGet;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	m_MQSV_WAIT;
 
-	result = tet_test_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
+	result = tet_test_red_msgDispatch(MSG_DISPATCH_DISPATCH_ONE_SUCCESS_T,
 				      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -13011,10 +13036,10 @@ void mqsv_it_msg_delprop_07()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -13032,18 +13057,18 @@ void mqsv_it_msg_delprop_08()
 	    App_saMsgMessageReceivedCallback_withMsgGet;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME1_T,
+	result = tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_NAME1_T,
 					      TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -13068,10 +13093,10 @@ void mqsv_it_msg_delprop_08()
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -13089,18 +13114,18 @@ void mqsv_it_msg_delprop_09()
 	    App_saMsgMessageReceivedCallback_withMsgGet;
 
 	result =
-	    tet_test_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgInitialize(MSG_INIT_SUCCESS_RECV_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -13114,17 +13139,17 @@ void mqsv_it_msg_delprop_09()
 
 	mqsv_clean_clbk_params();
 
-	result = tet_test_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
+	result = tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_SUCCESS_HDL1_T,
 					TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
+	result = tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_SUCCESS_NAME1_T,
 					 TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_EXIST_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_EXIST_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
@@ -13137,10 +13162,10 @@ void mqsv_it_msg_delprop_09()
 		result = TET_PASS;
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -13158,19 +13183,19 @@ void mqsv_it_msg_delprop_10()
 	gl_mqa_env.gen_clbks.saMsgMessageReceivedCallback =
 	    App_saMsgMessageReceivedCallback_withMsgGet;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	while (i++ < 10) {
-		result = tet_test_msgMessageSend(
+		result = tet_test_red_msgMessageSend(
 		    MSG_MESSAGE_SEND_SUCCESS_NAME1_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			break;
@@ -13189,10 +13214,10 @@ void mqsv_it_msg_delprop_10()
 	}
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_RECV_CLBK_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_fill_msg_clbks(&gl_mqa_env.gen_clbks, App_saMsgQueueOpenCallback,
@@ -13209,19 +13234,19 @@ void mqsv_it_msg_delprop_11()
 
 	gl_del_clbk_iter = 0;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	mqsv_createthread(&gl_mqa_env.msg_hdl1);
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
 	while (i++ <= 10) {
-		result = tet_test_msgMessageSendAsync(
+		result = tet_test_red_msgMessageSendAsync(
 		    MSG_MESSAGE_SEND_ASYNC_NAME1_T, TEST_CONFIG_MODE);
 		if (result != TET_PASS)
 			break;
@@ -13235,10 +13260,10 @@ void mqsv_it_msg_delprop_11()
 		result = TET_FAIL;
 
 	mqsv_clean_clbk_params();
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -13248,35 +13273,35 @@ void mqsv_it_msg_delprop_12()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_ERR_TIMEOUT_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReply(MSG_MESSAGE_REPLY_NOT_EXIST_T,
+	result = tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_NOT_EXIST_T,
 					  TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -13286,35 +13311,35 @@ void mqsv_it_msg_delprop_13()
 {
 	int result;
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
 
-	result = tet_test_msgMessageSendReceive(
+	result = tet_test_red_msgMessageSendReceive(
 	    MSG_MESSAGE_SEND_RECV_ERR_TIMEOUT_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
 	result =
-	    tet_test_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
+	    tet_test_red_msgMessageGet(MSG_MESSAGE_GET_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final2;
 
-	result = tet_test_msgMessageReplyAsync(
+	result = tet_test_red_msgMessageReplyAsync(
 	    MSG_MESSAGE_REPLY_ASYNC_NOT_EXIST_T, TEST_NONCONFIG_MODE);
 
 	mqsv_restore_params(MSG_RESTORE_MESSAGE_GET_SUCCESS_T);
 
 final2:
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -13332,7 +13357,7 @@ void mqsv_it_err_try_again_01()
 	printf(" KILL MQD/MQND AND PRESS ENTER TO CONTINUE\n");
 	getchar();
 
-	result = tet_test_msgInitialize(MSG_INIT_ERR_TRY_AGAIN_T,
+	result = tet_test_red_msgInitialize(MSG_INIT_ERR_TRY_AGAIN_T,
 					TEST_NONCONFIG_MODE);
 
 	mqsv_result(result);
@@ -13345,68 +13370,68 @@ void mqsv_it_err_try_again_02()
 	mqsv_print_testcase(
 	    " \n\n ***** API TEST for SA_AIS_ERR_TRY_AGAIN (case 2) *****\n");
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
 	printf(" KILL MQD/MQND AND PRESS ENTER TO CONTINUE\n");
 	getchar();
 
-	tet_test_msgSelectionObject(MSG_SEL_OBJ_ERR_TRY_AGAIN_T,
+	tet_test_red_msgSelectionObject(MSG_SEL_OBJ_ERR_TRY_AGAIN_T,
 				    TEST_NONCONFIG_MODE);
 
-	tet_test_msgDispatch(MSG_DISPATCH_ERR_TRY_AGAIN_T, TEST_NONCONFIG_MODE);
+	tet_test_red_msgDispatch(MSG_DISPATCH_ERR_TRY_AGAIN_T, TEST_NONCONFIG_MODE);
 
-	tet_test_msgFinalize(MSG_FINALIZE_ERR_TRY_AGAIN_T, TEST_NONCONFIG_MODE);
+	tet_test_red_msgFinalize(MSG_FINALIZE_ERR_TRY_AGAIN_T, TEST_NONCONFIG_MODE);
 
-	tet_test_msgQueueOpen(MSG_QUEUE_OPEN_ERR_TRY_AGAIN_T,
+	tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_ERR_TRY_AGAIN_T,
 			      TEST_NONCONFIG_MODE);
 
-	tet_test_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_TRY_AGAIN_T,
+	tet_test_red_msgQueueOpenAsync(MSG_QUEUE_OPEN_ASYNC_ERR_TRY_AGAIN_T,
 				   TEST_NONCONFIG_MODE);
 
-	tet_test_msgQueueUnlink(MSG_QUEUE_UNLINK_ERR_TRY_AGAIN_T,
+	tet_test_red_msgQueueUnlink(MSG_QUEUE_UNLINK_ERR_TRY_AGAIN_T,
 				TEST_NONCONFIG_MODE);
 
-	tet_test_msgQueueStatusGet(MSG_QUEUE_STATUS_ERR_TRY_AGAIN_T,
+	tet_test_red_msgQueueStatusGet(MSG_QUEUE_STATUS_ERR_TRY_AGAIN_T,
 				   TEST_NONCONFIG_MODE);
 
-	tet_test_msgGroupCreate(MSG_GROUP_CREATE_ERR_TRY_AGAIN_T,
+	tet_test_red_msgGroupCreate(MSG_GROUP_CREATE_ERR_TRY_AGAIN_T,
 				TEST_NONCONFIG_MODE);
 
-	tet_test_msgGroupInsert(MSG_GROUP_INSERT_ERR_TRY_AGAIN_T,
+	tet_test_red_msgGroupInsert(MSG_GROUP_INSERT_ERR_TRY_AGAIN_T,
 				TEST_NONCONFIG_MODE);
 
-	tet_test_msgGroupRemove(MSG_GROUP_REMOVE_ERR_TRY_AGAIN_T,
+	tet_test_red_msgGroupRemove(MSG_GROUP_REMOVE_ERR_TRY_AGAIN_T,
 				TEST_NONCONFIG_MODE);
 
-	tet_test_msgGroupDelete(MSG_GROUP_DELETE_ERR_TRY_AGAIN_T,
+	tet_test_red_msgGroupDelete(MSG_GROUP_DELETE_ERR_TRY_AGAIN_T,
 				TEST_NONCONFIG_MODE);
 
-	tet_test_msgGroupTrack(MSG_GROUP_TRACK_ERR_TRY_AGAIN_T,
+	tet_test_red_msgGroupTrack(MSG_GROUP_TRACK_ERR_TRY_AGAIN_T,
 			       TEST_NONCONFIG_MODE);
 
-	tet_test_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_ERR_TRY_AGAIN_T,
+	tet_test_red_msgGroupTrackStop(MSG_GROUP_TRACK_STOP_ERR_TRY_AGAIN_T,
 				   TEST_NONCONFIG_MODE);
 
-	tet_test_msgMessageSend(MSG_MESSAGE_SEND_ERR_TRY_AGAIN_T,
+	tet_test_red_msgMessageSend(MSG_MESSAGE_SEND_ERR_TRY_AGAIN_T,
 				TEST_NONCONFIG_MODE);
 
-	tet_test_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_ERR_TRY_AGAIN_T,
+	tet_test_red_msgMessageSendAsync(MSG_MESSAGE_SEND_ASYNC_ERR_TRY_AGAIN_T,
 				     TEST_NONCONFIG_MODE);
 
-	tet_test_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_ERR_TRY_AGAIN_T,
+	tet_test_red_msgMessageSendReceive(MSG_MESSAGE_SEND_RECV_ERR_TRY_AGAIN_T,
 				       TEST_NONCONFIG_MODE);
 
 	gl_mqa_env.sender_id = 21;
 
-	tet_test_msgMessageReply(MSG_MESSAGE_REPLY_ERR_TRY_AGAIN_T,
+	tet_test_red_msgMessageReply(MSG_MESSAGE_REPLY_ERR_TRY_AGAIN_T,
 				 TEST_NONCONFIG_MODE);
 
-	tet_test_msgMessageReplyAsync(MSG_MESSAGE_REPLY_ASYNC_ERR_TRY_AGAIN_T,
+	tet_test_red_msgMessageReplyAsync(MSG_MESSAGE_REPLY_ASYNC_ERR_TRY_AGAIN_T,
 				      TEST_NONCONFIG_MODE);
 
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);
@@ -13419,11 +13444,11 @@ void mqsv_it_err_try_again_03()
 	mqsv_print_testcase(
 	    " \n\n ***** API TEST for SA_AIS_ERR_TRY_AGAIN (case 3) *****\n");
 
-	result = tet_test_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+	result = tet_test_red_msgInitialize(MSG_INIT_SUCCESS_T, TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final;
 
-	result = tet_test_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
+	result = tet_test_red_msgQueueOpen(MSG_QUEUE_OPEN_PERS_SUCCESS_T,
 				       TEST_CONFIG_MODE);
 	if (result != TET_PASS)
 		goto final1;
@@ -13431,19 +13456,19 @@ void mqsv_it_err_try_again_03()
 	printf(" KILL MQD/MQND AND PRESS ENTER TO CONTINUE\n");
 	getchar();
 
-	tet_test_msgQueueClose(MSG_QUEUE_CLOSE_ERR_TRY_AGAIN_T,
+	tet_test_red_msgQueueClose(MSG_QUEUE_CLOSE_ERR_TRY_AGAIN_T,
 			       TEST_NONCONFIG_MODE);
 
-	tet_test_msgMessageGet(MSG_MESSAGE_GET_ERR_TRY_AGAIN_T,
+	tet_test_red_msgMessageGet(MSG_MESSAGE_GET_ERR_TRY_AGAIN_T,
 			       TEST_NONCONFIG_MODE);
 
-	tet_test_msgMessageCancel(MSG_MESSAGE_CANCEL_ERR_TRY_AGAIN_T,
+	tet_test_red_msgMessageCancel(MSG_MESSAGE_CANCEL_ERR_TRY_AGAIN_T,
 				  TEST_NONCONFIG_MODE);
 
-	mqsv_q_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
+	mqsv_q_red_cleanup(MSG_CLEAN_QUEUE_OPEN_PERS_SUCCESS_T);
 
 final1:
-	mqsv_init_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
+	mqsv_init_red_cleanup(MSG_CLEAN_INIT_SUCCESS_T);
 
 final:
 	mqsv_result(result);

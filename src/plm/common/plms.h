@@ -571,18 +571,11 @@ SaUint32T plms_amf_register();
 SaUint32T plms_mds_register();
 void plms_mds_unregister();
 SaUint32T plms_mds_change_role();
-SaUint32T plms_mds_enc(MDS_CALLBACK_ENC_INFO *info, EDU_HDL *edu_hdl);
-SaUint32T plms_mds_dec(MDS_CALLBACK_DEC_INFO *info, EDU_HDL *edu_hdl);
-SaUint32T plms_mds_enc_flat(struct ncsmds_callback_info *, EDU_HDL *);
-SaUint32T plms_mds_dec_flat(struct ncsmds_callback_info *, EDU_HDL *);
 SaUint32T plm_send_mds_rsp(MDS_HDL mds_hdl, NCSMDS_SVC_ID from_svc,
                            PLMS_SEND_INFO *s_info, PLMS_EVT *evt);
 void plms_cb_dump_routine();
-SaUint32T plms_free_evt(PLMS_EVT *evt);
 SaUint32T plms_cbk_validate_resp_ok_err_proc(PLMS_TRACK_INFO *);
 SaUint32T plms_cbk_start_resp_ok_err_proc(PLMS_TRACK_INFO *);
-uint32_t plms_mds_normal_send(MDS_HDL, NCSMDS_SVC_ID, NCSCONTEXT, MDS_DEST,
-                              NCSMDS_SVC_ID);
 SaUint32T plms_hrb_mds_msg_sync_send(MDS_HDL mds_hdl, SaUint32T from_svc,
                                      SaUint32T to_svc, MDS_DEST to_dest,
                                      PLMS_HPI_REQ *i_evt, PLMS_HPI_RSP **o_evt,

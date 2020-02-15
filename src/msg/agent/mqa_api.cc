@@ -208,8 +208,8 @@ SaAisErrorT saMsgInitialize(SaMsgHandleT *msgHandle,
     goto final2;
   }
 
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  if (!mqa_cb->is_mqnd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQND is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto final3;
   }
@@ -353,11 +353,7 @@ SaAisErrorT saMsgSelectionObjectGet(SaMsgHandleT msgHandle,
     rc = SA_AIS_ERR_LIBRARY;
     goto done0;
   }
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto done;
-  }
+
   client_info = mqa_client_tree_find_and_add(mqa_cb, msgHandle, false);
   if (!client_info) {
     TRACE_2("ERR_BAD_HANDLE: Client Database Find Failed");
@@ -431,13 +427,6 @@ SaAisErrorT saMsgDispatch(SaMsgHandleT msgHandle,
   if (m_NCS_LOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
     TRACE_4("ERR_LIBRARY: Lock failed for control block write");
     rc = SA_AIS_ERR_LIBRARY;
-    goto done;
-  }
-
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE);
     goto done;
   }
 
@@ -532,8 +521,8 @@ SaAisErrorT saMsgFinalize(SaMsgHandleT msgHandle) {
     rc = SA_AIS_ERR_LIBRARY;
     goto lock_fail;
   }
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  if (!mqa_cb->is_mqnd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQND is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto done;
   }
@@ -762,8 +751,8 @@ SaAisErrorT saMsgQueueOpen(
     goto lock_fail;
   }
 
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  if (!mqa_cb->is_mqnd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQND is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto done;
   }
@@ -1019,8 +1008,8 @@ SaAisErrorT saMsgQueueOpenAsync(
     goto done1;
   }
 
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  if (!mqa_cb->is_mqnd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQND is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto done;
   }
@@ -1163,8 +1152,8 @@ SaAisErrorT saMsgQueueClose(SaMsgQueueHandleT queueHandle) {
     return rc;
   }
 
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  if (!mqa_cb->is_mqnd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQND is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto done;
   }
@@ -1314,8 +1303,8 @@ SaAisErrorT saMsgQueueStatusGet(SaMsgHandleT msgHandle,
     rc = SA_AIS_ERR_LIBRARY;
     goto done1;
   }
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  if (!mqa_cb->is_mqd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQD is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto done;
   }
@@ -1458,8 +1447,8 @@ SaAisErrorT saMsgQueueRetentionTimeSet(SaMsgQueueHandleT queueHandle,
     return rc;
   }
 
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  if (!mqa_cb->is_mqnd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQND is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto done;
   }
@@ -1598,9 +1587,9 @@ SaAisErrorT saMsgQueueUnlink(SaMsgHandleT msgHandle, const SaNameT *queueName) {
     return rc;
   }
 
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  /* Check if mqd is up */
+  if (!mqa_cb->is_mqd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQD is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto done;
   }
@@ -2491,8 +2480,8 @@ SaAisErrorT mqa_receive_message(SaMsgQueueHandleT queueHandle,
   lock_taken = true;
 
   /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  if (!mqa_cb->is_mqnd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQND is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     goto done;
   }
@@ -3094,14 +3083,6 @@ SaAisErrorT saMsgMessageCancel(SaMsgQueueHandleT queueHandle) {
     TRACE_4("ERR_LIBRARY: Lock failed for control block write");
     m_MQSV_MQA_GIVEUP_MQA_CB;
     return SA_AIS_ERR_LIBRARY;
-  }
-
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
-    m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE);
-    m_MQSV_MQA_GIVEUP_MQA_CB;
-    return SA_AIS_ERR_TRY_AGAIN;
   }
 
   /* Check if queueHandle is present in the tree */
@@ -3808,12 +3789,6 @@ SaAisErrorT mqa_reply_message(SaMsgHandleT msgHandle,
     return rc;
   }
 
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto done;
-  }
   client_info = mqa_client_tree_find_and_add(mqa_cb, msgHandle, false);
 
   if (!client_info) {
@@ -4222,9 +4197,9 @@ SaAisErrorT saMsgQueueGroupCreate(SaMsgHandleT msgHandle,
   }
 
   memset(&asapi_or, 0, sizeof(asapi_or));
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  /* Check if mqd is up */
+  if (!mqa_cb->is_mqd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQD is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE);
     goto done;
@@ -4339,9 +4314,9 @@ SaAisErrorT saMsgQueueGroupDelete(SaMsgHandleT msgHandle,
 
   memset(&asapi_or, 0, sizeof(asapi_or));
 
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  /* Check if mqd is up */
+  if (!mqa_cb->is_mqd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQD is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE);
     goto done;
@@ -4466,9 +4441,9 @@ SaAisErrorT saMsgQueueGroupInsert(SaMsgHandleT msgHandle,
 
   memset(&asapi_or, 0, sizeof(asapi_or));
 
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  /* Check if mqd are up */
+  if (!mqa_cb->is_mqd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQD is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE);
     goto done;
@@ -4591,9 +4566,9 @@ SaAisErrorT saMsgQueueGroupRemove(SaMsgHandleT msgHandle,
 
   memset(&asapi_or, 0, sizeof(asapi_or));
 
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  /* Check if mqd is up */
+  if (!mqa_cb->is_mqd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQD is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE);
     goto done;
@@ -4732,9 +4707,9 @@ SaAisErrorT saMsgQueueGroupTrack(
     return SA_AIS_ERR_LIBRARY;
   }
 
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  /* Check if mqd is up */
+  if (!mqa_cb->is_mqd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQD is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE);
     goto done;
@@ -5020,9 +4995,9 @@ SaAisErrorT saMsgQueueGroupTrackStop(SaMsgHandleT msgHandle,
     return SA_AIS_ERR_LIBRARY;
   }
 
-  /* Check if mqd, mqnd are up */
-  if (!mqa_cb->is_mqd_up || !mqa_cb->is_mqnd_up) {
-    TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+  /* Check if mqd is up */
+  if (!mqa_cb->is_mqd_up) {
+    TRACE_2("ERR_TRY_AGAIN: MQD is down");
     rc = SA_AIS_ERR_TRY_AGAIN;
     m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE);
     goto done1;
@@ -5475,7 +5450,7 @@ SaAisErrorT saMsgQueueCapacityThresholdsGet(SaMsgQueueHandleT queueHandle,
 
     /* Check if mqnd is up */
     if (!mqa_cb->is_mqnd_up) {
-      TRACE_2("ERR_TRY_AGAIN: MQD or MQND is down");
+      TRACE_2("ERR_TRY_AGAIN: MQND is down");
       rc = SA_AIS_ERR_TRY_AGAIN;
       break;
     }

@@ -31,6 +31,8 @@
 ******************************************************************************
 */
 
+#include <thread>
+#include "base/osaf_time.h"
 #include "mqa.h"
 
 extern uint32_t mqa_mds_callback(struct ncsmds_callback_info *info);
@@ -42,6 +44,119 @@ static uint32_t mqa_mds_rcv(MQA_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info);
 static uint32_t mqa_mds_svc_evt(MQA_CB *cb,
                                 MDS_CALLBACK_SVC_EVENT_INFO *svc_evt);
 static uint32_t mqa_mds_get_handle(MQA_CB *cb);
+
+static void mqa_mds_reregister_queues_thread(void)
+{
+  MQA_CB *mqa_cb = nullptr;
+
+  TRACE_ENTER();
+
+  mqa_cb = m_MQSV_MQA_RETRIEVE_MQA_CB;
+
+  mqa_asapi_unregister(mqa_cb);
+  mqa_asapi_register(mqa_cb);
+
+  MQA_TRACK_INFO *track_info;
+  MQA_CLIENT_INFO *client_info;
+  SaMsgHandleT *temp_hdl_ptr = 0;
+
+  if (m_NCS_LOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
+    LOG_ER("failed to lock control block while registering queues");
+  }
+
+  while ((client_info = (MQA_CLIENT_INFO *)ncs_patricia_tree_getnext(
+         &mqa_cb->mqa_client_tree, (uint8_t *const)temp_hdl_ptr))) {
+    uint8_t *temp_name_ptr = 0;
+    SaMsgHandleT temp_hdl = client_info->msgHandle;
+    temp_hdl_ptr = &temp_hdl;
+
+    /* scan the entire group track db & reregister tracking */
+    while ((track_info = (MQA_TRACK_INFO *)ncs_patricia_tree_getnext(
+           &client_info->mqa_track_tree, (uint8_t *const)temp_name_ptr))) {
+      int retries = 5;
+      ASAPi_OPR_INFO asapi_or;
+      SaNameT temp_name = track_info->queueGroupName;
+      temp_name_ptr = temp_name.value;
+
+      memset(&asapi_or, 0, sizeof(asapi_or));
+      asapi_or.type = ASAPi_OPR_TRACK;
+      asapi_or.info.track.i_group = track_info->queueGroupName;
+      asapi_or.info.track.i_flags = track_info->trackFlags;
+      asapi_or.info.track.i_option = ASAPi_TRACK_ENABLE;
+
+      asapi_or.info.track.i_sinfo.to_svc = NCSMDS_SVC_ID_MQD;
+      asapi_or.info.track.i_sinfo.dest = mqa_cb->mqd_mds_dest;
+      asapi_or.info.track.i_sinfo.stype = MDS_SENDTYPE_SNDRSP;
+
+      while (retries--) {
+        SaAisErrorT rc(asapi_opr_hdlr(&asapi_or));
+        if (rc == SA_AIS_OK)
+          break;
+        else if (rc == SA_AIS_ERR_TIMEOUT ||
+                 rc == SA_AIS_ERR_TRY_AGAIN) {
+          TRACE("trying again to reregister queue: %i", rc);
+          osaf_nanosleep(&kHundredMilliseconds);
+          continue;
+        } else
+          LOG_ER("Failed to reregister tracking after MQD came back up: %i", rc);
+      }
+    }
+
+    /*
+     * Send a status request to msgnd for sync purposes, to make sure that msgnd
+     * registers queues before the agent lets API calls continue
+     */
+    MQA_QUEUE_INFO *queue_info(nullptr);
+
+    SaMsgHandleT *temp_hdl_ptr_q = nullptr;
+    while ((queue_info = (MQA_QUEUE_INFO *)ncs_patricia_tree_getnext(
+           &mqa_cb->mqa_queue_tree, (uint8_t *const)temp_hdl_ptr_q))) {
+      SaMsgHandleT temp_hdl_q(queue_info->queueHandle);
+      temp_hdl_ptr_q = &temp_hdl_q;
+
+      if (queue_info->client_info == client_info) {
+        MQSV_EVT cap_evt;
+	MQSV_EVT *out_evt(nullptr);
+
+	memset(&cap_evt, 0, sizeof(MQSV_EVT));
+        cap_evt.type = MQSV_EVT_MQP_REQ;
+        cap_evt.msg.mqp_req.type = MQP_EVT_CAP_GET_REQ;
+        cap_evt.msg.mqp_req.info.capacity.queueHandle = queue_info->queueHandle;
+        cap_evt.msg.mqp_req.agent_mds_dest = mqa_cb->mqa_mds_dest;
+
+        m_MQSV_MQA_GIVEUP_MQA_CB;
+
+        /* send the request to the MQND */
+        uint32_t rc(mqa_mds_msg_sync_send(mqa_cb->mqa_mds_hdl,
+                                          &mqa_cb->mqnd_mds_dest,
+                                          &cap_evt, &out_evt, MQSV_WAIT_TIME));
+
+        mqa_cb = m_MQSV_MQA_RETRIEVE_MQA_CB;
+
+        if (rc != NCSCC_RC_SUCCESS)
+          LOG_ER("status get for sync to msgnd failed: %i", rc);
+
+        if (out_evt) m_MMGR_FREE_MQA_EVT(out_evt);
+      }
+    }
+  }
+
+  // now we know that mqnd is synced with mqd, so declare mqd up
+  mqa_cb->is_mqd_up = true;
+
+  if (m_NCS_UNLOCK(&mqa_cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS)
+    LOG_ER("FAILURE: Unlock failed for control block write");
+
+  m_MQSV_MQA_GIVEUP_MQA_CB;
+
+  TRACE_LEAVE();
+}
+
+static void mqa_mds_reregister_queues(void)
+{
+  std::thread t(&mqa_mds_reregister_queues_thread);
+  t.detach();
+}
 
 MSG_FRMT_VER mqa_mqnd_msg_fmt_table[MQA_WRT_MQND_SUBPART_VER_RANGE] = {
     0, 2}; /*With version 1 it is not backward compatible */
@@ -540,6 +655,7 @@ static uint32_t mqa_mds_svc_evt(MQA_CB *cb,
 
       break;
     case NCSMDS_UP:
+    case NCSMDS_NEW_ACTIVE:
       switch (svc_evt->i_svc_id) {
         case NCSMDS_SVC_ID_MQND:
           to_dest_node_id = mqsv_get_node_id(svc_evt->i_dest);
@@ -587,7 +703,6 @@ static uint32_t mqa_mds_svc_evt(MQA_CB *cb,
             TRACE_2("Message Format version Invalid %u", o_msg_fmt_ver);
 
           cb->mqd_mds_dest = svc_evt->i_dest;
-          cb->is_mqd_up = true;
 
           if (cb->mqd_sync_awaited == true) {
             m_NCS_SEL_OBJ_IND(&cb->mqd_sync_sel);
@@ -595,13 +710,21 @@ static uint32_t mqa_mds_svc_evt(MQA_CB *cb,
           TRACE_1("MQD is up");
 
           m_NCS_UNLOCK(&cb->mqd_sync_lock, NCS_LOCK_WRITE);
+
+          /* for SC absence we need to reregister any tracking */
+          if (svc_evt->i_change == NCSMDS_NEW_ACTIVE)
+            mqa_mds_reregister_queues();
+	  else
+            cb->is_mqd_up = true;
           break;
 
         default:
           break;
       }
       break;
+
     default:
+      LOG_ER("unhandled mds event: %i svc id: %i", svc_evt->i_change, svc_evt->i_svc_id);
       break;
   }
 

@@ -16,7 +16,6 @@
  */
 
 #include "mds_dt.h"
-#include "mds_core.h"
 #include "mds_log.h"
 #include "mds_core.h"
 #include "base/ncssysf_def.h"
@@ -315,9 +314,11 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer,
 		 * header length */
 		if (len < len_mds_hdr) {
 			m_MDS_LOG_ERR(
-			    "MDTM: Message recd (Non Fragmented) len is less than the MDS HDR len  Adest = <%" PRId64
-			    "> len =%d len_mds_hdr=%d",
-			    transport_adest, len, len_mds_hdr);
+			    "MDTM: Message recd (Non Fragmented) len is less than the MDS HDR len "
+			    "Adest <0x%08x, %u> len =%d len_mds_hdr=%d",
+			    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+			    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest),
+			    len, len_mds_hdr);
 
 			return NCSCC_RC_FAILURE;
 		}
@@ -351,10 +352,10 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer,
 					    &dest_svc_hdl)) {
 			*buff_dump = 0; /* For future hack */
 			m_MDS_LOG_ERR(
-			    "MDTM: svc_id = %s(%d) Doesnt exists for the message recd, Adest = <%" PRId64
-			    ">\n",
+			    "MDTM: svc_id = %s(%d) Doesnt exists for the message recd, Adest <0x%08x, %u>\n",
 			    get_svc_names(dest_svc_id), dest_svc_id,
-			    transport_adest);
+			    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+			    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 			return NCSCC_RC_FAILURE;
 		}
 
@@ -366,9 +367,9 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer,
 		if (enc_type > MDS_ENC_TYPE_DIRECT_BUFF) {
 			*buff_dump = 0; /* For future hack */
 			m_MDS_LOG_ERR(
-			    "MDTM: Encoding unsupported, Adest = <%" PRId64
-			    ">\n",
-			    transport_adest);
+			    "MDTM: Encoding unsupported, Adest Adest <0x%08x, %u>\n",
+			    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+			    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 			return NCSCC_RC_FAILURE;
 		}
 
@@ -507,9 +508,10 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer,
 		}
 
 		m_MDS_LOG_DBG(
-		    "MDTM: Recd Unfragmented message with SVC Seq num =%d, from src Adest = <%" PRId64
-		    ">",
-		    svc_seq_num, transport_adest);
+		    "MDTM: Recd Unfragmented message with SVC Seq num =%d, from src Adest <0x%08x, %u>",
+		    svc_seq_num,
+		    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+		    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 
 		if (msg_snd_type == MDS_SENDTYPE_ACK) {
 			/* NOTE: Version in ACK message is ignored */
@@ -604,9 +606,9 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer,
 		if (len <= (len_mds_hdr + MDTM_FRAG_HDR_LEN)) {
 			m_MDS_LOG_ERR(
 			    "MDTM: Message recd (Fragmented First Pkt) len is less than or equal to \
-			     the sum of (len_mds_hdr+MDTM_FRAG_HDR_LEN) len, Adest = <%" PRId64
-			    ">",
-			    transport_adest);
+			    the sum of (len_mds_hdr+MDTM_FRAG_HDR_LEN) len, Adest <0x%08x, %u>",
+			    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+			    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 			return NCSCC_RC_FAILURE;
 		}
 		data = &buffer[MDS_HEADER_PWE_ID_POSITION + MDTM_FRAG_HDR_LEN];
@@ -797,9 +799,10 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer,
 		m_MDS_LOG_INFO("MDTM: Reassembly started\n");
 
 		m_MDS_LOG_DBG(
-		    "MDTM: Recd fragmented message(first frag) with Frag Seqnum=%d SVC Seq num =%d, from src Adest = <%" PRId64
-		    ">",
-		    seq_num, svc_seq_num, transport_adest);
+		    "MDTM: Recd fragmented message(first frag) with Frag Seqnum=%d SVC Seq num =%d, from src Adest <0x%08x, %u>",
+		    seq_num, svc_seq_num,
+		    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+		    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 
 		if ((len - (len_mds_hdr + MDTM_FRAG_HDR_LEN)) > 0) {
 			if (NCSCC_RC_SUCCESS !=
@@ -998,6 +1001,28 @@ uint32_t mds_tmr_mailbox_processing(void)
 					    info->mds_dest, info->pid);
 					(void)mds_process_info_del(info);
 					free(info);
+				} else {
+					MDS_DEST adest =
+						tmr_req_info->info
+						.down_event_tmr_info.adest;
+					m_MDS_LOG_INFO(
+					  "TIMEOUT Adest <0x%08x, %u> down",
+					  m_MDS_GET_NODE_ID_FROM_ADEST(adest),
+					  m_MDS_GET_PROCESS_ID_FROM_ADEST(
+					  adest));
+					MDS_ADEST_INFO *adest_info =
+					    (MDS_ADEST_INFO *)
+					    ncs_patricia_tree_get(
+					    &gl_mds_mcm_cb->adest_list,
+					    (uint8_t *)&adest);
+					if (adest_info &&
+					    adest_info->svc_cnt == 0) {
+						ncs_patricia_tree_del(
+						  &gl_mds_mcm_cb->adest_list,
+						  (NCS_PATRICIA_NODE *)
+						  adest_info);
+						m_MMGR_FREE_ADEST_INFO(adest_info);
+					}
 				}
 
 				if (tmr_req_info->info.down_event_tmr_info
@@ -1113,9 +1138,10 @@ uint32_t mdtm_process_recv_data(uint8_t *buffer, uint16_t len,
 		seq_num = ncs_decode_32bit(&data);
 
 		m_MDS_LOG_DBG(
-		    "MDTM: Recd message with Fragment Seqnum=%d, frag_num=%d, from src_id=<0x%08x:%u>",
-		    seq_num, frag_num, (uint32_t)(transport_adest >> 32),
-		    (uint32_t)(transport_adest));
+		    "MDTM: Recd message with Fragment Seqnum=%d, frag_num=%d, from Adest <0x%08x, %u>",
+		    seq_num, frag_num,
+		    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+		    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 
 		/* Checking in reassembly queue */
 		reassem_queue =
@@ -1166,9 +1192,9 @@ uint32_t mdtm_process_recv_data(uint8_t *buffer, uint16_t len,
 					  easily without having to relink etc.
 					*/
 				m_MDS_LOG_ERR(
-				    "MDTM: Message is dropped as msg is out of seq Adest = <%" PRIu64
-				    ">\n",
-				    transport_adest);
+				    "MDTM: Message is dropped as msg is out of seq Adest <0x%08x, %u>\n",
+				    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+				    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 				return NCSCC_RC_FAILURE;
 			}
 
@@ -1339,9 +1365,9 @@ uint32_t mdtm_process_recv_data(uint8_t *buffer, uint16_t len,
 					  easily without having to relink etc.
 					*/
 				m_MDS_LOG_ERR(
-				    "MDTM: Frag recd is not next frag so dropping Adest = <%" PRIu64
-				    ">\n",
-				    transport_adest);
+				    "MDTM: Frag recd is not next frag so dropping Adest <0x%08x, %u>\n",
+				    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+				    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 				reassem_queue
 				    ->to_be_dropped = true; /* This is for
 							       avoiding the
@@ -1388,9 +1414,9 @@ uint32_t mdtm_process_recv_data(uint8_t *buffer, uint16_t len,
 			*buff_dump = 0;
 			/* Some stale message, Log and Drop */
 			m_MDS_LOG_ERR(
-			    "MDTM: Some stale message recd, hence dropping Adest = <%" PRIu64
-			    ">\n",
-			    transport_adest);
+			    "MDTM: Some stale message recd, hence dropping Adest <0x%08x, %u>\n",
+			    m_MDS_GET_NODE_ID_FROM_ADEST(transport_adest),
+			    m_MDS_GET_PROCESS_ID_FROM_ADEST(transport_adest));
 			return NCSCC_RC_FAILURE;
 		}
 	} /* ELSE Loop */
@@ -1700,7 +1726,7 @@ uint16_t mds_checksum(uint32_t length, uint8_t buff[])
 	/* Take the one's complement of sum */
 	sum = ~sum;
 
-	return ((uint16_t)sum);
+	return (uint16_t)sum;
 }
 
 /****************************************************************************

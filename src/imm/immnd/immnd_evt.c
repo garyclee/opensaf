@@ -6796,10 +6796,6 @@ static void immnd_evt_proc_object_sync(IMMND_CB *cb, IMMND_EVT *evt,
 				err = immModel_rtObjectUpdate(
 				    cb, &objModify, 0, 0, &isLocal, NULL, NULL,
 				    NULL, NULL, NULL);
-				// free(objModify.objectName.buf);
-				immsv_free_attrmods(objModify.attrMods);
-				memset(&objModify, '\0',
-				       sizeof(IMMSV_OM_CCB_OBJECT_MODIFY));
 				if (err != SA_AIS_OK) {
 					LOG_ER(
 					    "Failed to apply RTA update on object '%s' at sync client - aborting",
@@ -6807,6 +6803,10 @@ static void immnd_evt_proc_object_sync(IMMND_CB *cb, IMMND_EVT *evt,
 					immnd_ackToNid(NCSCC_RC_FAILURE);
 					abort();
 				}
+				// free(objModify.objectName.buf);
+				immsv_free_attrmods(objModify.attrMods);
+				memset(&objModify, '\0',
+				       sizeof(IMMSV_OM_CCB_OBJECT_MODIFY));
 			}
 			obj_sync = obj_sync->next;
 		} while (obj_sync);

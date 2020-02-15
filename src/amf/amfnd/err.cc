@@ -879,8 +879,10 @@ uint32_t avnd_err_rcvr_comp_failover(AVND_CB *cb, AVND_COMP *failed_comp) {
 
   /* We are now in the context of failover, forget the reset restart admin op
    * id*/
-  if (m_AVND_SU_IS_RESTART(su))
+  if (m_AVND_SU_IS_RESTART(su)) {
+    reset_suRestart_flag(su);
     su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
+  }
 
   // TODO: there should be no difference between PI/NPI comps
   if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {

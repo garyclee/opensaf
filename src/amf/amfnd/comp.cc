@@ -1448,6 +1448,9 @@ uint32_t avnd_comp_csi_reassign(AVND_CB *cb, AVND_COMP *comp) {
       m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(
           curr, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNING);
 
+      // reset the transition descriptor
+      curr->trans_desc = SA_AMF_CSI_NEW_ASSIGN;
+
       /* invoke the callback */
       rc = avnd_comp_cbk_send(cb, curr->comp, AVSV_AMF_CSI_SET, 0, curr);
     }
@@ -1489,7 +1492,8 @@ bool IsCompQualifiedAssignment(const AVND_COMP *comp) {
       LOG_IN("Ignoring Unregistered comp:'%s'", comp->name.c_str());
       rc = false;
     } else if (!m_AVND_COMP_PRES_STATE_IS_INSTANTIATED(comp) &&
-               comp->su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED &&
+               (comp->su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED ||
+               comp->su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED) &&
                !m_AVND_COMP_PRES_STATE_IS_ORPHANED(comp)) {
       LOG_IN(
           "Ignoring comp with invalid presence state:'%s', comp_flag %x, comp_pres=%u, su_pres=%u",

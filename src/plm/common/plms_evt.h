@@ -30,6 +30,7 @@
 #define PLM_COMMON_PLMS_EVT_H_
 
 #include <SaHpi.h>
+#include <saPlm.h>
 #include "plm/common/plms_hpi.h"
 
 typedef enum {
@@ -46,14 +47,16 @@ typedef enum {
 
 typedef enum {
   PLMS_AGENT_INIT_EVT,
-  PLMS_AGENT_FINALIZE_EVT
+  PLMS_AGENT_FINALIZE_EVT,
+  PLMS_AGENT_REINIT_EVT
 } PLMS_LIB_REQ_EVT_TYPE;
 
 typedef enum {
   PLMS_AGENT_GRP_CREATE_EVT,
   PLMS_AGENT_GRP_REMOVE_EVT,
   PLMS_AGENT_GRP_ADD_EVT,
-  PLMS_AGENT_GRP_DEL_EVT
+  PLMS_AGENT_GRP_DEL_EVT,
+  PLMS_AGENT_GRP_REINIT_EVT
 } PLMS_GRP_EVT_TYPE;
 
 typedef enum {

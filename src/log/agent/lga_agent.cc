@@ -1077,7 +1077,7 @@ SaAisErrorT LogAgent::HandleLogRecord(const SaLogRecordT* logRecord,
         ais_rc = SA_AIS_ERR_INVALID_PARAM;
         return ais_rc;
       }
-      strncpy(logSvcUsrName, logSvcUsrChars, strlen(logSvcUsrChars) + 1);
+      strncpy(logSvcUsrName, logSvcUsrChars, kOsafMaxDnLength - 1);
       osaf_extended_name_lend(logSvcUsrName, write_param->logSvcUsrName);
     } else {
       if (lga_is_extended_name_valid(
@@ -1296,6 +1296,8 @@ SaAisErrorT LogAgent::saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
   if (NCSCC_RC_SUCCESS !=
       lga_mds_msg_async_send(&msg, MDS_SEND_PRIORITY_MEDIUM)) {
     ais_rc = SA_AIS_ERR_TRY_AGAIN;
+  } else {
+    client->KeepTrack(invocation, ackFlags);
   }
 
   return ais_rc;

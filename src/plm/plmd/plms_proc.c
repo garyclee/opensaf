@@ -18,6 +18,7 @@
 #include <limits.h>
 
 #include "plm/common/plms.h"
+#include "plm/common/plms_common.h"
 #include "plm/common/plms_mbcsv.h"
 #include "plm/common/plms_utils.h"
 
@@ -690,6 +691,87 @@ send_resp:
 	return;
 }
 
+/***********************************************************************
+ *
+ * @brief This function reinitializes the agent.
+ *
+ * @param[in] plm_evt - plm evt structure received.
+ *
+ * @return Returns nothing.
+ **********************************************************************/
+void plms_process_agent_reinit(PLMS_EVT *plm_evt)
+{
+	PLMS_CB *cb = plms_cb;
+	PLMS_EVT resp_evt;
+	SaUint32T rc = SA_AIS_OK;
+	SaUint32T proc_rc = NCSCC_RC_SUCCESS;
+	PLMS_CLIENT_INFO *client_info = NULL;
+	PLMS_MBCSV_MSG mbcsv_msg;
+
+	TRACE_ENTER();
+
+	memset(&resp_evt, 0, sizeof(PLMS_EVT));
+	client_info = (PLMS_CLIENT_INFO *)malloc(sizeof(PLMS_CLIENT_INFO));
+	if (!client_info) {
+		LOG_CR(
+		    "PLMS : PLMS_CLIENT_INFO memory alloc failed, error val:%s",
+		    strerror(errno));
+		rc = SA_AIS_ERR_NO_MEMORY;
+		goto send_resp;
+	}
+	memset(client_info, 0, sizeof(PLMS_CLIENT_INFO));
+	client_info->mdest_id = plm_evt->sinfo.dest;
+	client_info->pat_node.key_info = (uint8_t *)&client_info->plm_handle;
+
+	client_info->plm_handle = plm_evt->req_evt.agent_lib_req.plm_handle;
+	proc_rc = ncs_patricia_tree_add(&cb->client_info,
+					&client_info->pat_node);
+	TRACE("readding client with plm handle: %llu", client_info->plm_handle);
+	if (NCSCC_RC_SUCCESS != proc_rc) {
+		LOG_ER(
+		    "PLMS : Patricia tree add failed. For plm handle : %Lu ",
+		    client_info->plm_handle);
+		rc = SA_AIS_ERR_NO_RESOURCES;
+		free(client_info);
+		goto send_resp;
+	}
+
+	if (cb->ha_state == SA_AMF_HA_ACTIVE) {
+		memset(&mbcsv_msg, 0, sizeof(PLMS_MBCSV_MSG));
+		/* Update same to standby */
+		mbcsv_msg.header.msg_type = PLMS_A2S_MSG_CLIENT_INFO;
+		mbcsv_msg.header.num_records = 1; /* Since async */
+		mbcsv_msg.info.client_info.plm_handle = client_info->plm_handle;
+		mbcsv_msg.info.client_info.mdest_id = plm_evt->sinfo.dest;
+		proc_rc =
+		    plms_mbcsv_send_async_update(&mbcsv_msg, NCS_MBCSV_ACT_ADD);
+		if (proc_rc != NCSCC_RC_SUCCESS) {
+			LOG_ER("PLMS :Async update to stdby failed");
+			/* FIXME  What to do ?? */
+		}
+	}
+	resp_evt.res_evt.hdl = client_info->plm_handle;
+
+send_resp:
+	/* form a response and send to caller */
+
+	resp_evt.req_res = PLMS_RES;
+	resp_evt.res_evt.res_type = PLMS_AGENT_INIT_RES;
+	resp_evt.res_evt.error = rc;
+
+	/** send mds response to plma */
+	proc_rc = plm_send_mds_rsp(cb->mds_hdl, NCSMDS_SVC_ID_PLMS,
+				   &plm_evt->sinfo, &resp_evt);
+	if (NCSCC_RC_SUCCESS != proc_rc) {
+		LOG_ER("PLMS: plm_send_mds_rsp FAILED");
+		ncs_patricia_tree_del(&cb->client_info, &client_info->pat_node);
+		free(client_info);
+	}
+
+	TRACE_LEAVE();
+	return;
+}
+
 /***********************************************************************/ /**
 									   * @brief
 									   *This
@@ -1158,8 +1240,8 @@ send_resp:
 									   *Returns
 									   *NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
 									   ***************************************************************************/
-SaUint32T plms_ent_grp_add_to_db(PLMS_ENTITY_GROUP_INFO *grp_info,
-				 PLMS_CLIENT_INFO *client_info)
+static SaUint32T plms_ent_grp_add_to_db(PLMS_ENTITY_GROUP_INFO *grp_info,
+				 	PLMS_CLIENT_INFO *client_info)
 {
 	PLMS_CB *cb = plms_cb;
 	PLMS_ENTITY_GROUP_INFO_LIST *client_grp_list, *grp_node;
@@ -1168,7 +1250,19 @@ SaUint32T plms_ent_grp_add_to_db(PLMS_ENTITY_GROUP_INFO *grp_info,
 	TRACE_ENTER();
 
 	/** Allocate the group hdl and add grp info into patricia tree */
-	if (entity_grp_hdl_pool == MAX_ENTITY_GROUP_HANDLES) {
+	if (grp_info->entity_grp_hdl) {
+		/* agent is reiniting after SC absence */
+		proc_rc = ncs_patricia_tree_add(&cb->entity_group_info,
+						&grp_info->pat_node);
+		if (NCSCC_RC_SUCCESS != proc_rc) {
+			LOG_ER(
+			    "PLMS :Patricia tree add failed. For gep handle : %Lu ",
+			    grp_info->entity_grp_hdl);
+			free(grp_info);
+			return NCSCC_RC_FAILURE;
+		}
+		entity_grp_hdl_pool = grp_info->entity_grp_hdl;
+	} else if (entity_grp_hdl_pool == MAX_ENTITY_GROUP_HANDLES) {
 		TRACE_5(
 		    "entity_grp_hdl_pool has reached max limit. Hence wrapped around");
 		entity_grp_hdl_pool = 0;
@@ -1363,6 +1457,110 @@ void plms_process_grp_create_evt(PLMS_EVT *plm_evt)
 	}
 
 	plm_resp.res_evt.hdl = entity_grp_hdl_pool;
+
+send_resp:
+
+	plm_resp.req_res = PLMS_RES;
+	plm_resp.res_evt.res_type = PLMS_AGENT_GRP_CREATE_RES;
+	plm_resp.res_evt.error = rc;
+
+	/* send mds response to plma */
+	proc_rc = plm_send_mds_rsp(cb->mds_hdl, NCSMDS_SVC_ID_PLMS,
+				   &plm_evt->sinfo, &plm_resp);
+	if (NCSCC_RC_SUCCESS != proc_rc) {
+		/**
+		 * remove the grp info node from grp info list in client info
+		 * delete the grp info node from patricia tree
+		 */
+
+		LOG_ER("PLMS :plm_send_mds_rsp failed");
+		plm_rem_grp_info_from_client(grp_info);
+		ncs_patricia_tree_del(&cb->entity_group_info,
+				      &grp_info->pat_node);
+		free(grp_info);
+	}
+
+	TRACE_LEAVE();
+	return;
+}
+
+/***********************************************************************
+ * @brief This function recreates the grp info.
+ *
+ * @param[in] plm_evt - plm evt structure received.
+ *
+ * @return Returns nothing.
+ **********************************************************************/
+void plms_process_grp_reinit_evt(PLMS_EVT *plm_evt)
+{
+
+	PLMS_CB *cb = plms_cb;
+	PLMS_CLIENT_INFO *client_info;
+	SaUint32T rc = SA_AIS_OK;
+	SaUint32T proc_rc = NCSCC_RC_SUCCESS;
+	PLMS_EVT plm_resp;
+	PLMS_ENTITY_GROUP_INFO *grp_info = NULL;
+	PLMS_MBCSV_MSG mbcsv_msg;
+
+	TRACE_ENTER();
+
+	memset(&plm_resp, 0, sizeof(PLMS_EVT));
+	client_info = (PLMS_CLIENT_INFO *)ncs_patricia_tree_get(
+	    &cb->client_info,
+	    (uint8_t *)&plm_evt->req_evt.agent_grp_op.plm_handle);
+	if (!client_info) {
+		LOG_ER("PLMS : Received bad PLM Handle");
+		rc = SA_AIS_ERR_BAD_HANDLE;
+		goto send_resp;
+	}
+
+	grp_info =
+	    (PLMS_ENTITY_GROUP_INFO *)malloc(sizeof(PLMS_ENTITY_GROUP_INFO));
+	if (!grp_info) {
+		LOG_CR(
+		    "PLMS :  PLMS_ENTITY_GROUP_INFO memory alloc failed, error val:%s",
+		    strerror(errno));
+		assert(0);
+	}
+	memset(grp_info, 0, sizeof(PLMS_ENTITY_GROUP_INFO));
+
+	grp_info->agent_mdest_id = plm_evt->sinfo.dest;
+	grp_info->pat_node.key_info = (uint8_t *)&grp_info->entity_grp_hdl;
+	grp_info->entity_grp_hdl = plm_evt->req_evt.agent_grp_op.grp_handle;
+
+	TRACE("readding group handle: %llu", grp_info->entity_grp_hdl);
+
+	/**
+	 * Allocate the grp hdl and update the grp info strucute and
+	 * add it to the patricia tree.
+	 */
+	proc_rc = plms_ent_grp_add_to_db(grp_info, client_info);
+
+	if (proc_rc != NCSCC_RC_SUCCESS) {
+		LOG_ER("PLMS :Grp create failed");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto send_resp;
+	}
+
+	if (cb->ha_state == SA_AMF_HA_ACTIVE) {
+		/* Update same to standby */
+		memset(&mbcsv_msg, 0, sizeof(PLMS_MBCSV_MSG));
+
+		mbcsv_msg.header.msg_type = PLMS_A2S_MSG_ENT_GRP_INFO;
+		mbcsv_msg.header.num_records = 1; /* Since async */
+		mbcsv_msg.info.ent_grp_info.entity_group_handle =
+		    plm_evt->req_evt.agent_grp_op.grp_handle;
+		mbcsv_msg.info.ent_grp_info.agent_mdest_id =
+		    plm_evt->sinfo.dest;
+		proc_rc =
+		    plms_mbcsv_send_async_update(&mbcsv_msg, NCS_MBCSV_ACT_ADD);
+		if (proc_rc != NCSCC_RC_SUCCESS) {
+			LOG_ER("Async update to stdby failed");
+			/* FIXME  What to do ?? */
+		}
+	}
+
+	plm_resp.res_evt.hdl = plm_evt->req_evt.agent_grp_op.grp_handle;
 
 send_resp:
 
@@ -2636,6 +2834,9 @@ void plms_process_agent_lib_req(PLMS_EVT *plm_evt)
 	case PLMS_AGENT_FINALIZE_EVT:
 		plms_process_agent_finalize(plm_evt);
 		break;
+	case PLMS_AGENT_REINIT_EVT:
+		plms_process_agent_reinit(plm_evt);
+		break;
 	default:
 		LOG_ER("PLMS-PLMA- INVALID AGENT LIB REQUEST");
 		break;
@@ -2659,6 +2860,9 @@ void plms_process_agent_grp_op_req(PLMS_EVT *plm_evt)
 		break;
 	case PLMS_AGENT_GRP_DEL_EVT:
 		plms_process_grp_del_evt(plm_evt);
+		break;
+	case PLMS_AGENT_GRP_REINIT_EVT:
+		plms_process_grp_reinit_evt(plm_evt);
 		break;
 	default:
 		break;

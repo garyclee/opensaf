@@ -20,6 +20,8 @@
 #ifndef LOG_LOGD_LGS_MBCSV_H_
 #define LOG_LOGD_LGS_MBCSV_H_
 
+#include "log/logd/lgs_stream.h"
+
 #include <stdint.h>
 #include <saAmf.h>
 
@@ -40,9 +42,11 @@
 #define LGS_MBCSV_VERSION_5 5
 #define LGS_MBCSV_VERSION_6 6
 #define LGS_MBCSV_VERSION_7 7
+#define LGS_MBCSV_VERSION_8 8
+#define LGS_MBCSV_VERSION_9 9
 
 /* Current version */
-#define LGS_MBCSV_VERSION 7
+#define LGS_MBCSV_VERSION 9
 #define LGS_MBCSV_VERSION_MIN 1
 
 /* Checkpoint message types(Used as 'reotype' w.r.t mbcsv)  */
@@ -63,6 +67,9 @@ typedef enum {
   LGS_CKPT_LGS_CFG = 7,
   LGS_CKPT_LGS_CFG_V3 = 8,
   LGS_CKPT_LGS_CFG_V5 = 9,
+  LGS_CKPT_PUSH_ASYNC,
+  LGS_CKPT_POP_ASYNC,
+  LGS_CKPT_POP_WRITE_ASYNC,
   LGS_CKPT_MSG_MAX
 } lgsv_ckpt_msg_type_t;
 
@@ -102,6 +109,7 @@ typedef struct {
   char *dest_names;
   logStreamTypeT streamType;
   uint32_t logRecordId; /* log record identifier increased for each record */
+  uint32_t facilityId;
 } lgs_ckpt_stream_open_t;
 
 uint32_t lgs_mbcsv_init(lgs_cb_t *lgs_cb, SaAmfHAStateT ha_state);
@@ -114,6 +122,8 @@ bool lgs_is_peer_v6();
 // New numeric values added to logStreamTypeT used in the
 // lgs_ckpt_stream_open_t structure
 bool lgs_is_peer_v7();
+bool lgs_is_peer_v8();
+bool lgs_is_peer_v9();
 
 bool lgs_is_split_file_system();
 uint32_t lgs_mbcsv_dispatch(NCS_MBCSV_HDL mbcsv_hdl);
@@ -137,5 +147,15 @@ uint32_t edp_ed_open_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
                                 NCSCONTEXT ptr, uint32_t *ptr_data_len,
                                 EDU_BUF_ENV *buf_env, EDP_OP_TYPE op,
                                 EDU_ERR *o_err);
+
+uint32_t ckpt_decode_log_struct(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg,
+                                void *ckpt_msg, void *struct_ptr,
+                                EDU_PROG_HANDLER edp_function);
+void lgs_ckpt_log_async(log_stream_t* stream, char* record);
+uint32_t dec_ckpt_header(NCS_UBAID *uba, lgsv_ckpt_header_t *header);
+uint32_t process_ckpt_data(lgs_cb_t *cb, void *data);
+uint32_t WriteOnStandby(log_stream_t* stream, uint64_t timestamp,
+                        char* file_current, char* logRecord);
+
 
 #endif  // LOG_LOGD_LGS_MBCSV_H_

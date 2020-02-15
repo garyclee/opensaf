@@ -142,6 +142,7 @@ unset tipc
 # If clm cluster reboot requested argument one and two are set but not used,
 # argument 3 is set to 1, "safe reboot" request.
 if [ "$#" = 0 ]; then
+	$icmd pkill -STOP osafamfd
 	quick_local_node_reboot
 elif [ "$safe_reboot" = 1 ]; then
 	opensaf_safe_reboot

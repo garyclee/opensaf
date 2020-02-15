@@ -227,7 +227,7 @@ CLMS_CLUSTER_NODE *clms_node_new(SaNameT *name,
     } else if (!strcmp(attr->attrName, "saClmNodeAddress")) {
       node->node_addr.length = (SaUint16T)strlen(*((char **)value));
       strncpy((char *)node->node_addr.value, *((char **)value),
-              node->node_addr.length);
+              node->node_addr.length + 1);
     } else if (!strcmp(attr->attrName, "saClmNodeEE")) {
       SaNameT *name = (SaNameT *)value;
       size_t nameLen = osaf_extended_name_length(name);

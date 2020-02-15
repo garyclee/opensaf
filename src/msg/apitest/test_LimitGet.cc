@@ -77,18 +77,141 @@ static void setMaxQueues(void) {
   } while (false);
 }
 
-static SaMsgQueueHandleT openQueue(SaMsgHandleT msgHandle) {
-  SaMsgQueueHandleT queueHandle;
+static SaAisErrorT openQueue(SaMsgHandleT msgHandle,
+                             const SaNameT& queueName,
+                             SaMsgQueueHandleT& queueHandle) {
+  SaAisErrorT rc(SA_AIS_OK);
 
-  SaAisErrorT rc(saMsgQueueOpen(msgHandle,
-                                &queueName,
-                                &creationAttributes,
-                                SA_MSG_QUEUE_CREATE,
-                                SA_TIME_MAX,
-                                &queueHandle));
-  assert(rc == SA_AIS_OK);
+  while (true) {
+    rc = saMsgQueueOpen(msgHandle,
+                        &queueName,
+                        &creationAttributes,
+                        SA_MSG_QUEUE_CREATE,
+                        SA_TIME_ONE_SECOND * 20,
+                        &queueHandle);
 
-  return queueHandle;
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
+}
+
+static SaAisErrorT groupCreate(SaMsgHandleT msgHandle,
+                               const SaNameT& queueGroupName) {
+  SaAisErrorT rc(SA_AIS_OK);
+  bool got_timeout(false);
+
+  while (true) {
+    rc = saMsgQueueGroupCreate(msgHandle,
+                               &queueGroupName,
+                               SA_MSG_QUEUE_GROUP_BROADCAST);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT) {
+      sleep(1);
+
+      if (rc == SA_AIS_ERR_TIMEOUT)
+        got_timeout = true;
+    } else if (rc == SA_AIS_ERR_EXIST && got_timeout) {
+        rc = SA_AIS_OK;
+        break;
+    } else
+      break;
+  }
+
+  return rc;
+}
+
+static SaAisErrorT groupInsert(SaMsgHandleT msgHandle,
+                               const SaNameT& queueGroupName,
+                               const SaNameT& queueName) {
+  SaAisErrorT rc(SA_AIS_OK);
+  bool got_timeout(false);
+
+  while (true) {
+    rc = saMsgQueueGroupInsert(msgHandle,
+                               &queueGroupName,
+                               &queueName);
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT) {
+      sleep(1);
+
+      if (rc == SA_AIS_ERR_TIMEOUT)
+        got_timeout = true;
+    } else if (rc == SA_AIS_ERR_EXIST && got_timeout) {
+      rc = SA_AIS_OK;
+      break;
+    } else
+      break;
+  }
+
+  return rc;
+}
+
+static SaAisErrorT groupDelete(SaMsgHandleT msgHandle,
+                               const SaNameT& queueGroupName) {
+  SaAisErrorT rc(SA_AIS_OK);
+  bool got_timeout(false);
+
+  while (true) {
+    rc = saMsgQueueGroupDelete(msgHandle, &queueGroupName);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT) {
+      sleep(1);
+
+      if (rc == SA_AIS_ERR_TIMEOUT)
+        got_timeout = true;
+    } else if (rc == SA_AIS_ERR_NOT_EXIST && got_timeout) {
+      // timeout could have succeeded
+      rc = SA_AIS_OK;
+      break;
+    } else
+      break;
+  }
+
+  return rc;
+}
+
+static SaAisErrorT unlinkQueue(SaMsgHandleT msgHandle,
+                               const SaNameT& queueName) {
+  SaAisErrorT rc(SA_AIS_OK);
+  bool got_timeout(false);
+
+  while (true) {
+    rc = saMsgQueueUnlink(msgHandle, &queueName);
+
+    if (rc == SA_AIS_OK)
+      break;
+    else if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT) {
+      sleep(1);
+
+      if (rc == SA_AIS_ERR_TIMEOUT)
+        got_timeout = true;
+    } else if (rc == SA_AIS_ERR_NOT_EXIST && got_timeout) {
+      rc = SA_AIS_OK;
+      break;
+    } else if (rc != SA_AIS_OK) {
+      break;
+    }
+  }
+
+  return rc;
+}
+
+static SaAisErrorT msgFinalize(SaMsgHandleT msgHandle) {
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saMsgFinalize(msgHandle);
+
+    if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      sleep(1);
+    else
+      break;
+  }
+
+  return rc;
 }
 
 static void sendRecv(SaMsgHandleT msgHandle) {
@@ -113,11 +236,15 @@ static void sendRecv(SaMsgHandleT msgHandle) {
 static std::mutex m;
 static std::condition_variable cv;
 static bool ready(false);
+static bool redo(false);
 
 static void msgQueueOpenCallback(SaInvocationT invocation,
                                  SaMsgQueueHandleT queueHandle,
                                  SaAisErrorT error) {
-  if (invocation != SA_AIS_OK)
+  if (error == SA_AIS_ERR_TRY_AGAIN || error == SA_AIS_ERR_TIMEOUT) {
+    redo = true;
+    sleep(1);
+  } else if (invocation != SA_AIS_OK)
     aisrc_validate(error, static_cast<SaAisErrorT>(invocation));
 
   {
@@ -173,7 +300,7 @@ static void limitGet_02(void) {
   SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 
   SaLimitValueT value;
@@ -189,7 +316,7 @@ static void limitGet_03(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_PRIORITY_AREA_SIZE_ID, 0);
   aisrc_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -202,7 +329,7 @@ static void limitGet_04(void) {
   rc = saMsgLimitGet(msgHandle, static_cast<SaMsgLimitIdT>(8), &value);
   aisrc_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -216,7 +343,7 @@ static void limitGet_05(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_PRIORITY_AREA_SIZE_ID, &value);
   aisrc_validate(rc, SA_AIS_ERR_VERSION);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -229,7 +356,7 @@ static void limitGet_06(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_PRIORITY_AREA_SIZE_ID, &value);
   aisrc_validate(rc, SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -242,7 +369,7 @@ static void limitGet_07(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_QUEUE_SIZE_ID, &value);
   aisrc_validate(rc, SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -257,7 +384,7 @@ static void limitGet_08(void) {
 
   assert(value.uint64Value == maxNumOfQueues);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -270,7 +397,7 @@ static void limitGet_09(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_NUM_QUEUE_GROUPS_ID, &value);
   aisrc_validate(rc, SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -283,7 +410,7 @@ static void limitGet_10(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_NUM_QUEUES_PER_GROUP_ID, &value);
   aisrc_validate(rc, SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -296,7 +423,7 @@ static void limitGet_11(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_MESSAGE_SIZE_ID, &value);
   aisrc_validate(rc, SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -309,7 +436,7 @@ static void limitGet_12(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_REPLY_SIZE_ID, &value);
   aisrc_validate(rc, SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -322,7 +449,9 @@ static void limitGet_13(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_REPLY_SIZE_ID, &value);
   assert(rc == SA_AIS_OK);
 
-  SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
+  SaMsgQueueHandleT queueHandle(0);
+  rc = openQueue(msgHandle, queueName, queueHandle);
+  assert(rc == SA_AIS_OK);
 
   std::thread sendRecvThread(sendRecv, msgHandle);
 
@@ -355,7 +484,7 @@ static void limitGet_13(void) {
   rc = saMsgQueueClose(queueHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 
   sendRecvThread.join();
@@ -372,7 +501,9 @@ static void limitGet_14(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_MESSAGE_SIZE_ID, &value);
   assert(rc == SA_AIS_OK);
 
-  SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
+  SaMsgQueueHandleT queueHandle(0);
+  rc = openQueue(msgHandle, queueName, queueHandle);
+  assert(rc == SA_AIS_OK);
 
   char *data(new char[value.uint64Value]);
 
@@ -386,7 +517,7 @@ static void limitGet_14(void) {
   rc = saMsgQueueClose(queueHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 
   delete[] data;
@@ -410,15 +541,15 @@ static void limitGet_15(void) {
   SaMsgQueueHandleT queueHandle;
 
   rc = saMsgQueueOpen(msgHandle,
-                       &queueName,
-                       &creationAttributesTooBig,
-                       SA_MSG_QUEUE_CREATE,
-                       SA_TIME_MAX,
-                       &queueHandle);
+                      &queueName,
+                      &creationAttributesTooBig,
+                      SA_MSG_QUEUE_CREATE,
+                      SA_TIME_ONE_SECOND * 50,
+                      &queueHandle);
 
   aisrc_validate(rc, SA_AIS_ERR_TOO_BIG);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -446,12 +577,12 @@ static void limitGet_16(void) {
                       &queueName,
                       &creationAttributesTooBig,
                       SA_MSG_QUEUE_CREATE,
-                      SA_TIME_MAX,
+                      SA_TIME_ONE_SECOND * 50,
                       &queueHandle);
 
   aisrc_validate(rc, SA_AIS_ERR_TOO_BIG);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -470,12 +601,7 @@ static void limitGet_17(void) {
     localQueueName.length = strlen(reinterpret_cast<const char *>(localQueueName.value));
     SaMsgQueueHandleT queueHandle;
 
-    rc = saMsgQueueOpen(msgHandle,
-                        &localQueueName,
-                        &creationAttributes,
-                        SA_MSG_QUEUE_CREATE,
-                        SA_TIME_MAX,
-                        &queueHandle);
+    rc = openQueue(msgHandle, localQueueName, queueHandle);
 
     if (i == value.uint64Value)
       break;
@@ -485,7 +611,16 @@ static void limitGet_17(void) {
 
   aisrc_validate(rc, SA_AIS_ERR_NO_RESOURCES);
 
-  rc = saMsgFinalize(msgHandle);
+  memset(&localQueueName, 0, sizeof(localQueueName));
+  for (SaUint64T i(0); i < value.uint64Value; i++) {
+    sprintf(reinterpret_cast<char *>(localQueueName.value), "safMq=test_q_%llu", i);
+    localQueueName.length = strlen(reinterpret_cast<const char *>(localQueueName.value));
+
+    rc = unlinkQueue(msgHandle, localQueueName);
+    assert(rc == SA_AIS_OK);
+  }
+
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -502,9 +637,7 @@ static void limitGet_18(void) {
   for (SaUint64T i(0); i <= value.uint64Value; i++) {
     sprintf(reinterpret_cast<char *>(queueGroupName.value), "safMqg=test_q_%llu", i);
     queueGroupName.length = strlen(reinterpret_cast<const char *>(queueGroupName.value));
-    rc = saMsgQueueGroupCreate(msgHandle,
-                               &queueGroupName,
-                               SA_MSG_QUEUE_GROUP_BROADCAST);
+    rc = groupCreate(msgHandle, queueGroupName);
 
     if (i == value.uint64Value)
       break;
@@ -518,11 +651,11 @@ static void limitGet_18(void) {
   for (SaUint64T i(0); i < value.uint64Value; i++) {
     sprintf(reinterpret_cast<char *>(queueGroupName.value), "safMqg=test_q_%llu", i);
     queueGroupName.length = strlen(reinterpret_cast<const char *>(queueGroupName.value));
-    rc = saMsgQueueGroupDelete(msgHandle, &queueGroupName);
+    rc = groupDelete(msgHandle, queueGroupName);
     assert(rc == SA_AIS_OK);
   }
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -540,9 +673,7 @@ static void limitGet_19(void) {
     "safMqg=test_mqg"
   };
 
-  rc = saMsgQueueGroupCreate(msgHandle,
-                             &queueGroupName,
-                             SA_MSG_QUEUE_GROUP_BROADCAST);
+  rc = groupCreate(msgHandle, queueGroupName);
   assert(rc == SA_AIS_OK);
 
   SaNameT localQueueName = { 0 };
@@ -551,17 +682,10 @@ static void limitGet_19(void) {
     localQueueName.length = strlen(reinterpret_cast<const char *>(localQueueName.value));
     SaMsgQueueHandleT queueHandle;
 
-    rc = saMsgQueueOpen(msgHandle,
-                        &localQueueName,
-                        &creationAttributes,
-                        SA_MSG_QUEUE_CREATE,
-                        SA_TIME_MAX,
-                        &queueHandle);
+    rc = openQueue(msgHandle, localQueueName, queueHandle);
     assert(rc == SA_AIS_OK);
 
-    rc = saMsgQueueGroupInsert(msgHandle,
-                               &queueGroupName,
-                               &localQueueName);
+    rc = groupInsert(msgHandle, queueGroupName, localQueueName);
 
     if (i == value.uint64Value)
       break;
@@ -571,10 +695,18 @@ static void limitGet_19(void) {
 
   aisrc_validate(rc, SA_AIS_ERR_NO_RESOURCES);
 
-  rc = saMsgQueueGroupDelete(msgHandle, &queueGroupName);
+  rc = groupDelete(msgHandle, queueGroupName);
   assert(rc == SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  for (SaUint64T i(0); i < value.uint64Value; i++) {
+    sprintf(reinterpret_cast<char *>(localQueueName.value), "safMq=test_q_%llu", i);
+    localQueueName.length = strlen(reinterpret_cast<const char *>(localQueueName.value));
+
+    rc = unlinkQueue(msgHandle, localQueueName);
+    assert(rc == SA_AIS_OK);
+  }
+
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -587,7 +719,9 @@ static void limitGet_20(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_MESSAGE_SIZE_ID, &value);
   assert(rc == SA_AIS_OK);
 
-  SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
+  SaMsgQueueHandleT queueHandle(0);
+  rc = openQueue(msgHandle, queueName, queueHandle);
+  assert(rc == SA_AIS_OK);
 
   char *data(new char[value.uint64Value]);
 
@@ -610,7 +744,7 @@ static void limitGet_20(void) {
   rc = saMsgQueueClose(queueHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 
   delete[] data;
@@ -639,23 +773,25 @@ static void limitGet_21(void) {
     0
   };
 
-  rc = saMsgQueueOpenAsync(msgHandle,
-                           SA_AIS_ERR_TOO_BIG,
-                           &queueName,
-                           &creationAttributesTooBig,
-                           SA_MSG_QUEUE_CREATE);
-  assert(rc == SA_AIS_OK);
+  do {
+    rc = saMsgQueueOpenAsync(msgHandle,
+                             SA_AIS_ERR_TOO_BIG,
+                             &queueName,
+                             &creationAttributesTooBig,
+                             SA_MSG_QUEUE_CREATE);
+    assert(rc == SA_AIS_OK);
 
-  ready = false;
-  getAsyncCallback(msgHandle);
+    ready = redo = false;
+    getAsyncCallback(msgHandle);
 
-  // wait for the response
-  {
-    std::unique_lock<std::mutex> lk(m);
-    cv.wait(lk, []{ return ready; });
-  }
+    // wait for the response
+    {
+      std::unique_lock<std::mutex> lk(m);
+      cv.wait(lk, []{ return ready; });
+    }
+  } while (redo);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -676,7 +812,9 @@ static void limitGet_22(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_MESSAGE_SIZE_ID, &value);
   assert(rc == SA_AIS_OK);
 
-  SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
+  SaMsgQueueHandleT queueHandle(0);
+  rc = openQueue(msgHandle, queueName, queueHandle);
+  assert(rc == SA_AIS_OK);
 
   char *data(new char[value.uint64Value]);
 
@@ -686,9 +824,9 @@ static void limitGet_22(void) {
 
   rc = saMsgMessageSendAsync(msgHandle,
                              SA_AIS_ERR_TOO_BIG,
-			     &queueName,
-			     &message,
-			     SA_MSG_MESSAGE_DELIVERED_ACK);
+                             &queueName,
+                             &message,
+                             SA_MSG_MESSAGE_DELIVERED_ACK);
   assert(rc == SA_AIS_OK);
 
   ready = false;
@@ -703,7 +841,7 @@ static void limitGet_22(void) {
   rc = saMsgQueueClose(queueHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 
   delete[] data;
@@ -718,7 +856,9 @@ static void limitGet_23(void) {
   rc = saMsgLimitGet(msgHandle, SA_MSG_MAX_REPLY_SIZE_ID, &value);
   assert(rc == SA_AIS_OK);
 
-  SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
+  SaMsgQueueHandleT queueHandle(0);
+  rc = openQueue(msgHandle, queueName, queueHandle);
+  assert(rc == SA_AIS_OK);
 
   std::thread sendRecvThread(sendRecv, msgHandle);
 
@@ -751,7 +891,7 @@ static void limitGet_23(void) {
   rc = saMsgQueueClose(queueHandle);
   assert(rc == SA_AIS_OK);
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 
   sendRecvThread.join();
@@ -801,7 +941,7 @@ static void limitGet_24(void) {
     cv.wait(lk, []{ return ready; });
   }
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -830,24 +970,26 @@ static void limitGet_25(void) {
     SaInvocationT invocation((i == value.uint64Value) ?
       SA_AIS_ERR_NO_RESOURCES : SA_AIS_OK);
 
-    rc = saMsgQueueOpenAsync(msgHandle,
-                             invocation,
-                             &localQueueName,
-                             &creationAttributes,
-                             SA_MSG_QUEUE_CREATE);
-    assert(rc == SA_AIS_OK);
+    do {
+      rc = saMsgQueueOpenAsync(msgHandle,
+                               invocation,
+                               &localQueueName,
+                               &creationAttributes,
+                               SA_MSG_QUEUE_CREATE);
+      assert(rc == SA_AIS_OK);
 
-    ready = false;
-    getAsyncCallback(msgHandle);
+      redo = ready = false;
+      getAsyncCallback(msgHandle);
 
-    // wait for the response
-    {
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait(lk, []{ return ready; });
-    }
+      // wait for the response
+      {
+        std::unique_lock<std::mutex> lk(m);
+        cv.wait(lk, []{ return ready; });
+      }
+    } while (redo);
   }
 
-  rc = saMsgFinalize(msgHandle);
+  rc = msgFinalize(msgHandle);
   assert(rc == SA_AIS_OK);
 }
 
@@ -919,7 +1061,7 @@ __attribute__((constructor)) static void limitGet_constructor(void) {
   test_case_add(29,
                 limitGet_20,
                 "SendReceive message > SA_MSG_MAX_MESSAGE_SIZE returns "
-		  "TOO_BIG");
+                "TOO_BIG");
   test_case_add(29,
                 limitGet_21,
                 "async queue creation with priority size > "

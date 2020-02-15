@@ -23,9 +23,9 @@
  * @author: Emerson Network Power
  *****************************************************************************/
 
+#include <algorithm>
+#include "plm/common/plms_common.h"
 #include "plma.h"
-
-#define PLMS_MDS_SYNC_TIME 1000000
 
 #define m_PLM_DISPATCH_FLAG_IS_VALID(flags)                  \
   ((flags & SA_DISPATCH_ONE) || (flags & SA_DISPATCH_ALL) || \
@@ -405,10 +405,21 @@ SaAisErrorT saPlmInitialize(SaPlmHandleT *plmHandle,
                             NCSMDS_SVC_ID_PLMS, plma_cb->plms_mdest_id,
                             &plm_init_evt, &plm_init_resp, PLMS_MDS_SYNC_TIME);
 
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER("PLMA : plm_mds_msg_sync_send FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto mds_fail;
+  switch (proc_rc) {
+    case NCSCC_RC_SUCCESS:
+      break;
+    case NCSCC_RC_REQ_TIMOUT:
+      TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+      rc = SA_AIS_ERR_TIMEOUT;
+      goto mds_fail;
+    case NCSCC_RC_FAILURE:
+      TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      goto mds_fail;
+    default:
+      TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      goto mds_fail;
   }
 
   /** Process the response */
@@ -476,11 +487,24 @@ ipc_init_fail:
   proc_rc = plm_mds_msg_sync_send(
       plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
       plma_cb->plms_mdest_id, &plm_fin_evt, &plm_fin_res, PLMS_MDS_SYNC_TIME);
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER("PLMA : plm_mds_msg_sync_send for finialize FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto mds_fail;
+
+  switch (proc_rc) {
+    case NCSCC_RC_SUCCESS:
+      break;
+    case NCSCC_RC_REQ_TIMOUT:
+      TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+      rc = SA_AIS_ERR_TIMEOUT;
+      goto mds_fail;
+    case NCSCC_RC_FAILURE:
+      TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      goto mds_fail;
+    default:
+      TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      goto mds_fail;
   }
+
   if (!plm_fin_res) {
     LOG_ER("PLMA : FINALIZE REQUEST FAILED");
     rc = SA_AIS_ERR_TRY_AGAIN;
@@ -539,11 +563,6 @@ SaAisErrorT saPlmSelectionObjectGet(SaPlmHandleT plmHandle,
   if (!plmHandle) {
     LOG_ER("PLMA : INVALID HANDLE/INPUT VERSION");
     rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
-  if (!plma_cb->plms_svc_up) {
-    LOG_ER("PLMA : PLM SERVICE DOWN");
-    rc = SA_AIS_ERR_TRY_AGAIN;
     goto end;
   }
 
@@ -732,11 +751,6 @@ SaAisErrorT saPlmFinalize(SaPlmHandleT plmHandle) {
     rc = SA_AIS_ERR_BAD_HANDLE;
     goto end;
   }
-  if (!plma_cb->plms_svc_up) {
-    LOG_ER("PLMA : PLM SERVICE DOWN");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
-  }
 
   /** Fill the finalize event structure */
   memset(&plm_fin_evt, 0, sizeof(PLMS_EVT));
@@ -750,11 +764,21 @@ SaAisErrorT saPlmFinalize(SaPlmHandleT plmHandle) {
       plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
       plma_cb->plms_mdest_id, &plm_fin_evt, &plm_fin_resp, PLMS_MDS_SYNC_TIME);
 
-  /** Check if return value is SUCCESS or not */
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER("PLMA : plm_mds_msg_sync_send FOR FINALIZE REQUEST FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
+  switch (proc_rc) {
+    case NCSCC_RC_SUCCESS:
+      break;
+    case NCSCC_RC_REQ_TIMOUT:
+      TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+      rc = SA_AIS_ERR_TIMEOUT;
+      goto end;
+    case NCSCC_RC_FAILURE:
+      TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      goto end;
+    default:
+      TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      goto end;
   }
 
   if (!plm_fin_resp) {
@@ -914,13 +938,25 @@ SaAisErrorT saPlmEntityGroupCreate(SaPlmHandleT plmHandle,
   proc_rc = plm_mds_msg_sync_send(
       plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
       plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER("PLMA: plm_mds_msg_sync_send FOR GRP CREATE REQUEST FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto mds_fail;
+
+  switch (proc_rc) {
+    case NCSCC_RC_SUCCESS:
+      break;
+    case NCSCC_RC_REQ_TIMOUT:
+      TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+      rc = SA_AIS_ERR_TIMEOUT;
+      goto mds_fail;
+    case NCSCC_RC_FAILURE:
+      TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      goto mds_fail;
+    default:
+      TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      goto mds_fail;
   }
-  /* Verify if the response if ok and send grp handle to aa
-  pplication */
+
+  /* Verify if the response if ok and send grp handle to application */
   if (!plm_out_res) {
     LOG_ER("PLMA: plm_mds_msg_sync_send RETURNS WITH INVALID RESPONSE");
     rc = SA_AIS_ERR_TRY_AGAIN;
@@ -929,7 +965,7 @@ SaAisErrorT saPlmEntityGroupCreate(SaPlmHandleT plmHandle,
     /** process the response */
     if (plm_out_res->res_evt.error != SA_AIS_OK) {
       LOG_ER("PLMA: GRP CREATE RETURNS ERR RESPONSE");
-      rc = SA_AIS_ERR_TRY_AGAIN;
+      rc = plm_out_res->res_evt.error;
       goto resp_err;
     }
     *groupHandle = plm_out_res->res_evt.hdl;
@@ -1006,130 +1042,161 @@ SaAisErrorT saPlmEntityGroupAdd(SaPlmEntityGroupHandleT entityGroupHandle,
   uint32_t ii, i;
 
   TRACE_ENTER2("%d", options);
-  if (!plma_cb) {
-    LOG_ER("PLMA : PLMA INITIALIZE IS NOT DONE");
-    rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
 
-  if (!entityGroupHandle) {
-    LOG_ER("PLMA: BAD ENTITY GRP HANDLE");
-    rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
+  do {
+    if (!plma_cb) {
+      LOG_ER("PLMA : PLMA INITIALIZE IS NOT DONE");
+      rc = SA_AIS_ERR_BAD_HANDLE;
+      break;
+    }
 
-  if (entityNamesNumber == 0) {
-    LOG_ER("PLMA: INVALID entityNamesNumber PARAMETER");
-    rc = SA_AIS_ERR_INVALID_PARAM;
-    goto end;
-  }
-  if (entityNames == NULL) {
-    LOG_ER("PLMA: entityNames PARAMETER IS NOT SET PROPERLY");
-    rc = SA_AIS_ERR_INVALID_PARAM;
-    goto end;
-  }
-  TRACE_5("Group Add options got : %d ", options);
-  if ((SA_PLM_GROUP_SINGLE_ENTITY != options) &&
-      (SA_PLM_GROUP_SUBTREE != options) &&
-      (SA_PLM_GROUP_SUBTREE_HES_ONLY != options) &&
-      (SA_PLM_GROUP_SUBTREE_EES_ONLY != options)) {
-    LOG_ER("PLMA : INVALID GRP ADD OPTIONS");
-    rc = SA_AIS_ERR_INVALID_PARAM;
-    goto end;
-  }
+    if (!entityGroupHandle) {
+      LOG_ER("PLMA: BAD ENTITY GRP HANDLE");
+      rc = SA_AIS_ERR_BAD_HANDLE;
+      break;
+    }
 
-  if (!plma_cb->plms_svc_up) {
-    LOG_ER("PLMA : PLM SERVICE DOWN");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
-  }
-  /* Acquire lock for the CB */
-  if (m_NCS_LOCK(&plma_cb->cb_lock, NCS_LOCK_READ) != NCSCC_RC_SUCCESS) {
-    LOG_ER("PLMA: GET CB LOCK FAILED");
-    rc = SA_AIS_ERR_NO_RESOURCES;
-    goto end;
-  }
+    if (entityNamesNumber == 0) {
+      LOG_ER("PLMA: INVALID entityNamesNumber PARAMETER");
+      rc = SA_AIS_ERR_INVALID_PARAM;
+      break;
+    }
+    if (entityNames == NULL) {
+      LOG_ER("PLMA: entityNames PARAMETER IS NOT SET PROPERLY");
+      rc = SA_AIS_ERR_INVALID_PARAM;
+      break;
+    }
+    TRACE_5("Group Add options got : %d ", options);
+    if ((SA_PLM_GROUP_SINGLE_ENTITY != options) &&
+        (SA_PLM_GROUP_SUBTREE != options) &&
+        (SA_PLM_GROUP_SUBTREE_HES_ONLY != options) &&
+        (SA_PLM_GROUP_SUBTREE_EES_ONLY != options)) {
+      LOG_ER("PLMA : INVALID GRP ADD OPTIONS");
+      rc = SA_AIS_ERR_INVALID_PARAM;
+      break;
+    }
 
-  /* Search for entity group info using the group handle */
-  group_info = (PLMA_ENTITY_GROUP_INFO *)ncs_patricia_tree_get(
-      &plma_cb->entity_group_info, (uint8_t *)&entityGroupHandle);
+    if (!plma_cb->plms_svc_up) {
+      LOG_ER("PLMA : PLM SERVICE DOWN");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      break;
+    }
+    /* Acquire lock for the CB */
+    if (m_NCS_LOCK(&plma_cb->cb_lock, NCS_LOCK_READ) != NCSCC_RC_SUCCESS) {
+      LOG_ER("PLMA: GET CB LOCK FAILED");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      break;
+    }
 
-  m_NCS_UNLOCK(&plma_cb->cb_lock, NCS_LOCK_READ);
-  if (!group_info) {
-    LOG_ER("PLMA: PLMA_ENTITY_GROUP_INFO NODE GET FAILED");
-    rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
+    /* Search for entity group info using the group handle */
+    group_info = (PLMA_ENTITY_GROUP_INFO *)ncs_patricia_tree_get(
+        &plma_cb->entity_group_info, (uint8_t *)&entityGroupHandle);
 
-  /* Verify if client info is filled in group info*/
-  if (!group_info->client_info) {
-    LOG_ER("PLMA: INVALID CLIENT_INFO");
-    rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
+    m_NCS_UNLOCK(&plma_cb->cb_lock, NCS_LOCK_READ);
+    if (!group_info) {
+      LOG_ER("PLMA: PLMA_ENTITY_GROUP_INFO NODE GET FAILED");
+      rc = SA_AIS_ERR_BAD_HANDLE;
+      break;
+    }
 
-  for (i = 0; i < entityNamesNumber; i++) {
-    /** Check the entityName is repeated in the entityNames Array*/
-    for (ii = 0; ii < entityNamesNumber; ii++) {
-      if (i != ii) {
-        if ((entityNames[i].length == entityNames[ii].length) &&
-            (strncmp((SaInt8T *)entityNames[i].value,
-                     (SaInt8T *)entityNames[ii].value,
-                     entityNames[i].length) == 0)) {
-          LOG_ER("PLMA: ENTITY APPREARS MORE THAN ONCE IN entityNames ARRAY");
-          rc = SA_AIS_ERR_EXIST;
-          goto end;
+    /* Verify if client info is filled in group info*/
+    if (!group_info->client_info) {
+      LOG_ER("PLMA: INVALID CLIENT_INFO");
+      rc = SA_AIS_ERR_BAD_HANDLE;
+      break;
+    }
+
+    for (i = 0; i < entityNamesNumber; i++) {
+      /** Check the entityName is repeated in the entityNames Array*/
+      for (ii = 0; ii < entityNamesNumber; ii++) {
+        if (i != ii) {
+          if ((entityNames[i].length == entityNames[ii].length) &&
+              (strncmp((SaInt8T *)entityNames[i].value,
+                       (SaInt8T *)entityNames[ii].value,
+                       entityNames[i].length) == 0)) {
+            LOG_ER("PLMA: ENTITY APPREARS MORE THAN ONCE IN entityNames ARRAY");
+            rc = SA_AIS_ERR_EXIST;
+            break;
+          }
         }
       }
     }
-  }
-  for (i = 0; i < entityNamesNumber; i++) {
-    TRACE_5("Entity received %s", entityNames[i].value);
-    /** validate the length field of the entities. */
-    if (entityNames[i].length > SA_MAX_NAME_LENGTH) {
-      LOG_ER("PLMA : INVALID LENGTH FIELD SET FOR ENTITY %s",
-             entityNames[i].value);
-      rc = SA_AIS_ERR_INVALID_PARAM;
-      goto end;
+
+    if (rc != SA_AIS_OK)
+      break;
+
+    for (i = 0; i < entityNamesNumber; i++) {
+      TRACE_5("Entity received %s", entityNames[i].value);
+      /** validate the length field of the entities. */
+      if (entityNames[i].length > SA_MAX_NAME_LENGTH) {
+        LOG_ER("PLMA : INVALID LENGTH FIELD SET FOR ENTITY %s",
+               entityNames[i].value);
+        rc = SA_AIS_ERR_INVALID_PARAM;
+        break;
+      }
     }
-  }
-  memset(&plm_in_evt, 0, sizeof(PLMS_EVT));
-  plm_in_evt.req_res = PLMS_REQ;
-  plm_in_evt.req_evt.req_type = PLMS_AGENT_GRP_OP_EVT_T;
-  plm_in_evt.req_evt.agent_grp_op.grp_evt_type = PLMS_AGENT_GRP_ADD_EVT;
-  plm_in_evt.req_evt.agent_grp_op.plm_handle =
-      group_info->client_info->plm_handle;
-  plm_in_evt.req_evt.agent_grp_op.grp_handle = entityGroupHandle;
-  plm_in_evt.req_evt.agent_grp_op.entity_names_number = entityNamesNumber;
-  plm_in_evt.req_evt.agent_grp_op.entity_names = (SaNameT *)entityNames;
 
-  plm_in_evt.req_evt.agent_grp_op.grp_add_option = options;
+    if (rc != SA_AIS_OK)
+      break;
 
-  /* Send a mds sync msg to PLMS to obtain group handle for this. */
-  proc_rc = plm_mds_msg_sync_send(
-      plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
-      plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
+    memset(&plm_in_evt, 0, sizeof(PLMS_EVT));
+    plm_in_evt.req_res = PLMS_REQ;
+    plm_in_evt.req_evt.req_type = PLMS_AGENT_GRP_OP_EVT_T;
+    plm_in_evt.req_evt.agent_grp_op.grp_evt_type = PLMS_AGENT_GRP_ADD_EVT;
+    plm_in_evt.req_evt.agent_grp_op.plm_handle =
+        group_info->client_info->plm_handle;
+    plm_in_evt.req_evt.agent_grp_op.grp_handle = entityGroupHandle;
+    plm_in_evt.req_evt.agent_grp_op.entity_names_number = entityNamesNumber;
+    plm_in_evt.req_evt.agent_grp_op.entity_names = (SaNameT *)entityNames;
 
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER("PLMA: plm_mds_msg_sync_send FOR GRP ADD REQUEST FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
-  }
+    plm_in_evt.req_evt.agent_grp_op.grp_add_option = options;
 
-  /* Verify if the response if ok  */
-  if (!plm_out_res) {
-    LOG_ER("PLMA:INVALID RESPONSE FOR ADD EVT REQUEST");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
-  } else {
-    if (plm_out_res->res_evt.error != SA_AIS_OK) {
-      LOG_ER("PLMA:ERR RESPONSE FOR ADD EVT REQUEST");
-      rc = plm_out_res->res_evt.error;
-      goto end;
+    /* Send a mds sync msg to PLMS to obtain group handle for this. */
+    proc_rc = plm_mds_msg_sync_send(
+        plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
+        plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
+
+    switch (proc_rc) {
+      case NCSCC_RC_SUCCESS:
+        break;
+      case NCSCC_RC_REQ_TIMOUT:
+        TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+        rc = SA_AIS_ERR_TIMEOUT;
+        break;
+      case NCSCC_RC_FAILURE:
+        TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+        rc = SA_AIS_ERR_TRY_AGAIN;
+        break;
+      default:
+        TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+        rc = SA_AIS_ERR_NO_RESOURCES;
+        break;
     }
-  }
 
-end:
+    if (rc != SA_AIS_OK)
+      break;
+
+    /* Verify if the response if ok  */
+    if (!plm_out_res) {
+      LOG_ER("PLMA:INVALID RESPONSE FOR ADD EVT REQUEST");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      break;
+    } else {
+      if (plm_out_res->res_evt.error != SA_AIS_OK) {
+        LOG_ER("PLMA:ERR RESPONSE FOR ADD EVT REQUEST");
+        rc = plm_out_res->res_evt.error;
+        break;
+      }
+    }
+
+    // store the entity names in case we need to reinit with plmd
+    SaNameList saNameList;
+    for (SaUint32T i(0); i < entityNamesNumber; i++)
+      saNameList.push_back(entityNames[i]);
+
+    group_info->entityNamesList.push_back(make_pair(saNameList, options));
+  } while (false);
+
   /* free event structure */
   if (plm_out_res) {
     plms_free_evt(plm_out_res);
@@ -1163,119 +1230,166 @@ SaAisErrorT saPlmEntityGroupRemove(SaPlmEntityGroupHandleT entityGroupHandle,
   uint32_t ii, i;
 
   TRACE_ENTER();
-  if (!plma_cb) {
-    LOG_ER("PLMA : PLMA INITIALIZE IS NOT DONE");
-    rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
 
-  if (!entityGroupHandle) {
-    LOG_ER("PLMA: INVALID ENTITY GROUP HANDLE");
-    rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
+  do {
+    if (!plma_cb) {
+      LOG_ER("PLMA : PLMA INITIALIZE IS NOT DONE");
+      rc = SA_AIS_ERR_BAD_HANDLE;
+      break;
+    }
 
-  if (entityNamesNumber == 0) {
-    LOG_ER("PLMA: INVALID entityNamesNumber parameter");
-    rc = SA_AIS_ERR_INVALID_PARAM;
-    goto end;
-  }
-  if (entityNames == NULL) {
-    LOG_ER("PLMA: entityNames PARAMETER IS NOT SET PROPERLY");
-    rc = SA_AIS_ERR_INVALID_PARAM;
-    goto end;
-  }
-  if (!plma_cb->plms_svc_up) {
-    LOG_ER("PLMA : PLM SERVICE DOWN");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
-  }
+    if (!entityGroupHandle) {
+      LOG_ER("PLMA: INVALID ENTITY GROUP HANDLE");
+      rc = SA_AIS_ERR_BAD_HANDLE;
+      break;
+    }
 
-  /* Acquire lock for the CB */
-  if (m_NCS_LOCK(&plma_cb->cb_lock, NCS_LOCK_READ) != NCSCC_RC_SUCCESS) {
-    LOG_ER("PLMA : GET CB LOCK FAILED");
-    rc = SA_AIS_ERR_NO_RESOURCES;
-    goto end;
-  }
-  /* Search for entity group info using the group handle */
-  group_info = (PLMA_ENTITY_GROUP_INFO *)ncs_patricia_tree_get(
-      &plma_cb->entity_group_info, (uint8_t *)&entityGroupHandle);
-  m_NCS_UNLOCK(&plma_cb->cb_lock, NCS_LOCK_READ);
-  if (!group_info) {
-    LOG_ER("PLMA: PLMA_ENTITY_GROUP_INFO NODE GET FAILED");
-    rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
+    if (entityNamesNumber == 0) {
+      LOG_ER("PLMA: INVALID entityNamesNumber parameter");
+      rc = SA_AIS_ERR_INVALID_PARAM;
+      break;
+    }
+    if (entityNames == NULL) {
+      LOG_ER("PLMA: entityNames PARAMETER IS NOT SET PROPERLY");
+      rc = SA_AIS_ERR_INVALID_PARAM;
+      break;
+    }
+    if (!plma_cb->plms_svc_up) {
+      LOG_ER("PLMA : PLM SERVICE DOWN");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      break;
+    }
 
-  /* Verify if client info is filled in group info*/
-  if (!group_info->client_info) {
-    LOG_ER("PLMA: INVALID CLIENT_INFO");
-    rc = SA_AIS_ERR_BAD_HANDLE;
-    goto end;
-  }
+    /* Acquire lock for the CB */
+    if (m_NCS_LOCK(&plma_cb->cb_lock, NCS_LOCK_READ) != NCSCC_RC_SUCCESS) {
+      LOG_ER("PLMA : GET CB LOCK FAILED");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      break;
+    }
+    /* Search for entity group info using the group handle */
+    group_info = (PLMA_ENTITY_GROUP_INFO *)ncs_patricia_tree_get(
+        &plma_cb->entity_group_info, (uint8_t *)&entityGroupHandle);
+    m_NCS_UNLOCK(&plma_cb->cb_lock, NCS_LOCK_READ);
+    if (!group_info) {
+      LOG_ER("PLMA: PLMA_ENTITY_GROUP_INFO NODE GET FAILED");
+      rc = SA_AIS_ERR_BAD_HANDLE;
+      break;
+    }
 
-  for (i = 0; i < entityNamesNumber; i++) {
-    /** Check the entityName is repeated in the entityNames Array*/
-    for (ii = 0; ii < entityNamesNumber; ii++) {
-      if (i != ii) {
-        if ((entityNames[i].length == entityNames[ii].length) &&
-            (strncmp((SaInt8T *)entityNames[i].value,
-                     (SaInt8T *)entityNames[ii].value,
-                     entityNames[i].length) == 0)) {
-          LOG_ER("PLMA: ENTITY APPREARS MORE THAN ONCE IN entityNames ARRAY");
-          rc = SA_AIS_ERR_EXIST;
-          goto end;
+    /* Verify if client info is filled in group info*/
+    if (!group_info->client_info) {
+      LOG_ER("PLMA: INVALID CLIENT_INFO");
+      rc = SA_AIS_ERR_BAD_HANDLE;
+      break;
+    }
+
+    for (i = 0; i < entityNamesNumber; i++) {
+      /** Check the entityName is repeated in the entityNames Array*/
+      for (ii = 0; ii < entityNamesNumber; ii++) {
+        if (i != ii) {
+          if ((entityNames[i].length == entityNames[ii].length) &&
+              (strncmp((SaInt8T *)entityNames[i].value,
+                       (SaInt8T *)entityNames[ii].value,
+                       entityNames[i].length) == 0)) {
+            LOG_ER("PLMA: ENTITY APPREARS MORE THAN ONCE IN entityNames ARRAY");
+            rc = SA_AIS_ERR_EXIST;
+            break;
+          }
         }
       }
     }
-  }
-  for (i = 0; i < entityNamesNumber; i++) {
-    TRACE_5("Entity received %s", entityNames[i].value);
-    /** memset the extra characters of entityNames[i] with 0*/
-    if (entityNames[i].length > SA_MAX_NAME_LENGTH) {
-      LOG_ER("PLMA : INVALID LENGTH FIELD SET FOR ENTITY %s",
-             entityNames[i].value);
-      rc = SA_AIS_ERR_INVALID_PARAM;
-      goto end;
+
+    if (rc != SA_AIS_OK)
+      break;
+
+    for (i = 0; i < entityNamesNumber; i++) {
+      TRACE_5("Entity received %s", entityNames[i].value);
+      /** memset the extra characters of entityNames[i] with 0*/
+      if (entityNames[i].length > SA_MAX_NAME_LENGTH) {
+        LOG_ER("PLMA : INVALID LENGTH FIELD SET FOR ENTITY %s",
+               entityNames[i].value);
+        rc = SA_AIS_ERR_INVALID_PARAM;
+        break;
+      }
     }
-  }
 
-  memset(&plm_in_evt, 0, sizeof(PLMS_EVT));
-  plm_in_evt.req_res = PLMS_REQ;
-  plm_in_evt.req_evt.req_type = PLMS_AGENT_GRP_OP_EVT_T;
-  plm_in_evt.req_evt.agent_grp_op.grp_evt_type = PLMS_AGENT_GRP_REMOVE_EVT;
-  plm_in_evt.req_evt.agent_grp_op.plm_handle =
-      group_info->client_info->plm_handle;
-  plm_in_evt.req_evt.agent_grp_op.grp_handle = entityGroupHandle;
-  plm_in_evt.req_evt.agent_grp_op.entity_names_number = entityNamesNumber;
+    if (rc != SA_AIS_OK)
+      break;
 
-  plm_in_evt.req_evt.agent_grp_op.entity_names = (SaNameT *)entityNames;
+    memset(&plm_in_evt, 0, sizeof(PLMS_EVT));
+    plm_in_evt.req_res = PLMS_REQ;
+    plm_in_evt.req_evt.req_type = PLMS_AGENT_GRP_OP_EVT_T;
+    plm_in_evt.req_evt.agent_grp_op.grp_evt_type = PLMS_AGENT_GRP_REMOVE_EVT;
+    plm_in_evt.req_evt.agent_grp_op.plm_handle =
+        group_info->client_info->plm_handle;
+    plm_in_evt.req_evt.agent_grp_op.grp_handle = entityGroupHandle;
+    plm_in_evt.req_evt.agent_grp_op.entity_names_number = entityNamesNumber;
 
-  /* Send a mds sync msg to PLMS to obtain group handle for this */
-  proc_rc = plm_mds_msg_sync_send(
-      plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
-      plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
+    plm_in_evt.req_evt.agent_grp_op.entity_names = (SaNameT *)entityNames;
 
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER("PLMA: plm_mds_msg_sync_send FOR GRP REM REQUEST FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
-  }
+    /* Send a mds sync msg to PLMS to obtain group handle for this */
+    proc_rc = plm_mds_msg_sync_send(
+        plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
+        plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
 
-  /* Verify if the response if ok and send grp handle to application */
-  if (!plm_out_res) {
-    LOG_ER("PLMA:INVALID RESPONSE FOR REM EVT REQUEST");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
-  }
+    switch (proc_rc) {
+      case NCSCC_RC_SUCCESS:
+        break;
+      case NCSCC_RC_REQ_TIMOUT:
+        TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+        rc = SA_AIS_ERR_TIMEOUT;
+        break;
+      case NCSCC_RC_FAILURE:
+        TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+        rc = SA_AIS_ERR_TRY_AGAIN;
+        break;
+      default:
+        TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+        rc = SA_AIS_ERR_NO_RESOURCES;
+        break;
+    }
 
-  if (plm_out_res->res_evt.error != SA_AIS_OK) {
-    LOG_ER("PLMA: ERR RESPONSE FOR ADD EVT REQUEST");
-    rc = plm_out_res->res_evt.error;
-    goto end;
-  }
+    if (rc != SA_AIS_OK)
+      break;
 
-end:
+    /* Verify if the response if ok and send grp handle to application */
+    if (!plm_out_res) {
+      LOG_ER("PLMA:INVALID RESPONSE FOR REM EVT REQUEST");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      break;
+    }
+
+    if (plm_out_res->res_evt.error != SA_AIS_OK) {
+      LOG_ER("PLMA: ERR RESPONSE FOR ADD EVT REQUEST");
+      rc = plm_out_res->res_evt.error;
+      break;
+    }
+
+    // remove the local copy of the entity names
+    for (SaUint32T i(0); i < entityNamesNumber; i++) {
+      for (auto entityIt : group_info->entityNamesList) {
+        auto end(std::remove_if(entityIt.first.begin(),
+                                entityIt.first.end(),
+                                [&](const SaNameT& name) {
+          return (entityNames[i].length == name.length &&
+                  !memcmp(entityNames[i].value,
+                          name.value,
+                          name.length));
+        }));
+
+        entityIt.first.erase(end, entityIt.first.end());
+      }
+    }
+
+    auto end(std::remove_if(group_info->entityNamesList.begin(),
+                            group_info->entityNamesList.end(),
+                            [](const EntityNames& name) {
+      return (name.first.empty());
+    }));
+
+    group_info->entityNamesList.erase(end, group_info->entityNamesList.end());
+  } while (false);
+
   if (plm_out_res) {
     plms_free_evt(plm_out_res);
   }
@@ -1402,10 +1516,21 @@ SaAisErrorT saPlmEntityGroupDelete(SaPlmEntityGroupHandleT entityGroupHandle) {
       plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
       plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
 
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER("PLMA: plm_mds_msg_sync_send FOR GRP DEL REQUEST FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
+  switch (proc_rc) {
+    case NCSCC_RC_SUCCESS:
+      break;
+    case NCSCC_RC_REQ_TIMOUT:
+      TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+      rc = SA_AIS_ERR_TIMEOUT;
+      goto end;
+    case NCSCC_RC_FAILURE:
+      TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      goto end;
+    default:
+      TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      goto end;
   }
 
   /* Verify if the response if ok and send grp handle to application */
@@ -1636,11 +1761,23 @@ SaAisErrorT saPlmReadinessTrack(
         plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
         plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
 
-    if (NCSCC_RC_SUCCESS != proc_rc) {
-      LOG_ER("PLMA: plm_mds_msg_sync_send FOR READINESS TRACK REQUEST FAILED");
-      rc = SA_AIS_ERR_TRY_AGAIN;
-      goto end;
+    switch (proc_rc) {
+      case NCSCC_RC_SUCCESS:
+        break;
+      case NCSCC_RC_REQ_TIMOUT:
+        TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+        rc = SA_AIS_ERR_TIMEOUT;
+        goto end;
+      case NCSCC_RC_FAILURE:
+        TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+        rc = SA_AIS_ERR_TRY_AGAIN;
+        goto end;
+      default:
+        TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+        rc = SA_AIS_ERR_NO_RESOURCES;
+        goto end;
     }
+
     if ((m_PLM_IS_SA_TRACK_CHANGES_SET(trackFlags) ||
          m_PLM_IS_SA_TRACK_CHANGES_ONLY_SET(trackFlags))) {
       group_info->trk_strt_stop = 1;
@@ -1665,16 +1802,31 @@ SaAisErrorT saPlmReadinessTrack(
     proc_rc =
         plms_mds_normal_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, &plm_in_evt,
                              plma_cb->plms_mdest_id, NCSMDS_SVC_ID_PLMS);
-    if (NCSCC_RC_SUCCESS != proc_rc) {
-      LOG_ER("PLMA: plms_mds_normal_send FOR READINESS TRACK REQUEST FAILED");
-      rc = SA_AIS_ERR_TRY_AGAIN;
-      goto end;
+
+    switch (proc_rc) {
+      case NCSCC_RC_SUCCESS:
+        break;
+      case NCSCC_RC_REQ_TIMOUT:
+        TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+        rc = SA_AIS_ERR_TIMEOUT;
+        goto end;
+      case NCSCC_RC_FAILURE:
+        TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+        rc = SA_AIS_ERR_TRY_AGAIN;
+        goto end;
+      default:
+        TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+        rc = SA_AIS_ERR_NO_RESOURCES;
+        goto end;
     }
+
     group_info->trk_strt_stop = 1;
     /* Dont set is_trk_enable flag if the flag is only current.*/
     if ((m_PLM_IS_SA_TRACK_CHANGES_SET(trackFlags) ||
          m_PLM_IS_SA_TRACK_CHANGES_ONLY_SET(trackFlags))) {
       group_info->is_trk_enabled = 1;
+      group_info->trackFlags     = trackFlags;
+      group_info->trackCookie    = trackCookie;
     }
     goto end;
   }
@@ -1790,12 +1942,21 @@ SaAisErrorT saPlmReadinessTrackResponse(SaPlmEntityGroupHandleT entityGrpHdl,
       plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
       plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
 
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER(
-        "PLMA: plms_mds_normal_send FOR READINESS TRACK RESPONSE REQUEST "
-        "FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
+  switch (proc_rc) {
+    case NCSCC_RC_SUCCESS:
+      break;
+    case NCSCC_RC_REQ_TIMOUT:
+      TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+      rc = SA_AIS_ERR_TIMEOUT;
+      goto end;
+    case NCSCC_RC_FAILURE:
+      TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      goto end;
+    default:
+      TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      goto end;
   }
 
   /* Verify if the response if ok */
@@ -1896,11 +2057,21 @@ SaAisErrorT saPlmReadinessTrackStop(SaPlmEntityGroupHandleT entityGroupHandle) {
       plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
       plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
 
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER(
-        "PLMA: plm_mds_msg_sync_send FOR READINESS TRACK STOP REQUEST FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
+  switch (proc_rc) {
+    case NCSCC_RC_SUCCESS:
+      break;
+    case NCSCC_RC_REQ_TIMOUT:
+      TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+      rc = SA_AIS_ERR_TIMEOUT;
+      goto end;
+    case NCSCC_RC_FAILURE:
+      TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      goto end;
+    default:
+      TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      goto end;
   }
 
   /* Verify if the response if ok and send grp handle to application */
@@ -1917,6 +2088,8 @@ SaAisErrorT saPlmReadinessTrackStop(SaPlmEntityGroupHandleT entityGroupHandle) {
   /** clear the flag so, all the pending call backs can be removed */
   group_info->trk_strt_stop = 0;
   group_info->is_trk_enabled = 0;
+  group_info->trackFlags = 0;
+  group_info->trackCookie = 0;
 end:
   if (plm_out_res) {
     plms_free_evt(plm_out_res);
@@ -2125,10 +2298,21 @@ SaAisErrorT saPlmEntityReadinessImpact(SaPlmHandleT plmHandle,
       plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA, NCSMDS_SVC_ID_PLMS,
       plma_cb->plms_mdest_id, &plm_in_evt, &plm_out_res, PLMS_MDS_SYNC_TIME);
 
-  if (NCSCC_RC_SUCCESS != proc_rc) {
-    LOG_ER("PLMA: plm_mds_msg_sync_send FOR READINESS IMPACT FAILED");
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto end;
+  switch (proc_rc) {
+    case NCSCC_RC_SUCCESS:
+      break;
+    case NCSCC_RC_REQ_TIMOUT:
+      TRACE_2("ERR_TIMEOUT: Message Send through MDS Timeout");
+      rc = SA_AIS_ERR_TIMEOUT;
+      goto end;
+    case NCSCC_RC_FAILURE:
+      TRACE_2("ERR_TRY_AGAIN: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_TRY_AGAIN;
+      goto end;
+    default:
+      TRACE_4("ERR_RESOURCES: Message Send through MDS Failure");
+      rc = SA_AIS_ERR_NO_RESOURCES;
+      goto end;
   }
 
   /* Verify if the response if ok */

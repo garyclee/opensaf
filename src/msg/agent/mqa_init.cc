@@ -43,14 +43,12 @@ static pthread_mutex_t s_agent_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void mqa_sync_with_mqnd(MQA_CB *cb);
 static void mqa_sync_with_mqd(MQA_CB *cb);
-static void mqa_asapi_unregister(MQA_CB *cb);
 static void mqa_client_tree_destroy(MQA_CB *mqa_cb);
 static void mqa_client_tree_cleanup(MQA_CB *mqa_cb);
 static void mqa_queue_tree_destroy(MQA_CB *mqa_cb);
 static void mqa_queue_tree_cleanup(MQA_CB *mqa_cb);
 static uint32_t mqa_create(NCS_LIB_CREATE *create_info);
 static uint32_t mqa_destroy(NCS_LIB_DESTROY *destroy_info);
-static uint32_t mqa_asapi_register(MQA_CB *cb);
 static uint32_t mqa_client_tree_init(MQA_CB *cb);
 static uint32_t mqa_queue_tree_init(MQA_CB *cb);
 
@@ -364,7 +362,7 @@ static uint32_t mqa_destroy(NCS_LIB_DESTROY *destroy_info) {
 
   Notes         : None
 ******************************************************************************/
-static uint32_t mqa_asapi_register(MQA_CB *cb) {
+uint32_t mqa_asapi_register(MQA_CB *cb) {
   ASAPi_OPR_INFO asapi_or;
   uint32_t rc = NCSCC_RC_SUCCESS;
 
@@ -399,7 +397,7 @@ static uint32_t mqa_asapi_register(MQA_CB *cb) {
 
   Notes         : None
 ******************************************************************************/
-static void mqa_asapi_unregister(MQA_CB *cb) {
+void mqa_asapi_unregister(MQA_CB *cb) {
   ASAPi_OPR_INFO asapi_or;
   uint32_t rc = NCSCC_RC_SUCCESS;
 

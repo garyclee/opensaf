@@ -21,7 +21,9 @@
  * @author: Emerson Network Power
  *****************************************************************************/
 
+#include <thread>
 #include "base/osaf_poll.h"
+#include "plm/common/plms_common.h"
 #include "plma.h"
 
 MDS_CLIENT_MSG_FORMAT_VER
@@ -230,6 +232,162 @@ static uint32_t plma_mds_rcv(MDS_CALLBACK_RECEIVE_INFO *rcv_info) {
   return rc;
 }
 
+static void reinit_with_plms(void) {
+  // reinit the clients with plmd
+  PLMA_CLIENT_INFO *client_node = 0;
+  SaPlmHandleT *temp_ptr = 0, temp_hdl = 0;
+  uint32_t rc = NCSCC_RC_SUCCESS;
+  PLMA_CB *plma_cb = plma_ctrlblk;
+
+  TRACE_ENTER();
+
+  m_NCS_LOCK(&plma_cb->cb_lock, NCS_LOCK_WRITE);
+
+  if (plma_cb->plms_sync_awaited)
+    m_NCS_SEL_OBJ_IND(&plma_cb->sel_obj);
+
+  while ((client_node = (PLMA_CLIENT_INFO *)ncs_patricia_tree_getnext(
+         &plma_cb->client_info, (uint8_t *)temp_ptr))) {
+    PLMS_EVT plm_init_evt, *plm_init_resp = 0;
+
+    temp_hdl = client_node->plm_handle;
+    temp_ptr = &temp_hdl;
+
+    // Fill the init event structure
+    memset(&plm_init_evt, 0, sizeof(PLMS_EVT));
+    plm_init_evt.req_res = PLMS_REQ;
+    plm_init_evt.req_evt.req_type = PLMS_AGENT_LIB_REQ_EVT_T;
+    plm_init_evt.req_evt.agent_lib_req.lib_req_type = PLMS_AGENT_REINIT_EVT;
+    plm_init_evt.req_evt.agent_lib_req.plm_handle = client_node->plm_handle;
+
+    TRACE("sending reinit to plmd with handle: %llu", client_node->plm_handle);
+
+    // Send a sync msg to PLMS to obtain plmHandle for this client
+    rc = plm_mds_msg_sync_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA,
+                               NCSMDS_SVC_ID_PLMS, plma_cb->plms_mdest_id,
+                               &plm_init_evt, &plm_init_resp,
+                               PLMS_MDS_SYNC_TIME);
+
+    if (rc != NCSCC_RC_SUCCESS || !plm_init_resp)
+      LOG_ER("unable to reinit handle %llu with plmd", client_node->plm_handle);
+
+    if (plm_init_resp)
+      plms_free_evt(plm_init_resp);
+  }
+
+  // readd entity groups
+  PLMA_ENTITY_GROUP_INFO *grp_info_node = 0;
+  temp_ptr = 0;
+  while ((grp_info_node = (PLMA_ENTITY_GROUP_INFO *)
+         ncs_patricia_tree_getnext(&plma_cb->entity_group_info,
+                                   (uint8_t *)temp_ptr))) {
+    temp_hdl = grp_info_node->entity_group_handle;
+    temp_ptr = &temp_hdl;
+
+    TRACE("reiniting group handle: %llu", grp_info_node->entity_group_handle);
+    PLMS_EVT plm_in_evt, *plm_out_resp = 0;
+    memset(&plm_in_evt, 0, sizeof(PLMS_EVT));
+    plm_in_evt.req_res = PLMS_REQ;
+    plm_in_evt.req_evt.req_type = PLMS_AGENT_GRP_OP_EVT_T;
+    plm_in_evt.req_evt.agent_grp_op.grp_evt_type = PLMS_AGENT_GRP_REINIT_EVT;
+    plm_in_evt.req_evt.agent_grp_op.plm_handle =
+      grp_info_node->client_info->plm_handle;
+    plm_in_evt.req_evt.agent_grp_op.grp_handle =
+      grp_info_node->entity_group_handle;
+
+    rc = plm_mds_msg_sync_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA,
+                               NCSMDS_SVC_ID_PLMS, plma_cb->plms_mdest_id,
+                               &plm_in_evt, &plm_out_resp, PLMS_MDS_SYNC_TIME);
+
+    if (rc != NCSCC_RC_SUCCESS || !plm_out_resp) {
+      LOG_ER("unable to reinit entity group %llu with plmd",
+             grp_info_node->entity_group_handle);
+    }
+
+    if (plm_out_resp)
+      plms_free_evt(plm_out_resp);
+
+    for (auto it : grp_info_node->entityNamesList) {
+      PLMS_EVT plm_in_evt, *plm_out_resp = 0;
+
+      memset(&plm_in_evt, 0, sizeof(PLMS_EVT));
+      plm_in_evt.req_res = PLMS_REQ;
+      plm_in_evt.req_evt.req_type = PLMS_AGENT_GRP_OP_EVT_T;
+      plm_in_evt.req_evt.agent_grp_op.grp_evt_type = PLMS_AGENT_GRP_ADD_EVT;
+      plm_in_evt.req_evt.agent_grp_op.plm_handle =
+        grp_info_node->client_info->plm_handle;
+      plm_in_evt.req_evt.agent_grp_op.grp_handle =
+        grp_info_node->entity_group_handle;
+      plm_in_evt.req_evt.agent_grp_op.entity_names_number =
+        it.first.size();
+
+      SaNameT *names(new SaNameT[it.first.size()]);
+      for (size_t i(0); i < it.first.size(); i++) {
+        names[i].length = it.first[i].length;
+        memcpy(names[i].value, it.first[i].value, names[i].length);
+      }
+
+      plm_in_evt.req_evt.agent_grp_op.entity_names = names;
+
+      plm_in_evt.req_evt.agent_grp_op.grp_add_option = it.second;
+
+      // Send a mds sync msg to PLMS to obtain group handle for this.
+      rc = plm_mds_msg_sync_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA,
+                                 NCSMDS_SVC_ID_PLMS, plma_cb->plms_mdest_id,
+                                 &plm_in_evt, &plm_out_resp,
+                                 PLMS_MDS_SYNC_TIME);
+
+      if (rc != NCSCC_RC_SUCCESS || !plm_out_resp) {
+        LOG_ER("unable to reinit entity names %llu with plmd",
+               grp_info_node->entity_group_handle);
+      }
+
+      if (plm_out_resp)
+        plms_free_evt(plm_out_resp);
+    }
+  }
+
+  // reinit tracking
+  temp_ptr = 0;
+  while ((grp_info_node = (PLMA_ENTITY_GROUP_INFO *)
+         ncs_patricia_tree_getnext(&plma_cb->entity_group_info,
+                                   (uint8_t *)temp_ptr))) {
+    temp_hdl = grp_info_node->entity_group_handle;
+    temp_ptr = &temp_hdl;
+
+    if (grp_info_node->is_trk_enabled) {
+      PLMS_EVT plm_in_evt;
+
+      memset(&plm_in_evt, 0, sizeof(PLMS_EVT));
+
+      plm_in_evt.req_res = PLMS_REQ;
+      plm_in_evt.req_evt.req_type = PLMS_AGENT_TRACK_EVT_T;
+      plm_in_evt.req_evt.agent_track.agent_handle =
+        grp_info_node->client_info->plm_handle;
+      plm_in_evt.req_evt.agent_track.grp_handle =
+        grp_info_node->entity_group_handle;
+      plm_in_evt.req_evt.agent_track.evt_type = PLMS_AGENT_TRACK_START_EVT;
+      plm_in_evt.req_evt.agent_track.track_start.track_flags =
+        grp_info_node->trackFlags;
+      plm_in_evt.req_evt.agent_track.track_start.track_cookie =
+        grp_info_node->trackCookie;
+
+      rc = plms_mds_normal_send(plma_cb->mds_hdl, NCSMDS_SVC_ID_PLMA,
+                                &plm_in_evt, plma_cb->plms_mdest_id,
+                                NCSMDS_SVC_ID_PLMS);
+
+      if (NCSCC_RC_SUCCESS != rc)
+        LOG_ER("unable to reinit tracking with plmd");
+    }
+  }
+
+  plma_cb->plms_svc_up = true;
+
+  m_NCS_UNLOCK(&plma_cb->cb_lock, NCS_LOCK_WRITE);
+
+  TRACE_LEAVE();
+}
+
 /***********************************************************************
  * @brief    : PLMA is informed when MDS events occur that he has subscribed to.
  * @param[in]: svc_evt - MDS Svc evt info.
@@ -253,9 +411,15 @@ static uint32_t plma_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *svc_evt) {
       TRACE_5("Received MDSUP EVT for PLMS");
       m_NCS_LOCK(&plma_cb->cb_lock, NCS_LOCK_WRITE);
       plma_cb->plms_mdest_id = svc_evt->i_dest;
-      plma_cb->plms_svc_up = true;
-      if (plma_cb->plms_sync_awaited == true) {
-        m_NCS_SEL_OBJ_IND(&plma_cb->sel_obj);
+
+      if (ncs_patricia_tree_size(&plma_cb->client_info)) {
+        std::thread x(&reinit_with_plms);
+        x.detach();
+      } else {
+        plma_cb->plms_svc_up = true;
+        if (plma_cb->plms_sync_awaited == true) {
+          m_NCS_SEL_OBJ_IND(&plma_cb->sel_obj);
+        }
       }
       m_NCS_UNLOCK(&plma_cb->cb_lock, NCS_LOCK_WRITE);
       break;

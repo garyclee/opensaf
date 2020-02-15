@@ -55,9 +55,11 @@ static SaImmAttrValuesT_2 v10 = {"saLogStreamSeverityFilter",
 				 SA_IMM_ATTR_SAUINT32T, 1, (void **)int1Values};
 static SaImmAttrValuesT_2 v11 = {"saLogStreamCreationTimestamp",
 				 SA_IMM_ATTR_SATIMET, 1, (void **)lint1Values};
+static SaImmAttrValuesT_2 v12 = {"saLogStreamFacilityId",
+				SA_IMM_ATTR_SAUINT32T, 1, (void **)int1Values};
 
 static const SaImmAttrValuesT_2 *attrValues[] = {
-    &v1, &v2, &v3, &v4, &v5, &v6, &v7, &v8, &v9, &v10, &v11, NULL};
+    &v1, &v2, &v3, &v4, &v5, &v6, &v7, &v8, &v9, &v10, &v11, &v12, NULL};
 
 static const SaImmClassNameT className = "SaLogStream";
 

@@ -2126,6 +2126,7 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg) {
             }
           } else {
             if (avd_snd_presence_msg(cb, i_su, false) == NCSCC_RC_SUCCESS) {
+              i_su->set_inst_msg_processed(false);
               num_try_insvc_su++;
             }
           }

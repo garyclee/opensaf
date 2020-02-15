@@ -221,13 +221,14 @@ int ModelModification::CreateObjectManager() {
   bool return_state = imm_om_handle_->InitializeHandle();
   if (return_state == false) {
     SaAisErrorT ais_error = imm_om_handle_->ais_error();
+    api_name_ = "saImmOmInitialize";
+    ais_error_ = ais_error;
     if (ais_error == SA_AIS_ERR_TRY_AGAIN) {
       recovery_info = kRestartOm;
     } else {
       // No recovery is possible
       LOG_NO("%s: OM-handle, RestoreHandle(), Fail", __FUNCTION__);
       recovery_info = kFail;
-      api_name_ = "saImmOmInitialize";
     }
   } else {
     recovery_info = kContinue;
@@ -259,6 +260,8 @@ int ModelModification::CreateAdminOwner() {
   bool rc = imm_ao_handle_->InitializeHandle(om_handle);
   if (rc == false) {
     SaAisErrorT ais_rc = imm_ao_handle_->ais_error();
+    api_name_ = "saImmOmAdminOwnerInitialize";
+    ais_error_ = ais_rc;
     if (ais_rc == SA_AIS_ERR_BAD_HANDLE) {
       TRACE("%s: Admin Owner handle, InitializeHandle() Restart",
             __FUNCTION__);
@@ -267,8 +270,6 @@ int ModelModification::CreateAdminOwner() {
       LOG_NO("%s: Admin Owner handle, InitializeHandle() Fail",
              __FUNCTION__);
       recovery_info = kFail;
-      api_name_ = "saImmOmAdminOwnerInitialize";
-      ais_error_ = ais_rc;
     }
   } else {
     SaImmAdminOwnerHandleT ao_handle = imm_ao_handle_->GetHandle();
@@ -300,14 +301,14 @@ int ModelModification::CreateCcb() {
   bool rc = imm_ccb_handle_->InitializeHandle(ao_handle);
   if (rc == false) {
     SaAisErrorT ais_rc = imm_ccb_handle_->ais_error();
+    api_name_ = "saImmOmCcbInitialize";
+    ais_error_ = ais_rc;
     if (ais_rc == SA_AIS_ERR_BAD_HANDLE) {
       TRACE("%s: CCB handle, InitializeHandle() Restart", __FUNCTION__);
       recovery_info = kRestartOm;
     } else {
       LOG_NO("%s: CCB handle, InitializeHandle() Fail", __FUNCTION__);
       recovery_info = kFail;
-      api_name_ = "saImmOmCcbInitialize";
-      ais_error_ = ais_rc;
     }
   } else {
     recovery_info = kContinue;
@@ -388,6 +389,8 @@ int ModelModification::AdminOwnerSet(const std::vector<std::string>& objects,
   while (exist_timer.is_timeout() == false) {
     if (imm_ao_owner_set_->SetAdminOwner(scope) == false) {
       ais_rc = imm_ao_owner_set_->ais_error();
+      api_name_ = "saImmOmAdminOwnerSet";
+      ais_error_ = ais_rc;
       if (ais_rc == SA_AIS_ERR_EXIST) {
         // Another owner of object(s) exist. Wait for other owner release
         base::Sleep(base::MillisToTimespec(kExistWait));
@@ -401,8 +404,6 @@ int ModelModification::AdminOwnerSet(const std::vector<std::string>& objects,
         LOG_NO("%s: SetAdminOwner() Fail, %s", __FUNCTION__,
                saf_error(ais_rc));
         recovery_info = kFail;
-        api_name_ = "saImmOmAdminOwnerSet";
-        ais_error_ = ais_rc;
         break;
       }
     }
@@ -682,6 +683,8 @@ int ModelModification::ApplyModifications() {
 
   if (imm_ccb_handle_->ApplyCcb() == false) {
     SaAisErrorT ais_rc = imm_ccb_handle_->ais_error();
+    api_name_ = "saImmOmCcbApply";
+    ais_error_ = ais_rc;
     if (ais_rc == SA_AIS_ERR_BAD_HANDLE) {
       TRACE("%s: ApplyCcb() Restart %s", __FUNCTION__,
             saf_error(ais_rc));
@@ -695,14 +698,10 @@ int ModelModification::ApplyModifications() {
           LOG_NO("%s: ApplyCcb() Fail %s", __FUNCTION__,
                  saf_error(ais_rc));
           recovery_info = kFail;
-          api_name_ = "saImmOmCcbApply";
-          ais_error_ = ais_rc;
         }
     } else {
       LOG_ER("%s: ApplyCcb() Fail", __FUNCTION__);
       recovery_info = kFail;
-      api_name_ = "saImmOmCcbApply";
-      ais_error_ = ais_rc;
     }
   } else {
     TRACE("%s: CCB is applied", __FUNCTION__);

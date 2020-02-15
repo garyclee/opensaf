@@ -422,7 +422,7 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req,
 		cpnd_open_req->info.open.i_flags = O_CREAT | O_RDWR;
 		rc = ncs_os_posix_shm(cpnd_open_req);
 		if (NCSCC_RC_FAILURE == rc) {
-			LOG_ER("cpnd open request fail for RDWR mode %s", buf);
+			LOG_ER("cpnd open request fail for RDWR mode %s", buffer);
 			m_MMGR_FREE_CPND_DEFAULT(buffer);
 			return NULL;
 		}

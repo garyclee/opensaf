@@ -318,9 +318,14 @@ uint32_t ncs_plma_startup() {
     return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
   } else {
     /** Initialize the library for the first time */
-    printf("\nPLMSV:PLMA:ON");
     plma_use_count = 1;
   }
+
+  // Initialize trace system
+  char *value(getenv("PLMA_TRACE_PATHNAME"));
+  if (value)
+    logtrace_init("plma", value, CATEGORY_ALL);
+
   osaf_mutex_unlock_ordie(&s_agent_startup_mutex);
 
   TRACE_LEAVE();

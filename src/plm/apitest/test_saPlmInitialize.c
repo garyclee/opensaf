@@ -23,26 +23,26 @@ void saPlmInitialize_01(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-	rc = saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion);
+	rc = plmInitialize(&plmHandle, &plms_cbks, &PlmVersion);
 	test_validate(rc, SA_AIS_OK);
 	if (rc == SA_AIS_OK)
-		safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+		safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	/*	sleep(100000000);*/
 }
 
 void saPlmInitialize_02(void)
 {
-	rc = saPlmInitialize(&plmHandle, NULL, &PlmVersion);
+	rc = plmInitialize(&plmHandle, NULL, &PlmVersion);
 	test_validate(rc, SA_AIS_OK);
 	if (rc == SA_AIS_OK)
-		safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+		safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmInitialize_03(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-	rc = saPlmInitialize(0, &plms_cbks, &PlmVersion);
+	rc = plmInitialize(0, &plms_cbks, &PlmVersion);
 	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
@@ -51,7 +51,7 @@ void saPlmInitialize_04(void)
 	SaPlmCallbacksT plms_cbks;
 	SaVersionT PlmVersion = {0, 0, 0};
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-	rc = saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion);
+	rc = plmInitialize(&plmHandle, &plms_cbks, &PlmVersion);
 	test_validate(rc, SA_AIS_ERR_VERSION);
 }
 
@@ -60,7 +60,7 @@ void saPlmInitialize_05(void)
 	SaPlmCallbacksT plms_cbks;
 	SaVersionT PlmVersion = {'B', 1, 1};
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-	rc = saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion);
+	rc = plmInitialize(&plmHandle, &plms_cbks, &PlmVersion);
 	test_validate(rc, SA_AIS_ERR_VERSION);
 }
 
@@ -69,7 +69,7 @@ void saPlmInitialize_06(void)
 	SaPlmCallbacksT plms_cbks;
 	SaVersionT PlmVersion = {'A', 1, 1};
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-	rc = saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion);
+	rc = plmInitialize(&plmHandle, &plms_cbks, &PlmVersion);
 	test_validate(rc, SA_AIS_OK);
 }
 
@@ -77,7 +77,7 @@ void saPlmInitialize_07(void)
 {
         SaPlmCallbacksT plms_cbks;
         plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-        rc = saPlmInitialize(NULL, &plms_cbks, &PlmVersion);
+        rc = plmInitialize(NULL, &plms_cbks, &PlmVersion);
         test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
@@ -85,13 +85,13 @@ void saPlmInitialize_08(void)
 {
         SaPlmCallbacksT plms_cbks;
         plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-        rc = saPlmInitialize(&plmHandle, &plms_cbks, NULL);
+        rc = plmInitialize(&plmHandle, &plms_cbks, NULL);
         test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
 void saPlmInitialize_09(void)
 {
-        rc = saPlmInitialize(NULL, 0, &PlmVersion);
+        rc = plmInitialize(NULL, 0, &PlmVersion);
         test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
@@ -99,19 +99,19 @@ void saPlmInitialize_10(void)
 {
         SaPlmCallbacksT plms_cbks;
         plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-        rc = saPlmInitialize(NULL, &plms_cbks, NULL);
+        rc = plmInitialize(NULL, &plms_cbks, NULL);
         test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
 void saPlmInitialize_11(void)
 {
-        rc = saPlmInitialize(&plmHandle, 0, NULL);
+        rc = plmInitialize(&plmHandle, 0, NULL);
         test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
 void saPlmInitialize_12(void)
 {
-        rc = saPlmInitialize(NULL, 0, NULL);
+        rc = plmInitialize(NULL, 0, NULL);
         test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 

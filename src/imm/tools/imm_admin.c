@@ -557,7 +557,8 @@ int main(int argc, char *argv[])
 		if (releaseAdmo) {
 			error = immutil_saImmOmAdminOwnerRelease(
 			    ownerHandle, objectNames, SA_IMM_ONE);
-			if (error != SA_AIS_OK) {
+			if (error != SA_AIS_OK &&
+					error != SA_AIS_ERR_NOT_EXIST) {
 				fprintf(
 				    stderr,
 				    "error - saImmOmAdminOwnerRelease FAILED: %s\n",

@@ -46,11 +46,11 @@
 
 #include "mds_dt_tipc.h"
 #include "mds_dt_tcp_disc.h"
-#include "mds_core.h"
 #include "mds_tipc_fctrl_intf.h"
 #include "mds_tipc_recvq_stats.h"
 #include "base/osaf_utility.h"
 #include "base/osaf_poll.h"
+#include "base/osaf_time.h"
 
 #ifndef SOCK_CLOEXEC
 enum { SOCK_CLOEXEC = 0x80000 };
@@ -120,7 +120,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req);
 
 /* Tipc actual send, can be made as Macro even*/
 static uint32_t mdtm_sendto(uint8_t *buffer, uint16_t buff_len,
-			    struct tipc_portid tipc_id);
+			    struct tipc_portid tipc_id, uint8_t *is_queued);
 static uint32_t mdtm_mcast_sendto(void *buffer, size_t size,
 				  const MDTM_SEND_REQ *req);
 
@@ -166,7 +166,9 @@ NCS_PATRICIA_TREE mdtm_reassembly_list;
 uint32_t mdtm_global_frag_num;
 
 const unsigned int MAX_RECV_THRESHOLD = 30;
-uint8_t gl_mds_pro_ver = MDS_PROT | MDS_VERSION;
+static uint8_t gl_mds_pro_ver = MDS_PROT_LEGACY;
+static int gl_mds_fctrl_acksize = -1;
+static int gl_mds_fctrl_ackto = -1;
 
 static bool get_tipc_port_id(int sock, struct tipc_portid* port_id) {
 	struct sockaddr_tipc addr;
@@ -347,30 +349,47 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	if ((ptr = getenv("MDS_TIPC_FCTRL_ENABLED")) != NULL) {
 		if (atoi(ptr) == 1) {
 			gl_mds_pro_ver = MDS_PROT_FCTRL;
-			int ackto = -1;
-			int acksize = -1;
 			if ((ptr = getenv("MDS_TIPC_FCTRL_ACKTIMEOUT")) != NULL) {
-				ackto = atoi(ptr);
-				if (ackto == 0) {
+				gl_mds_fctrl_ackto = atoi(ptr);
+				if (gl_mds_fctrl_ackto == 0) {
 					syslog(LOG_ERR, "MDTM:TIPC Invalid "
 							"MDS_TIPC_FCTRL_ACKTIMEOUT, using default value");
-					ackto = -1;
+					gl_mds_fctrl_ackto = -1;
 				}
 			}
 			if ((ptr = getenv("MDS_TIPC_FCTRL_ACKSIZE")) != NULL) {
-				acksize = atoi(ptr);
-				if (acksize == 0) {
+				gl_mds_fctrl_acksize = atoi(ptr);
+				if (gl_mds_fctrl_acksize == 0) {
 					syslog(LOG_ERR, "MDTM:TIPC Invalid "
 							"MDS_TIPC_FCTRL_ACKSIZE, using default value");
-					acksize = -1;
+					gl_mds_fctrl_acksize = -1;
 				}
 			}
-			mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id, optval,
-				ackto, acksize, tipc_mcast_enabled);
+			/* unset the env var to prevent child process inheritance */
+			if (unsetenv("MDS_TIPC_FCTRL_ENABLED") != 0) {
+				syslog(LOG_ERR,
+					"MDTM:TIPC Failed to unset MDS_TIPC_FCTRL_ENABLED");
+			}
+			if (gl_mds_fctrl_ackto != -1 &&
+				unsetenv("MDS_TIPC_FCTRL_ACKTIMEOUT") != 0) {
+				syslog(LOG_ERR,
+					"MDTM:TIPC Failed to unset MDS_TIPC_FCTRL_ACKTIMEOUT");
+			}
+			if (gl_mds_fctrl_acksize != -1 &&
+				unsetenv("MDS_TIPC_FCTRL_ACKSIZE") != 0) {
+				syslog(LOG_ERR,
+					"MDTM:TIPC Failed to unset MDS_TIPC_FCTRL_ACKSIZE");
+			}
 		} else {
+			gl_mds_pro_ver = MDS_PROT_LEGACY;
 			syslog(LOG_ERR, "MDTM:TIPC Invalid value of"
 				"MDS_TIPC_FCTRL_ENABLED");
 		}
+	}
+
+	if (gl_mds_pro_ver == MDS_PROT_FCTRL) {
+		mds_tipc_fctrl_initialize(tipc_cb.BSRsock, port_id, optval,
+			gl_mds_fctrl_ackto, gl_mds_fctrl_acksize, tipc_mcast_enabled);
 	}
 
 	/* Create a task to receive the events and data */
@@ -504,10 +523,6 @@ uint32_t mdtm_tipc_destroy(void)
 	MDTM_REASSEMBLY_QUEUE *reassem_queue = NULL;
 	MDTM_REASSEMBLY_KEY reassembly_key;
 
-	/* close sockets first */
-	close(tipc_cb.BSRsock);
-	close(tipc_cb.Dsock);
-
 	/* Destroy receiving task */
 	if (mdtm_destroy_rcv_task() != NCSCC_RC_SUCCESS) {
 		m_MDS_LOG_ERR(
@@ -567,6 +582,9 @@ uint32_t mdtm_tipc_destroy(void)
 	num_subscriptions = 0;
 	handle = 0;
 	mdtm_global_frag_num = 0;
+
+	close(tipc_cb.BSRsock);
+	close(tipc_cb.Dsock);
 
 	return NCSCC_RC_SUCCESS;
 }
@@ -2542,16 +2560,16 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 	   send message
 	 */
 	uint32_t status = 0;
-	uint32_t sum_mds_hdr_plus_mdtm_hdr_plus_len;
+	uint32_t mds_and_mdtm_hdr_len;
 	uint16_t fctrl_seq_num = 0;
 	int version = req->msg_arch_word & 0x7;
 	if (version > 1) {
-		sum_mds_hdr_plus_mdtm_hdr_plus_len =
+		mds_and_mdtm_hdr_len =
 		    (SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN +
 		     gl_mds_mcm_cb->node_name_len);
 	} else {
 		/* sending message to Old version Node	*/
-		sum_mds_hdr_plus_mdtm_hdr_plus_len =
+		mds_and_mdtm_hdr_len =
 		    (SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN - 1);
 	}
 
@@ -2579,13 +2597,13 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 		/* This is exclusively for the Bcast ENC and ENC_FLAT case */
 		if (recv.msg.encoding == MDS_ENC_TYPE_FULL) {
 			ncs_dec_init_space(&recv.msg.data.fullenc_uba,
-					   recv.msg.data.fullenc_uba.start);
+				recv.msg.data.fullenc_uba.start);
 			recv.msg_arch_word = req->msg_arch_word;
 		} else if (recv.msg.encoding == MDS_ENC_TYPE_FLAT) {
 			/* This case will not arise, but just to be on safe side
 			 */
 			ncs_dec_init_space(&recv.msg.data.flat_uba,
-					   recv.msg.data.flat_uba.start);
+				recv.msg.data.flat_uba.start);
 		} else {
 			/* Do nothing for the DIrect buff and Copy case */
 		}
@@ -2601,19 +2619,18 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 		uint32_t frag_seq_num = 0, node_status = 0;
 
 		node_status = m_MDS_CHECK_NCS_NODE_ID_RANGE(
-		    m_MDS_GET_NODE_ID_FROM_ADEST(req->adest));
+			m_MDS_GET_NODE_ID_FROM_ADEST(req->adest));
 
 		if (NCSCC_RC_SUCCESS == node_status) {
 			tipc_id.node = m_MDS_GET_TIPC_NODE_ID_FROM_NCS_NODE_ID(
-			    m_MDS_GET_NODE_ID_FROM_ADEST(req->adest));
+				m_MDS_GET_NODE_ID_FROM_ADEST(req->adest));
 			tipc_id.ref = (uint32_t)(req->adest);
 		} else {
-			if (req->snd_type !=
-			    MDS_SENDTYPE_ACK) { /* This check is becoz in ack
-						   cases we are only sending the
-						   hdr and no data part is being
-						   send, so no message free ,
-						   fix me */
+			if (req->snd_type != MDS_SENDTYPE_ACK) {
+				/* This check is becoz in ack cases we are only
+				 * sending the hdr and no data part is being
+				 *  send, so no message free. fix me
+				 */
 				mdtm_free_reassem_msg_mem(&req->msg);
 			}
 			return NCSCC_RC_FAILURE;
@@ -2624,43 +2641,52 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 		/* Only for the ack and not for any other message */
 		if (req->snd_type == MDS_SENDTYPE_ACK ||
 		    req->snd_type == MDS_SENDTYPE_RACK) {
-			uint8_t len = sum_mds_hdr_plus_mdtm_hdr_plus_len;
-			uint8_t buffer_ack[len];
+			uint8_t len = mds_and_mdtm_hdr_len;
+			uint8_t *buffer_ack = calloc(1, len);
+			uint8_t is_queued = 0;
 
 			/* Add mds_hdr */
-			if (NCSCC_RC_SUCCESS !=
-			    mdtm_add_mds_hdr(buffer_ack, req)) {
+			if (mdtm_add_mds_hdr(buffer_ack, req)
+				!= NCSCC_RC_SUCCESS) {
 				return NCSCC_RC_FAILURE;
 			}
-		  /* if sndqueue is capable, then obtain the current sending seq */
-		  if (mds_tipc_fctrl_sndqueue_capable(tipc_id, &fctrl_seq_num)
-		      == NCSCC_RC_FAILURE){
-		    m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d", len);
-		    return NCSCC_RC_FAILURE;
-		  }
+			/* if sndqueue is capable, then obtain the current
+			 * sending seq
+			 */
+			if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
+				&fctrl_seq_num) == NCSCC_RC_FAILURE){
+				m_MDS_LOG_ERR("FCTRL: Failed to send message"
+					" len :%d", len);
+				free(buffer_ack);
+				return NCSCC_RC_FAILURE;
+			}
 			/* Add frag_hdr */
-			if (NCSCC_RC_SUCCESS !=
-			    mdtm_add_frag_hdr(buffer_ack, len, frag_seq_num,
-					      0, fctrl_seq_num)) {
+			if (mdtm_add_frag_hdr(buffer_ack, len, frag_seq_num,
+				0, fctrl_seq_num) != NCSCC_RC_SUCCESS) {
+				free(buffer_ack);
 				return NCSCC_RC_FAILURE;
 			}
 
-			m_MDS_LOG_DBG(
-			    "MDTM:Sending message with Service Seqno=%d, TO Dest_Tipc_id=<0x%08x:%u> ",
-			    req->svc_seq_num, tipc_id.node, tipc_id.ref);
-			return mdtm_sendto(buffer_ack, len, tipc_id);
+			m_MDS_LOG_DBG("MDTM:Sending message with Service"
+				" Seqno=%d, TO Dest_Tipc_id=<0x%08x:%u> ",
+				req->svc_seq_num, tipc_id.node, tipc_id.ref);
+			status = mdtm_sendto(buffer_ack, len, tipc_id,
+					&is_queued);
+			if (is_queued == 0)
+				free(buffer_ack);
+			return status;
 		}
 
-		if (MDS_ENC_TYPE_FLAT == req->msg.encoding) {
+		if (req->msg.encoding == MDS_ENC_TYPE_FLAT) {
 			usrbuf = req->msg.data.flat_uba.start;
-		} else if (MDS_ENC_TYPE_FULL == req->msg.encoding) {
+		} else if (req->msg.encoding == MDS_ENC_TYPE_FULL) {
 			usrbuf = req->msg.data.fullenc_uba.start;
 		} else {
-			usrbuf = NULL; /* This is because, usrbuf is used only
-					  in the above two cases and if it has
-					  come here, it means, it is a direct
-					  send. Direct send will not use the
-					  USRBUF */
+			/* This is because, usrbuf is used only  in the above
+			 * two cases and if it has come here, it means, it is
+			 * a direct send. Direct send will not use the USRBUF
+			 */
+			usrbuf = NULL;
 		}
 
 		switch (req->msg.encoding) {
@@ -2671,227 +2697,242 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 		case MDS_ENC_TYPE_FLAT:
 		case MDS_ENC_TYPE_FULL: {
 			uint32_t len = 0;
-			len = m_MMGR_LINK_DATA_LEN(
-			    usrbuf); /* Getting total len */
+			/* Getting total len */
+			len = m_MMGR_LINK_DATA_LEN(usrbuf);
 
-			m_MDS_LOG_INFO(
-			    "MDTM: User Sending Data lenght=%d From svc_id = %s(%d) to svc_id = %s(%d)\n",
-			    len, get_svc_names(req->src_svc_id),
-			    req->src_svc_id, get_svc_names(req->dest_svc_id),
-			    req->dest_svc_id);
+			m_MDS_LOG_INFO("MDTM: User Sending Data lenght=%d"
+				" From svc_id = %s(%d) to svc_id = %s(%d)\n",
+				len, get_svc_names(req->src_svc_id),
+				req->src_svc_id,
+				get_svc_names(req->dest_svc_id),
+				req->dest_svc_id);
 
-			// determine fragment limit using a bit in destination
-			// archword
+			/* determine fragment limit using a bit in destination
+			 * archword
+			 */
 			int frag_size;
+
 			if (version > 0) {
-				// normal mode, use TIPC fragmentation
+				/* normal mode, use TIPC fragmentation */
 				frag_size = MDS_DIRECT_BUF_MAXSIZE;
 			} else {
-				// old mode, use some TIPC fragmentation but not
-				// full capabilities
+				/* old mode, use some TIPC fragmentation but
+				 * not full capabilities
+				 */
 				frag_size = MDTM_NORMAL_MSG_FRAG_SIZE;
 			}
 
 			if (len > frag_size) {
 				/* Packet needs to be fragmented and send */
-				m_MDS_LOG_DBG(
-				    "MDTM: User fragment and Sending Data lenght=%d From svc_id = %s(%d) to svc_id = %s(%d)\n",
-				    len, get_svc_names(req->src_svc_id),
-				    req->src_svc_id,
-				    get_svc_names(req->dest_svc_id),
-				    req->dest_svc_id);
+				m_MDS_LOG_DBG("MDTM: User fragment and Sending"
+					" Data lenght=%d From svc_id = %s(%d)"
+					" to svc_id = %s(%d)\n", len,
+					get_svc_names(req->src_svc_id),
+					req->src_svc_id,
+					get_svc_names(req->dest_svc_id),
+					req->dest_svc_id);
 				return mdtm_frag_and_send(req, frag_seq_num,
-							  tipc_id, frag_size);
+					tipc_id, frag_size);
 			} else {
 				uint8_t *p8;
 				uint8_t *body = NULL;
-				body = calloc(
-				    1,
-				    len + sum_mds_hdr_plus_mdtm_hdr_plus_len);
+				uint8_t is_queued = 0;
 
-				p8 = (uint8_t *)m_MMGR_DATA_AT_START(
-				    usrbuf, len,
-				    (char
-					 *)(body +
-					    sum_mds_hdr_plus_mdtm_hdr_plus_len));
+				body = calloc(1, len +
+					mds_and_mdtm_hdr_len);
 
-				if (p8 !=
-				    (body + sum_mds_hdr_plus_mdtm_hdr_plus_len))
-					memcpy(
-					    (body +
-					     sum_mds_hdr_plus_mdtm_hdr_plus_len),
-					    p8, len);
+				p8 = (uint8_t *)m_MMGR_DATA_AT_START(usrbuf,
+					len,
+					(char *)(body + mds_and_mdtm_hdr_len));
 
-				if (NCSCC_RC_SUCCESS !=
-				    mdtm_add_mds_hdr(body, req)) {
-					m_MDS_LOG_ERR(
-					    "MDTM: Unable to add the mds Hdr to the send msg\n");
+				if (p8 != (body + mds_and_mdtm_hdr_len)) {
+					memcpy((body + mds_and_mdtm_hdr_len),
+						p8, len);
+				}
+
+				if (mdtm_add_mds_hdr(body, req)
+					 != NCSCC_RC_SUCCESS) {
+					m_MDS_LOG_ERR("MDTM: Unable to add the"
+						" mds Hdr to the send msg\n");
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
 					free(body);
 					return NCSCC_RC_FAILURE;
 				}
-				/* if sndqueue is capable, then obtain the current sending seq */
+				/* if sndqueue is capable, then obtain the
+				 *  current sending seq
+				 */
 				if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
 					&fctrl_seq_num) == NCSCC_RC_FAILURE){
-					m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d",
-						len + sum_mds_hdr_plus_mdtm_hdr_plus_len);
+					m_MDS_LOG_ERR("FCTRL: Failed to send"
+						" message len :%d",
+						len +
+						mds_and_mdtm_hdr_len);
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
 					free(body);
 					return NCSCC_RC_FAILURE;
 				}
 
-				if (NCSCC_RC_SUCCESS !=
-				    mdtm_add_frag_hdr(
-					body,
-					(len +
-					 sum_mds_hdr_plus_mdtm_hdr_plus_len),
-					frag_seq_num, 0, fctrl_seq_num)) {
-					m_MDS_LOG_ERR(
-					    "MDTM: Unable to add the frag Hdr to the send msg\n");
+				if (mdtm_add_frag_hdr(body,
+					(len + mds_and_mdtm_hdr_len),
+					frag_seq_num, 0, fctrl_seq_num)
+					!= NCSCC_RC_SUCCESS) {
+					m_MDS_LOG_ERR("MDTM: Unable to add the"
+						" frag Hdr to the send msg\n");
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
 					free(body);
 					return NCSCC_RC_FAILURE;
 				}
 
-				m_MDS_LOG_DBG(
-				    "MDTM:Sending message with Service Seqno=%d, TO Dest_Tipc_id=<0x%08x:%u> ",
-				    req->svc_seq_num, tipc_id.node,
-				    tipc_id.ref);
+				m_MDS_LOG_DBG("MDTM:Sending message with"
+					" Service Seqno=%d, TO"
+					" Dest_Tipc_id=<0x%08x:%u> ",
+					req->svc_seq_num, tipc_id.node,
+					tipc_id.ref);
 
-				len += sum_mds_hdr_plus_mdtm_hdr_plus_len;
+				len += mds_and_mdtm_hdr_len;
 				if (((req->snd_type == MDS_SENDTYPE_RBCAST) ||
-				     (req->snd_type == MDS_SENDTYPE_BCAST)) &&
+				    (req->snd_type == MDS_SENDTYPE_BCAST)) &&
 				    (version > 0) && (tipc_mcast_enabled)) {
-					m_MDS_LOG_DBG(
-					    "MDTM: User Sending Multicast Data lenght=%d From svc_id = %s(%d) to svc_id = %s(%d)\n",
-					    len, get_svc_names(req->src_svc_id),
-					    req->src_svc_id,
-					    get_svc_names(req->dest_svc_id),
-					    req->dest_svc_id);
-					if (len - sum_mds_hdr_plus_mdtm_hdr_plus_len > MDS_DIRECT_BUF_MAXSIZE) {
+					m_MDS_LOG_DBG("MDTM: User Sending"
+						" Multicast Data lenght=%d"
+						" From svc_id = %s(%d) to"
+						" svc_id = %s(%d)\n", len,
+						get_svc_names(req->src_svc_id),
+						req->src_svc_id,
+						get_svc_names(req->dest_svc_id),
+						req->dest_svc_id);
+					if (len - mds_and_mdtm_hdr_len >
+						MDS_DIRECT_BUF_MAXSIZE) {
 						m_MMGR_FREE_BUFR_LIST(usrbuf);
 						free(body);
-						LOG_NO(
-						    "MDTM: Not possible to send size:%d TIPC multicast to svc_id = %s(%d)",
-						    len,
-						    get_svc_names(
-							req->dest_svc_id),
-						    req->dest_svc_id);
+						LOG_NO("MDTM: Not possible to"
+							" send size:%d TIPC"
+							" multicast to svc_id"
+							" = %s(%d)", len,
+							get_svc_names(req->dest_svc_id),
+							req->dest_svc_id);
 						return NCSCC_RC_FAILURE;
 					}
-					if (NCSCC_RC_SUCCESS !=
-					    mdtm_mcast_sendto(body, len, req)) {
-						m_MDS_LOG_ERR(
-						    "MDTM: Failed to send Multicast message Data lenght=%d "
-						    "From svc_id = %s(%d) to svc_id = %s(%d) err :%s",
-						    len,
-						    get_svc_names(
-							req->src_svc_id),
-						    req->src_svc_id,
-						    get_svc_names(
-							req->dest_svc_id),
-						    req->dest_svc_id,
-						    strerror(errno));
-						m_MMGR_FREE_BUFR_LIST(usrbuf);
-						free(body);
-						return NCSCC_RC_FAILURE;
+					status = mdtm_mcast_sendto(body, len, req);
+					if (status != NCSCC_RC_SUCCESS) {
+						m_MDS_LOG_ERR("MDTM: Failed to"
+							" send Multicast"
+							" message Data lenght=%d"
+							" From svc_id = %s(%d)"
+							" to svc_id = %s(%d)"
+							" err :%s", len,
+							get_svc_names(req->src_svc_id),
+							req->src_svc_id,
+							get_svc_names(req->dest_svc_id),
+							req->dest_svc_id,
+							strerror(errno));
 					}
 				} else {
-					if (NCSCC_RC_SUCCESS !=
-					    mdtm_sendto(body, len, tipc_id)) {
-						m_MDS_LOG_ERR(
-						    "MDTM: Unable to send the msg thru TIPC\n");
-						m_MMGR_FREE_BUFR_LIST(usrbuf);
-						free(body);
-						return NCSCC_RC_FAILURE;
+					status = mdtm_sendto(body, len,
+						tipc_id, &is_queued);
+					if (status != NCSCC_RC_SUCCESS) {
+						m_MDS_LOG_ERR("MDTM: Unable to"
+							" send the msg thru"
+							" TIPC\n");
 					}
 				}
 				m_MMGR_FREE_BUFR_LIST(usrbuf);
-				free(body);
-				return NCSCC_RC_SUCCESS;
+				if (is_queued == 0)
+					free(body);
+				return status;
 			}
 		} break;
 
 		case MDS_ENC_TYPE_DIRECT_BUFF: {
 			if (req->msg.data.buff_info.len >
-			    (MDTM_MAX_DIRECT_BUFF_SIZE -
-			     sum_mds_hdr_plus_mdtm_hdr_plus_len)) {
-				m_MDS_LOG_CRITICAL(
-				    "MDTM: Passed pkt len is more than the single send direct buff\n");
+				(MDTM_MAX_DIRECT_BUFF_SIZE -
+					mds_and_mdtm_hdr_len)) {
+				m_MDS_LOG_CRITICAL("MDTM: Passed pkt len is"
+					" more than the single send direct"
+					" buff\n");
 				mds_free_direct_buff(
-				    req->msg.data.buff_info.buff);
+					req->msg.data.buff_info.buff);
 				return NCSCC_RC_FAILURE;
 			}
 
-			m_MDS_LOG_INFO(
-			    "MDTM: User Sending Data len=%d From svc_id = %s(%d) to svc_id = %s(%d)\n",
-			    req->msg.data.buff_info.len,
-			    get_svc_names(req->src_svc_id), req->src_svc_id,
-			    get_svc_names(req->dest_svc_id), req->dest_svc_id);
+			m_MDS_LOG_INFO("MDTM: User Sending Data len=%d From"
+				" svc_id = %s(%d) to svc_id = %s(%d)\n",
+				req->msg.data.buff_info.len,
+				get_svc_names(req->src_svc_id),
+				req->src_svc_id,
+				get_svc_names(req->dest_svc_id),
+				req->dest_svc_id);
 
 			uint8_t *body = NULL;
-			body = calloc(1, (req->msg.data.buff_info.len +
-					  sum_mds_hdr_plus_mdtm_hdr_plus_len));
+			uint8_t is_queued = 0;
 
-			if (NCSCC_RC_SUCCESS != mdtm_add_mds_hdr(body, req)) {
-				m_MDS_LOG_ERR(
-				    "MDTM: Unable to add the mds Hdr to the send msg\n");
+			body = calloc(1, (req->msg.data.buff_info.len
+				+ mds_and_mdtm_hdr_len));
+
+			if (mdtm_add_mds_hdr(body, req) != NCSCC_RC_SUCCESS) {
+				m_MDS_LOG_ERR("MDTM: Unable to add the mds Hdr"
+					" to the send msg\n");
 				free(body);
 				mds_free_direct_buff(
-				    req->msg.data.buff_info.buff);
+					req->msg.data.buff_info.buff);
 				return NCSCC_RC_FAILURE;
 			}
-			/* if sndqueue is capable, then obtain the current sending seq */
+			/* if sndqueue is capable, then obtain the current
+			 * sending seq
+			 */
 			if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
 				&fctrl_seq_num) == NCSCC_RC_FAILURE) {
-				m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d",
-					req->msg.data.buff_info.len + sum_mds_hdr_plus_mdtm_hdr_plus_len);
+				m_MDS_LOG_ERR("FCTRL: Failed to send message"
+					" len :%d",
+					req->msg.data.buff_info.len
+					+ mds_and_mdtm_hdr_len);
 				free(body);
-				mds_free_direct_buff(req->msg.data.buff_info.buff);
+				mds_free_direct_buff(
+					req->msg.data.buff_info.buff);
 				return NCSCC_RC_FAILURE;
 			}
 
-			if (NCSCC_RC_SUCCESS !=
-			    mdtm_add_frag_hdr(
-				body,
+			if (mdtm_add_frag_hdr(body,
 				req->msg.data.buff_info.len +
-				    sum_mds_hdr_plus_mdtm_hdr_plus_len,
-				frag_seq_num, 0, fctrl_seq_num)) {
-				m_MDS_LOG_ERR(
-				    "MDTM: Unable to add the frag Hdr to the send msg\n");
+				mds_and_mdtm_hdr_len, frag_seq_num, 0,
+				fctrl_seq_num) != NCSCC_RC_SUCCESS) {
+				m_MDS_LOG_ERR("MDTM: Unable to add the frag"
+					" Hdr to the send msg\n");
 				free(body);
 				mds_free_direct_buff(
-				    req->msg.data.buff_info.buff);
+					req->msg.data.buff_info.buff);
 				return NCSCC_RC_FAILURE;
 			}
-			memcpy(&body[sum_mds_hdr_plus_mdtm_hdr_plus_len],
-			       req->msg.data.buff_info.buff,
-			       req->msg.data.buff_info.len);
+			memcpy(&body[mds_and_mdtm_hdr_len],
+				req->msg.data.buff_info.buff,
+				req->msg.data.buff_info.len);
 
-			if (NCSCC_RC_SUCCESS !=
-			    mdtm_sendto(body,
-					(req->msg.data.buff_info.len +
-					 sum_mds_hdr_plus_mdtm_hdr_plus_len),
-					tipc_id)) {
-				m_MDS_LOG_ERR(
-				    "MDTM: Unable to send the msg thru TIPC\n");
+			status = mdtm_sendto(body,
+				(req->msg.data.buff_info.len +
+				 mds_and_mdtm_hdr_len), tipc_id, &is_queued);
+
+			if (is_queued == 0)
 				free(body);
+
+			if (status != NCSCC_RC_SUCCESS) {
+				m_MDS_LOG_ERR("MDTM: Unable to send the msg"
+					" thru TIPC\n");
 				mds_free_direct_buff(
-				    req->msg.data.buff_info.buff);
+					req->msg.data.buff_info.buff);
 				return NCSCC_RC_FAILURE;
 			}
 
 			/* If Direct Send is bcast it will be done at bcast
-			 * function */
+			 * function
+			 */
 			if (req->snd_type == MDS_SENDTYPE_BCAST ||
-			    req->snd_type == MDS_SENDTYPE_RBCAST) {
-				/* Dont free Here */
+				req->snd_type == MDS_SENDTYPE_RBCAST) {
+				/* Dont free Here, WHY? */
 			} else {
 				mds_free_direct_buff(
-				    req->msg.data.buff_info.buff);
+					req->msg.data.buff_info.buff);
 			}
-			free(body);
-			return NCSCC_RC_SUCCESS;
+			return status;
 		} break;
 
 		default:
@@ -2932,21 +2973,21 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 	uint8_t *p8;
 	uint16_t i = 1;
 	uint16_t frag_val = 0;
-	uint32_t sum_mds_hdr_plus_mdtm_hdr_plus_len;
+	uint32_t mds_and_mdtm_hdr_len;
 	uint16_t fctrl_seq_num = 0;
 	int version = req->msg_arch_word & 0x7;
 	uint32_t ret = NCSCC_RC_SUCCESS;
 
 	if (version > 1) {
-		sum_mds_hdr_plus_mdtm_hdr_plus_len =
+		mds_and_mdtm_hdr_len =
 		    (SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN +
 		     gl_mds_mcm_cb->node_name_len);
 	} else {
-		sum_mds_hdr_plus_mdtm_hdr_plus_len =
+		mds_and_mdtm_hdr_len =
 		    (SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN - 1);
 	}
 
-	int max_send_pkt_size = frag_size + sum_mds_hdr_plus_mdtm_hdr_plus_len;
+	int max_send_pkt_size = frag_size + mds_and_mdtm_hdr_len;
 
 	switch (req->msg.encoding) {
 	case MDS_ENC_TYPE_FULL:
@@ -2965,10 +3006,9 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 
 	/* We have 15 bits for frag number so 2( pow 15) -1=32767 */
 	if (len > (32767 * frag_size)) {
-		m_MDS_LOG_CRITICAL(
-		    "MDTM: App. is trying to send data more than MDTM Can fragment "
-		    "and send, Max size is =%d\n",
-		    32767 * frag_size);
+		m_MDS_LOG_CRITICAL("MDTM: App. is trying to send data more"
+			" than MDTM Can fragment and send, Max size is =%d\n",
+			32767 * frag_size);
 		m_MMGR_FREE_BUFR_LIST(usrbuf);
 		return NCSCC_RC_FAILURE;
 	}
@@ -2993,72 +3033,82 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 			len_buf = len + MDTM_FRAG_HDR_PLUS_LEN_2;
 			frag_val = NO_FRAG_BIT | i;
 		}
-		{
-			uint32_t hdr_plus = (i == 1) ?
-			    sum_mds_hdr_plus_mdtm_hdr_plus_len : MDTM_FRAG_HDR_PLUS_LEN_2;
-			uint8_t *body = NULL;
-			body = calloc(1, len_buf);
-			p8 = (uint8_t *)m_MMGR_DATA_AT_START(usrbuf, len_buf - hdr_plus,
-			    (char *)(body + hdr_plus));
-			if (p8 != (body + hdr_plus))
-				memcpy((body + hdr_plus), p8, len_buf - hdr_plus);
-			if (i == 1) {
-				if (NCSCC_RC_SUCCESS !=
-				    mdtm_add_mds_hdr(body, req)) {
-					m_MDS_LOG_ERR(
-					    "MDTM: frg MDS hdr addition failed\n");
-					m_MMGR_FREE_BUFR_LIST(usrbuf);
-					free(body);
-					return NCSCC_RC_FAILURE;
-				}
-			}
-			/* if sndqueue is capable, then obtain the current sending seq */
-			if (mds_tipc_fctrl_sndqueue_capable(id, &fctrl_seq_num)
-				== NCSCC_RC_FAILURE) {
-				m_MDS_LOG_ERR("FCTRL: Failed to send message len :%d", len_buf);
-				m_MMGR_FREE_BUFR_LIST(usrbuf);
-				free(body);
-				return NCSCC_RC_FAILURE;
-			}
 
-			if (NCSCC_RC_SUCCESS !=
-			    mdtm_add_frag_hdr(body, len_buf, seq_num,
-					      frag_val, fctrl_seq_num)) {
-				m_MDS_LOG_ERR(
-				    "MDTM: Frag hde addition failed\n");
+		uint32_t hdr_plus = (i == 1) ?
+		    mds_and_mdtm_hdr_len : MDTM_FRAG_HDR_PLUS_LEN_2;
+		uint8_t *body = NULL;
+		uint8_t is_queued = 0;
+
+		body = calloc(1, len_buf);
+		p8 = (uint8_t *)m_MMGR_DATA_AT_START(usrbuf,
+			len_buf - hdr_plus,
+			(char *)(body + hdr_plus));
+
+		if (p8 != (body + hdr_plus))
+			memcpy((body + hdr_plus), p8, len_buf - hdr_plus);
+		if (i == 1) {
+			if (mdtm_add_mds_hdr(body, req)
+				 != NCSCC_RC_SUCCESS) {
+				m_MDS_LOG_ERR("MDTM: frg MDS hdr"
+					" addition failed\n");
 				m_MMGR_FREE_BUFR_LIST(usrbuf);
 				free(body);
 				return NCSCC_RC_FAILURE;
 			}
-			if (((req->snd_type == MDS_SENDTYPE_RBCAST) ||
-			     (req->snd_type == MDS_SENDTYPE_BCAST)) &&
-			    (version > 0) && (tipc_mcast_enabled)) {
-				m_MDS_LOG_DBG(
-				    "MDTM:Send Multicast message with Service Seqno=%d, Fragment Seqnum=%d, frag_num=%d "
-				    "From svc_id = %s(%d) TO svc_id = %s(%d)",
-				    req->svc_seq_num, seq_num, frag_val,
-				    get_svc_names(req->src_svc_id), req->src_svc_id,
-				    get_svc_names(req->dest_svc_id), req->dest_svc_id);
-				ret = mdtm_mcast_sendto(body, len_buf, req);
-			} else {
-				m_MDS_LOG_DBG(
-				    "MDTM:Sending message with Service Seqno=%d, Fragment Seqnum=%d, frag_num=%d, TO Dest_Tipc_id=<0x%08x:%u>",
-				    req->svc_seq_num, seq_num, frag_val,
-				    id.node, id.ref);
-				ret = mdtm_sendto(body, len_buf, id);
-			}
-			if (ret != NCSCC_RC_SUCCESS) {
-				// Failed to send a fragmented msg, stop sending
-				m_MMGR_FREE_BUFR_LIST(usrbuf);
-				free(body);
-				break;
-			}
-			m_MMGR_REMOVE_FROM_START(&usrbuf, len_buf - hdr_plus);
-			free(body);
-			len = len - (len_buf - hdr_plus);
-			if (len == 0)
-				break;
 		}
+		/* if sndqueue is capable, then obtain the current
+		 * sending seq
+		 */
+		if (mds_tipc_fctrl_sndqueue_capable(id, &fctrl_seq_num)
+			== NCSCC_RC_FAILURE) {
+			m_MDS_LOG_ERR("FCTRL: Failed to send message"
+				" len :%d", len_buf);
+			m_MMGR_FREE_BUFR_LIST(usrbuf);
+			free(body);
+			return NCSCC_RC_FAILURE;
+		}
+		if (mdtm_add_frag_hdr(body, len_buf, seq_num, frag_val,
+			fctrl_seq_num) != NCSCC_RC_SUCCESS) {
+			m_MDS_LOG_ERR("MDTM: Frag hde addition"
+				" failed\n");
+			m_MMGR_FREE_BUFR_LIST(usrbuf);
+			free(body);
+			return NCSCC_RC_FAILURE;
+		}
+		if (((req->snd_type == MDS_SENDTYPE_RBCAST) ||
+		     (req->snd_type == MDS_SENDTYPE_BCAST)) &&
+		    (version > 0) && (tipc_mcast_enabled)) {
+			m_MDS_LOG_DBG("MDTM:Send Multicast message with"
+				" Service Seqno=%d, Fragment Seqnum=%d,"
+				" frag_num=%d From svc_id = %s(%d) TO"
+				" svc_id = %s(%d)", req->svc_seq_num,
+				seq_num, frag_val,
+				get_svc_names(req->src_svc_id),
+				req->src_svc_id,
+				get_svc_names(req->dest_svc_id),
+				req->dest_svc_id);
+			ret = mdtm_mcast_sendto(body, len_buf, req);
+		} else {
+			m_MDS_LOG_DBG("MDTM:Sending message with"
+				" Service Seqno=%d, Fragment"
+				" Seqnum=%d, frag_num=%d,"
+				" TO Dest_Tipc_id=<0x%08x:%u>",
+				req->svc_seq_num, seq_num, frag_val,
+				id.node, id.ref);
+			ret = mdtm_sendto(body, len_buf, id, &is_queued);
+		}
+
+		if (is_queued == 0)
+			free(body);
+		if (ret != NCSCC_RC_SUCCESS) {
+			/* Failed to send a fragmented msg, stop sending */
+			m_MMGR_FREE_BUFR_LIST(usrbuf);
+			break;
+		}
+		m_MMGR_REMOVE_FROM_START(&usrbuf, len_buf - hdr_plus);
+		len = len - (len_buf - hdr_plus);
+		if (len == 0)
+			break;
 		i++;
 		frag_val = 0;
 	}
@@ -3106,9 +3156,45 @@ uint32_t mdtm_add_frag_hdr(uint8_t *buf_ptr, uint16_t len, uint32_t seq_num,
 	 * hereafter, these 2 bytes will be used as sequence number in flow control
 	 * (per tipc portid)
 	 * */
-	ncs_encode_16bit(&data, fctrl_seq_num);
+	if (gl_mds_pro_ver == MDS_PROT_FCTRL) {
+		ncs_encode_16bit(&data, fctrl_seq_num);
+	} else {
+		ncs_encode_16bit(&data, len - MDTM_FRAG_HDR_LEN - 2);
+	}
+
 #endif
 	return NCSCC_RC_SUCCESS;
+}
+
+/*********************************************************
+
+  Function NAME: mds_retry_sendto
+
+  DESCRIPTION: wrapper of sendto() for retry purpose
+
+  ARGUMENTS: same as sendto()
+
+  RETURNS: same as sendto()
+
+*********************************************************/
+ssize_t mds_retry_sendto(int sockfd, const void *buf, size_t len, int flags,
+		const struct sockaddr *dest_addr, socklen_t addrlen)
+{
+	int retry = 5;
+	ssize_t send_len = 0;
+	while (retry-- >= 0) {
+		send_len = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+		if (send_len == len) {
+			return send_len;
+		} else if (retry >= 0) {
+			if (errno != EAGAIN && errno != EWOULDBLOCK &&
+			    errno != ENOMEM && errno != ENOBUFS &&
+			    errno != EINTR)
+				break;
+			osaf_nanosleep(&kTenMilliseconds);
+		}
+	}
+	return send_len;
 }
 
 /*********************************************************
@@ -3125,7 +3211,7 @@ uint32_t mdtm_add_frag_hdr(uint8_t *buf_ptr, uint16_t len, uint32_t seq_num,
 *********************************************************/
 
 static uint32_t mdtm_sendto(uint8_t *buffer, uint16_t buff_len,
-			    struct tipc_portid id)
+			struct tipc_portid id, uint8_t *is_queued)
 {
 	/* Can be made as macro even */
 	struct sockaddr_tipc server_addr;
@@ -3151,9 +3237,12 @@ static uint32_t mdtm_sendto(uint8_t *buffer, uint16_t buff_len,
 		buffer[4] = checksum;
 	}
 #endif
-	if (mds_tipc_fctrl_trysend(buffer, buff_len, id) == NCSCC_RC_SUCCESS) {
-		send_len = sendto(tipc_cb.BSRsock, buffer, buff_len, 0,
-					(struct sockaddr *)&server_addr, sizeof(server_addr));
+
+	if (mds_tipc_fctrl_trysend(id, buffer, buff_len, is_queued)
+		== NCSCC_RC_SUCCESS) {
+		send_len = mds_retry_sendto(
+				tipc_cb.BSRsock, buffer, buff_len, MSG_DONTWAIT,
+				(struct sockaddr *)&server_addr, sizeof(server_addr));
 		if (send_len == buff_len) {
 			m_MDS_LOG_INFO("MDTM: Successfully sent message");
 			return NCSCC_RC_SUCCESS;
@@ -3198,8 +3287,8 @@ static uint32_t mdtm_mcast_sendto(void *buffer, size_t size,
 	server_addr.addr.nameseq.lower = HTONL(MDS_MDTM_LOWER_INSTANCE);
 	/*This can be scope-down to dest_svc_id  server_inst TBD*/
 	server_addr.addr.nameseq.upper = HTONL(MDS_MDTM_UPPER_INSTANCE);
-	int send_len =
-	    sendto(tipc_cb.BSRsock, buffer, size, 0,
+	ssize_t send_len =
+	    mds_retry_sendto(tipc_cb.BSRsock, buffer, size, MSG_DONTWAIT,
 		   (struct sockaddr *)&server_addr, sizeof(server_addr));
 
 	if (send_len == size) {

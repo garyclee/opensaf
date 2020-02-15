@@ -84,7 +84,9 @@ LogClient::~LogClient() {
   for (auto& stream : stream_list_) {
     if (stream != nullptr) delete stream;
   }
+
   stream_list_.clear();
+  CleanUnackedList();
 
   // Free the client handle allocated to this log client
   if (handle_ != 0) {
@@ -129,9 +131,11 @@ void LogClient::InvokeCallback(const lgsv_msg_t* msg) {
   // Invoke the corresponding callback
   switch (cbk_info->type) {
     case LGSV_WRITE_LOG_CALLBACK_IND: {
-      if (callbacks_.saLogWriteLogCallback)
+      if (callbacks_.saLogWriteLogCallback) {
+        RemoveTrack(cbk_info->inv);
         callbacks_.saLogWriteLogCallback(cbk_info->inv,
                                          cbk_info->write_cbk.error);
+      }
     } break;
 
     case LGSV_SEVERITY_FILTER_CALLBACK: {
@@ -395,6 +399,8 @@ void LogClient::NoLogServer() {
     // When LOG server restart from headless, Log agent will do recover them.
     stream->SetRecoveryFlag(false);
   }
+
+  NotifyClientAboutLostInvocations();
 }
 
 uint32_t LogClient::SendMsgToMbx(lgsv_msg_t* msg, MDS_SEND_PRIORITY_TYPE prio) {

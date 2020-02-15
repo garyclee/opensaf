@@ -468,7 +468,7 @@ static uint32_t asapi_track_process(ASAPi_GRP_TRACK_INFO *tinfo)
 				return m_ASAPi_DBG_SINK(rc);
 			}
 
-			if (SA_TRACK_CURRENT == tinfo->i_flags) {
+			if (SA_TRACK_CHANGES & tinfo->i_flags) {
 				rc = asapi_cpy_track_info(&pNode->info.ginfo,
 							  &tinfo->o_ginfo);
 			}
@@ -478,7 +478,7 @@ static uint32_t asapi_track_process(ASAPi_GRP_TRACK_INFO *tinfo)
 		/* Track current information */
 		/* No need to fill notification buffer in case of TrackChanges
 		 * or TrackChangesOnly */
-		if (tinfo->i_flags && SA_TRACK_CURRENT) {
+		if (tinfo->i_flags & SA_TRACK_CHANGES) {
 			rc = asapi_cpy_track_info(&pNode->info.ginfo,
 						  &tinfo->o_ginfo);
 		}

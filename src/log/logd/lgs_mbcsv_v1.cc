@@ -45,6 +45,7 @@
 uint32_t edp_ed_write_rec_v1(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
                              uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env,
                              EDP_OP_TYPE op, EDU_ERR *o_err) {
+  TRACE_ENTER();
   uint32_t rc = NCSCC_RC_SUCCESS;
   lgs_ckpt_write_log_v1_t *ckpt_write_msg_ptr = NULL, **ckpt_write_msg_dec_ptr;
 

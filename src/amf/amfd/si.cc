@@ -339,7 +339,7 @@ void AVD_SI::update_sisu_rank(const std::string& suname, uint32_t newRank) {
 }
 
 uint32_t AVD_SI::get_sisu_rank(const std::string& suname) const {
-  uint32_t rank{};
+  uint32_t rank{}, currentRank{};
 
   TRACE_ENTER2("%s", suname.c_str());
 
@@ -348,11 +348,25 @@ uint32_t AVD_SI::get_sisu_rank(const std::string& suname) const {
           susi->su->name.c_str(),
           susi->si->name.c_str(),
           susi->state);
-    if (susi->state == SA_AMF_HA_STANDBY)
-      rank++;
+    if (susi->state == SA_AMF_HA_STANDBY) {
+      // if there are SUs with the same rank we need to go through all of them
+      if (currentRank) {
+        const AVD_SIRANKEDSU *sirankedsu{get_si_ranked_su(susi->su->name)};
+        if (!sirankedsu || sirankedsu->get_sa_amf_rank() != currentRank)
+          break;
+      }
 
-    if (suname == susi->su->name)
-      break;
+      rank++;
+    }
+
+    if (suname == susi->su->name) {
+      // see if there are any other SUs at this same rank
+      const AVD_SIRANKEDSU *sirankedsu{get_si_ranked_su(susi->su->name)};
+      if (sirankedsu)
+        currentRank = sirankedsu->get_sa_amf_rank();
+      else
+        break;
+    }
   }
 
   TRACE_LEAVE();

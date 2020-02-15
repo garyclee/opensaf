@@ -110,6 +110,10 @@ static void mds_mutex_init_once(void)
 /* global Log level variable */
 uint32_t gl_mds_checksum = 0;
 
+/* Time value in centiseconds */
+uint32_t MDS_SVC_UP_WAIT_LONG_TIME = 150;
+uint32_t MDS_SVC_UP_WAIT_SHORT_TIME = 1;
+uint32_t MDS_DOWN_TMR_VAL = 1000;
 uint32_t MDS_QUIESCED_TMR_VAL = 80;
 uint32_t MDS_AWAIT_ACTIVE_TMR_VAL = 18000;
 uint32_t MDS_SUBSCRIPTION_TMR_VAL = 500;

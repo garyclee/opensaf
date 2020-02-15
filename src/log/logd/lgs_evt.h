@@ -91,4 +91,14 @@ SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param,
                                   log_stream_t **o_stream);
 
 uint32_t lgs_client_map_init();
+
+// Following changes are added to improve the resilience of log server
+// Most code are put inside these separated files lgs_cache.{h,cc}.
+using WriteAsyncParam = lgsv_write_log_async_req_t;
+bool is_active();
+void AckToWriteAsync(WriteAsyncParam* req, MDS_DEST dest, SaAisErrorT code);
+bool Streaming(const WriteAsyncParam* req, const char* from_node,
+               const char* record);
+
+
 #endif  // LOG_LOGD_LGS_EVT_H_

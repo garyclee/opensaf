@@ -25,6 +25,7 @@
  *****************************************************************************/
 
 #include "plm/common/plms.h"
+#include "plm/common/plms_common.h"
 #include "plm/common/plms_mbcsv.h"
 #include "plm/common/plms_utils.h"
 

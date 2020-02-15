@@ -985,7 +985,7 @@ SaAisErrorT saImmOmAdminOwnerInitialize(
   }
 
   if ((adminOwnerHandle == NULL) || (adminOwnerName == NULL) ||
-      (nameLen = strlen(adminOwnerName)) == 0) {
+      ((nameLen = strlen(adminOwnerName)) == 0)) {
     TRACE_2(
         "ERR_INVALID_PARAM: 'adminOwnerHandle is NULL, or adminOwnerName is NULL, or adminOwnerName "
         "has zero length");
@@ -1009,7 +1009,7 @@ SaAisErrorT saImmOmAdminOwnerInitialize(
   }
 
   *adminOwnerHandle = 0;
-  isLoaderName = (strncmp(adminOwnerName, immLoaderName, nameLen) == 0);
+  isLoaderName = (memcmp(adminOwnerName, immLoaderName, nameLen) == 0);
 
   /* get the CB Lock */
   if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
@@ -1167,7 +1167,7 @@ mds_send_fail:
     if (rc == SA_AIS_OK) {
       ao_node->mAdminOwnerId = out_evt->info.imma.info.admInitRsp.ownerId;
       ao_node->mAdminOwnerName = (char *)calloc(1, nameLen + 1);
-      strncpy(ao_node->mAdminOwnerName, adminOwnerName, nameLen);
+      strncpy(ao_node->mAdminOwnerName, adminOwnerName, nameLen + 1);
     } else {
       goto admin_owner_node_free;
     }
@@ -1938,8 +1938,7 @@ static SaAisErrorT ccb_object_create_common(
     rc = SA_AIS_ERR_NO_MEMORY;
     goto mds_send_fail;
   }
-  strncpy(evt.info.immnd.info.objCreate.className.buf, className,
-          evt.info.immnd.info.objCreate.className.size);
+  strcpy(evt.info.immnd.info.objCreate.className.buf, className);
 
   if (parentName) {
     if (!osaf_is_extended_name_valid(parentName)) {
@@ -5313,8 +5312,7 @@ SaAisErrorT saImmOmClassDescriptionGet_2(
   evt.info.immnd.info.classDescr.className.size = strlen(className) + 1;
   evt.info.immnd.info.classDescr.className.buf = (char *)malloc(
       evt.info.immnd.info.classDescr.className.size); /*alloc-0 */
-  strncpy(evt.info.immnd.info.classDescr.className.buf, className,
-          (size_t)evt.info.immnd.info.classDescr.className.size);
+  strcpy(evt.info.immnd.info.classDescr.className.buf, className);
 
   TRACE("ClassName: %s", className);
 
@@ -5737,8 +5735,7 @@ SaAisErrorT saImmOmClassDelete(SaImmHandleT immHandle,
   evt.info.immnd.info.classDescr.className.size = strlen(className) + 1;
   evt.info.immnd.info.classDescr.className.buf = (char *)malloc(
       evt.info.immnd.info.classDescr.className.size); /*alloc-1 */
-  strncpy(evt.info.immnd.info.classDescr.className.buf, className,
-          (size_t)evt.info.immnd.info.classDescr.className.size);
+  strcpy(evt.info.immnd.info.classDescr.className.buf, className);
 
   rc = imma_evt_fake_evs(cb, &evt, &out_evt, timeout, cl_node->handle, &locked,
                          true);
@@ -7002,8 +6999,7 @@ SaAisErrorT immsv_sync(SaImmHandleT immHandle, const SaImmClassNameT className,
   /*alloc-1 */
   evt.info.immnd.info.obj_sync.className.buf =
       (char *)malloc(evt.info.immnd.info.obj_sync.className.size);
-  strncpy(evt.info.immnd.info.obj_sync.className.buf, className,
-          evt.info.immnd.info.obj_sync.className.size);
+  strcpy(evt.info.immnd.info.obj_sync.className.buf, className);
 
   evt.info.immnd.info.obj_sync.objectName.size =
       osaf_extended_name_length(objectName) + 1;

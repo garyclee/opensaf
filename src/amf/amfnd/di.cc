@@ -664,6 +664,12 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt) {
 
   LOG_WA("AMF director unexpectedly crashed");
 
+  if (m_AVND_IS_SHUTTING_DOWN(cb)) {
+    LOG_WA("Ignore because AMFND is in SHUTDOWN state");
+    TRACE_LEAVE();
+    return rc;
+  }
+
   // if headless is disabled OR if the amfd down came from the local node, just
   // reboot
   if (cb->scs_absence_max_duration == 0 ||

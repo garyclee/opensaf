@@ -1379,29 +1379,30 @@ SaAisErrorT recoverClient(ntfa_client_hdl_rec_t *client_hdl)
 	if ((rc = reinitializeClient(client_hdl)) == SA_AIS_OK) {
 		/* Restore reader */
 		ntfa_reader_hdl_rec_t *reader_hdl = client_hdl->reader_list;
-		while (reader_hdl != NULL && rc == SA_AIS_OK) {
+		while (reader_hdl != NULL) {
 			rc = recoverReader(client_hdl, reader_hdl);
+			if (rc != SA_AIS_OK) {
+				TRACE("Failed to restore reader (readerId:%d)",
+				      reader_hdl->reader_id);
+				goto done;
+			}
 			reader_hdl = reader_hdl->next;
-		}
-		if (rc != SA_AIS_OK) {
-			TRACE("Failed to restore reader (readerId:%d)",
-			      reader_hdl->reader_id);
-			goto done;
 		}
 		/* Restore subscriber */
 		ntfa_subscriber_list_t *subscriber_hdl = subscriberNoList;
-		while (subscriber_hdl != NULL && rc == SA_AIS_OK) {
+		while (subscriber_hdl != NULL) {
 			if (client_hdl->local_hdl ==
-			    subscriber_hdl->subscriberListNtfHandle)
+			    subscriber_hdl->subscriberListNtfHandle) {
 				rc = recoverSubscriber(client_hdl,
 						       subscriber_hdl);
+				if (rc != SA_AIS_OK) {
+					TRACE(
+					    "Failed to restore subscriber (subscriptionId:%d)",
+					    subscriber_hdl->subscriberListSubscriptionId);
+					goto done;
+				}
+			}
 			subscriber_hdl = subscriber_hdl->next;
-		}
-		if (rc != SA_AIS_OK) {
-			TRACE(
-			    "Failed to restore subscriber (subscriptionId:%d)",
-			    subscriber_hdl->subscriberListSubscriptionId);
-			goto done;
 		}
 		client_hdl->valid = true;
 	} else {

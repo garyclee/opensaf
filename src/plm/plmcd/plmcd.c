@@ -726,7 +726,7 @@ int main(int argc, char **argv)
 				syslog(LOG_ERR, "Can not allocate memory");
 				exit(4);
 			}
-			strncpy(plmc_config_file, optarg, strlen(optarg) + 1);
+			strcpy(plmc_config_file, optarg);
 			break;
 		case 's':
 			option = option | 1;

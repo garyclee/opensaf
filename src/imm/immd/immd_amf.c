@@ -382,7 +382,7 @@ static void *amf_init_start(void *notused)
 		healthy.keyLen = (SaUint16T)strlen((char *)health_key);
 		if (healthy.keyLen < sizeof(healthy.key)) {
 			strncpy((char *)healthy.key, health_key,
-				sizeof(healthy.key));
+				sizeof(healthy.key) - 1);
 		} else {
 			LOG_ER("Health check key too long:%u, exiting",
 			       healthy.keyLen);

@@ -603,8 +603,6 @@ SaAisErrorT saLckResourceOpen(SaLckHandleT lckHandle,
 		goto done;
 	}
 
-	m_GLSV_MEMSET_SANAME(lockResourceName);
-
 	if (!(resourceFlags == SA_LCK_RESOURCE_CREATE || resourceFlags == 0)) {
 		rc = SA_AIS_ERR_BAD_FLAGS;
 		goto done;
