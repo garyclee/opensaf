@@ -125,7 +125,7 @@ static range_obj_t *gen_pop_tree(unsigned int level, range_obj_t *rootObj,
 	if (level == 0) {
 		assert(!rootObj && !rdn && base == 1);
 		strncpy((char *)rangeObj->parentDn.value, rdnAttName,
-			SA_MAX_NAME_LENGTH);
+			SA_MAX_NAME_LENGTH - 1);
 		strncat((char *)rangeObj->parentDn.value, "=",
 			SA_MAX_NAME_LENGTH);
 		strncat((char *)rangeObj->parentDn.value, "0",

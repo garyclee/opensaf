@@ -979,7 +979,7 @@ void *pbeRepositoryInit(const char *filePath, bool create,
       exit(1);
     }
   }
-  TRACE("TMP DIR:%s", localTmpDir);
+  TRACE("TMP DIR:%s", localTmpDir ? localTmpDir : "n/a");
   if (localTmpDir) {
     TRACE("IMMSV_PBE_TMP_DIR:%s", localTmpDir);
     localTmpFilename.append(localTmpDir);

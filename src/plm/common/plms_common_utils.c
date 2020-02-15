@@ -47,6 +47,7 @@ SaUint32T plms_free_evt(PLMS_EVT *evt)
 				break;
 			case PLMS_AGENT_GRP_ADD_EVT:
 			case PLMS_AGENT_GRP_REMOVE_EVT:
+			case PLMS_AGENT_GRP_REINIT_EVT:
 				if (evt->req_evt.agent_grp_op.entity_names) {
 					free(evt->req_evt.agent_grp_op
 						 .entity_names);

@@ -44,7 +44,7 @@ class LogTraceClient {
   const char* Log(base::LogMessage::Severity severity, const char *fmt,
                   va_list ap);
   const char* CreateLogEntry(base::LogMessage::Severity severity,
-      const char *fmt, va_list ap);
+      timespec time_spec, const char *fmt, va_list ap);
   void AddExternalBuffer(int64_t tid, LogTraceBuffer* buffer);
   void RemoveExternalBuffer(int64_t tid);
   void RequestFlushExternalBuffer();
@@ -56,10 +56,11 @@ class LogTraceClient {
 
  private:
   bool Init(const char *msg_id, WriteMode mode);
-  const char* LogInternal(base::LogMessage::Severity severity, const char *fmt,
-      va_list ap);
+
+  const char* LogInternal(base::LogMessage::Severity severity,
+      timespec time_spec, const char *fmt, va_list ap);
   const char* CreateLogEntryInternal(base::LogMessage::Severity severity,
-      const char *fmt, va_list ap);
+      timespec time_spec, const char *fmt, va_list ap);
   static constexpr const uint32_t kMaxSequenceId = uint32_t{0x7fffffff};
   base::LogMessage::HostName fqdn_{""};
   base::LogMessage::AppName app_name_{""};

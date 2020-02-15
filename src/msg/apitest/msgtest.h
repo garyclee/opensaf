@@ -27,4 +27,9 @@
 #define TET_FAIL 1
 #define TET_UNRESOLVED 2
 
+#ifdef __cplusplus
+#include "ais/include/saMsg.h"
+SaMsgQueueHandleT openQueue(SaMsgHandleT msgHandle);
+#endif
+
 #endif

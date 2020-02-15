@@ -103,6 +103,8 @@ int AddCreateToCcb(const SaImmCcbHandleT& ccb_handle,
     if (creator.AddObjectCreateToCcb() == false) {
       // Add create Fail
       SaAisErrorT ais_rc = creator.ais_error();
+      api_name_ = "saImmOmCcbObjectCreate_2";
+      ais_error_ = ais_rc;
       if (ais_rc == SA_AIS_ERR_BAD_HANDLE) {
         recovery_info = kRestartOm;
         TRACE("%s: AddObjectCreateToCcb(), %s, kRestartOm",
@@ -116,8 +118,6 @@ int AddCreateToCcb(const SaImmCcbHandleT& ccb_handle,
           LOG_NO("%s: AddObjectCreateToCcb() Fail, %s", __FUNCTION__,
                  saf_error(ais_rc));
           recovery_info = kFail;
-          api_name_ = "saImmOmCcbObjectCreate_2";
-          ais_error_ = ais_rc;
         }
       } else if (ais_rc == SA_AIS_ERR_EXIST) {
         if (create_descriptor.ignore_ais_err_exist == true) {
@@ -125,16 +125,11 @@ int AddCreateToCcb(const SaImmCcbHandleT& ccb_handle,
         } else {
           recovery_info = kFail;
         }
-        // Note: This information is always needed also if we do not fail
-        api_name_ = "saImmOmCcbObjectCreate_2";
-        ais_error_ = ais_rc;
       } else {
         // Unrecoverable Fail
         LOG_NO("%s: ObjectCreateCcbAdd(), %s, kFail",
                __FUNCTION__, saf_error(ais_rc));
         recovery_info = kFail;
-        api_name_ = "saImmOmCcbObjectCreate_2";
-        ais_error_ = ais_rc;
       }
     } else {
       // Add create success
@@ -161,6 +156,8 @@ int AddDeleteToCcb(const SaImmCcbHandleT& ccb_handle,
     if (deletor.AddObjectDeleteToCcb(delete_descriptor.object_name) == false) {
       // Add delete Fail
       SaAisErrorT ais_rc = deletor.ais_error();
+      api_name_ = "saImmOmCcbObjectDelete";
+      ais_error_ = ais_rc;
       if (ais_rc == SA_AIS_ERR_BUSY) {
         base::Sleep(base::MillisToTimespec(kBusyWait));
         continue;
@@ -180,8 +177,6 @@ int AddDeleteToCcb(const SaImmCcbHandleT& ccb_handle,
           LOG_NO("%s: AddObjectDeleteToCcb() Fail, %s", __FUNCTION__,
                  saf_error(ais_rc));
           recovery_info = kFail;
-          api_name_ = "saImmOmCcbObjectDelete";
-          ais_error_ = ais_rc;
           break;
         }
       } else if (ais_rc == SA_AIS_ERR_NOT_EXIST) {
@@ -191,16 +186,12 @@ int AddDeleteToCcb(const SaImmCcbHandleT& ccb_handle,
           LOG_NO("%s: AddObjectDeleteToCcb() Fail, %s", __FUNCTION__,
                  saf_error(ais_rc));
           recovery_info = kFail;
-          api_name_ = "saImmOmCcbObjectDelete";
-          ais_error_ = ais_rc;
         }
       }  else {
         // Other unrecoverable Fail
         LOG_NO("%s: AddObjectDeleteToCcb() Fail, %s", __FUNCTION__,
                saf_error(ais_rc));
         recovery_info = kFail;
-        api_name_ = "saImmOmCcbObjectDelete";
-        ais_error_ = ais_rc;
         break;
       }
     }
@@ -261,6 +252,8 @@ int AddModifyToCcb(const SaImmCcbHandleT& ccb_handle,
     while (busy_timer.is_timeout() != true) {
       if (modifier.AddObjectModifyToCcb() == false) {
         ais_rc = modifier.ais_error();
+        api_name_ = "saImmOmCcbObjectModify_2";
+        ais_error_ = ais_rc;
         if (ais_rc == SA_AIS_ERR_BUSY) {
           base::Sleep(base::MillisToTimespec(kBusyWait));
           continue;
@@ -280,8 +273,6 @@ int AddModifyToCcb(const SaImmCcbHandleT& ccb_handle,
             LOG_NO("%s: AddObjectModifyToCcb() Fail, %s", __FUNCTION__,
                    saf_error(ais_rc));
             recovery_info = kFail;
-            api_name_ = "saImmOmCcbObjectModify_2";
-            ais_error_ = ais_rc;
             break;
           }
         } else {
@@ -289,8 +280,6 @@ int AddModifyToCcb(const SaImmCcbHandleT& ccb_handle,
             LOG_NO("%s: AddObjectModifyToCcb() Fail, %s", __FUNCTION__,
                    saf_error(ais_rc));
             recovery_info = kFail;
-            api_name_ = "saImmOmCcbObjectModify_2";
-            ais_error_ = ais_rc;
             break;
         }
       }

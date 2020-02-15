@@ -33,7 +33,11 @@
 #ifndef MSG_AGENT_MQA_DL_API_H_
 #define MSG_AGENT_MQA_DL_API_H_
 
+struct mqa_cb;
+
 uint32_t mqa_lib_req(NCS_LIB_REQ_INFO *);
+uint32_t mqa_asapi_register(struct mqa_cb *cb);
+void mqa_asapi_unregister(struct mqa_cb *cb);
 unsigned int ncs_mqa_startup(void);
 unsigned int ncs_mqa_shutdown(void);
 

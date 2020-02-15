@@ -2995,8 +2995,7 @@ static SaAisErrorT rt_object_create_common(
   /*alloc-1 */
   evt.info.immnd.info.objCreate.className.buf =
       (char *)malloc(evt.info.immnd.info.objCreate.className.size);
-  strncpy(evt.info.immnd.info.objCreate.className.buf, className,
-          evt.info.immnd.info.objCreate.className.size);
+  strcpy(evt.info.immnd.info.objCreate.className.buf, className);
 
   if (objectName) {
     SaUint32T objectNameLen = strlen(objectName);

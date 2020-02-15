@@ -78,8 +78,8 @@ Timer txprob_timer(Event::Type::kEvtTmrTxProb);
 
 // chunk ack parameters
 // todo: The chunk ack timeout and chunk ack size should be configurable
-int kChunkAckTimeout = 1000;  // in miliseconds
-uint16_t kChunkAckSize = 3;
+int chunk_ack_timeout = 1000;  // in miliseconds
+uint16_t chunk_ack_size = 3;
 
 TipcPortId* portid_lookup(struct tipc_portid id) {
   uint64_t uid = TipcPortId::GetUniqueId(id);
@@ -102,6 +102,8 @@ void tmr_exp_cbk(void* uarg) {
 
 void process_timer_event(const Event& evt) {
   bool txprob_restart = false;
+  m_MDS_LOG_DBG("FCTRL: process timer event start [evt:%d]",
+    static_cast<int>(evt.type_));
   for (auto i : portid_map) {
     TipcPortId* portid = i.second;
 
@@ -113,16 +115,20 @@ void process_timer_event(const Event& evt) {
 
     if (evt.type_ == Event::Type::kEvtTmrChunkAck) {
       portid->ReceiveTmrChunkAck();
+      portid->SendUnsentMsg(false);
     }
   }
   if (txprob_restart) {
     txprob_timer.Start(kBaseTimerInt, tmr_exp_cbk);
     m_MDS_LOG_DBG("FCTRL: Restart txprob");
   }
+  m_MDS_LOG_DBG("FCTRL: process timer event end");
 }
 
 uint32_t process_flow_event(const Event& evt) {
   uint32_t rc = NCSCC_RC_SUCCESS;
+  m_MDS_LOG_DBG("FCTRL: process flow event start [evt:%d]",
+    static_cast<int>(evt.type_));
   TipcPortId *portid = portid_lookup(evt.id_);
   if (portid == nullptr) {
     // the null portid normally should not happen; however because the
@@ -130,24 +136,36 @@ uint32_t process_flow_event(const Event& evt) {
     // sent from BSRsock may come before reception of TIPC_PUBLISHED
     if (evt.type_ == Event::Type::kEvtRcvData) {
       portid = new TipcPortId(evt.id_, data_sock_fd,
-          kChunkAckSize, sock_buf_size);
+          chunk_ack_size, sock_buf_size);
       portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
-      rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
-            evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
+      if (evt.legacy_data_ == true) {
+        // we create portid and set state kDisabled even though we know
+        // this portid has no flow control. It is because the 2nd, 3rd fragment
+        // could not reflect the protocol version, so need to keep this portid
+        // remained stateful
+        portid->ChangeState(TipcPortId::State::kDisabled);
+      } else {
+        rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
+              evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
+      }
     } else if (evt.type_ == Event::Type::kEvtRcvIntro) {
       portid = new TipcPortId(evt.id_, data_sock_fd,
-          kChunkAckSize, sock_buf_size);
+          chunk_ack_size, sock_buf_size);
       portid_map[TipcPortId::GetUniqueId(evt.id_)] = portid;
       portid->ReceiveIntro();
     } else {
       m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
           "RcvEvt[evt:%d], Error[PortId not found]",
-          evt.id_.node, evt.id_.ref, (int)evt.type_);
+          evt.id_.node, evt.id_.ref, static_cast<int>(evt.type_));
     }
   } else {
     if (evt.type_ == Event::Type::kEvtRcvData) {
-      rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
-          evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
+      if (evt.legacy_data_ == true) {
+        portid->ChangeState(TipcPortId::State::kDisabled);
+      } else {
+        rc = portid->ReceiveData(evt.mseq_, evt.mfrag_,
+            evt.fseq_, evt.svc_id_, evt.snd_type_, is_mcast_enabled);
+      }
     }
     if (evt.type_ == Event::Type::kEvtRcvChunkAck) {
       portid->ReceiveChunkAck(evt.fseq_, evt.chunk_size_);
@@ -164,13 +182,21 @@ uint32_t process_flow_event(const Event& evt) {
       portid->ReceiveIntro();
     }
   }
+  m_MDS_LOG_DBG("FCTRL: process flow event end");
   return rc;
+}
+
+bool mds_fctrl_mbx_cleanup(NCSCONTEXT arg, NCSCONTEXT msg) {
+  Event *evt = reinterpret_cast<Event*>(msg);
+  if (evt != nullptr)
+    delete evt;
+  return true;
 }
 
 uint32_t process_all_events(void) {
   enum { FD_FCTRL = 0, NUM_FDS };
 
-  int poll_tmo = kChunkAckTimeout;
+  int poll_tmo = chunk_ack_timeout;
   struct pollfd pfd[NUM_FDS] = {{0, 0, 0}};
 
   pfd[FD_FCTRL].fd =
@@ -220,7 +246,7 @@ uint32_t process_all_events(void) {
   return NCSCC_RC_SUCCESS;
 }
 
-uint32_t create_ncs_task(void *task_hdl) {
+uint32_t create_ncs_task(NCSCONTEXT *task_hdl) {
   int policy = SCHED_OTHER; /*root defaults */
   int max_prio = sched_get_priority_max(policy);
   int min_prio = sched_get_priority_min(policy);
@@ -239,7 +265,7 @@ uint32_t create_ncs_task(void *task_hdl) {
   }
   if (ncs_task_create((NCS_OS_CB)process_all_events, 0,
           "OSAF_MDS", prio_val, policy, NCS_MDTM_STACKSIZE,
-          &task_hdl) != NCSCC_RC_SUCCESS) {
+          task_hdl) != NCSCC_RC_SUCCESS) {
     m_MDS_LOG_ERR("FCTRL: ncs_task_create(), Error[%s]",
         strerror(errno));
     m_NCS_IPC_RELEASE(&mbx_events, nullptr);
@@ -260,8 +286,8 @@ uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
   snd_rcv_portid = id;
   sock_buf_size = rcv_buf_size;
   is_mcast_enabled = mcast_enabled;
-  if (ackto != -1) kChunkAckTimeout = ackto;
-  if (acksize != -1) kChunkAckSize = acksize;
+  if (ackto != -1) chunk_ack_timeout = ackto;
+  if (acksize != -1) chunk_ack_size = acksize;
 
   if (create_ncs_task(&p_task_hdl) !=
       NCSCC_RC_SUCCESS) {
@@ -286,7 +312,7 @@ uint32_t mds_tipc_fctrl_shutdown(void) {
         strerror(errno));
   }
 
-  m_NCS_IPC_DETACH(&mbx_events, nullptr, nullptr);
+  m_NCS_IPC_DETACH(&mbx_events, mds_fctrl_mbx_cleanup, nullptr);
   m_NCS_IPC_RELEASE(&mbx_events, nullptr);
 
   for (auto i : portid_map) delete i.second;
@@ -327,8 +353,9 @@ uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id,
   return rc;
 }
 
-uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
-    struct tipc_portid id) {
+uint32_t mds_tipc_fctrl_trysend(struct tipc_portid id, const uint8_t *buffer,
+    uint16_t len, uint8_t* is_queued) {
+  *is_queued = 0;
   if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
 
   uint32_t rc = NCSCC_RC_SUCCESS;
@@ -345,6 +372,7 @@ uint32_t mds_tipc_fctrl_trysend(const uint8_t *buffer, uint16_t len,
     if (portid->state_ != TipcPortId::State::kDisabled) {
       bool sendable = portid->ReceiveCapable(len);
       portid->Queue(buffer, len, sendable);
+      *is_queued = 1;
       // start txprob timer for the first msg sent out
       // do not start for other states
       if (sendable && portid->state_ == TipcPortId::State::kStartup) {
@@ -373,12 +401,12 @@ uint32_t mds_tipc_fctrl_portid_up(struct tipc_portid id, uint32_t type) {
   uint64_t uid = TipcPortId::GetUniqueId(id);
   if (portid == nullptr) {
     portid_map[uid] = portid = new TipcPortId(id, data_sock_fd,
-        kChunkAckSize, sock_buf_size);
+        chunk_ack_size, sock_buf_size);
     m_MDS_LOG_NOTIFY("FCTRL: Add portid[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
         id.node, id.ref, svc_id, portid->svc_cnt_);
   } else {
     portid->svc_cnt_++;
-    m_MDS_LOG_NOTIFY("FCTRL: Add svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
+    m_MDS_LOG_DBG("FCTRL: Add svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
         id.node, id.ref, svc_id, portid->svc_cnt_);
   }
 
@@ -398,8 +426,14 @@ uint32_t mds_tipc_fctrl_portid_down(struct tipc_portid id, uint32_t type) {
   TipcPortId *portid = portid_lookup(id);
   if (portid != nullptr) {
     portid->svc_cnt_--;
-    m_MDS_LOG_NOTIFY("FCTRL: Remove svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
+    m_MDS_LOG_DBG("FCTRL: Remove svc[node:%x, ref:%u svc_id:%u], svc_cnt:%u",
         id.node, id.ref, svc_id, portid->svc_cnt_);
+    if (portid->svc_cnt_ == 0) {
+      delete portid;
+      portid_map.erase(TipcPortId::GetUniqueId(id));
+      m_MDS_LOG_NOTIFY("FCTRL: Remove portid[node:%x, ref:%u]",
+                      id.node, id.ref);
+    }
   }
   portid_map_mutex.unlock();
 
@@ -426,44 +460,41 @@ uint32_t mds_tipc_fctrl_portid_terminate(struct tipc_portid id) {
 
 uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
     struct tipc_portid id) {
-  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
-
   HeaderMessage header;
   header.Decode(buffer);
   Event* pevt = nullptr;
+
   // if mds support flow control
-  if ((header.pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) {
-    if (header.pro_id_ == MDS_PROT_FCTRL_ID) {
-      if (header.msg_type_ == ChunkAck::kChunkAckMsgType) {
-        // receive single ack message
-        ChunkAck ack;
-        ack.Decode(buffer);
-        // send to the event thread
-        pevt = new Event(Event::Type::kEvtSendChunkAck, id, ack.svc_id_,
-            header.mseq_, header.mfrag_, ack.acked_fseq_);
-        pevt->chunk_size_ = ack.chunk_size_;
-        if (m_NCS_IPC_SEND(&mbx_events, pevt,
-            NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
-              strerror(errno));
-          return NCSCC_RC_FAILURE;
-        }
-        return NCSCC_RC_SUCCESS;
-      }
-    } else {
-      // receive data message
-      DataMessage data;
-      data.Decode(buffer);
+  if (header.IsControlMessage()) {
+    if (header.msg_type_ == ChunkAck::kChunkAckMsgType) {
+      // receive single ack message
+      ChunkAck ack;
+      ack.Decode(buffer);
       // send to the event thread
-      pevt = new Event(Event::Type::kEvtDropData, id, data.svc_id_,
-          header.mseq_, header.mfrag_, header.fseq_);
+      pevt = new Event(Event::Type::kEvtSendChunkAck, id, ack.svc_id_,
+          header.mseq_, header.mfrag_, ack.acked_fseq_);
+      pevt->chunk_size_ = ack.chunk_size_;
       if (m_NCS_IPC_SEND(&mbx_events, pevt,
           NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
         m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
             strerror(errno));
         return NCSCC_RC_FAILURE;
       }
-      return NCSCC_RC_SUCCESS;
+    }
+  }
+
+  if (header.IsFlowMessage()) {
+    // receive data message
+    DataMessage data;
+    data.Decode(buffer);
+    // send to the event thread
+    pevt = new Event(Event::Type::kEvtDropData, id, data.svc_id_,
+        header.mseq_, header.mfrag_, header.fseq_);
+    if (m_NCS_IPC_SEND(&mbx_events, pevt,
+        NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+      m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+          strerror(errno));
+      return NCSCC_RC_FAILURE;
     }
   }
 
@@ -472,78 +503,99 @@ uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
 
 uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
     struct tipc_portid id) {
-  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
-
+  uint32_t rc = NCSCC_RC_SUCCESS;
   HeaderMessage header;
   header.Decode(buffer);
   Event* pevt = nullptr;
-  // if mds support flow control
-  if ((header.pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) {
-    if (header.pro_id_ == MDS_PROT_FCTRL_ID) {
-      if (header.msg_type_ == ChunkAck::kChunkAckMsgType) {
-        // receive single ack message
-        ChunkAck ack;
-        ack.Decode(buffer);
-        // send to the event thread
-        pevt = new Event(Event::Type::kEvtRcvChunkAck, id, ack.svc_id_,
-            header.mseq_, header.mfrag_, ack.acked_fseq_);
-        pevt->chunk_size_ = ack.chunk_size_;
-        if (m_NCS_IPC_SEND(&mbx_events, pevt,
-                NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
-              strerror(errno));
-        }
-      } else if (header.msg_type_ == Nack::kNackMsgType) {
-        // receive nack message
-        Nack nack;
-        nack.Decode(buffer);
-        // send to the event thread
-        pevt = new Event(Event::Type::kEvtRcvNack, id, nack.svc_id_,
-            header.mseq_, header.mfrag_, nack.nacked_fseq_);
-        if (m_NCS_IPC_SEND(&mbx_events, pevt,
-                NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
-              strerror(errno));
-        }
-      } else if (header.msg_type_ == Intro::kIntroMsgType) {
-        // no need to decode intro message
-        // the decoding intro message type is done in header decoding
-        // send to the event thread
-        pevt = new Event(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0);
-        if (m_NCS_IPC_SEND(&mbx_events, pevt,
-                NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-          m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
-              strerror(errno));
-        }
-      } else {
-        m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
-            "[msg_type:%u], Error[not supported message type]",
-            id.node, id.ref, header.msg_type_);
+
+  if (header.IsControlMessage()) {
+    // skip the control message if flow control disabled
+    if (is_fctrl_enabled == false) return NCSCC_RC_FAILURE;
+    // if mds support flow control
+    if (header.msg_type_ == ChunkAck::kChunkAckMsgType) {
+      m_MDS_LOG_DBG("FCTRL: Receive ChunkAck");
+      // receive single ack message
+      ChunkAck ack;
+      ack.Decode(buffer);
+      // send to the event thread
+      pevt = new Event(Event::Type::kEvtRcvChunkAck, id, ack.svc_id_,
+          header.mseq_, header.mfrag_, ack.acked_fseq_);
+      pevt->chunk_size_ = ack.chunk_size_;
+      if (m_NCS_IPC_SEND(&mbx_events, pevt,
+          NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+            strerror(errno));
       }
-      // return NCSCC_RC_FAILURE, so the tipc receiving thread (legacy) will
-      // skip this data msg
-      return NCSCC_RC_FAILURE;
+    } else if (header.msg_type_ == Nack::kNackMsgType) {
+      m_MDS_LOG_DBG("FCTRL: Receive Nack");
+      // receive nack message
+      Nack nack;
+      nack.Decode(buffer);
+      // send to the event thread
+      pevt = new Event(Event::Type::kEvtRcvNack, id, nack.svc_id_,
+          header.mseq_, header.mfrag_, nack.nacked_fseq_);
+      if (m_NCS_IPC_SEND(&mbx_events, pevt,
+          NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+            strerror(errno));
+      }
+    } else if (header.msg_type_ == Intro::kIntroMsgType) {
+      m_MDS_LOG_DBG("FCTRL: Receive Intro");
+      // no need to decode intro message
+      // the decoding intro message type is done in header decoding
+      // send to the event thread
+      pevt = new Event(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0);
+      if (m_NCS_IPC_SEND(&mbx_events, pevt,
+          NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
+            strerror(errno));
+      }
     } else {
-      // receive data message
-      DataMessage data;
-      data.Decode(buffer);
-      portid_map_mutex.lock();
-      Event evt(Event::Type::kEvtRcvData, id, data.svc_id_, header.mseq_,
-          header.mfrag_, header.fseq_);
-      evt.snd_type_ = data.snd_type_;
-      uint32_t rc = process_flow_event(evt);
-      if (rc == NCSCC_RC_CONTINUE) {
-        process_timer_event(Event(Event::Type::kEvtTmrChunkAck));
-        rc = NCSCC_RC_SUCCESS;
-      }
-      portid_map_mutex.unlock();
-      return rc;
+      m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
+          "[msg_type:%u], Error[not supported message type]",
+          id.node, id.ref, header.msg_type_);
     }
-  } else {
+    // return NCSCC_RC_FAILURE, so the tipc receiving thread (legacy) will
+    // skip this data msg
+    rc = NCSCC_RC_FAILURE;
+  }
+
+  // Let the tipc receiving thread (legacy) handle this data message
+  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
+
+  if (header.IsLegacyMessage()) {
     m_MDS_LOG_DBG("FCTRL: [me] <-- [node:%x, ref:%u], "
-        "Receive non-flow-control data message, "
+        "Receive legacy data message, "
         "header.pro_ver:%u",
         id.node, id.ref, header.pro_ver_);
+    // Receiving the first fragment legacy message, change the state to
+    // kDisabled so the subsequent fragment will skip the flow control
+    if ((header.mfrag_ & 0x7fff) == 1) {
+      portid_map_mutex.lock();
+      Event evt(Event::Type::kEvtRcvData, id, 0, 0, 0, 0);
+      evt.legacy_data_ = true;
+      process_flow_event(evt);
+      portid_map_mutex.unlock();
+    }
   }
-  return NCSCC_RC_SUCCESS;
+
+  if (header.IsFlowMessage() || header.IsUndefinedMessage()) {
+    // receive flow message explicitly identified by protocol version
+    // or if it is still undefined, then consult the stateful portid
+    // to proceed.
+    DataMessage data;
+    data.Decode(buffer);
+    portid_map_mutex.lock();
+    Event evt(Event::Type::kEvtRcvData, id, data.svc_id_, header.mseq_,
+        header.mfrag_, header.fseq_);
+    evt.snd_type_ = data.snd_type_;
+    rc = process_flow_event(evt);
+    if (rc == NCSCC_RC_CONTINUE) {
+      process_timer_event(Event(Event::Type::kEvtTmrChunkAck));
+      rc = NCSCC_RC_SUCCESS;
+    }
+    portid_map_mutex.unlock();
+  }
+
+  return rc;
 }

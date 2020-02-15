@@ -31,8 +31,15 @@
 #include "base/osaf_time.h"
 #include "log/logd/lgs.h"
 
+#ifdef SIMULATE_NFS_UNRESPONSE
+#include "log/logd/lgs_cache.h"
+#endif
+
 extern pthread_mutex_t lgs_ftcom_mutex; /* For locking communication */
 
+#ifdef SIMULATE_NFS_UNRESPONSE
+uint32_t test_counter = 1;
+#endif
 /*****************************************************************************
  * File operation handlers:
  * This is the part of a file system handling function that shall execute in
@@ -237,18 +244,35 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize,
   off_t file_length = 0;
   wlrh_t *params_in = static_cast<wlrh_t *>(indata);
   /* Get log record pointed by lgs_rec pointer */
-  char *logrecord =
-      const_cast<char *>(static_cast<const char *>(params_in->lgs_rec));
+  const char *logrecord = static_cast<const char *>(params_in->lgs_rec);
   int *errno_out_p = static_cast<int *>(outdata);
+
+  // Store the data to a tmp storage that is only available within this function
+  // scope. Doing this to avoid race on `params_in->lgs_rec` b/w filehld thread
+  // and the main thread; and with this, the main thread will have total right
+  // to free the allocated memory for `lgs_rec` whenever it wants.
+  size_t data_size = params_in->record_size;
+  char data[data_size];
+  memcpy(data, logrecord, data_size);
+
   *errno_out_p = 0;
 
   TRACE_ENTER();
 
   osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section */
 
+#ifdef SIMULATE_NFS_UNRESPONSE
+  test_counter++;
+  if (Cache::instance()->Capacity() == 0) {
+    // disable the feature, so reset test counter
+    test_counter = 1;
+  }
+
+  if (test_counter % 3 == 0) sleep(16);
+#endif
+
 retry:
-  rc = write(params_in->fd, &logrecord[bytes_written],
-             params_in->record_size - bytes_written);
+  rc = write(params_in->fd, &data[bytes_written], data_size - bytes_written);
   if (rc == -1) {
     if (errno == EINTR) goto retry;
 
@@ -259,7 +283,7 @@ retry:
   } else {
     /* Handle partial writes */
     bytes_written += rc;
-    if (bytes_written < params_in->record_size) goto retry;
+    if (bytes_written < data_size) goto retry;
   }
   osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 
@@ -286,30 +310,6 @@ retry:
   }
 
 done:
-  /*
-    Log record memory is allocated by the caller and this memory is
-    used or referred by main thread as well as log handler thread.
-
-    In most cases, the caller thread is blocked until the log handler thread
-    finishs the request (e.g: finish writing log record to file).
-    Therefore, once the caller thread is unblocked, it is safe to free
-    the log record memory as the log handler thread no longer uses it.
-
-    But in time-out case, it is unsure when the log handler thread
-    use the log record memory.
-
-    To make sure there is no corruption of memory usage in case of time-out,
-    We leave the log record memory freed at the end of this function.
-
-    It is never a good idea to allocate and free memory in different places.
-    But consider it as a trade-off to have a better performance of LOGsv
-    as time-out occurs very rarely.
-  */
-  if ((*timeout_f == true) && (logrecord != nullptr)) {
-    free(logrecord);
-    logrecord = nullptr;
-  }
-
   TRACE_LEAVE2("rc = %d", rc);
   return rc;
 }

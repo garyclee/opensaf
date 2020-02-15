@@ -32,6 +32,7 @@
 #include <pthread.h>
 
 #include "plm/common/plms.h"
+#include "plm/common/plms_common.h"
 #include "plm/common/plms_evt.h"
 #include "plm/common/plms_hsm.h"
 #include "plm/common/plms_utils.h"

@@ -586,7 +586,7 @@ static int enableSchemaChange()
 	SaNameT objectName;
 	objectName.length = strlen(OPENSAF_IMM_OBJECT_DN);
 	strncpy((char *)objectName.value, OPENSAF_IMM_OBJECT_DN,
-		objectName.length);
+		objectName.length + 1);
 	SaImmAccessorHandleT accessorHandle;
 	const SaImmAttrNameT attName = (char *)OPENSAF_IMM_ATTR_NOSTD_FLAGS;
 	SaImmAttrNameT attNames[] = {attName, NULL};
@@ -641,7 +641,7 @@ static void disableSchemaChange()
 	SaNameT objectName;
 	objectName.length = strlen(OPENSAF_IMM_OBJECT_DN);
 	strncpy((char *)objectName.value, OPENSAF_IMM_OBJECT_DN,
-		objectName.length);
+		objectName.length + 1);
 	SaImmAdminOwnerHandleT ownerHandle;
 	const SaImmAdminOwnerNameT adminOwnerName = OPENSAF_IMM_IMMSV_ADMO;
 	const SaNameT *objectNames[] = {&objectName, NULL};
@@ -939,7 +939,7 @@ void saImmOmClassCreate_SchemaChange_2_07(void)
 	SaImmCcbHandleT ccbHandle;
 	SaNameT objectName;
 	objectName.length = strlen(__FUNCTION__);
-	strncpy((char *)objectName.value, __FUNCTION__, objectName.length);
+	strncpy((char *)objectName.value, __FUNCTION__, objectName.length + 1);
 	SaNameT *nameValues[] = {&objectName};
 	SaImmAttrValuesT_2 rdnValue = {"rdn", SA_IMM_ATTR_SANAMET, 1,
 				       (void **)nameValues};
@@ -1027,7 +1027,7 @@ void saImmOmClassCreate_SchemaChange_2_08(void)
 	SaImmCcbHandleT ccbHandle;
 	SaNameT objectName;
 	objectName.length = strlen(__FUNCTION__);
-	strncpy((char *)objectName.value, __FUNCTION__, objectName.length);
+	strncpy((char *)objectName.value, __FUNCTION__, objectName.length + 1);
 	SaNameT *nameValues[] = {&objectName};
 	SaImmAttrValuesT_2 rdnValue = {"rdn", SA_IMM_ATTR_SANAMET, 1,
 				       (void **)nameValues};
@@ -1344,7 +1344,7 @@ void saImmOmClassCreate_SchemaChange_2_15(void)
 	    (SaImmOiImplementerNameT) __FUNCTION__;
 	SaNameT objectName;
 	objectName.length = strlen(__FUNCTION__);
-	strncpy((char *)objectName.value, __FUNCTION__, objectName.length);
+	strncpy((char *)objectName.value, __FUNCTION__, objectName.length + 1);
 	SaNameT *nameValues[] = {&objectName};
 	SaImmAttrValuesT_2 rdnValue = {"rdn", SA_IMM_ATTR_SANAMET, 1,
 				       (void **)nameValues};
@@ -1411,7 +1411,7 @@ void saImmOmClassCreate_SchemaChange_2_16(void)
 	    (SaImmOiImplementerNameT) __FUNCTION__;
 	SaNameT objectName;
 	objectName.length = strlen(__FUNCTION__);
-	strncpy((char *)objectName.value, __FUNCTION__, objectName.length);
+	strncpy((char *)objectName.value, __FUNCTION__, objectName.length + 1);
 	SaNameT *nameValues[] = {&objectName};
 	SaImmAttrValuesT_2 rdnValue = {"rdn", SA_IMM_ATTR_SANAMET, 1,
 				       (void **)nameValues};
@@ -1560,7 +1560,7 @@ static void updateFileSystemStatus(uint64_t operation_id)
 
 	objectName.length = strlen(mgmt_object);
 	strncpy((char *)objectName.value, mgmt_object,
-		objectName.length);
+		objectName.length + 1);
 
 	safassert(immutil_saImmOmInitialize(&myOmHandle, NULL, &immVersion),
 		  SA_AIS_OK);
@@ -1590,7 +1590,7 @@ uint32_t fetchAttributeValue(const char* attribute_name)
 	SaNameT objectName;
 	objectName.length = strlen(mgmt_object);
 	strncpy((char *)objectName.value, mgmt_object,
-		objectName.length);
+		objectName.length + 1);
 
 	safassert(immutil_saImmOmInitialize(&myOmHandle, NULL,
 					    &immVersion),

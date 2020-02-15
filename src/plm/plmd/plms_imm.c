@@ -3861,7 +3861,8 @@ static void plms_delete_he_type_obj(SaNameT *obj_name)
 	he_base_type_dn = strstr(tmp_dn, "safHEType");
 	memset(&key_dn, 0, sizeof(SaNameT));
 	key_dn.length = strlen(he_base_type_dn);
-	strncpy((SaInt8T *)key_dn.value, he_base_type_dn, key_dn.length);
+	strncpy((SaInt8T *)key_dn.value, he_base_type_dn,
+		       	sizeof(key_dn.value) - 1);
 	he_base_type_node = (PLMS_HE_BASE_INFO *)ncs_patricia_tree_get(
 	    &plms_cb->base_he_info, (SaUint8T *)&key_dn);
 	rdn = strtok(tmp_dn, ",");
@@ -3904,7 +3905,7 @@ static void plms_delete_ee_type_obj(SaNameT *obj_name)
 	ee_base_type_dn = strstr(tmp_dn, "safEEType");
 	memset(&key_dn, 0, sizeof(SaNameT));
 	key_dn.length = strlen(ee_base_type_dn);
-	strncpy((SaInt8T *)key_dn.value, ee_base_type_dn, key_dn.length);
+	strncpy((SaInt8T *)key_dn.value, ee_base_type_dn, sizeof(key_dn.value) - 1);
 	ee_base_type_node = (PLMS_EE_BASE_INFO *)ncs_patricia_tree_get(
 	    &plms_cb->base_ee_info, (SaUint8T *)&key_dn);
 	rdn = strtok(tmp_dn, ",");

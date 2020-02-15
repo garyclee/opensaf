@@ -55,6 +55,8 @@
 #include "base/osaf_time.h"
 #include "base/logtrace.h"
 
+#include "osaf/configmake.h"
+
 NCS_OS_LOCK gl_ncs_atomic_mtx;
 #ifndef NDEBUG
 bool gl_ncs_atomic_mtx_initialise = false;
@@ -658,7 +660,7 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req)
 
 		memset(&buf, 0, sizeof(struct msqid_ds));
 
-		sprintf(filename, "/tmp/%s%d", req->info.open.qname,
+		sprintf(filename, PKGPIDDIR "/%s%d", req->info.open.qname,
 			req->info.open.node);
 
 		if (req->info.open.iflags & O_CREAT) {
@@ -669,6 +671,13 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req)
 				return NCSCC_RC_FAILURE;
 
 			key = ftok(filename, 1);
+
+			if (key < 0) {
+				LOG_ER("ftok failed for %s: %i", filename,
+						errno);
+				return NCSCC_RC_FAILURE;
+			}
+
 			os_req.info.create.i_key = &key;
 
 			if (fclose(file) != 0)
@@ -678,6 +687,12 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req)
 			os_req.req = NCS_OS_MQ_REQ_OPEN;
 
 			key = ftok(filename, 1);
+
+			if (key < 0) {
+				LOG_ER("ftok failed for %s: %i", filename,
+						errno);
+				return NCSCC_RC_FAILURE;
+			}
 			os_req.info.open.i_key = &key;
 		}
 
@@ -721,7 +736,7 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req)
 		char filename[264];
 
 		memset(filename, 0, sizeof(filename));
-		sprintf(filename, "/tmp/%s%d", req->info.unlink.qname,
+		sprintf(filename, PKGPIDDIR "%s%d", req->info.unlink.qname,
 			req->info.unlink.node);
 
 		if (unlink(filename) != 0)

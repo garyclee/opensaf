@@ -47,6 +47,14 @@ static SaImmOiHandleT immOiHnd = 0;
 static char extended_name_string_01[DEFAULT_EXT_NAME_LENGTH];
 static char extended_name_string_02[DEFAULT_EXT_NAME_LENGTH];
 
+static char NAME1_STR[sizeof(NAME1) + 1] = { '\0' };
+static char NAME2_STR[sizeof(NAME2) + 1] = { '\0' };
+static char NAME3_STR[sizeof(NAME3) + 1] = { '\0' };
+
+static char BUF1_STR[sizeof(BUF1) + 1] = { '\0' };
+static char BUF2_STR[sizeof(BUF2) + 1] = { '\0' };
+static char BUF3_STR[sizeof(BUF3) + 1] = { '\0' };
+
 /**
  * Callback routine, called when subscribed notification arrives.
  */
@@ -1131,7 +1139,7 @@ static SaAisErrorT set_add_info(
                               reinterpret_cast<void **>(&temp),
                               &nHeader->additionalInfo[idx].infoValue);
   if (error == SA_AIS_OK) {
-    strncpy(reinterpret_cast<char *>(temp), infoValue, strlen(infoValue) + 1);
+    strcpy(reinterpret_cast<char *>(temp), infoValue);
     nHeader->additionalInfo[idx].infoId = infoId;
     nHeader->additionalInfo[idx].infoType = SA_NTF_VALUE_STRING;
   }
@@ -1154,7 +1162,7 @@ static SaAisErrorT set_attr_str(
         &n_exp->c_d_notif_ptr->objectAttributes[idx]
        .attributeValue);
     if (error == SA_AIS_OK) {
-      strncpy(reinterpret_cast<char *>(temp), attrValue, strlen(attrValue) + 1);
+      strcpy(reinterpret_cast<char *>(temp), attrValue);
       n_exp->c_d_notif_ptr->objectAttributes[idx]
           .attributeId = attrId;
       n_exp->c_d_notif_ptr->objectAttributes[idx]
@@ -1285,7 +1293,7 @@ static SaAisErrorT set_attr_change_str(
         &n_exp->a_c_notif_ptr->changedAttributes[idx]
        .newAttributeValue);
     if (error == SA_AIS_OK) {
-      strncpy(reinterpret_cast<char *>(temp), newValue, strlen(newValue) + 1);
+      strcpy(reinterpret_cast<char *>(temp), newValue);
       n_exp->a_c_notif_ptr->changedAttributes[idx]
           .attributeId = attrId;
       n_exp->a_c_notif_ptr->changedAttributes[idx]
@@ -3155,7 +3163,7 @@ void objectCreateTest_20(void) {
   /* create an object */
   snprintf(command, MAX_DATA, "immcfg -t 20 -c OsafNtfCmTestCFG %s"
            " -a testNameCfg=%s -a testStringCfg=%s -a testAnyCfg=%s",
-          DNTESTCFG, NAME1, STRINGVAR1, BUF1);
+          DNTESTCFG, NAME1_STR, STRINGVAR1, BUF1_STR);
   assert(system(command) != -1);
 
   /*
@@ -3364,7 +3372,7 @@ void objectModifyTest_22(void) {
 
   /* modify an object */
   snprintf(command, MAX_DATA, "immcfg -t 20 -a testNameCfg=%s "
-           "-a testAnyCfg=%s %s", NAME2, BUF2, DNTESTCFG);
+           "-a testAnyCfg=%s %s", NAME2_STR, BUF2_STR, DNTESTCFG);
   assert(system(command) != -1);
 
   /*
@@ -4044,7 +4052,9 @@ void objectModifyTest_31(void) {
   memcpy(oldvar.value, NAME2, sizeof(NAME2));
   SaNameT addvar = {.length = sizeof(NAME3)};
   memcpy(addvar.value, NAME3, sizeof(NAME3));
-  snprintf(command, MAX_DATA, "immcfg -a testNameCfg+=%s %s", NAME3, DNTESTCFG);
+
+  snprintf(command, MAX_DATA, "immcfg -a testNameCfg+=%s %s", NAME3_STR,
+           DNTESTCFG);
   assert(system(command) != -1);
 
   /*
@@ -4120,8 +4130,12 @@ void objectModifyTest_32(void) {
        .bufferAddr = const_cast<SaUint8T *>(BUF2)};
   SaAnyT addvar = {.bufferSize = sizeof(BUF3),
        .bufferAddr = const_cast<SaUint8T *>(BUF3)};
+
+  char buf3[SA_MAX_NAME_LENGTH] = { '\0' };
+  memcpy(buf3, BUF3, sizeof(BUF3));
+
   snprintf(command, MAX_DATA, "immcfg -t 20 -a testAnyCfg+=%s %s",
-           BUF3, DNTESTCFG);
+           BUF3_STR, DNTESTCFG);
   assert(system(command) != -1);
 
   /*
@@ -4546,7 +4560,7 @@ void objectModifyTest_37(void) {
     " -a testTimeCfg+=%lld -a testStringCfg+=%s"
     " -a testNameCfg+=%s -a testAnyCfg+=%s %s",
     i32var11, ui32var2, i64var333, ui64var444, fvar5, dvar66,
-    tvar77, svar8, NAME1, BUF1, DNTESTCFG);
+    tvar77, svar8, NAME1_STR, BUF1_STR, DNTESTCFG);
   assert(system(command) != -1);
 
   /*
@@ -5821,7 +5835,7 @@ void objectCreateTest_3505(void) {
   /* create an object */
   snprintf(command, MAX_DATA, "immcfg -t 20 -c OsafNtfCmTestCFG %s"
       " -a testNameCfg=%s -a testStringCfg=%s -a testAnyCfg=%s",
-      DNTESTCFG, extended_name_string_01, STRINGVAR1, BUF1);
+      DNTESTCFG, extended_name_string_01, STRINGVAR1, BUF1_STR);
   assert(system(command) != -1);
 
   /*
@@ -5955,7 +5969,7 @@ void objectModifyTest_3506(void) {
 
   /* modify an object */
   snprintf(command, MAX_DATA, "immcfg -t 20 -a testNameCfg=%s"
-      " -a testAnyCfg=%s %s", extended_name_string_02, BUF2, DNTESTCFG);
+      " -a testAnyCfg=%s %s", extended_name_string_02, BUF2_STR, DNTESTCFG);
   assert(system(command) != -1);
 
   /*
@@ -6185,10 +6199,14 @@ __attribute__((constructor)) static void ntf_imcn_constructor(void) {
           if (strstr(line, ".xml") != NULL) {
             char cp_cmd[80];
             snprintf(cp_cmd, sizeof(cp_cmd), "cp ");
-            strncat(
-                cp_cmd, line,
-                strlen(line) -
-              1);  // don't add newline
+            if ((strlen(line) - 1) > (sizeof(cp_cmd) - sizeof("cp "))) {
+              printf("line: %s too long", line);
+              if (fclose(f) != 0)
+                printf("fclose failed: %i", errno);
+              return;
+            }
+            line[strlen(line)] = '\0';
+            strcat(cp_cmd, line);  // don't add newline
             strncat(cp_cmd, " /tmp/.", 80 - strlen(cp_cmd));
             rc = system(cp_cmd);
           } else {
@@ -6214,6 +6232,14 @@ __attribute__((constructor)) static void ntf_imcn_constructor(void) {
 
   memset(&extended_name_string_02, 'D', DEFAULT_EXT_NAME_LENGTH - 1);
   extended_name_string_02[DEFAULT_EXT_NAME_LENGTH - 1] = '\0';
+
+  memcpy(&NAME1_STR, NAME1, sizeof(NAME1));
+  memcpy(&NAME2_STR, NAME2, sizeof(NAME2));
+  memcpy(&NAME3_STR, NAME3, sizeof(NAME3));
+
+  memcpy(&BUF1_STR, BUF1, sizeof(BUF1));
+  memcpy(&BUF2_STR, BUF2, sizeof(BUF2));
+  memcpy(&BUF3_STR, BUF3, sizeof(BUF3));
 
   test_suite_add(32, "CM notifications test");
   test_case_add(32, objectCreateTest_01,

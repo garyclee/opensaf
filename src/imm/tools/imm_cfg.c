@@ -1464,7 +1464,7 @@ static char *readinput(char *prompt)
 			line[len - 1] = 0;
 			if (rdlen) {
 				rdline = realloc(rdline, rdlen + len);
-				strncat(rdline, line, len);
+				strncat(rdline, line, len + 1);
 				rdlen += len - 1;
 			} else {
 				rdline = line;

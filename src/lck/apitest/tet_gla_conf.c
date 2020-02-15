@@ -5,8 +5,7 @@
 #include <pthread.h>
 
 #define END_OF_WHILE                                                           \
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) ||                                 \
-	       (rc == SA_AIS_ERR_TIMEOUT && exp_output != SA_AIS_ERR_TIMEOUT))
+	while ((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_TIMEOUT))
 
 #define GLSV_RETRY_WAIT sleep(1)
 
@@ -16,9 +15,10 @@ static int gl_try_again_cnt;
 int glsv_test_result(SaAisErrorT rc, SaAisErrorT exp_out, char *test_case,
 		     GLSV_CONFIG_FLAG flg)
 {
-	int result = 0;
+	int result = TET_UNRESOLVED;
 
-	if (rc == SA_AIS_ERR_TRY_AGAIN) {
+	if (rc == SA_AIS_ERR_TRY_AGAIN || (rc == SA_AIS_ERR_TIMEOUT &&
+                rc != exp_out)) {
 		if (gl_try_again_cnt++ == 0) {
 			m_TET_GLSV_PRINTF("\n RETRY           : %s\n",
 					  test_case);
@@ -118,29 +118,12 @@ struct SafLckInitialize API_Glsv_Initialize[] = {
 				  &gl_gla_env.gen_clbks, SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckInitialize(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckInitialize(API_Glsv_Initialize[i].lckHandle,
-			     API_Glsv_Initialize[i].callbks,
-			     API_Glsv_Initialize[i].version);
-
-	result = glsv_test_result(rc, API_Glsv_Initialize[i].exp_output,
-				  API_Glsv_Initialize_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckInitialize(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_Initialize[i].exp_output;
 
 	do {
 		rc = saLckInitialize(API_Glsv_Initialize[i].lckHandle,
@@ -150,13 +133,6 @@ int tet_test_red_lckInitialize(int i, GLSV_CONFIG_FLAG flg)
 		result =
 		    glsv_test_result(rc, API_Glsv_Initialize[i].exp_output,
 				     API_Glsv_Initialize_resultstring[i], flg);
-
-		if (rc == SA_AIS_OK && flg != TEST_CLEANUP_MODE)
-			m_TET_GLSV_PRINTF(" LckHandle       : %llu\n",
-					  *API_Glsv_Initialize[i].lckHandle);
-
-		if (flg != TEST_CLEANUP_MODE && rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -197,28 +173,12 @@ struct SafSelectionObject API_Glsv_Selection[] = {
 				     SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckSelectionObject(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckSelectionObjectGet(*API_Glsv_Selection[i].lckHandle,
-				     API_Glsv_Selection[i].selobj);
-
-	result = glsv_test_result(rc, API_Glsv_Selection[i].exp_output,
-				  API_Glsv_Selection_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckSelectionObject(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_Selection[i].exp_output;
 
 	do {
 		rc = saLckSelectionObjectGet(*API_Glsv_Selection[i].lckHandle,
@@ -259,28 +219,12 @@ struct SafOptionCheck API_Glsv_Options[] = {
 				SA_AIS_OK},
 };
 
-int tet_test_lckOptionCheck(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckOptionCheck(*API_Glsv_Options[i].lckHandle,
-			      API_Glsv_Options[i].lckOptions);
-
-	result = glsv_test_result(rc, API_Glsv_Options[i].exp_output,
-				  API_Glsv_Options_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckOptionCheck(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_Options[i].exp_output;
 
 	do {
 		rc = saLckOptionCheck(*API_Glsv_Options[i].lckHandle,
@@ -361,28 +305,12 @@ struct SafDispatch API_Glsv_Dispatch[] = {
 				      SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckDispatch(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckDispatch(*API_Glsv_Dispatch[i].lckHandle,
-			   API_Glsv_Dispatch[i].flags);
-
-	result = glsv_test_result(rc, API_Glsv_Dispatch[i].exp_output,
-				  API_Glsv_Dispatch_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckDispatch(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_Dispatch[i].exp_output;
 
 	do {
 		rc = saLckDispatch(*API_Glsv_Dispatch[i].lckHandle,
@@ -426,27 +354,12 @@ struct SafFinalize API_Glsv_Finalize[] = {
 				      SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckFinalize(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckFinalize(*API_Glsv_Finalize[i].lckHandle);
-
-	result = glsv_test_result(rc, API_Glsv_Finalize[i].exp_output,
-				  API_Glsv_Finalize_resultstring[i], flg);
-
-	return (result);
-};
-
 int tet_test_red_lckFinalize(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_Finalize[i].exp_output;
 
 	do {
 		rc = saLckFinalize(*API_Glsv_Finalize[i].lckHandle);
@@ -590,35 +503,12 @@ struct SafResourceOpen API_Glsv_ResourceOpen[] = {
 					   SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckResourceOpen(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckResourceOpen(*API_Glsv_ResourceOpen[i].lckHandle,
-			       API_Glsv_ResourceOpen[i].lockResourceName,
-			       API_Glsv_ResourceOpen[i].resourceFlags,
-			       API_Glsv_ResourceOpen[i].timeout,
-			       API_Glsv_ResourceOpen[i].lockResourceHandle);
-
-	if (flg != TEST_CLEANUP_MODE)
-		print_res_info(API_Glsv_ResourceOpen[i].lockResourceName,
-			       API_Glsv_ResourceOpen[i].resourceFlags);
-
-	result = glsv_test_result(rc, API_Glsv_ResourceOpen[i].exp_output,
-				  API_Glsv_ResourceOpen_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckResourceOpen(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_ResourceOpen[i].exp_output;
 
 	do {
 		rc = saLckResourceOpen(
@@ -628,22 +518,12 @@ int tet_test_red_lckResourceOpen(int i, GLSV_CONFIG_FLAG flg)
 		    API_Glsv_ResourceOpen[i].timeout,
 		    API_Glsv_ResourceOpen[i].lockResourceHandle);
 
-		if (flg != TEST_CLEANUP_MODE && rc != SA_AIS_ERR_TRY_AGAIN)
-			print_res_info(
-			    API_Glsv_ResourceOpen[i].lockResourceName,
-			    API_Glsv_ResourceOpen[i].resourceFlags);
-
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceOpen[i].exp_output,
 		    API_Glsv_ResourceOpen_resultstring[i], flg);
 
-		if (rc == SA_AIS_OK && flg != TEST_CLEANUP_MODE)
-			m_TET_GLSV_PRINTF(
-			    " Resource Handle : %llu\n",
-			    *API_Glsv_ResourceOpen[i].lockResourceHandle);
-
-		if (flg != TEST_CLEANUP_MODE && rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
+		if (result == TET_PASS)
+			break;
 	}
 	END_OF_WHILE;
 
@@ -749,35 +629,12 @@ struct SafAsyncResourceOpen API_Glsv_ResourceOpenAsync[] = {
 						 SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckResourceOpenAsync(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckResourceOpenAsync(
-	    *API_Glsv_ResourceOpenAsync[i].lckHandle,
-	    API_Glsv_ResourceOpenAsync[i].Invocation,
-	    API_Glsv_ResourceOpenAsync[i].lockResourceName,
-	    API_Glsv_ResourceOpenAsync[i].resourceFlags);
-
-	print_res_info(API_Glsv_ResourceOpenAsync[i].lockResourceName,
-		       API_Glsv_ResourceOpenAsync[i].resourceFlags);
-
-	result =
-	    glsv_test_result(rc, API_Glsv_ResourceOpenAsync[i].exp_output,
-			     API_Glsv_ResourceOpenAsync_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckResourceOpenAsync(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_ResourceOpenAsync[i].exp_output;
 
 	do {
 		rc = saLckResourceOpenAsync(
@@ -786,22 +643,9 @@ int tet_test_red_lckResourceOpenAsync(int i, GLSV_CONFIG_FLAG flg)
 		    API_Glsv_ResourceOpenAsync[i].lockResourceName,
 		    API_Glsv_ResourceOpenAsync[i].resourceFlags);
 
-		if (rc != SA_AIS_ERR_TRY_AGAIN)
-			print_res_info(
-			    API_Glsv_ResourceOpenAsync[i].lockResourceName,
-			    API_Glsv_ResourceOpenAsync[i].resourceFlags);
-
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceOpenAsync[i].exp_output,
 		    API_Glsv_ResourceOpenAsync_resultstring[i], flg);
-
-		if (rc == SA_AIS_OK)
-			m_TET_GLSV_PRINTF(
-			    " Invocation      : %llu\n",
-			    API_Glsv_ResourceOpenAsync[i].Invocation);
-
-		if (rc != SA_AIS_ERR_TRY_AGAIN)
-			m_TET_GLSV_PRINTF("\n");
 	}
 	END_OF_WHILE;
 
@@ -842,27 +686,12 @@ struct SafResourceClose API_Glsv_ResourceClose[] = {
 					    SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckResourceClose(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckResourceClose(*API_Glsv_ResourceClose[i].lockResourceHandle);
-
-	result = glsv_test_result(rc, API_Glsv_ResourceClose[i].exp_output,
-				  API_Glsv_ResourceClose_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckResourceClose(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_ResourceClose[i].exp_output;
 
 	do {
 		rc = saLckResourceClose(
@@ -1116,38 +945,12 @@ struct SafResourceLock API_Glsv_ResourceLock[] = {
 	 SA_LCK_LOCK_GRANTED},
 };
 
-int tet_test_lckResourceLock(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckResourceLock(*API_Glsv_ResourceLock[i].lockResourceHandle,
-			       API_Glsv_ResourceLock[i].lockId,
-			       API_Glsv_ResourceLock[i].lockMode,
-			       API_Glsv_ResourceLock[i].lockFlags,
-			       API_Glsv_ResourceLock[i].waiterSignal,
-			       API_Glsv_ResourceLock[i].timeout,
-			       API_Glsv_ResourceLock[i].lockStatus);
-
-	print_lock_info(API_Glsv_ResourceLock[i].lockResourceHandle,
-			API_Glsv_ResourceLock[i].lockMode,
-			API_Glsv_ResourceLock[i].lockFlags,
-			API_Glsv_ResourceLock[i].waiterSignal);
-
-	result = glsv_test_result(rc, API_Glsv_ResourceLock[i].exp_output,
-				  API_Glsv_ResourceLock_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckResourceLock(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_ResourceLock[i].exp_output;
 
 	do {
 		rc = saLckResourceLock(
@@ -1159,16 +962,12 @@ int tet_test_red_lckResourceLock(int i, GLSV_CONFIG_FLAG flg)
 		    API_Glsv_ResourceLock[i].timeout,
 		    API_Glsv_ResourceLock[i].lockStatus);
 
-		if (rc != SA_AIS_ERR_TRY_AGAIN)
-			print_lock_info(
-			    API_Glsv_ResourceLock[i].lockResourceHandle,
-			    API_Glsv_ResourceLock[i].lockMode,
-			    API_Glsv_ResourceLock[i].lockFlags,
-			    API_Glsv_ResourceLock[i].waiterSignal);
-
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceLock[i].exp_output,
 		    API_Glsv_ResourceLock_resultstring[i], flg);
+
+		if (result == TET_PASS)
+			break;
 	}
 	END_OF_WHILE;
 
@@ -1278,39 +1077,12 @@ struct SafAsyncResourceLock API_Glsv_ResourceLockAsync[] = {
 					    SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckResourceLockAsync(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckResourceLockAsync(
-	    *API_Glsv_ResourceLockAsync[i].lockResourceHandle,
-	    API_Glsv_ResourceLockAsync[i].invocation,
-	    API_Glsv_ResourceLockAsync[i].lockId,
-	    API_Glsv_ResourceLockAsync[i].lockMode,
-	    API_Glsv_ResourceLockAsync[i].lockFlags,
-	    API_Glsv_ResourceLockAsync[i].waiterSignal);
-
-	print_lock_info(API_Glsv_ResourceLockAsync[i].lockResourceHandle,
-			API_Glsv_ResourceLockAsync[i].lockMode,
-			API_Glsv_ResourceLockAsync[i].lockFlags,
-			API_Glsv_ResourceLockAsync[i].waiterSignal);
-
-	result =
-	    glsv_test_result(rc, API_Glsv_ResourceLockAsync[i].exp_output,
-			     API_Glsv_ResourceLockAsync_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckResourceLockAsync(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_ResourceLockAsync[i].exp_output;
 
 	do {
 		rc = saLckResourceLockAsync(
@@ -1320,13 +1092,6 @@ int tet_test_red_lckResourceLockAsync(int i, GLSV_CONFIG_FLAG flg)
 		    API_Glsv_ResourceLockAsync[i].lockMode,
 		    API_Glsv_ResourceLockAsync[i].lockFlags,
 		    API_Glsv_ResourceLockAsync[i].waiterSignal);
-
-		if (rc != SA_AIS_ERR_TRY_AGAIN)
-			print_lock_info(
-			    API_Glsv_ResourceLockAsync[i].lockResourceHandle,
-			    API_Glsv_ResourceLockAsync[i].lockMode,
-			    API_Glsv_ResourceLockAsync[i].lockFlags,
-			    API_Glsv_ResourceLockAsync[i].waiterSignal);
 
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceLockAsync[i].exp_output,
@@ -1384,31 +1149,12 @@ struct SafAsyncResourceUnlock API_Glsv_ResourceUnlockAsync[] = {
 						   SA_AIS_ERR_BAD_HANDLE},
 };
 
-int tet_test_lckResourceUnlockAsync(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc =
-	    saLckResourceUnlockAsync(API_Glsv_ResourceUnlockAsync[i].invocation,
-				     *API_Glsv_ResourceUnlockAsync[i].lockId);
-
-	result =
-	    glsv_test_result(rc, API_Glsv_ResourceUnlockAsync[i].exp_output,
-			     API_Glsv_ResourceUnlockAsync_resultstring[i], flg);
-
-	m_TET_GLSV_PRINTF("\n");
-	return (result);
-}
-
 int tet_test_red_lckResourceUnlockAsync(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_ResourceUnlockAsync[i].exp_output;
 
 	do {
 		rc = saLckResourceUnlockAsync(
@@ -1418,6 +1164,9 @@ int tet_test_red_lckResourceUnlockAsync(int i, GLSV_CONFIG_FLAG flg)
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceUnlockAsync[i].exp_output,
 		    API_Glsv_ResourceUnlockAsync_resultstring[i], flg);
+
+		if (result == TET_PASS)
+			break;
 	}
 	END_OF_WHILE;
 
@@ -1472,28 +1221,12 @@ struct SafResourceUnlock API_Glsv_ResourceUnlock[] = {
 					     SA_AIS_ERR_BAD_HANDLE},
 };
 
-int tet_test_lckResourceUnlock(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckResourceUnlock(*API_Glsv_ResourceUnlock[i].lockId,
-				 API_Glsv_ResourceUnlock[i].timeout);
-
-	result = glsv_test_result(rc, API_Glsv_ResourceUnlock[i].exp_output,
-				  API_Glsv_ResourceUnlock_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckResourceUnlock(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_ResourceUnlock[i].exp_output;
 
 	do {
 		rc = saLckResourceUnlock(*API_Glsv_ResourceUnlock[i].lockId,
@@ -1502,6 +1235,9 @@ int tet_test_red_lckResourceUnlock(int i, GLSV_CONFIG_FLAG flg)
 		result = glsv_test_result(
 		    rc, API_Glsv_ResourceUnlock[i].exp_output,
 		    API_Glsv_ResourceUnlock_resultstring[i], flg);
+
+		if (result == TET_PASS)
+			break;
 
 	}
 	END_OF_WHILE;
@@ -1542,27 +1278,12 @@ struct SafPurge API_Glsv_Purge[] = {
 					SA_AIS_ERR_TRY_AGAIN},
 };
 
-int tet_test_lckLockPurge(int i, GLSV_CONFIG_FLAG flg)
-{
-	SaAisErrorT rc;
-	int result;
-
-	rc = saLckLockPurge(*API_Glsv_Purge[i].lockResourceHandle);
-
-	result = glsv_test_result(rc, API_Glsv_Purge[i].exp_output,
-				  API_Glsv_Purge_resultstring[i], flg);
-
-	return (result);
-}
-
 int tet_test_red_lckLockPurge(int i, GLSV_CONFIG_FLAG flg)
 {
 	SaAisErrorT rc;
-	SaAisErrorT exp_output;
 	int result;
 
 	gl_try_again_cnt = 0;
-	exp_output = API_Glsv_Purge[i].exp_output;
 
 	do {
 		rc = saLckLockPurge(*API_Glsv_Purge[i].lockResourceHandle);
@@ -1809,17 +1530,17 @@ void glsv_init_cleanup(GLSV_INIT_CLEANUP_OPT opt)
 	case LCK_CLEAN_INIT_NULL_CBK_PARAM_T:
 	case LCK_CLEAN_INIT_NULL_CBKS2_T:
 	case LCK_CLEAN_INIT_SUCCESS_T:
-		result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T,
+		result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T,
 					      TEST_CLEANUP_MODE);
 		break;
 
 	case LCK_CLEAN_INIT_SUCCESS_HDL2_T:
-		result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_HDL2_T,
+		result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_HDL2_T,
 					      TEST_CLEANUP_MODE);
 		break;
 
 	case LCK_CLEAN_INIT_NULL_CBKS_T:
-		result = tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_HDL3_T,
+		result = tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_HDL3_T,
 					      TEST_CLEANUP_MODE);
 		break;
 	}
@@ -1868,22 +1589,22 @@ void glsv_orphan_cleanup(GLSV_ORPHAN_CLEANUP_OPT opt)
 
 	switch (opt) {
 	case LCK_CLEAN_RSC_LOCK_ORPHAN_PRLCK_T:
-		result = tet_test_lckResourceUnlock(
+		result = tet_test_red_lckResourceUnlock(
 		    LCK_RSC_UNLOCK_LCKID2_SUCCESS_T, TEST_CLEANUP_MODE);
 		break;
 
 	case LCK_CLEAN_RSC_LOCK_ORPHAN_EXLCK_T:
-		result = tet_test_lckResourceUnlock(
+		result = tet_test_red_lckResourceUnlock(
 		    LCK_RSC_UNLOCK_LCKID1_SUCCESS_T, TEST_CLEANUP_MODE);
 		break;
 
 	case LCK_PURGE_RSC1_T:
-		tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CLEANUP_MODE);
-		tet_test_lckResourceOpen(LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T,
+		tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CLEANUP_MODE);
+		tet_test_red_lckResourceOpen(LCK_RESOURCE_OPEN_HDL1_NAME1_SUCCESS_T,
 					 TEST_CLEANUP_MODE);
-		result = tet_test_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T,
+		result = tet_test_red_lckLockPurge(LCK_LOCK_PURGE_SUCCESS_T,
 					       TEST_CLEANUP_MODE);
-		tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CLEANUP_MODE);
+		tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CLEANUP_MODE);
 		break;
 	}
 

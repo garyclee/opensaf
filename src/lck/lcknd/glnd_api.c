@@ -158,7 +158,7 @@ void glnd_process_mbx(GLND_CB *cb, SYSF_MBX *mbx)
 	GLSV_GLND_EVT *evt = NULL;
 	TRACE_ENTER();
 
-	while ((evt = (GLSV_GLND_EVT *)m_NCS_IPC_NON_BLK_RECEIVE(mbx, evt))) {
+	if ((evt = (GLSV_GLND_EVT *)m_NCS_IPC_NON_BLK_RECEIVE(mbx, evt))) {
 		if ((evt->type >= GLSV_GLND_EVT_BASE) &&
 		    (evt->type < GLSV_GLND_EVT_MAX)) {
 			/* process mail box */

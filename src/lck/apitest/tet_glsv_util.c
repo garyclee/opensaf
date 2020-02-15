@@ -436,13 +436,13 @@ void tet_run_glsv_app()
 #else
 
 	while (1) {
-		tet_test_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
-		tet_test_lckInitialize(LCK_INIT_SUCCESS_HDL2_T,
+		tet_test_red_lckInitialize(LCK_INIT_SUCCESS_T, TEST_CONFIG_MODE);
+		tet_test_red_lckInitialize(LCK_INIT_SUCCESS_HDL2_T,
 				       TEST_CONFIG_MODE);
 		glsv_createthread_all_loop(1);
 		glsv_createthread_all_loop(2);
-		tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
-		tet_test_lckFinalize(LCK_FINALIZE_SUCCESS_HDL2_T,
+		tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_T, TEST_CONFIG_MODE);
+		tet_test_red_lckFinalize(LCK_FINALIZE_SUCCESS_HDL2_T,
 				     TEST_CONFIG_MODE);
 
 		m_TET_GLSV_PRINTF(

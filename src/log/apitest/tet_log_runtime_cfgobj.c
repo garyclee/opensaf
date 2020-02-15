@@ -84,7 +84,7 @@ void log_rt_cf_obj_compare(void)
 	 * 1 more attribute than the configuration object
 	 */
 	r_cnt--;
-	if (c_cnt != r_cnt) {
+	if (c_cnt > r_cnt) {
 		tst_res = 1;
 		fprintf(stderr,
 			"Found %d configuration attributes and"

@@ -22,6 +22,7 @@
 
 ******************************************************************************/
 
+#include "base/osaf_time.h"
 #include "osaf/immutil/immutil.h"
 #include "mqnd.h"
 #include "mqnd_imm.h"
@@ -1046,9 +1047,10 @@ uint32_t mqnd_proc_queue_open(MQND_CB *cb, MQP_REQ_MSG *mqp_req,
 		rc = mqnd_queue_create(cb, open, &sinfo->dest, &qhdl, NULL,
 				       &err);
 		if (rc != NCSCC_RC_SUCCESS) {
-			if (err != SA_AIS_ERR_TRY_AGAIN)
+			if (err != SA_AIS_ERR_TRY_AGAIN) {
 				TRACE_4("ERR_RESOURCES: Queue Creation Failed");
-			err = SA_AIS_ERR_NO_RESOURCES;
+				err = SA_AIS_ERR_NO_RESOURCES;
+			}
 			goto error;
 		}
 
@@ -1159,6 +1161,11 @@ uint32_t mqnd_proc_queue_close(MQND_CB *cb, MQND_QUEUE_NODE *qnode,
 	     (timeout == 0))) {
 
 		if (qnode->qinfo.sendingState == MSG_QUEUE_AVAILABLE) {
+			if (!cb->is_mqd_up) {
+				TRACE("mqd is not up");
+				*err = SA_AIS_ERR_TRY_AGAIN;
+				return NCSCC_RC_FAILURE;
+			}
 
 			/* Deregister the Queue with ASAPi */
 			memset(&opr, 0, sizeof(ASAPi_OPR_INFO));
@@ -1240,11 +1247,19 @@ uint32_t mqnd_proc_queue_close(MQND_CB *cb, MQND_QUEUE_NODE *qnode,
 		/* Delete the Queue Node */
 		mqnd_queue_node_del(cb, qnode);
 
-		if (immutil_saImmOiRtObjectDelete(cb->immOiHandle, &qname) !=
-		    SA_AIS_OK) {
-			LOG_ER("Deletion of MsgQueue object %s FAILED",
-			       qnode->qinfo.queueName.value);
-			return NCSCC_RC_FAILURE;
+		/* XXX should this go on a thread? */
+		while (true) {
+			*err = immutil_saImmOiRtObjectDelete(cb->immOiHandle, &qname);
+			if (*err == SA_AIS_OK)
+				break;
+			else if (*err == SA_AIS_ERR_BAD_HANDLE) {
+				TRACE("received bad handle from IMM");
+				osaf_nanosleep(&kHundredMilliseconds);
+			} else {
+				LOG_ER("Deletion of MsgQueue object %s FAILED: %i",
+			       	qnode->qinfo.queueName.value, *err);
+				return NCSCC_RC_FAILURE;
+			}
 		}
 
 		/* Free the Queue Node */
@@ -1254,6 +1269,12 @@ uint32_t mqnd_proc_queue_close(MQND_CB *cb, MQND_QUEUE_NODE *qnode,
 		if (qnode->qinfo.owner_flag == MQSV_QUEUE_OWN_STATE_ORPHAN) {
 			*err = SA_AIS_OK;
 			return NCSCC_RC_SUCCESS;
+		}
+
+		if (!cb->is_mqd_up) {
+			TRACE("mqd is not up");
+			*err = SA_AIS_ERR_TRY_AGAIN;
+			return NCSCC_RC_FAILURE;
 		}
 
 		/* Queue is not unlinked */

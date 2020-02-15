@@ -157,6 +157,7 @@ TET_VDEST
     gl_tet_vdest[4]; /*change it to 6 to run VDS Redundancy: 101 for Stress*/
 TET_SVC gl_tet_svc;
 TET_MDS_RECVD_MSG_INFO gl_rcvdmsginfo, gl_direct_rcvmsginfo;
+TET_EVENT_INFO gl_event_data;
 int gl_vdest_indx;
 MDS_DIRECT_BUFF direct_buff;
 
@@ -203,7 +204,7 @@ uint32_t destroy_pwe_on_vdest(MDS_HDL);
 
 /**************     USER DEFINED WRAPPERS FOR MDS SERVICE APIs **************/
 
-uint32_t tet_create_task(NCS_OS_CB, NCSCONTEXT);
+uint32_t tet_create_task(NCS_OS_CB, NCSCONTEXT*);
 uint32_t tet_release_task(void *task_handle);
 int is_adest_sel_obj_found(int);
 int is_sel_obj_found(int);

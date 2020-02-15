@@ -171,6 +171,7 @@ GLSV_GLD_RSC_INFO *gld_add_rsc_info(GLSV_GLD_CB *gld_cb, SaNameT *rsc_name,
 
 	if (*error != SA_AIS_OK) {
 		LOG_ER("create_runtime_object failed %u\n", *error);
+		*error = SA_AIS_ERR_NO_RESOURCES;
 		if (ncs_patricia_tree_del(&gld_cb->rsc_map_info,
 					  (NCS_PATRICIA_NODE *)rsc_map_info) !=
 		    NCSCC_RC_SUCCESS) {
@@ -296,6 +297,7 @@ void gld_free_rsc_info(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info)
 	GLSV_GLD_RSC_MAP_INFO *rsc_map_info = NULL;
 	SaNameT lck_name;
 	SaNameT immObj_name;
+	SaAisErrorT rc = SA_AIS_OK;
 
 	TRACE_ENTER();
 
@@ -322,12 +324,11 @@ void gld_free_rsc_info(GLSV_GLD_CB *gld_cb, GLSV_GLD_RSC_INFO *rsc_info)
 	memcpy(&immObj_name, &rsc_info->lck_name, sizeof(SaNameT));
 	/* delete imm runtime object */
 	if (gld_cb->ha_state == SA_AMF_HA_ACTIVE) {
-		if (immutil_saImmOiRtObjectDelete(gld_cb->immOiHandle,
-						  &immObj_name) != SA_AIS_OK) {
-			LOG_ER("Deleting run time object %s FAILED",
-			       lck_name.value);
-			TRACE_LEAVE();
-			return;
+		rc = immutil_saImmOiRtObjectDelete(gld_cb->immOiHandle,
+						  &immObj_name);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("Deleting run time object %s FAILED: %i",
+			       lck_name.value, rc);
 		}
 	}
 	rsc_map_info = (GLSV_GLD_RSC_MAP_INFO *)ncs_patricia_tree_get(

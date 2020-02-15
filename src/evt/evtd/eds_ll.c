@@ -1802,7 +1802,7 @@ uint32_t eds_channel_close(EDS_CB *cb, uint32_t reg_id, uint32_t chan_id,
 		TRACE("use count is zero");
 		chan_name.length = strlen((char *)wp->cname);
 		strncpy((char *)chan_name.value, (char *)wp->cname,
-			chan_name.length);
+			chan_name.length + 1);
 		if ((wp->chan_attrib & CHANNEL_UNLINKED) || (true == forced)) {
 			TRACE(
 			    "forced flag is set 'or' CHANNEL is marked as CHANNEL_UNLINKED");
@@ -1874,7 +1874,7 @@ uint32_t eds_channel_unlink(EDS_CB *cb, uint32_t chan_name_len,
 				    "Use count is zero, delete the and IMM object");
 				channel_name.length = strlen((char *)wp->cname);
 				strncpy((char *)channel_name.value,
-					(char *)wp->cname, channel_name.length);
+					(char *)wp->cname, channel_name.length + 1);
 				if (cb->ha_state == SA_AMF_HA_ACTIVE) {
 					if ((rc = immutil_saImmOiRtObjectDelete(
 						 cb->immOiHandle,

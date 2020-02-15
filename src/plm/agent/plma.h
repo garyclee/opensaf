@@ -33,6 +33,7 @@ agent
 #include "base/ncs_edu_pub.h"
 #include "base/ncssysf_lck.h"
 
+#include <vector>
 #include <saAis.h>
 #include <saPlm.h>
 
@@ -65,6 +66,11 @@ typedef struct plma_rdns_trk_mem_list {
   struct plma_rdns_trk_mem_list *next;
 } PLMA_RDNS_TRK_MEM_LIST;
 
+typedef std::vector<SaNameT> SaNameList;
+typedef std::pair<SaNameList /*entity names*/,
+                  SaPlmGroupOptionsT> EntityNames;
+typedef std::vector<EntityNames> EntityNamesList;
+
 typedef struct plma_entity_group_info {
   NCS_PATRICIA_NODE pat_node;
   SaPlmEntityGroupHandleT entity_group_handle; /* Key field */
@@ -72,6 +78,9 @@ typedef struct plma_entity_group_info {
   PLMA_CLIENT_INFO *client_info;
   PLMA_RDNS_TRK_MEM_LIST *rdns_trk_mem_list;
   SaUint32T is_trk_enabled;
+  SaUint8T trackFlags;
+  SaUint64T trackCookie;
+  EntityNamesList entityNamesList;
 } PLMA_ENTITY_GROUP_INFO;
 
 /* Data structure to group entity list per client */
@@ -89,14 +98,6 @@ struct plma_client_info {
   PLMA_ENTITY_GROUP_INFO_LIST *grp_info_list;
 };
 
-#define PLMA_MDS_PVT_SUBPART_VERSION 1
-/*PLMA - PLMS communication */
-#define PLMA_WRT_PLMS_SUBPART_VER_MIN 1
-#define PLMA_WRT_PLMS_SUBPART_VER_MAX 1
-
-#define PLMA_WRT_PLMS_SUBPART_VER_RANGE \
-  (PLMA_WRT_PLMS_SUBPART_VER_MAX - PLMA_WRT_PLMS_SUBPART_VER_MIN + 1)
-
 extern PLMA_CB *plma_ctrlblk;
 
 uint32_t ncs_plma_startup();
@@ -108,27 +109,6 @@ uint32_t plma_callback_ipc_init(PLMA_CLIENT_INFO *client_info);
 /* MDS Public APIS */
 uint32_t plma_mds_register();
 void plma_mds_unregister();
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-uint32_t plm_mds_msg_sync_send(MDS_HDL mds_hdl, uint32_t from_svc,
-                               uint32_t to_svc, MDS_DEST to_dest,
-                               PLMS_EVT *i_evt, PLMS_EVT **o_evt,
-                               SaTimeT timeout);
-uint32_t plms_mds_normal_send(MDS_HDL mds_hdl, NCSMDS_SVC_ID from_svc,
-                              NCSCONTEXT evt, MDS_DEST dest,
-                              NCSMDS_SVC_ID to_svc);
-SaUint32T plms_free_evt(PLMS_EVT *evt);
-uint32_t plms_mds_enc(MDS_CALLBACK_ENC_INFO *info, EDU_HDL *edu_hdl);
-uint32_t plms_mds_dec(MDS_CALLBACK_DEC_INFO *info, EDU_HDL *edu_hdl);
-uint32_t plms_mds_enc_flat(struct ncsmds_callback_info *info, EDU_HDL *edu_hdl);
-uint32_t plms_mds_dec_flat(struct ncsmds_callback_info *info, EDU_HDL *edu_hdl);
-
-#ifdef __cplusplus
-}
-#endif
 
 /* Function Declarations */
 extern uint32_t plms_edp_plms_evt(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,

@@ -61,6 +61,7 @@ class Event {
   uint16_t fseq_{0};
   uint16_t chunk_size_{1};
   uint8_t snd_type_{0};
+  bool legacy_data_{false};
   explicit Event(Type type):type_(type) {}
   Event(Type type, struct tipc_portid id, uint16_t svc_id,
       uint32_t mseq, uint16_t mfrag, uint16_t f_seq_num):
@@ -105,6 +106,10 @@ class HeaderMessage: public BaseMessage {
   virtual ~HeaderMessage() {}
   void Decode(uint8_t *msg) override;
   void Encode(uint8_t *msg) override;
+  bool IsControlMessage();
+  bool IsLegacyMessage();
+  bool IsFlowMessage();
+  bool IsUndefinedMessage();
 };
 
 class DataMessage: public BaseMessage {

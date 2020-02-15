@@ -63,6 +63,7 @@ static uint32_t dec_su_si_curr_active(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_si_curr_stby(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_term_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
+static uint32_t dec_su_inst_msg_processed(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_switch(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_pres_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
@@ -162,8 +163,8 @@ const AVSV_DECODE_CKPT_DATA_FUNC_PTR avd_dec_data_func_list[] = {
     dec_comp_pres_state, dec_comp_restart_count, nullptr, /* AVSV_SYNC_COMMIT */
     dec_su_restart_count, dec_si_dep_state, dec_ng_admin_state,
     dec_avd_to_avd_job_queue_status,
-    dec_node_failover_state
-
+    dec_node_failover_state,
+    dec_su_inst_msg_processed
 };
 
 /*
@@ -445,6 +446,9 @@ static void decode_su(NCS_UBAID *ub, AVD_SU *su, uint16_t peer_version) {
 
   if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_2)
     osaf_decode_bool(ub, &su->su_is_external);
+
+  if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_11)
+    osaf_decode_bool(ub, &su->is_inst_msg_processed);
 }
 
 /****************************************************************************\
@@ -1533,6 +1537,40 @@ static uint32_t dec_su_term_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
 
   TRACE_LEAVE2("'%s', term_state=%u, su_updt:%d",
                osaf_extended_name_borrow(&name), su->term_state,
+               cb->async_updt_cnt.su_updt);
+  osaf_extended_name_free(&name);
+  return NCSCC_RC_SUCCESS;
+}
+
+/****************************************************************************\
+ *
+ * Purpose:  Decode SU inst msg of service
+ *
+ * Input: cb - CB pointer.
+ *        dec - Decode arguments passed by MBCSV.
+ *
+ * Returns: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ *
+ * NOTES:
+ *
+ *
+\**************************************************************************/
+static uint32_t dec_su_inst_msg_processed(
+                                     AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
+  SaNameT name;
+
+  TRACE_ENTER();
+
+  osaf_decode_sanamet(&dec->i_uba, &name);
+  AVD_SU *su = su_db->find(Amf::to_string(&name));
+  osafassert(su != nullptr);
+  osaf_decode_uint32(&dec->i_uba,
+                    reinterpret_cast<uint32_t *>(&su->is_inst_msg_processed));
+
+  cb->async_updt_cnt.su_updt++;
+
+  TRACE_LEAVE2("'%s', is_inst_msg_processed=%u, su_updt:%d",
+               osaf_extended_name_borrow(&name), su->is_inst_msg_processed,
                cb->async_updt_cnt.su_updt);
   osaf_extended_name_free(&name);
   return NCSCC_RC_SUCCESS;

@@ -800,6 +800,23 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       daemon_exit();
     }
 
+    if (node->node_state == AVD_AVND_STATE_ABSENT) {
+      bool after_headless = false;
+      for (const auto &i_su : node->list_of_ncs_su) {
+        if (i_su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) {
+          after_headless = true;
+          break;
+        }
+      }
+      if (after_headless != true) {
+        // Ignore amfnd down event in late after clm cb node left then joined
+        // But not ignore if after headless
+        LOG_WA("Ignore '%s' amfnd down event", node->node_name.c_str());
+        TRACE_LEAVE();
+        return;
+      }
+    }
+
     if (cb->failover_list.find(evt->info.node_id) != cb->failover_list.end()) {
       std::shared_ptr<NodeStateMachine> failed_node =
         cb->failover_list.at(evt->info.node_id);

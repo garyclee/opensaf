@@ -29,6 +29,36 @@
 #include "base/ncs_main_papi.h"
 extern bool tipc_mode_enabled;
 extern uint32_t mds_mcm_check_intranode(MDS_DEST adest);
+
+/*****************************************************
+Function NAME: mdtm_wrapper_free_cb()
+Description: adapt free callback follow NCS_IPC_CB prototype
+Returns : bool
+*****************************************************/
+MDS_Q_MSG_FREE_CB q_msg_free_cb;
+bool mdtm_wrapper_free_cb(NCSCONTEXT arg, NCSCONTEXT msg)
+{
+	if (q_msg_free_cb)
+		q_msg_free_cb(msg);
+	return true;
+}
+
+/*****************************************************
+Function NAME: mdtm_q_mbx_cleanup()
+Returns : void
+*****************************************************/
+bool mdtm_q_mbx_cleanup(NCSCONTEXT arg, NCSCONTEXT msg)
+{
+	MDS_MCM_MSG_ELEM *msgelem = (MDS_MCM_MSG_ELEM *)msg;
+
+	if (msgelem != NULL) {
+		if (msgelem->type == MDS_DATA_TYPE)
+			mds_mcm_free_msg_memory(msgelem->info.data.enc_msg);
+		m_MMGR_FREE_MSGELEM(msgelem);
+	}
+	return true;
+}
+
 /*****************************************************
 Function NAME: get_adest_details()
 Returns : <node[nodeid]:processname[pid]>
@@ -433,6 +463,7 @@ uint32_t mds_vdest_tbl_get_role(MDS_VDEST_ID vdest_id, V_DEST_RL *role)
 	vdest_info = (MDS_VDEST_INFO *)ncs_patricia_tree_get(
 	    &gl_mds_mcm_cb->vdest_list, (uint8_t *)&vdest_id);
 	if (vdest_info == NULL) {
+		*role = V_DEST_RL_INVALID;
 		m_MDS_LOG_DBG("MDS:DB: VDEST not present");
 		m_MDS_LEAVE();
 		return NCSCC_RC_FAILURE;
@@ -804,7 +835,7 @@ uint32_t mds_svc_tbl_add(NCSMDS_INFO *info)
 	svc_info->i_msg_loss_indication =
 	    info->info.svc_install.i_msg_loss_indication;
 
-	if (svc_info->q_ownership == 1) {
+	if (svc_info->q_ownership == true) {
 		if (m_NCS_IPC_CREATE(&svc_info->q_mbx) != NCSCC_RC_SUCCESS) {
 			m_MMGR_FREE_SVC_INFO(svc_info);
 			m_MDS_LOG_ERR("MDS:DB: Can't Create SVC Mailbox");
@@ -859,9 +890,11 @@ uint32_t mds_svc_tbl_del(MDS_PWE_HDL pwe_hdl, MDS_SVC_ID svc_id,
 		m_MDS_LEAVE();
 		return NCSCC_RC_FAILURE;
 	} else {
-		if (svc_info->q_ownership == 1) {
+		if (svc_info->q_ownership == true) {
+			q_msg_free_cb = msg_free_cb;
 			m_NCS_IPC_DETACH(&svc_info->q_mbx,
-					 (NCS_IPC_CB)msg_free_cb, NULL);
+					 msg_free_cb ? mdtm_wrapper_free_cb : NULL,
+					 NULL);
 			m_NCS_IPC_RELEASE(&svc_info->q_mbx, NULL);
 		}
 		ncs_patricia_tree_del(&gl_mds_mcm_cb->svc_list,
@@ -1150,12 +1183,10 @@ uint32_t mds_svc_tbl_cleanup(void)
 		svc_hdl = svc_info->svc_hdl;
 
 		/* Delete service table entry */
-		if (svc_info->q_ownership == 1) {
-			/*  todo put cleanup function instead of NULL in
-			 * (NCS_IPC_CB) */
-			m_NCS_IPC_DETACH(&svc_info->q_mbx, (NCS_IPC_CB)NULL,
+		if (svc_info->q_ownership == true) {
+			m_NCS_IPC_DETACH(&svc_info->q_mbx,
+					 mdtm_q_mbx_cleanup,
 					 NULL);
-			/*  todo to provide cleanup callback */
 			m_NCS_IPC_RELEASE(&svc_info->q_mbx, NULL);
 		}
 

@@ -40,7 +40,7 @@ void getDn(int i)
 		strcpy(entarr[0].enitytype, "HE");
 		num_elements = 1;
 		no_of_trk_elements = 1;
-		strncpy(groupaddoption, "single", strlen("single"));
+		strncpy(groupaddoption, "single", strlen("single") + 1);
 		break;
 	case 2:
 		num_elements = 4;
@@ -62,7 +62,7 @@ void getDn(int i)
 		entarr[3].testDnptr.length = f120_slot_1_eedn.length;
 		strcpy(entarr[3].enitytype, "EE");
 		no_of_trk_elements = 1;
-		strncpy(groupaddoption, "subtree", strlen("subtree"));
+		strncpy(groupaddoption, "subtree", strlen("subtree") + 1);
 		break;
 	case 3:
 		num_elements = 3;
@@ -80,7 +80,7 @@ void getDn(int i)
 		entarr[2].testDnptr.length = amc_slot_1_eedn.length;
 		strcpy(entarr[2].enitytype, "EE");
 		no_of_trk_elements = 1;
-		strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE"));
+		strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE") + 1);
 		break;
 	case 4:
 		memset(&entarr[0], 0, sizeof(entity_array));
@@ -95,7 +95,7 @@ void getDn(int i)
 		strcpy(entarr[1].enitytype, "HE");
 		num_elements = 2;
 		no_of_trk_elements = 1;
-		strncpy(groupaddoption, "subtreeHE", strlen("subtreeHE"));
+		strncpy(groupaddoption, "subtreeHE", strlen("subtreeHE") + 1);
 		break;
 	default:
 		printf("\n The testcase id provided is invalid ");
@@ -203,17 +203,17 @@ void InitTrackingTest(int i, SaPlmGroupOptionsT groupaddoption,
 
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(i);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, groupaddoption),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, trackingoption, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, trackingoption, 121, 0),
 	    SA_AIS_OK);
 
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -234,9 +234,9 @@ void InitTrackingTest(int i, SaPlmGroupOptionsT groupaddoption,
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	// safassert(saPlmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	// safassert(plmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_01(void)
@@ -274,18 +274,18 @@ void saPlmReadinessTrack_05(void)
 	SaPlmReadinessTrackedEntityT entity_list[4];
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_05");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
 	SaNtfCorrelationIdsT corr_id;
 	memset(&corr_id, 0, sizeof(SaNtfCorrelationIdsT));
 	corr_id.rootCorrelationId = SA_NTF_IDENTIFIER_UNUSED;
 	corr_id.parentCorrelationId = SA_NTF_IDENTIFIER_UNUSED;
-	saPlmEntityReadinessImpact(plmHandle, &entarr[0].testDnptr,
-				   SA_PLM_RI_IMMINENT_FAILURE, &corr_id);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityReadinessImpact(plmHandle, &entarr[0].testDnptr,
+				   SA_PLM_RI_IMMINENT_FAILURE, &corr_id), SA_AIS_OK);
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
@@ -305,7 +305,7 @@ void saPlmReadinessTrack_05(void)
 	       f120_slot_1_eedn.length);
 	ents.numberOfEntities = 4;
 	ents.entities = NULL;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
 				      &ents),
 		  SA_AIS_OK);
 	checktrackentval(&ents);
@@ -313,9 +313,9 @@ void saPlmReadinessTrack_05(void)
 	safassert(
 	    saPlmReadinessNotificationFree(entityGroupHandle, ents.entities),
 	    SA_AIS_OK);
-	// safassert(saPlmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	// safassert(plmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_05");
 }
 
@@ -326,12 +326,12 @@ void saPlmReadinessTrack_06(void)
 	SaPlmReadinessTrackedEntityT entity_list[2];
 	printf("\nStarting the test case saPlmReadinessTrack_06");
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(4);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
@@ -346,14 +346,14 @@ void saPlmReadinessTrack_06(void)
 	       amc_slot_1_dn.length);
 	ents.numberOfEntities = 2;
 	ents.entities = entity_list;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
 				      &ents),
 		  SA_AIS_OK);
 	checktrackentval(&ents);
 	test_validate(rc_from_test, SA_AIS_OK);
-	// safassert(saPlmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	// safassert(plmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_06");
 }
 
@@ -364,12 +364,12 @@ void saPlmReadinessTrack_07(void)
 	SaPlmReadinessTrackedEntityT entity_list[3];
 	printf("\nStarting the test case saPlmReadinessTrack_07");
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(3);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
@@ -387,14 +387,14 @@ void saPlmReadinessTrack_07(void)
 	       amc_slot_1_eedn.length);
 	ents.numberOfEntities = 3;
 	ents.entities = entity_list;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
 				      &ents),
 		  SA_AIS_OK);
 	checktrackentval(&ents);
 	test_validate(rc_from_test, SA_AIS_OK);
-	// safassert(saPlmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	// safassert(plmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_07");
 }
 
@@ -405,12 +405,12 @@ void saPlmReadinessTrack_08(void)
 	SaPlmReadinessTrackedEntityT entity_list[2];
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_08");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -423,14 +423,14 @@ void saPlmReadinessTrack_08(void)
 	       f120_slot_1_dn.length);
 	ents.numberOfEntities = 1;
 	ents.entities = entity_list;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
 				      &ents),
 		  SA_AIS_OK);
 	checktrackentval(&ents);
 	test_validate(rc_from_test, SA_AIS_OK);
-	// safassert(saPlmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	// safassert(plmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_08");
 }
 
@@ -439,19 +439,19 @@ void saPlmReadinessTrack_09(void)
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_09");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
-	rc = saPlmReadinessTrack(0, SA_TRACK_CURRENT, 121, 0);
+	rc = plmReadinessTrack(0, SA_TRACK_CURRENT, 121, 0);
 	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_09");
 }
 
@@ -460,37 +460,37 @@ void saPlmReadinessTrack_10(void)
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_10");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
-	rc = saPlmReadinessTrack(entityGroupHandle, 0, 121, 0);
+	rc = plmReadinessTrack(entityGroupHandle, 0, 121, 0);
 	test_validate(rc, SA_AIS_ERR_BAD_FLAGS);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_10");
 }
 
 void saPlmReadinessTrack_11(void)
 {
 	printf("\nStarting the test case saPlmReadinessTrack_11");
-	safassert(saPlmInitialize(&plmHandle, NULL, &PlmVersion), SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmInitialize(&plmHandle, NULL, &PlmVersion), SA_AIS_OK);
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
-	rc = saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0);
+	rc = plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0);
 	test_validate(rc, SA_AIS_ERR_INIT);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_11");
 }
 
@@ -499,19 +499,19 @@ void saPlmReadinessTrack_12(void)
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_12");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	rc = saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr, 0,
+	rc = plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr, 0,
 				 SA_PLM_GROUP_SINGLE_ENTITY);
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0),
 	    SA_AIS_OK);
 	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_12");
 }
 
@@ -525,21 +525,21 @@ void saPlmReadinessTrack_13(void)
 	       f120_slot_1_dn.length);
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_13");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(4);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
 	ents.numberOfEntities = 1;
 	ents.entities = entity_list;
-	rc = saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
+	rc = plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
 				 &ents);
 	test_validate(rc, SA_AIS_ERR_NO_SPACE);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_13");
 }
 
@@ -547,100 +547,100 @@ void saPlmReadinessTrack_14(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(4);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0),
 	    SA_AIS_OK);
 	safassert(saPlmDispatch(plmHandle, SA_DISPATCH_ONE), SA_AIS_OK);
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	// safassert(saPlmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	// safassert(plmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_15(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(3);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0),
 	    SA_AIS_OK);
 	safassert(saPlmDispatch(plmHandle, SA_DISPATCH_ONE), SA_AIS_OK);
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	// safassert(saPlmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	// safassert(plmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_16(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121, 0),
 	    SA_AIS_OK);
 	safassert(saPlmDispatch(plmHandle, SA_DISPATCH_ONE), SA_AIS_OK);
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	// safassert(saPlmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	// safassert(plmReadinessTrackStop(entityGroupHandle),SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_17(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
-	// safassert(saPlmEntityGroupDelete(entityGroupHandle),SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
-	rc_from_test = saPlmReadinessTrackStop(entityGroupHandle);
+	// safassert(plmEntityGroupDelete(entityGroupHandle),SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
+	rc_from_test = plmReadinessTrackStop(entityGroupHandle);
 	test_validate(rc_from_test, SA_AIS_ERR_BAD_HANDLE);
 }
 
@@ -648,46 +648,46 @@ void saPlmReadinessTrack_18(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
-	rc_from_test = saPlmReadinessTrackStop(-1);
+	rc_from_test = plmReadinessTrackStop(-1);
 	test_validate(rc_from_test, SA_AIS_ERR_BAD_HANDLE);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_19(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
-	rc_from_test = saPlmReadinessTrackStop(entityGroupHandle);
+	rc_from_test = plmReadinessTrackStop(entityGroupHandle);
 	test_validate(rc_from_test, SA_AIS_ERR_NOT_EXIST);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_20(void)
@@ -697,12 +697,12 @@ void saPlmReadinessTrack_20(void)
 	SaPlmReadinessTrackedEntityT entity_list[4];
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_20");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
@@ -710,13 +710,13 @@ void saPlmReadinessTrack_20(void)
 	memset(&entity_list[0], 0, sizeof(entity_list));
 	ents.numberOfEntities = 4;
 	ents.entities = entity_list;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
 				      &ents),
 		  SA_AIS_OK);
 	checktrackentval(&ents);
 	printf("\nCompleted the test case saPlmReadinessTrack_08");
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	test_validate(rc_from_test, SA_AIS_OK);
 }
 
@@ -727,12 +727,12 @@ void saPlmReadinessTrack_21(void)
 	SaPlmReadinessTrackedEntityT entity_list[2];
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_08");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -741,7 +741,7 @@ void saPlmReadinessTrack_21(void)
 	memset(&entity_list[0], 0, sizeof(SaPlmReadinessTrackedEntityT));
 	ents.numberOfEntities = 1;
 	ents.entities = NULL;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
 				      &ents),
 		  SA_AIS_OK);
 	rc_from_test = saPlmReadinessNotificationFree(0, ents.entities);
@@ -749,8 +749,8 @@ void saPlmReadinessTrack_21(void)
 	safassert(
 	    saPlmReadinessNotificationFree(entityGroupHandle, ents.entities),
 	    SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_08");
 }
 
@@ -761,12 +761,12 @@ void saPlmReadinessTrack_22(void)
 	SaPlmReadinessTrackedEntityT entity_list[2];
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_01;
 	printf("\nStarting the test case saPlmReadinessTrack_21");
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -775,7 +775,7 @@ void saPlmReadinessTrack_22(void)
 	memset(&entity_list[0], 0, sizeof(SaPlmReadinessTrackedEntityT));
 	ents.numberOfEntities = 1;
 	ents.entities = NULL;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CURRENT, 121,
 				      &ents),
 		  SA_AIS_OK);
 	memset(&entity_list[0], 0, sizeof(entity_array));
@@ -792,8 +792,8 @@ void saPlmReadinessTrack_22(void)
 	safassert(
 	    saPlmReadinessNotificationFree(entityGroupHandle, ents1.entities),
 	    SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 	printf("\nCompleted the test case saPlmReadinessTrack_22");
 }
 
@@ -803,18 +803,18 @@ void saPlmReadinessTrack_23(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[1], 0, sizeof(entity_array));
 	memcpy(entarr[1].testDnptr.value, amc_slot_1_dn.value,
@@ -823,8 +823,8 @@ void saPlmReadinessTrack_23(void)
 	strcpy(entarr[1].enitytype, "HE");
 	num_elements = 2;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "single", strlen("single"));
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
+	strncpy(groupaddoption, "single", strlen("single") + 1);
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -845,26 +845,26 @@ void saPlmReadinessTrack_23(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_24(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[4], 0, sizeof(entity_array));
 	memcpy(entarr[4].testDnptr.value, amc_slot_16_dn.value,
@@ -873,7 +873,7 @@ void saPlmReadinessTrack_24(void)
 	strcpy(entarr[4].enitytype, "HE");
 	num_elements = 5;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[4].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[4].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -894,27 +894,27 @@ void saPlmReadinessTrack_24(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_25(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[1], 0, sizeof(entity_array));
 	memset(&entarr[2], 0, sizeof(entity_array));
@@ -938,7 +938,7 @@ void saPlmReadinessTrack_25(void)
 	strcpy(entarr[4].enitytype, "EE");
 	num_elements = 5;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -959,26 +959,26 @@ void saPlmReadinessTrack_25(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_26(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[4], 0, sizeof(entity_array));
 	memset(&entarr[5], 0, sizeof(entity_array));
@@ -1002,7 +1002,7 @@ void saPlmReadinessTrack_26(void)
 	strcpy(entarr[7].enitytype, "EE");
 	num_elements = 8;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[4].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[4].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1023,26 +1023,26 @@ void saPlmReadinessTrack_26(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_27(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[4], 0, sizeof(entity_array));
 	memset(&entarr[5], 0, sizeof(entity_array));
@@ -1056,7 +1056,7 @@ void saPlmReadinessTrack_27(void)
 	strcpy(entarr[5].enitytype, "HE");
 	num_elements = 6;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[4].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[4].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1077,27 +1077,27 @@ void saPlmReadinessTrack_27(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_28(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(4);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[2], 0, sizeof(entity_array));
 	memset(&entarr[3], 0, sizeof(entity_array));
@@ -1112,8 +1112,8 @@ void saPlmReadinessTrack_28(void)
 	num_elements = 4;
 	no_of_trk_elements = 2;
 	memset(groupaddoption, 0, 10 * sizeof(char));
-	strncpy(groupaddoption, "subtreeHE", strlen("subtreeHE"));
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[2].testDnptr,
+	strncpy(groupaddoption, "subtreeHE", strlen("subtreeHE") + 1);
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[2].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1134,27 +1134,27 @@ void saPlmReadinessTrack_28(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_29(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(3);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[3], 0, sizeof(entity_array));
 	memset(&entarr[4], 0, sizeof(entity_array));
@@ -1173,8 +1173,8 @@ void saPlmReadinessTrack_29(void)
 	strcpy(entarr[5].enitytype, "EE");
 	num_elements = 6;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE"));
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[3].testDnptr,
+	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE") + 1);
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[3].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1195,27 +1195,27 @@ void saPlmReadinessTrack_29(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_30(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(4);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[2], 0, sizeof(entity_array));
 	memset(&entarr[3], 0, sizeof(entity_array));
@@ -1234,7 +1234,7 @@ void saPlmReadinessTrack_30(void)
 	strcpy(entarr[4].enitytype, "EE");
 	num_elements = 5;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[2].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[2].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1255,27 +1255,27 @@ void saPlmReadinessTrack_30(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_31(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	memset(&entarr[1], 0, sizeof(entity_array));
 	memset(&entarr[2], 0, sizeof(entity_array));
@@ -1294,7 +1294,7 @@ void saPlmReadinessTrack_31(void)
 	strcpy(entarr[3].enitytype, "EE");
 	num_elements = 4;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1315,9 +1315,9 @@ void saPlmReadinessTrack_31(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 /* group remove cases CHANGES category */
@@ -1325,12 +1325,12 @@ void saPlmReadinessTrack_32(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -1342,15 +1342,15 @@ void saPlmReadinessTrack_32(void)
 	strcpy(entarr[1].enitytype, "HE");
 	num_elements = 2;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "single", strlen("single"));
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
+	strncpy(groupaddoption, "single", strlen("single") + 1);
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[1].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[1].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -1370,21 +1370,21 @@ void saPlmReadinessTrack_32(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_33(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
@@ -1405,14 +1405,14 @@ void saPlmReadinessTrack_33(void)
 	strcpy(entarr[3].enitytype, "EE");
 	num_elements = 4;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[1].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[1].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[1].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -1432,21 +1432,21 @@ void saPlmReadinessTrack_33(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_34(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(4);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
@@ -1467,14 +1467,14 @@ void saPlmReadinessTrack_34(void)
 	strcpy(entarr[4].enitytype, "EE");
 	num_elements = 5;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[2].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[2].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[2].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[2].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -1494,25 +1494,25 @@ void saPlmReadinessTrack_34(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_35(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
+	    plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES, 121, 0),
 	    SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
 	memset(&entarr[4], 0, sizeof(entity_array));
@@ -1522,11 +1522,11 @@ void saPlmReadinessTrack_35(void)
 	strcpy(entarr[4].enitytype, "HE");
 	num_elements = 5;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[4].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[4].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[4].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[4].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -1546,9 +1546,9 @@ void saPlmReadinessTrack_35(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 /* member add and member remove in a group cases CHANGES_ONLY category */
@@ -1556,12 +1556,12 @@ void saPlmReadinessTrack_36(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -1573,11 +1573,11 @@ void saPlmReadinessTrack_36(void)
 	strcpy(entarr[0].enitytype, "HE");
 	num_elements = 1;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "single", strlen("single"));
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	strncpy(groupaddoption, "single", strlen("single") + 1);
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1598,21 +1598,21 @@ void saPlmReadinessTrack_36(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_37(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -1624,15 +1624,15 @@ void saPlmReadinessTrack_37(void)
 	strcpy(entarr[0].enitytype, "HE");
 	num_elements = 1;
 	no_of_trk_elements = 2;
-	strncpy(groupaddoption, "single", strlen("single"));
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	strncpy(groupaddoption, "single", strlen("single") + 1);
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -1652,21 +1652,21 @@ void saPlmReadinessTrack_37(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_38(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -1687,13 +1687,13 @@ void saPlmReadinessTrack_38(void)
 	entarr[2].testDnptr.length = amc_slot_16_eedn.length;
 	strcpy(entarr[2].enitytype, "EE");
 
-	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE"));
+	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE") + 1);
 	num_elements = 3;
 	no_of_trk_elements = 2;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1714,21 +1714,21 @@ void saPlmReadinessTrack_38(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_39(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(1);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
@@ -1748,17 +1748,17 @@ void saPlmReadinessTrack_39(void)
 	       amc_slot_16_eedn.length);
 	entarr[2].testDnptr.length = amc_slot_16_eedn.length;
 	strcpy(entarr[2].enitytype, "EE");
-	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE"));
+	strncpy(groupaddoption, "subtreeEE", strlen("subtreeEE") + 1);
 	num_elements = 3;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -1778,21 +1778,21 @@ void saPlmReadinessTrack_39(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_40(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(4);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
@@ -1814,10 +1814,10 @@ void saPlmReadinessTrack_40(void)
 	strcpy(entarr[2].enitytype, "EE");
 	num_elements = 3;
 	no_of_trk_elements = 2;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1838,21 +1838,21 @@ void saPlmReadinessTrack_40(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_41(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(4);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements,
 				      SA_PLM_GROUP_SUBTREE_HES_ONLY),
 		  SA_AIS_OK);
@@ -1875,14 +1875,14 @@ void saPlmReadinessTrack_41(void)
 	strcpy(entarr[2].enitytype, "EE");
 	num_elements = 3;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SUBTREE_EES_ONLY),
 		  SA_AIS_OK);
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -1902,21 +1902,21 @@ void saPlmReadinessTrack_41(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_42(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
@@ -1929,10 +1929,10 @@ void saPlmReadinessTrack_42(void)
 	strcpy(entarr[0].enitytype, "HE");
 	num_elements = 1;
 	no_of_trk_elements = 2;
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
@@ -1953,21 +1953,21 @@ void saPlmReadinessTrack_42(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_43(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_02;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
@@ -1979,14 +1979,14 @@ void saPlmReadinessTrack_43(void)
 	strcpy(entarr[0].enitytype, "HE");
 	num_elements = 1;
 	no_of_trk_elements = 2;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -2006,9 +2006,9 @@ void saPlmReadinessTrack_43(void)
 	printf(
 	    "\nFollowing is the output return code of the test : rc_from_test ");
 	test_validate(rc_from_test, SA_AIS_OK);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmReadinessTrack_44(void)
@@ -2016,16 +2016,16 @@ void saPlmReadinessTrack_44(void)
 	SaPlmCallbacksT plms_cbks;
 	int i = 0;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallback_03;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	safassert(saPlmEntityGroupCreate(plmHandle, &entityGroupHandle),
+	safassert(plmEntityGroupCreate(plmHandle, &entityGroupHandle),
 		  SA_AIS_OK);
 	getDn(2);
-	safassert(saPlmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
+	safassert(plmReadinessTrack(entityGroupHandle, SA_TRACK_CHANGES_ONLY,
 				      121, 0),
 		  SA_AIS_OK);
 	i++;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      no_of_trk_elements, SA_PLM_GROUP_SUBTREE),
 		  SA_AIS_OK);
 	entityGrpHandle = entityGroupHandle;
@@ -2037,23 +2037,23 @@ void saPlmReadinessTrack_44(void)
 	strcpy(entarr[0].enitytype, "HE");
 	num_elements = 1;
 	no_of_trk_elements = 2;
-	safassert(saPlmReadinessTrack(entityGroupHandle,
+	safassert(plmReadinessTrack(entityGroupHandle,
 				      SA_TRACK_CHANGES | SA_TRACK_CURRENT, 121,
 				      0),
 		  SA_AIS_OK);
 	i++;
 	i++;
-	safassert(saPlmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
+	safassert(plmEntityGroupAdd(entityGroupHandle, &entarr[0].testDnptr,
 				      1, SA_PLM_GROUP_SINGLE_ENTITY),
 		  SA_AIS_OK);
-	safassert(saPlmReadinessTrack(entityGroupHandle,
+	safassert(plmReadinessTrack(entityGroupHandle,
 				      SA_TRACK_CHANGES | SA_TRACK_CURRENT, 121,
 				      0),
 		  SA_AIS_OK);
 	i++;
 	i++;
 	safassert(
-	    saPlmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
+	    plmEntityGroupRemove(entityGroupHandle, &entarr[0].testDnptr, 1),
 	    SA_AIS_OK);
 	safassert(saPlmSelectionObjectGet(plmHandle, &selectionObject),
 		  SA_AIS_OK);
@@ -2072,9 +2072,9 @@ void saPlmReadinessTrack_44(void)
 
 	test_validate(counter, i);
 	printf("Total callbacks called using DISPATCH_ALL : %d", counter);
-	safassert(saPlmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmReadinessTrackStop(entityGroupHandle), SA_AIS_OK);
+	safassert(plmEntityGroupDelete(entityGroupHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 __attribute__((constructor)) static void

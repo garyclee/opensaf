@@ -4,42 +4,42 @@ void saPlmEntityGroupCreate_01(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	rc = saPlmEntityGroupCreate(plmHandle, &entityGroupHandle);
-	rc = saPlmEntityGroupCreate(plmHandle, &entityGroupHandle);
+	rc = plmEntityGroupCreate(plmHandle, &entityGroupHandle);
+	rc = plmEntityGroupCreate(plmHandle, &entityGroupHandle);
 	test_validate(rc, SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmEntityGroupCreate_02(void)
 {
-	safassert(saPlmInitialize(&plmHandle, NULL, &PlmVersion), SA_AIS_OK);
-	rc = saPlmEntityGroupCreate(plmHandle, &entityGroupHandle);
+	safassert(plmInitialize(&plmHandle, NULL, &PlmVersion), SA_AIS_OK);
+	rc = plmEntityGroupCreate(plmHandle, &entityGroupHandle);
 	test_validate(rc, SA_AIS_OK);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmEntityGroupCreate_03(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	rc = saPlmEntityGroupCreate(-1, &entityGroupHandle);
+	rc = plmEntityGroupCreate(-1, &entityGroupHandle);
 	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 void saPlmEntityGroupCreate_04(void)
 {
 	SaPlmCallbacksT plms_cbks;
 	plms_cbks.saPlmReadinessTrackCallback = &TrackCallbackT;
-	safassert(saPlmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
+	safassert(plmInitialize(&plmHandle, &plms_cbks, &PlmVersion),
 		  SA_AIS_OK);
-	rc = saPlmEntityGroupCreate(plmHandle, NULL);
+	rc = plmEntityGroupCreate(plmHandle, NULL);
 	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
-	safassert(saPlmFinalize(plmHandle), SA_AIS_OK);
+	safassert(plmFinalize(plmHandle), SA_AIS_OK);
 }
 
 extern void saPlmEntityGroupAdd_01(void);

@@ -109,20 +109,6 @@ typedef enum {
 extern void glsv_createthread(SaLckHandleT *lck_Handle);
 extern void glsv_createthread_all_loop(int hdl);
 
-extern int tet_test_lckInitialize(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckSelectionObject(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckOptionCheck(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckDispatch(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckFinalize(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckResourceOpen(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckResourceOpenAsync(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckResourceClose(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckResourceLock(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckResourceLockAsync(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckResourceUnlock(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckResourceUnlockAsync(int i, GLSV_CONFIG_FLAG flg);
-extern int tet_test_lckLockPurge(int i, GLSV_CONFIG_FLAG flg);
-
 extern int tet_test_red_lckInitialize(int i, GLSV_CONFIG_FLAG flg);
 extern int tet_test_red_lckSelectionObject(int i, GLSV_CONFIG_FLAG flg);
 extern int tet_test_red_lckOptionCheck(int i, GLSV_CONFIG_FLAG flg);

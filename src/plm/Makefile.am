@@ -248,7 +248,8 @@ bin_plmtest_SOURCES = \
 	src/plm/apitest/test_saPlmEntityGroupAdd.c \
 	src/plm/apitest/test_saPlmEntityGroupDelete.c \
 	src/plm/apitest/test_saPlmEntityGroupRemove.c \
-	src/plm/apitest/test_saPlmReadinessTrack.c
+	src/plm/apitest/test_saPlmReadinessTrack.c \
+	src/plm/apitest/test_saPlmReadinessTrackResponse.cc
 
 bin_plmtest_LDADD = \
 	lib/libSaPlm.la \

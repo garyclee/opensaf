@@ -22,7 +22,7 @@ namespace mds {
 HeaderMessage::HeaderMessage(uint16_t msg_len, uint32_t mseq,
     uint16_t mfrag, uint16_t fseq): msg_len_(msg_len),
         mseq_(mseq), mfrag_(mfrag), fseq_(fseq) {
-  pro_ver_ = MDS_PROT_FCTRL;
+  pro_ver_ = MDS_PROT_UNDEFINED;
   pro_id_ = 0;
   msg_type_ = 0;
 }
@@ -47,7 +47,9 @@ void HeaderMessage::Encode(uint8_t *msg) {
 
 void HeaderMessage::Decode(uint8_t *msg) {
   uint8_t *ptr;
-
+  pro_id_ = 0;
+  msg_type_ = 0;
+  pro_ver_ = MDS_PROT_UNDEFINED;
   // decode message length
   ptr = &msg[HeaderMessage::FieldIndex::kMessageLength];
   msg_len_ = ncs_decode_16bit(&ptr);
@@ -57,34 +59,68 @@ void HeaderMessage::Decode(uint8_t *msg) {
   // decode fragment number
   ptr = &msg[HeaderMessage::FieldIndex::kFragmentNumber];
   mfrag_ = ncs_decode_16bit(&ptr);
-  // decode protocol version
-  ptr = &msg[HeaderMessage::FieldIndex::kProtocolVersion];
-  pro_ver_ = ncs_decode_8bit(&ptr);
-  if ((pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) {
-    // decode flow control sequence number
-    ptr = &msg[HeaderMessage::FieldIndex::kFlowControlSequenceNumber];
-    fseq_ = ncs_decode_16bit(&ptr);
-    // decode protocol identifier if the mfrag_ and mseq_ are 0
-    // otherwise it is always DataMessage within non-zero mseq_ and mfrag_
-    if (mfrag_ == 0 && mseq_ == 0) {
-      ptr = &msg[ChunkAck::FieldIndex::kProtocolIdentifier];
-      pro_id_ = ncs_decode_32bit(&ptr);
-      if (pro_id_ == MDS_PROT_FCTRL_ID) {
-        // decode message type
-        ptr = &msg[ChunkAck::FieldIndex::kFlowControlMessageType];
-        msg_type_ = ncs_decode_8bit(&ptr);
-      }
-    } else {
-      pro_id_ = 0;
-      msg_type_ = 0;
-    }
-  } else {
-    if (mfrag_ != 0) {
+  // The unfragment or 1st fragment always has encoded the protocol version
+  // at oct10, refer to mdtm_add_mds_hdr(). Therefore we can rely on oct10
+  // to identify the flow control message
+  if (mfrag_ == 0 || ((mfrag_ & 0x7fff) == 1)) {
+    // decode protocol version
+    ptr = &msg[HeaderMessage::FieldIndex::kProtocolVersion];
+    pro_ver_ = ncs_decode_8bit(&ptr);
+    if ((pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) {
+      // decode flow control sequence number
       ptr = &msg[HeaderMessage::FieldIndex::kFlowControlSequenceNumber];
       fseq_ = ncs_decode_16bit(&ptr);
-      if (fseq_ != 0) pro_ver_ = MDS_PROT_FCTRL;
+      // decode protocol identifier if the mfrag_ and mseq_ are 0
+      // otherwise it is always DataMessage within non-zero mseq_ and mfrag_
+      if (mfrag_ == 0 && mseq_ == 0) {
+        ptr = &msg[ChunkAck::FieldIndex::kProtocolIdentifier];
+        pro_id_ = ncs_decode_32bit(&ptr);
+        if (pro_id_ == MDS_PROT_FCTRL_ID) {
+          // decode message type
+          ptr = &msg[ChunkAck::FieldIndex::kFlowControlMessageType];
+          msg_type_ = ncs_decode_8bit(&ptr);
+        }
+      }
+    }
+  } else {
+    // this is the other fragment after 1st fragment (i.e. 2nd, 3rd, etc...)
+    // the oct10 is written by fragment data, it is not encoded for
+    // protocol version anymore.
+    // In legacy protocol version, lengthcheck(oct8) = messagelength(oct0) - 10
+    // Thus, if fseq(oct8) != messagelength(oct0) - 10, this is MDS_PROT_FCTRL
+    // Otherwise, it could be either MDS_PROT_FCTRL or MDS_PROT_LEGACY
+    // so set the pro_ver_ as MDS_PROT_UNDEFINED and refer to the portidmap
+    // to decide the protocol version
+    ptr = &msg[HeaderMessage::FieldIndex::kFlowControlSequenceNumber];
+    fseq_ = ncs_decode_16bit(&ptr);
+    if (msg_len_ - fseq_ - 2 != MDTM_FRAG_HDR_LEN) {
+      pro_ver_ = MDS_PROT_FCTRL;
     }
   }
+}
+
+bool HeaderMessage::IsControlMessage() {
+  if (((pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) &&
+      pro_id_ == MDS_PROT_FCTRL_ID) {
+    return true;
+  }
+  return false;
+}
+
+bool HeaderMessage::IsLegacyMessage() {
+  return (pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_LEGACY;
+}
+
+bool HeaderMessage::IsFlowMessage() {
+  if (((pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_FCTRL) &&
+      pro_id_ != MDS_PROT_FCTRL_ID) {
+    return true;
+  }
+  return false;
+}
+
+bool HeaderMessage::IsUndefinedMessage() {
+  return (pro_ver_ & MDS_PROT_VER_MASK) == MDS_PROT_UNDEFINED;
 }
 
 void DataMessage::Decode(uint8_t *msg) {
@@ -102,7 +138,7 @@ void DataMessage::Decode(uint8_t *msg) {
 
 DataMessage::~DataMessage() {
   if (msg_data_ != nullptr) {
-    delete[] msg_data_;
+    free(msg_data_);
     msg_data_ = nullptr;
   }
 }

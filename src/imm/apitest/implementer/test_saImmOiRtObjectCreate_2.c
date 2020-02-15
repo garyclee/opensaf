@@ -59,9 +59,11 @@ static SaImmAttrValuesT_2 v10 = {"saLogStreamSeverityFilter",
 				 SA_IMM_ATTR_SAUINT32T, 1, (void **)int1Values};
 static SaImmAttrValuesT_2 v11 = {"saLogStreamCreationTimestamp",
 				 SA_IMM_ATTR_SATIMET, 1, (void **)lint1Values};
+static SaImmAttrValuesT_2 v12 = {"saLogStreamFacilityId",
+				SA_IMM_ATTR_SAUINT32T, 1, (void **)int1Values};
 
 static const SaImmAttrValuesT_2 *attrValues[] = {
-    &v1, &v2, &v3, &v4, &v5, &v6, &v7, &v8, &v9, &v10, &v11, NULL};
+    &v1, &v2, &v3, &v4, &v5, &v6, &v7, &v8, &v9, &v10, &v11, &v12, NULL};
 static const SaImmClassNameT className = "SaLogStream";
 
 void saImmOiRtObjectCreate_2_01(void)
@@ -188,8 +190,9 @@ void saImmOiRtObjectCreate_2_07(void)
 	// const SaNameT *nameValues27[] = {&rdnObj27};
 	const SaImmAttrValuesT_2 v27 = {"safLgStr", SA_IMM_ATTR_SASTRINGT, 1,
 					(void **)nameValues27};
-	const SaImmAttrValuesT_2 *attrValues27[] = {
-	    &v1, &v27, &v3, &v4, &v5, &v6, &v7, &v8, &v9, &v10, &v11, NULL};
+	const SaImmAttrValuesT_2 *attrValues27[] = {&v1,  &v27, &v3, &v4, &v5,
+						    &v6,  &v7,  &v8, &v9, &v10,
+						    &v11, &v12, NULL};
 
 	SaNameT tmpName;
 

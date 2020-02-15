@@ -70,13 +70,14 @@ void UnixSocketHandler::Open() { FlushStatus(); }
 
 void UnixSocketHandler::FormRfc5424(const DestinationHandler::RecordInfo& msg,
                                     RfcBuffer* buf) {
+  base::LogMessage::Facility facilityId =
+      static_cast<base::LogMessage::Facility>(msg.facilityId);
   base::LogMessage::Severity sev{Sev(msg.severity)};
   base::LogMessage::HostName hostname{msg.origin};
   base::LogMessage::ProcId procid{""};
   base::LogMessage::AppName appname{msg.app_name};
 
-  base::LogMessage::Write(base::LogMessage::Facility::kLocal0, sev, msg.time,
-                          hostname, appname, procid,
+  base::LogMessage::Write(facilityId, sev, msg.time, hostname, appname, procid,
                           base::LogMessage::MsgId{msg.msgid}, {},
                           std::string{msg.log_record}, buf);
 }

@@ -205,6 +205,7 @@ uint32_t avd_ckpt_su(AVD_CL_CB *cb, AVD_SU *ckpt_su,
   su->saAmfSUNumCurrStandbySIs = ckpt_su->saAmfSUNumCurrStandbySIs;
   su->saAmfSUHostedByNode = ckpt_su->saAmfSUHostedByNode;
   su->term_state = ckpt_su->term_state;
+  su->is_inst_msg_processed = ckpt_su->is_inst_msg_processed;
   su->su_switch = ckpt_su->su_switch;
   su->saAmfSURestartCount = ckpt_su->saAmfSURestartCount;
 

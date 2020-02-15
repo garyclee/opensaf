@@ -86,6 +86,7 @@ void promote_node(FM_CB *fm_cb) {
     LOG_ER("Unable to set active controller in consensus service");
     opensaf_quick_reboot("Unable to set active controller "
       "in consensus service");
+    return;
   } else if (rc == SA_AIS_ERR_EXIST) {
     // @todo if we don't reboot, we don't seem to recover from this. Can we
     // improve?
@@ -94,6 +95,7 @@ void promote_node(FM_CB *fm_cb) {
         "cluster?");
     opensaf_quick_reboot("A controller is already active. We were separated "
                          "from the cluster?");
+    return;
   }
 
   PCS_RDA_REQ rda_req;

@@ -21,7 +21,7 @@
 . $pkgsysconfdir/nid.conf
 
 MANAGE_TIPC=${OPENSAF_MANAGE_TIPC:-"yes"}
-TIPC_MODULE=/lib/modules/$(uname -r)/kernel/net/tipc.ko
+TIPC_MODULE=$(modinfo -n tipc 2> /dev/null) || TIPC_MODULE="/lib/modules/$(uname -r)/kernel/net/tipc/tipc.ko"
 CHASSIS_ID_FILE=$pkgsysconfdir/chassis_id
 SLOT_ID_FILE=$pkgsysconfdir/slot_id
 SUBSLOT_ID_FILE=$pkgsysconfdir/subslot_id
@@ -221,19 +221,22 @@ function tipc_duplicate_node_detect ()
 function tipc_configure ()
 {
     echo "Inserting TIPC mdoule..."
-    
-    if ! test -f "$TIPC_MODULE"  ; then
-      modprobe tipc
-      RM_TIPC_MODULE="modprobe -r tipc"
-    else 
-      insmod "$TIPC_MODULE"
-      RM_TIPC_MODULE="rmmod $TIPC_MODULE"
-    fi
 
-    ret_val=$?
-    if [ $ret_val -ne 0 ] ; then
-        logger -p user.err " TIPC Module could not be loaded "
-        exit 1
+    # Prefer using modprobe to insmod as modprobe takes care of
+    # loading all dependencies if any. If any dependent module
+    # has not yet loaded, insmod will get failed.
+    RM_TIPC_MODULE=""
+    if modprobe tipc ; then
+      RM_TIPC_MODULE="modprobe -r tipc"
+    elif insmod "$TIPC_MODULE" ; then
+      RM_TIPC_MODULE="rmmod $TIPC_MODULE"
+    elif lsmod | grep -q tipc ; then
+      # tipc kernel has been loaded. This may happen when we run opensaf on
+      # container which does not have the right to load/unload tipc module
+      echo "TIPC module is already loaded"
+    else
+      logger -p user.err " TIPC Module could not be loaded "
+      exit 1
     fi
 
     # max_nodes is not supported in TIPC 2.0

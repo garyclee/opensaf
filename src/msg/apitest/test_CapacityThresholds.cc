@@ -39,16 +39,52 @@ static const SaMsgQueueCreationAttributesT creationAttributes = {
   SA_TIME_ONE_SECOND
 };
 
-static SaMsgQueueHandleT openQueue(SaMsgHandleT msgHandle) {
+static void wait(void)
+{
+  timespec ts = { 1, 0 };
+  while (nanosleep(&ts, &ts) < 0 && errno == EINTR);
+}
+
+static SaAisErrorT msgInitialize(SaMsgHandleT *msgHandle,
+                                 int callbacks,
+                                 SaVersionT *version)
+{
+  SaAisErrorT rc(SA_AIS_OK);
+
+  while (true) {
+    rc = saMsgInitialize(msgHandle, 0, version);
+
+    if (rc == SA_AIS_OK)
+      break;
+    else if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      wait();
+    else
+      break;
+  }
+
+  return rc;
+}
+
+SaMsgQueueHandleT openQueue(SaMsgHandleT msgHandle) {
   SaMsgQueueHandleT queueHandle;
 
-  SaAisErrorT rc(saMsgQueueOpen(msgHandle,
-                                &queueName,
-                                &creationAttributes,
-                                SA_MSG_QUEUE_CREATE,
-                                SA_TIME_MAX,
-                                &queueHandle));
-  assert(rc == SA_AIS_OK);
+  while (true) {
+    SaAisErrorT rc(saMsgQueueOpen(msgHandle,
+                                  &queueName,
+                                  &creationAttributes,
+                                  SA_MSG_QUEUE_CREATE,
+                                  SA_TIME_ONE_SECOND * 50,
+                                  &queueHandle));
+
+    if (rc == SA_AIS_OK)
+      break;
+    else if (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT)
+      wait();
+    else {
+      std::cerr << "saMsgQueueOpen failed: " << rc << std::endl;
+      assert(false);
+    }
+  }
 
   return queueHandle;
 }
@@ -216,12 +252,26 @@ static int testNtfInit(SaNtfHandleT& ntfHandle, SaSelectionObjectT& ntfSelObj) {
       break;
     }
 
+    const int numMinorIds(4);
+
     rc = saNtfStateChangeNotificationFilterAllocate(
-      ntfHandle, &stateChangeFilter, 0, 0, 0, 0, 0, 0);
+      ntfHandle, &stateChangeFilter, 1, 0, 0, numMinorIds, 0, 0);
 
     if (rc != SA_AIS_OK) {
       result = TET_FAIL;
       break;
+    }
+
+    *stateChangeFilter.notificationFilterHeader.eventTypes =
+      SA_NTF_OBJECT_STATE_CHANGE;
+
+    for (int i(0); i < numMinorIds; i++) {
+      stateChangeFilter.notificationFilterHeader.notificationClassIds[i].vendorId =
+        SA_NTF_VENDOR_ID_SAF;
+      stateChangeFilter.notificationFilterHeader.notificationClassIds[i].majorId =
+        SA_SVC_MSG;
+      stateChangeFilter.notificationFilterHeader.notificationClassIds[i].minorId =
+        i + 0x65;
     }
 
     SaNtfNotificationTypeFilterHandlesT notificationFilterHandles = {
@@ -272,7 +322,7 @@ static void capacityThresholds_01(void) {
 
 static void capacityThresholds_02(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -287,7 +337,7 @@ static void capacityThresholds_02(void) {
 
 static void capacityThresholds_03(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -305,7 +355,7 @@ static void capacityThresholds_03(void) {
 
 static void capacityThresholds_04(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -319,7 +369,7 @@ static void capacityThresholds_04(void) {
 
 static void capacityThresholds_05(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -337,7 +387,7 @@ static void capacityThresholds_05(void) {
 
 static void capacityThresholds_06(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -355,7 +405,7 @@ static void capacityThresholds_06(void) {
 
 static void capacityThresholds_07(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -373,7 +423,7 @@ static void capacityThresholds_07(void) {
 
 static void capacityThresholds_08(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -392,7 +442,7 @@ static void capacityThresholds_08(void) {
 static void capacityThresholds_09(void) {
   SaMsgHandleT msgHandle;
   SaVersionT msg1_1 = {'B', 1, 0};
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg1_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg1_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -410,7 +460,7 @@ static void capacityThresholds_09(void) {
 
 static void capacityThresholds_10(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -428,7 +478,7 @@ static void capacityThresholds_10(void) {
 
 static void capacityThresholds_11(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -446,7 +496,7 @@ static void capacityThresholds_11(void) {
 
 static void capacityThresholds_12(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -464,7 +514,7 @@ static void capacityThresholds_12(void) {
 
 static void capacityThresholds_13(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -482,7 +532,7 @@ static void capacityThresholds_13(void) {
 
 static void capacityThresholds_14(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -506,7 +556,7 @@ static void capacityThresholds_15(void) {
 
 static void capacityThresholds_16(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -521,7 +571,7 @@ static void capacityThresholds_16(void) {
 
 static void capacityThresholds_17(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -539,7 +589,7 @@ static void capacityThresholds_17(void) {
 
 static void capacityThresholds_18(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -554,7 +604,7 @@ static void capacityThresholds_18(void) {
 static void capacityThresholds_19(void) {
   SaMsgHandleT msgHandle;
   SaVersionT msg1_1 = {'B', 1, 0};
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg1_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg1_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -569,7 +619,7 @@ static void capacityThresholds_19(void) {
 
 static void capacityThresholds_20(void) {
   SaMsgHandleT msgHandle;
-  SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+  SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
   assert(rc == SA_AIS_OK);
 
   SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -596,7 +646,7 @@ static void capacityThresholds_21(void) {
 
   do {
     SaMsgHandleT msgHandle;
-    SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+    SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
     assert(rc == SA_AIS_OK);
 
     SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -647,6 +697,9 @@ static void capacityThresholds_21(void) {
     if (result != TET_PASS)
       break;
 
+    rc = saMsgQueueUnlink(msgHandle, &queueName);
+    assert(rc == SA_AIS_OK);
+
     rc = saMsgFinalize(msgHandle);
     assert(rc == SA_AIS_OK);
 
@@ -664,7 +717,7 @@ static void capacityThresholds_22(void) {
 
   do {
     SaMsgHandleT msgHandle;
-    SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+    SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
     assert(rc == SA_AIS_OK);
 
     SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -741,6 +794,9 @@ static void capacityThresholds_22(void) {
     if (result != TET_PASS)
       break;
 
+    rc = saMsgQueueUnlink(msgHandle, &queueName);
+    assert(rc == SA_AIS_OK);
+
     rc = saMsgFinalize(msgHandle);
     assert(rc == SA_AIS_OK);
 
@@ -758,7 +814,7 @@ static void capacityThresholds_23(void) {
 
   do {
     SaMsgHandleT msgHandle;
-    SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+    SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
     assert(rc == SA_AIS_OK);
 
     SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -832,6 +888,9 @@ static void capacityThresholds_23(void) {
     rc = saMsgQueueGroupDelete(msgHandle, &queueGroupName);
     assert(rc == SA_AIS_OK);
 
+    rc = saMsgQueueUnlink(msgHandle, &queueName);
+    assert(rc == SA_AIS_OK);
+
     rc = saMsgFinalize(msgHandle);
     assert(rc == SA_AIS_OK);
 
@@ -849,7 +908,7 @@ static void capacityThresholds_24(void) {
 
   do {
     SaMsgHandleT msgHandle;
-    SaAisErrorT rc = saMsgInitialize(&msgHandle, 0, &msg3_1);
+    SaAisErrorT rc = msgInitialize(&msgHandle, 0, &msg3_1);
     assert(rc == SA_AIS_OK);
 
     SaMsgQueueHandleT queueHandle(openQueue(msgHandle));
@@ -948,6 +1007,9 @@ static void capacityThresholds_24(void) {
     }
 
     rc = saMsgQueueGroupDelete(msgHandle, &queueGroupName);
+    assert(rc == SA_AIS_OK);
+
+    rc = saMsgQueueUnlink(msgHandle, &queueName);
     assert(rc == SA_AIS_OK);
 
     rc = saMsgFinalize(msgHandle);

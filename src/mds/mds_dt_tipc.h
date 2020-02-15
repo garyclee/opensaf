@@ -107,4 +107,7 @@ extern uint32_t mds_mdtm_node_subscribe_tipc(MDS_SVC_HDL svc_hdl,
                                              MDS_SUBTN_REF_VAL *subtn_ref_val);
 extern uint32_t mds_mdtm_node_unsubscribe_tipc(MDS_SUBTN_REF_VAL subtn_ref_val);
 
+ssize_t mds_retry_sendto(int sockfd, const void *buf, size_t len, int flags,
+               const struct sockaddr *dest_addr, socklen_t addrlen);
+
 #endif  // MDS_MDS_DT_TIPC_H_

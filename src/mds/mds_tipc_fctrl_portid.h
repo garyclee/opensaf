@@ -141,6 +141,8 @@ class TipcPortId {
   bool ReceiveTmrTxProb(uint8_t max_txprob);
   void ReceiveTmrChunkAck();
   void ReceiveIntro();
+  void ChangeState(State newState);
+  bool SendUnsentMsg(bool by_chunkAck);
   void FlushData();
   uint32_t Send(uint8_t* data, uint16_t length);
   uint32_t Queue(const uint8_t* data, uint16_t length, bool is_sent);
@@ -156,6 +158,7 @@ class TipcPortId {
   uint16_t chunk_size_{5};
   uint64_t rcv_buf_size_{0};  // estimated buffer size at receiver
   bool rcving_mbcast_{false};  // a flag of receiving the bcast/mcast msg
+  bool tmr_trigger_send_{false};  // a flag to use timer trigger send messages
 
   struct sndwnd {
     // sender sequence window

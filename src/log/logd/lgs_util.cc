@@ -208,22 +208,22 @@ char *lgs_get_time(time_t *time_in) {
   snprintf(srcString, (size_t)stringSize, "%02u",
                timeStampData->tm_mon + 1);
 
-  strncat(timeStampString, srcString, stringSize);
+  strncat(timeStampString, srcString, stringSize + 2);
 
   snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_mday));
 
-  strncat(timeStampString, srcString, stringSize);
+  strncat(timeStampString, srcString, stringSize + 2);
 
   strncat(timeStampString, "_", (2 * sizeof(char)));
 
   snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_hour));
-  strncat(timeStampString, srcString, stringSize);
+  strncat(timeStampString, srcString, stringSize + 2);
 
   snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_min));
-  strncat(timeStampString, srcString, stringSize);
+  strncat(timeStampString, srcString, stringSize + 2);
 
   snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_sec));
-  strncat(timeStampString, srcString, stringSize);
+  strncat(timeStampString, srcString, stringSize + 2);
 
   timeStampString[15] = '\0';
   return timeStampString;

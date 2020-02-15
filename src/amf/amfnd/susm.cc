@@ -947,7 +947,8 @@ static bool susi_operation_in_progress(AVND_SU *su, AVND_SU_SI_REC *si) {
                           &t_csi->si_dll_node)) {
             if (m_AVND_COMP_IS_FAILED(t_csi->comp) ||
                 (su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) ||
-                (su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED))
+                (su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED) ||
+                !m_AVND_COMP_IS_REG(t_csi->comp))
               continue;
             else if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(t_csi) ||
                      m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(t_csi) ||

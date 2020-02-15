@@ -27,6 +27,79 @@
 #include "mds_log.h"
 #include "mds_core.h"
 
+/* Internal use functions */
+static void start_mds_down_tmr(MDS_DEST adest, MDS_SVC_ID svc_id)
+{
+	MDS_TMR_REQ_INFO *tmr_req_info = calloc(1, sizeof(MDS_TMR_REQ_INFO));
+	if (tmr_req_info == NULL) {
+		m_MDS_LOG_ERR("mds_mcm_svc_down out of memory\n");
+		abort();
+	}
+
+	tmr_req_info->type = MDS_DOWN_TMR;
+	tmr_req_info->info.down_event_tmr_info.adest = adest;
+	tmr_req_info->info.down_event_tmr_info.svc_id = svc_id;
+
+	tmr_t tmr_id = ncs_tmr_alloc(__FILE__, __LINE__);
+	if (tmr_id == NULL) {
+		m_MDS_LOG_ERR("mds_mcm_svc_down out of memory\n");
+		abort();
+	}
+
+	tmr_req_info->info.down_event_tmr_info.tmr_id = tmr_id;
+
+	uint32_t tmr_hdl =
+	    ncshm_create_hdl(NCS_HM_POOL_ID_COMMON, NCS_SERVICE_ID_COMMON,
+			     (NCSCONTEXT)(tmr_req_info));
+
+	if (svc_id == 0) {
+		MDS_ADEST_INFO *adest_info =
+			(MDS_ADEST_INFO *)ncs_patricia_tree_get(
+				&gl_mds_mcm_cb->adest_list,
+				(uint8_t *)&adest);
+		if (adest_info) {
+			adest_info->tmr_req_info = tmr_req_info;
+			adest_info->tmr_hdl = tmr_hdl;
+		}
+	}
+	tmr_id = ncs_tmr_start(tmr_id, MDS_DOWN_TMR_VAL,
+			       (TMR_CALLBACK)mds_tmr_callback,
+			       (void *)(long)(tmr_hdl), __FILE__, __LINE__);
+	assert(tmr_id != NULL);
+}
+
+static void stop_mds_down_tmr(MDS_ADEST_INFO *adest_info)
+{
+	assert(adest_info != NULL);
+	if (adest_info->tmr_req_info) {
+		MDS_TMR_REQ_INFO *tmr_req_info = adest_info->tmr_req_info;
+		ncs_tmr_stop(tmr_req_info->info.down_event_tmr_info.tmr_id);
+		ncs_tmr_free(tmr_req_info->info.down_event_tmr_info.tmr_id);
+		m_MMGR_FREE_TMR_INFO(tmr_req_info);
+		adest_info->tmr_req_info = NULL;
+		ncshm_destroy_hdl(
+		    NCS_SERVICE_ID_COMMON,
+		    (uint32_t)adest_info->tmr_hdl);
+	}
+}
+
+static void mds_adest_list_cleanup(void)
+{
+	MDS_ADEST_INFO *adest_info = NULL;
+
+	adest_info = (MDS_ADEST_INFO *)ncs_patricia_tree_getnext(
+	    &gl_mds_mcm_cb->adest_list, NULL);
+	while (adest_info != NULL) {
+		stop_mds_down_tmr(adest_info);
+		ncs_patricia_tree_del(
+		    &gl_mds_mcm_cb->adest_list,
+		    (NCS_PATRICIA_NODE *)adest_info);
+		m_MMGR_FREE_ADEST_INFO(adest_info);
+		adest_info = (MDS_ADEST_INFO *)ncs_patricia_tree_getnext(
+		    &gl_mds_mcm_cb->adest_list, NULL);
+	}
+}
+
 /*********************************************************
 
   Function NAME: mds_validate_pwe_hdl
@@ -1449,6 +1522,26 @@ uint32_t mds_mcm_svc_unsubscribe(NCSMDS_INFO *info)
 			    subscr_req_hdl);
 		}
 
+		/* Find and delete related adest from adest list */
+		MDS_SUBSCRIPTION_RESULTS_INFO *s_info = NULL;
+		mds_subtn_res_tbl_getnext_any(svc_hdl,
+					info->info.svc_cancel.i_svc_ids[i],
+					&s_info);
+		if (s_info) {
+			MDS_ADEST_INFO *adest_info =
+			    (MDS_ADEST_INFO *)
+			    ncs_patricia_tree_get(
+			    &gl_mds_mcm_cb->adest_list,
+			    (uint8_t *)&s_info->key.adest);
+			if (adest_info) {
+				stop_mds_down_tmr(adest_info);
+				ncs_patricia_tree_del(
+				    &gl_mds_mcm_cb->adest_list,
+				    (NCS_PATRICIA_NODE *)adest_info);
+				m_MMGR_FREE_ADEST_INFO(adest_info);
+			}
+		}
+
 		/* Delete all MDTM entries */
 		mds_subtn_res_tbl_del_all(svc_hdl,
 					  info->info.svc_cancel.i_svc_ids[i]);
@@ -1899,6 +1992,29 @@ uint32_t mds_mcm_svc_up(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 	}
 
 	/*************** Validation for SCOPE **********************/
+
+	if (adest != m_MDS_GET_ADEST) {
+		MDS_ADEST_INFO *adest_info =
+			(MDS_ADEST_INFO *)ncs_patricia_tree_get(
+				&gl_mds_mcm_cb->adest_list,
+				(uint8_t *)&adest);
+		if (!adest_info) {
+			/* Add adest to adest list */
+			adest_info = m_MMGR_ALLOC_ADEST_INFO;
+			memset(adest_info, 0, sizeof(MDS_ADEST_INFO));
+			adest_info->adest = adest;
+			adest_info->node.key_info =
+				(uint8_t *)&adest_info->adest;
+			adest_info->svc_cnt = 1;
+			ncs_patricia_tree_add(
+			    &gl_mds_mcm_cb->adest_list,
+			    (NCS_PATRICIA_NODE *)adest_info);
+		} else {
+			if (adest_info->svc_cnt == 0)
+				stop_mds_down_tmr(adest_info);
+			adest_info->svc_cnt++;
+		}
+	}
 
 	status = mds_get_subtn_res_tbl_by_adest(local_svc_hdl, svc_id, vdest_id,
 						adest, &log_subtn_result_info);
@@ -3377,36 +3493,6 @@ uint32_t mds_mcm_svc_up(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 	return NCSCC_RC_SUCCESS;
 }
 
-static void start_mds_down_tmr(MDS_DEST adest, MDS_SVC_ID svc_id)
-{
-	MDS_TMR_REQ_INFO *tmr_req_info = calloc(1, sizeof(MDS_TMR_REQ_INFO));
-	if (tmr_req_info == NULL) {
-		m_MDS_LOG_ERR("mds_mcm_svc_down out of memory\n");
-		abort();
-	}
-
-	tmr_req_info->type = MDS_DOWN_TMR;
-	tmr_req_info->info.down_event_tmr_info.adest = adest;
-	tmr_req_info->info.down_event_tmr_info.svc_id = svc_id;
-
-	tmr_t tmr_id = ncs_tmr_alloc(__FILE__, __LINE__);
-	if (tmr_id == NULL) {
-		m_MDS_LOG_ERR("mds_mcm_svc_down out of memory\n");
-		abort();
-	}
-
-	tmr_req_info->info.down_event_tmr_info.tmr_id = tmr_id;
-
-	uint32_t tmr_hdl =
-	    ncshm_create_hdl(NCS_HM_POOL_ID_COMMON, NCS_SERVICE_ID_COMMON,
-			     (NCSCONTEXT)(tmr_req_info));
-
-	tmr_id = ncs_tmr_start(tmr_id, 1000, // 10ms unit
-			       (TMR_CALLBACK)mds_tmr_callback,
-			       (void *)(long)(tmr_hdl), __FILE__, __LINE__);
-	assert(tmr_id != NULL);
-}
-
 /*********************************************************
 
   Function NAME: mds_mcm_svc_down
@@ -3570,6 +3656,22 @@ uint32_t mds_mcm_svc_down(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 
 		/* Discard : Getting down before getting up */
 	} else { /* Entry exist in subscription result table */
+
+		MDS_ADEST_INFO *adest_info =
+			(MDS_ADEST_INFO *)ncs_patricia_tree_get(
+				&gl_mds_mcm_cb->adest_list,
+				(uint8_t *)&adest);
+		if (adest_info && adest_info->svc_cnt > 0) {
+			adest_info->svc_cnt--;
+			if (adest_info->svc_cnt == 0) {
+				m_MDS_LOG_INFO(
+				    "MCM:API: Adest <0x%08x, %u>"
+				    " down timer start",
+				    m_MDS_GET_NODE_ID_FROM_ADEST(adest),
+				    m_MDS_GET_PROCESS_ID_FROM_ADEST(adest));
+				start_mds_down_tmr(adest, 0);
+			}
+		}
 
 		if (vdest_id == m_VDEST_ID_FOR_ADEST_ENTRY) {
 			status = mds_subtn_res_tbl_del(
@@ -4040,9 +4142,9 @@ uint32_t mds_mcm_node_up(MDS_SVC_HDL local_svc_hdl, NODE_ID node_id,
 	    cbinfo->info.node_evt.node_id, cbinfo->info.node_evt.addr_family,
 	    cbinfo->info.node_evt.node_chg);
 	if (node_name) {
-		cbinfo->info.node_evt.i_node_name_len = strlen(node_name);
+		cbinfo->info.node_evt.i_node_name_len = strlen(node_name) + 1;
 		strncpy(cbinfo->info.node_evt.i_node_name, node_name,
-			cbinfo->info.node_evt.i_node_name_len);
+			_POSIX_HOST_NAME_MAX - 1);
 	}
 
 	/* Post to mail box If Q Ownership is enabled Else Call user callback */
@@ -4952,7 +5054,18 @@ uint32_t mds_mcm_init(void)
 	    ncs_patricia_tree_init(&gl_mds_mcm_cb->vdest_list,
 				   &pat_tree_params)) {
 		m_MDS_LOG_ERR(
-		    "MCM:API: patricia_tree_init: vdest :failure, L mds_mcm_init");
+		    "MCM:API: patricia_tree_init: vdest :failure");
+		return NCSCC_RC_FAILURE;
+	}
+
+	/* ADEST TREE */
+	memset(&pat_tree_params, 0, sizeof(NCS_PATRICIA_PARAMS));
+	pat_tree_params.key_size = sizeof(MDS_DEST);
+	if (NCSCC_RC_SUCCESS !=
+	    ncs_patricia_tree_init(&gl_mds_mcm_cb->adest_list,
+				   &pat_tree_params)) {
+		m_MDS_LOG_ERR(
+		    "MCM:API: patricia_tree_init: adest :failure");
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -4962,11 +5075,16 @@ uint32_t mds_mcm_init(void)
 	if (NCSCC_RC_SUCCESS != ncs_patricia_tree_init(&gl_mds_mcm_cb->svc_list,
 						       &pat_tree_params)) {
 		m_MDS_LOG_ERR(
-		    "MCM:API: patricia_tree_init:service :failure, L mds_mcm_init");
+		    "MCM:API: patricia_tree_init:service :failure");
 		if (NCSCC_RC_SUCCESS !=
 		    ncs_patricia_tree_destroy(&gl_mds_mcm_cb->vdest_list)) {
 			m_MDS_LOG_ERR(
-			    "MCM:API: patricia_tree_destroy: service :failure, L mds_mcm_init");
+			    "MCM:API: patricia_tree_destroy: vdest :failure");
+		}
+		if (NCSCC_RC_SUCCESS !=
+		    ncs_patricia_tree_destroy(&gl_mds_mcm_cb->adest_list)) {
+			m_MDS_LOG_ERR(
+			    "MCM:API: patricia_tree_destroy: adest :failure");
 		}
 		return NCSCC_RC_FAILURE;
 	}
@@ -4978,16 +5096,21 @@ uint32_t mds_mcm_init(void)
 	    ncs_patricia_tree_init(&gl_mds_mcm_cb->subtn_results,
 				   &pat_tree_params)) {
 		m_MDS_LOG_ERR(
-		    "MCM:API: patricia_tree_init: subscription: failure, L mds_mcm_init");
+		    "MCM:API: patricia_tree_init: subscription: failure");
 		if (NCSCC_RC_SUCCESS !=
 		    ncs_patricia_tree_destroy(&gl_mds_mcm_cb->svc_list)) {
 			m_MDS_LOG_ERR(
-			    "MCM:API: patricia_tree_destroy: service :failure, L mds_mcm_init");
+			    "MCM:API: patricia_tree_destroy: service :failure");
 		}
 		if (NCSCC_RC_SUCCESS !=
 		    ncs_patricia_tree_destroy(&gl_mds_mcm_cb->vdest_list)) {
 			m_MDS_LOG_ERR(
-			    "MCM:API: patricia_tree_destroy: vdest :failure, L mds_mcm_init");
+			    "MCM:API: patricia_tree_destroy: vdest :failure");
+		}
+		if (NCSCC_RC_SUCCESS !=
+		    ncs_patricia_tree_destroy(&gl_mds_mcm_cb->adest_list)) {
+			m_MDS_LOG_ERR(
+			    "MCM:API: patricia_tree_destroy: adest :failure");
 		}
 		return NCSCC_RC_FAILURE;
 	}
@@ -5035,6 +5158,10 @@ uint32_t mds_mcm_destroy(void)
 
 	/* VDEST TREE */
 	ncs_patricia_tree_destroy(&gl_mds_mcm_cb->vdest_list);
+
+	/* ADEST TREE */
+	mds_adest_list_cleanup();
+	ncs_patricia_tree_destroy(&gl_mds_mcm_cb->adest_list);
 
 	/* Free MCM control block */
 	m_MMGR_FREE_MCM_CB(gl_mds_mcm_cb);

@@ -45,7 +45,7 @@
 #include "log/logd/lgs_amf.h"
 #include "log/logd/lgs_oi_admin.h"
 #include "log/logd/lgs_imm.h"
-
+#include "log/logd/lgs_cache.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -485,6 +485,9 @@ int main(int argc, char *argv[]) {
    * "lost" streams is no longer possible.
    */
   const time_t CLEAN_TIMEOUT = 600; /* 10 min */
+  struct timespec last = base::ReadMonotonicClock();
+  const int kMaxEvent = 50;
+  int num_events = 0;
 
   TRACE_ENTER();
 
@@ -515,7 +518,6 @@ int main(int argc, char *argv[]) {
   fds[FD_IMM].events = POLLIN;
 
   lgs_cb->clmSelectionObject = lgs_cb->clm_init_sel_obj.rmv_obj;
-
   while (1) {
     if (cltimer_fd < 0 && log_rtobj_list_no() != 0) {
       /* Needed only if any "lost" objects are found
@@ -542,13 +544,22 @@ int main(int argc, char *argv[]) {
       nfds = FD_IMM;
     }
 
-    int ret = poll(fds, nfds, -1);
+
+    int timeout = Cache::instance()->GeneratePollTimeout(last);
+    int ret = poll(fds, nfds, timeout);
 
     if (ret == -1) {
       if (errno == EINTR) continue;
 
       LOG_ER("poll failed - %s", strerror(errno));
       break;
+    }
+
+    if (ret == 0) {
+      Cache::instance()->PeriodicCheck();
+      last = base::ReadMonotonicClock();
+      num_events = 0;
+      continue;
     }
 
     if (fds[FD_TERM].revents & POLLIN) {
@@ -631,6 +642,13 @@ int main(int argc, char *argv[]) {
         LOG_ER("saImmOiDispatch FAILED: %u", ais_rc);
         break;
       }
+    }
+
+    num_events++;
+    if (num_events >= kMaxEvent) {
+      Cache::instance()->PeriodicCheck();
+      num_events = 0;
+      last = base::ReadMonotonicClock();
     }
   }
 

@@ -43,20 +43,20 @@ static void ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata) {
       configuration->restrict_auto_repair(enabled);
     } else if (!strcmp(attr_mod->modAttr.attrName,
                 "osafAmfDelayNodeFailoverTimeout")) {
-      uint32_t delay = 0;  // default to 0 if attribute is blank
+      time_t delay = 0;  // default to 0 if attribute is blank
       if (attr_mod->modType != SA_IMM_ATTR_VALUES_DELETE &&
           attr_mod->modAttr.attrValues != nullptr) {
-        delay = (*((SaUint32T *)attr_mod->modAttr.attrValues[0]));
+        delay = (*((time_t *)attr_mod->modAttr.attrValues[0]));
       }
       avd_cb->node_failover_delay = delay;
       TRACE("osafAmfDelayNodeFailoverTimeout changed to '%llu'",
              avd_cb->node_failover_delay);
     } else if (!strcmp(attr_mod->modAttr.attrName,
                 "osafAmfDelayNodeFailoverNodeWaitTimeout")) {
-      uint32_t delay = kDefaultNodeWaitTime;
+      time_t delay = kDefaultNodeWaitTime;
       if (attr_mod->modType != SA_IMM_ATTR_VALUES_DELETE &&
           attr_mod->modAttr.attrValues != nullptr) {
-        delay = (*((SaUint32T *)attr_mod->modAttr.attrValues[0]));
+        delay = (*((time_t *)attr_mod->modAttr.attrValues[0]));
       }
       avd_cb->node_failover_node_wait = delay;
       TRACE("osafAmfDelayNodeFailoverNodeWaitTimeout changed to '%llu'",
@@ -166,18 +166,19 @@ SaAisErrorT Configuration::get_config(void) {
                                      (SaImmAttrValuesT_2 ***)&attributes) ==
          SA_AIS_OK) {
     uint32_t value;
+    time_t time_value;
     TRACE("reading configuration '%s'", osaf_extended_name_borrow(&dn));
     if (immutil_getAttr("osafAmfRestrictAutoRepairEnable", attributes, 0,
                         &value) == SA_AIS_OK) {
       configuration->restrict_auto_repair(static_cast<bool>(value));
     }
     if (immutil_getAttr("osafAmfDelayNodeFailoverTimeout", attributes, 0,
-                        &value) == SA_AIS_OK) {
-      avd_cb->node_failover_delay = value;
+                        &time_value) == SA_AIS_OK) {
+      avd_cb->node_failover_delay = time_value;
     }
     if (immutil_getAttr("osafAmfDelayNodeFailoverNodeWaitTimeout", attributes, 0,
-                        &value) == SA_AIS_OK) {
-      avd_cb->node_failover_node_wait = value;
+                        &time_value) == SA_AIS_OK) {
+      avd_cb->node_failover_node_wait = time_value;
     }
   }
 

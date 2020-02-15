@@ -96,32 +96,33 @@ const char* LogTraceClient::Log(LogTraceClient* tracelog,
 const char* LogTraceClient::Log(base::LogMessage::Severity severity,
     const char *fmt, va_list ap) {
   if (log_socket_ != nullptr && log_mutex_ != nullptr) {
-    return LogInternal(severity, fmt, ap);
+    return LogInternal(severity, base::ReadRealtimeClock(), fmt, ap);
   }
   return nullptr;
 }
 
 const char* LogTraceClient::LogInternal(base::LogMessage::Severity severity,
-    const char *fmt, va_list ap) {
+    timespec time_spec, const char *fmt, va_list ap) {
   base::Lock lock(*log_mutex_);
-  CreateLogEntryInternal(severity, fmt, ap);
+  CreateLogEntryInternal(severity, time_spec, fmt, ap);
   log_socket_->Send(buffer_.data(), buffer_.size());
   return buffer_.data();
 }
 
 const char* LogTraceClient::CreateLogEntry(base::LogMessage::Severity severity,
-    const char *fmt, va_list ap) {
+    timespec time_spec, const char *fmt, va_list ap) {
   base::Lock lock(*log_mutex_);
-  return CreateLogEntryInternal(severity, fmt, ap);
+  return CreateLogEntryInternal(severity, time_spec, fmt, ap);
 }
 
 const char* LogTraceClient::CreateLogEntryInternal(
-    base::LogMessage::Severity severity, const char *fmt, va_list ap) {
+    base::LogMessage::Severity severity, timespec time_spec,
+    const char *fmt, va_list ap) {
   uint32_t id = sequence_id_;
   sequence_id_ = id < kMaxSequenceId ? id + 1 : 1;
   buffer_.clear();
   base::LogMessage::Write(
-      base::LogMessage::Facility::kLocal1, severity, base::ReadRealtimeClock(),
+      base::LogMessage::Facility::kLocal1, severity, time_spec,
       fqdn_, app_name_, proc_id_, msg_id_,
       {{base::LogMessage::SdName{"meta"},
         {base::LogMessage::Parameter{base::LogMessage::SdName{"sequenceId"},

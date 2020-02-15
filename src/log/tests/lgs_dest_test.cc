@@ -162,6 +162,7 @@ void initData(RecordData* data) {
   data->recordId = 1;
   data->sev = 3;
   data->time = base::ReadRealtimeClock();
+  data->facilityId = Facility::kAuth;
 }
 
 // No destination name & no destination configuration exist
@@ -258,6 +259,7 @@ TEST(WriteToDestination, HaveDestNameAndDestCfg) {
   info.severity = data.sev;
   info.time = data.time;
   info.origin = origin.c_str();
+  info.facilityId = data.facilityId;
 
   WriteToDestination(data, {"test"});
 

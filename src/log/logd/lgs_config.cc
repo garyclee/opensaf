@@ -42,7 +42,7 @@
 #include "log/logd/lgs.h"
 #include "log/logd/lgs_common.h"
 #include "log/logd/lgs_oi_admin.h"
-
+#include "log/logd/lgs_cache.h"
 
 /* Mutex for making read and write of configuration data thread safe */
 pthread_mutex_t lgs_config_data_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -83,6 +83,8 @@ static struct lgs_conf_def_t {
   SaUint32T logMaxApplicationStreams;
   SaUint32T logFileIoTimeout;
   SaUint32T logFileSysConfig;
+  SaUint32T logResilienceTimeout;
+  SaUint32T logMaxPendingWriteReq;
 
   lgs_conf_def_t() {
     logRootDirectory = PKGLOGDIR;
@@ -96,6 +98,8 @@ static struct lgs_conf_def_t {
     logMaxApplicationStreams = 64;
     logFileIoTimeout = 500;
     logFileSysConfig = 1;
+    logResilienceTimeout = 15;
+    logMaxPendingWriteReq = 0;
   }
 } lgs_conf_def;
 
@@ -115,6 +119,8 @@ typedef struct _lgs_conf_t {
   SaUint32T logMaxApplicationStreams;
   SaUint32T logFileIoTimeout;
   SaUint32T logFileSysConfig;
+  SaUint32T logResilienceTimeout;
+  SaUint32T logMaxPendingWriteReq;
   std::vector<std::string> logRecordDestinationConfiguration;  // Default empty
   /* --- end correspond to IMM Class --- */
 
@@ -139,6 +145,8 @@ typedef struct _lgs_conf_t {
   lgs_conf_flg_t logDataGroupname_cnfflag;
   lgs_conf_flg_t logStreamFileFormat_cnfflag;
   lgs_conf_flg_t logRecordDestinationConfiguration_cnfflag;
+  lgs_conf_flg_t logResilienceTimeout_cnfflag;
+  lgs_conf_flg_t logMaxPendingWriteReq_cnfflag;
 
   _lgs_conf_t()
       : logRootDirectory{PKGLOGDIR},
@@ -153,7 +161,9 @@ typedef struct _lgs_conf_t {
         logFileSysConfig_cnfflag{LGS_CNF_DEF},
         logDataGroupname_cnfflag{LGS_CNF_DEF},
         logStreamFileFormat_cnfflag{LGS_CNF_DEF},
-        logRecordDestinationConfiguration_cnfflag{LGS_CNF_DEF} {
+        logRecordDestinationConfiguration_cnfflag{LGS_CNF_DEF},
+        logResilienceTimeout_cnfflag{LGS_CNF_DEF},
+        logMaxPendingWriteReq_cnfflag{LGS_CNF_DEF} {
     OpenSafLogConfig_object_exist = false;
     /*
      * The following attributes cannot be configured in the config file
@@ -171,6 +181,8 @@ typedef struct _lgs_conf_t {
     logMaxApplicationStreams = lgs_conf_def.logMaxApplicationStreams;
     logFileIoTimeout = lgs_conf_def.logFileIoTimeout;
     logFileSysConfig = lgs_conf_def.logFileSysConfig;
+    logResilienceTimeout = lgs_conf_def.logResilienceTimeout;
+    logMaxPendingWriteReq = lgs_conf_def.logMaxPendingWriteReq;
   }
 } lgs_conf_t;
 
@@ -453,6 +465,18 @@ int lgs_cfg_update(const lgs_config_chg_t *config_data) {
           (SaUint32T)strtoul(value_str, nullptr, 0);
     } else if (strcmp(name_str, LOG_FILE_IO_TIMEOUT) == 0) {
       lgs_conf.logFileIoTimeout = (SaUint32T)strtoul(value_str, nullptr, 0);
+    } else if (strcmp(name_str, LOG_RESILIENCE_TIMEOUT) == 0) {
+      lgs_conf.logResilienceTimeout = (SaUint32T)strtoul(value_str, nullptr, 0);
+    } else if (strcmp(name_str, LOG_MAX_PENDING_WRITE_REQ) == 0) {
+      lgs_conf.logMaxPendingWriteReq =
+          (SaUint32T)strtoul(value_str, nullptr, 0);
+
+#ifdef SIMULATE_NFS_UNRESPONSE
+      // NOTE(vu.m.nguyen): not thread-safe, but only for test.
+      // This is to sync the counter b/w active and standby.
+      if (lgs_conf.logMaxPendingWriteReq == 0) test_counter = 1;
+#endif
+
     } else if (strcmp(name_str, LOG_FILE_SYS_CONFIG) == 0) {
       lgs_conf.logFileSysConfig = (SaUint32T)strtoul(value_str, nullptr, 0);
     } else if (strcmp(name_str, LOG_RECORD_DESTINATION_CONFIGURATION) == 0) {
@@ -948,6 +972,19 @@ static int verify_all_init() {
     rc = -1;
   }
 
+  if (!Cache::instance()->VerifyResilienceTime(lgs_conf.logResilienceTimeout)) {
+    lgs_conf.logResilienceTimeout = lgs_conf_def.logResilienceTimeout;
+    lgs_conf.logResilienceTimeout_cnfflag = LGS_CNF_DEF;
+    rc = -1;
+  }
+
+  if (!Cache::instance()->VerifyMaxQueueSize(
+          lgs_conf.logMaxPendingWriteReq)) {
+    lgs_conf.logMaxPendingWriteReq = lgs_conf_def.logMaxPendingWriteReq;
+    lgs_conf.logMaxPendingWriteReq_cnfflag = LGS_CNF_DEF;
+    rc = -1;
+  }
+
   if (lgs_cfg_verify_log_filesys_config(lgs_conf.logFileSysConfig) == -1) {
     lgs_conf.logFileSysConfig = lgs_conf_def.logFileSysConfig;
     lgs_conf.logFileSysConfig_cnfflag = LGS_CNF_DEF;
@@ -1090,6 +1127,14 @@ static void read_logsv_config_obj_2() {
       lgs_conf.logFileIoTimeout = *reinterpret_cast<SaUint32T *>(value);
       lgs_conf.logFileIoTimeout_cnfflag = LGS_CNF_OBJ;
       TRACE("Conf obj; logFileIoTimeout: %u", lgs_conf.logFileIoTimeout);
+    } else if (!strcmp(attribute->attrName, LOG_RESILIENCE_TIMEOUT)) {
+      lgs_conf.logResilienceTimeout = *reinterpret_cast<SaUint32T *>(value);
+      lgs_conf.logResilienceTimeout_cnfflag = LGS_CNF_OBJ;
+      TRACE("Conf obj; logResilienceTimeout: %u", lgs_conf.logFileIoTimeout);
+    } else if (!strcmp(attribute->attrName, LOG_MAX_PENDING_WRITE_REQ)) {
+      lgs_conf.logMaxPendingWriteReq = *reinterpret_cast<SaUint32T *>(value);
+      lgs_conf.logMaxPendingWriteReq_cnfflag = LGS_CNF_OBJ;
+      TRACE("Conf obj; logMaxPendingWriteRequests: %u", lgs_conf.logFileIoTimeout);
     } else if (!strcmp(attribute->attrName, LOG_FILE_SYS_CONFIG)) {
       lgs_conf.logFileSysConfig = *reinterpret_cast<SaUint32T *>(value);
       lgs_conf.logFileSysConfig_cnfflag = LGS_CNF_OBJ;
@@ -1440,6 +1485,12 @@ const void *lgs_cfg_get(lgs_logconfGet_t param) {
     case LGS_IMM_LOG_RECORD_DESTINATION_STATUS:
       value_ptr = &lgs_conf.logRecordDestinationStatus;
       break;
+    case LGS_IMM_LOG_RESILIENCE_TIMEOUT:
+      value_ptr = &lgs_conf.logResilienceTimeout;
+      break;
+    case LGS_IMM_LOG_MAX_PENDING_WRITE_REQ:
+      value_ptr = &lgs_conf.logMaxPendingWriteReq;
+      break;
 
     case LGS_IMM_LOG_NUMBER_OF_PARAMS:
     case LGS_IMM_LOG_NUMEND:
@@ -1734,9 +1785,7 @@ void conf_runtime_obj_handler(SaImmOiHandleT immOiHandle,
   char *str_val = nullptr;
   SaUint32T u32_val = 0;
   SaAisErrorT ais_rc = SA_AIS_OK;
-
   TRACE_ENTER();
-
   while ((attributeName = attributeNames[i++]) != nullptr) {
     if (!strcmp(attributeName, LOG_ROOT_DIRECTORY)) {
       str_val = const_cast<char *>(static_cast<const char *>(
@@ -1795,6 +1844,23 @@ void conf_runtime_obj_handler(SaImmOiHandleT immOiHandle,
     } else if (!strcmp(attributeName, LOG_FILE_IO_TIMEOUT)) {
       u32_val = *static_cast<const SaUint32T *>(
                     lgs_cfg_get(LGS_IMM_FILE_IO_TIMEOUT));
+      ais_rc = immutil_update_one_rattr(immOiHandle, LGS_CFG_RUNTIME_OBJECT,
+                                        attributeName, SA_IMM_ATTR_SAUINT32T,
+                                        &u32_val);
+    } else if (!strcmp(attributeName, LOG_RESILIENCE_TIMEOUT)) {
+      u32_val = *static_cast<const SaUint32T *>(
+          lgs_cfg_get(LGS_IMM_LOG_RESILIENCE_TIMEOUT));
+      ais_rc = immutil_update_one_rattr(immOiHandle, LGS_CFG_RUNTIME_OBJECT,
+                                        attributeName, SA_IMM_ATTR_SAUINT32T,
+                                        &u32_val);
+    } else if (!strcmp(attributeName, LOG_MAX_PENDING_WRITE_REQ)) {
+      u32_val = *static_cast<const SaUint32T *>(
+          lgs_cfg_get(LGS_IMM_LOG_MAX_PENDING_WRITE_REQ));
+      ais_rc = immutil_update_one_rattr(immOiHandle, LGS_CFG_RUNTIME_OBJECT,
+                                        attributeName, SA_IMM_ATTR_SAUINT32T,
+                                        &u32_val);
+    } else if (!strcmp(attributeName, LOG_CURRENT_PENDING_WRITE_REQ)) {
+      u32_val = Cache::instance()->Size();
       ais_rc = immutil_update_one_rattr(immOiHandle, LGS_CFG_RUNTIME_OBJECT,
                                         attributeName, SA_IMM_ATTR_SAUINT32T,
                                         &u32_val);
@@ -1872,6 +1938,10 @@ void lgs_trace_config() {
         cnfflag_str(lgs_conf.logFileIoTimeout_cnfflag));
   TRACE("logFileSysConfig\t\t %u,\t %s", lgs_conf.logFileSysConfig,
         cnfflag_str(lgs_conf.logFileSysConfig_cnfflag));
+  TRACE("logResilienceTimeout\t\t %u,\t %s", lgs_conf.logResilienceTimeout,
+        cnfflag_str(lgs_conf.logResilienceTimeout_cnfflag));
+  TRACE("logMaxPendingWriteRequests\t\t %u,\t %s", lgs_conf.logMaxPendingWriteReq,
+        cnfflag_str(lgs_conf.logMaxPendingWriteReq_cnfflag));
 
   // Multivalue:
   for (auto &conf_str : lgs_conf.logRecordDestinationConfiguration) {
