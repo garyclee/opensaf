@@ -80,6 +80,8 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *, AVND_COMP *, SaAmfPresenceStateT,
 
 static uint32_t avnd_instfail_su_failover(AVND_CB *, AVND_SU *, AVND_COMP *);
 
+static void amfnd_clean_before_exit(AVND_CB *);
+
 /***************************************************************************
  ** C O M P O N E N T   C L C   F S M   M A T R I X   D E F I N I T I O N **
  ***************************************************************************/
@@ -295,6 +297,23 @@ static void log_failed_exec(NCS_OS_PROC_EXEC_STATUS_INFO *exec_stat,
     LOG_NO("Signal: %u, CLC CLI script:'%s'",
            exec_stat->info.exit_on_signal.signal_num,
            comp->clc_info.cmds[exec_cmd - 1].cmd);
+}
+
+/****************************************************************************
+  Name          : amfnd_clean_before_exit
+
+  Description   : Clean database before exit
+
+  Arguments     : cb  - ptr to the AvND control block
+
+  Return Values : None
+
+******************************************************************************/
+void amfnd_clean_before_exit(AVND_CB *cb) {
+  LOG_NO("Shutdown completed, exiting");
+  cb->nodeid_mdsdest_db.deleteAll();
+  cb->hctypedb.deleteAll();
+  daemon_exit();
 }
 
 /****************************************************************************
@@ -810,10 +829,7 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp,
         avnd_comp_pres_state_set(cb, comp, SA_AMF_PRESENCE_UNINSTANTIATED);
         if (all_comps_terminated()) {
           LOG_NO("Terminated all AMF components");
-          LOG_NO("Shutdown completed, exiting");
-          cb->nodeid_mdsdest_db.deleteAll();
-          cb->hctypedb.deleteAll();
-          daemon_exit();
+          amfnd_clean_before_exit(cb);
         } else {
           TRACE("Do nothing");
           goto done;
@@ -2401,6 +2417,12 @@ uint32_t avnd_comp_clc_terming_termsucc_hdler(AVND_CB *cb, AVND_COMP *comp) {
     avnd_comp_curr_info_del(cb, comp);
   }
 
+  if ((cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED) &&
+      all_comps_terminated()) {
+    LOG_NO("Terminated all AMF components");
+    amfnd_clean_before_exit(cb);
+  }
+
   TRACE_LEAVE();
   return rc;
 }
@@ -2520,10 +2542,7 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp) {
     }
     if (all_comps_terminated()) {
       LOG_NO("Terminated all AMF components");
-      LOG_NO("Shutdown completed, exiting");
-      cb->nodeid_mdsdest_db.deleteAll();
-      cb->hctypedb.deleteAll();
-      daemon_exit();
+      amfnd_clean_before_exit(cb);
     }
   }
   /*
@@ -2584,10 +2603,7 @@ uint32_t avnd_comp_clc_terming_cleanfail_hdler(AVND_CB *cb, AVND_COMP *comp) {
   if ((cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED) &&
       all_comps_terminated()) {
     LOG_WA("Terminated all AMF components (with failures)");
-    LOG_NO("Shutdown completed, exiting");
-    cb->nodeid_mdsdest_db.deleteAll();
-    cb->hctypedb.deleteAll();
-    daemon_exit();
+    amfnd_clean_before_exit(cb);
   }
 
   TRACE_LEAVE();
