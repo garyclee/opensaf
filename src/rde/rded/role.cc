@@ -150,8 +150,13 @@ void Role::NodePromoted() {
   // promoted to active from election
   ExecutePreActiveScript();
   LOG_NO("Switched to ACTIVE from %s", to_string(role()));
+  PCS_RDA_ROLE old_role = role_;
   role_ = PCS_RDA_ACTIVE;
   rde_rda_send_role(role_);
+  if (UpdateMdsRegistration(role_, old_role) != NCSCC_RC_SUCCESS) {
+    LOG_ER("Failed to update MDS Registration");
+    abort();
+  }
 
   Consensus consensus_service;
   RDE_CONTROL_BLOCK* cb = rde_get_control_block();
