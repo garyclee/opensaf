@@ -24,12 +24,12 @@
 #include "osaf/immutil/immutil.h"
 #include "log/logd/lgs_dest.h"
 #include "log/logd/lgs_mbcsv_v9.h"
+#include "log/logd/lgs_mbcsv_v8.h"
 #include "log/logd/lgs_mbcsv_v6.h"
 #include "log/logd/lgs_mbcsv_v5.h"
 #include "log/logd/lgs_mbcsv_v3.h"
 #include "log/logd/lgs_mbcsv_v2.h"
 #include "log/logd/lgs_mbcsv_v1.h"
-#include "log/logd/lgs_mbcsv_cache.h"
 #include "log/logd/lgs_recov.h"
 #include "log/logd/lgs_cache.h"
 /*

@@ -98,7 +98,7 @@ noinst_HEADERS += \
 	src/log/logd/lgs_common.h \
 	src/log/logd/lgs_amf.h \
 	src/log/logd/lgs_cache.h \
-	src/log/logd/lgs_mbcsv_cache.h
+	src/log/logd/lgs_mbcsv_v8.h
 
 
 bin_PROGRAMS += bin/saflogger
@@ -162,7 +162,7 @@ bin_osaflogd_SOURCES = \
 	src/log/logd/lgs_nildest.cc \
 	src/log/logd/lgs_unixsock_dest.cc \
 	src/log/logd/lgs_cache.cc \
-	src/log/logd/lgs_mbcsv_cache.cc
+	src/log/logd/lgs_mbcsv_v8.cc
 
 bin_osaflogd_LDADD = \
 	lib/libosaf_common.la \

@@ -23,6 +23,7 @@
 #include "log/logd/lgs_mbcsv_v2.h"
 #include "log/logd/lgs_mbcsv_v5.h"
 #include "log/logd/lgs_mbcsv_v6.h"
+#include "log/logd/lgs_mbcsv_v8.h"
 
 typedef struct {
   char *name;
@@ -53,6 +54,9 @@ typedef struct {
     lgs_ckpt_stream_close_v2_t stream_close;
     lgs_ckpt_stream_cfg_v4_t stream_cfg;
     lgs_ckpt_lgs_cfg_v5_t lgs_cfg;
+    CkptPushAsync push_async;
+    CkptPopAsync pop_async;
+    CkptPopAndWriteAsync pop_and_write_async;
   } ckpt_rec;
 } lgsv_ckpt_msg_v9_t;
 

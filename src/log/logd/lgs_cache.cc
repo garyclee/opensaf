@@ -18,7 +18,7 @@
 #include "log/logd/lgs_cache.h"
 
 #include "log/logd/lgs_dest.h"
-#include "log/logd/lgs_mbcsv_cache.h"
+#include "log/logd/lgs_mbcsv_v8.h"
 #include "log/logd/lgs_evt.h"
 #include "log/logd/lgs_evt.h"
 #include "log/logd/lgs_mbcsv.h"
