@@ -72,6 +72,10 @@ static void usage(const char *progname)
 	printf("\t-h, --help - display this help and exit\n");
 	printf(
 	    "\t-p, --pretty-print=<yes|no> - select pretty print, default yes\n");
+	printf(
+	    "\t\t--pretty-print does not work with the options -a and -c\n");
+	printf(
+	    "\t-d, --delimiter=<char> - separate multiple attribute values by <char>");
 	printf("\t-t, --timeout <sec>\n");
 	printf("\t\tutility timeout in seconds\n");
 
@@ -79,6 +83,7 @@ static void usage(const char *progname)
 	printf("\timmlist -a saAmfApplicationAdminState safApp=OpenSAF\n");
 	printf("\timmlist safApp=myApp1 safApp=myApp2\n");
 	printf("\timmlist --pretty-print=no -a saAmfAppType safApp=OpenSAF\n");
+	printf("\timmlist -d '|' -a safAmfNodeGroup safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster");
 }
 
 static void print_attr_value_raw(SaImmValueTypeT attrValueType,
@@ -141,19 +146,19 @@ static void print_attr_value(SaImmValueTypeT attrValueType,
 {
 	switch (attrValueType) {
 	case SA_IMM_ATTR_SAINT32T:
-		printf("%d (0x%x) ", *((SaInt32T *)attrValue),
+		printf("%d (0x%x)", *((SaInt32T *)attrValue),
 		       *((SaInt32T *)attrValue));
 		break;
 	case SA_IMM_ATTR_SAUINT32T:
-		printf("%u (0x%x) ", *((SaUint32T *)attrValue),
+		printf("%u (0x%x)", *((SaUint32T *)attrValue),
 		       *((SaUint32T *)attrValue));
 		break;
 	case SA_IMM_ATTR_SAINT64T:
-		printf("%lld (0x%llx) ", *((SaInt64T *)attrValue),
+		printf("%lld (0x%llx)", *((SaInt64T *)attrValue),
 		       *((SaInt64T *)attrValue));
 		break;
 	case SA_IMM_ATTR_SAUINT64T:
-		printf("%llu (0x%llx) ", *((SaUint64T *)attrValue),
+		printf("%llu (0x%llx)", *((SaUint64T *)attrValue),
 		       *((SaUint64T *)attrValue));
 		break;
 	case SA_IMM_ATTR_SATIMET: {
@@ -163,24 +168,24 @@ static void print_attr_value(SaImmValueTypeT attrValueType,
 
 		ctime_r(&time, buf);
 		buf[strlen(buf) - 1] = '\0'; /* Remove new line */
-		printf("%llu (0x%llx, %s) ", *((SaTimeT *)attrValue),
+		printf("%llu (0x%llx, %s)", *((SaTimeT *)attrValue),
 		       *((SaTimeT *)attrValue), buf);
 		break;
 	}
 	case SA_IMM_ATTR_SAFLOATT:
-		printf("%.8g ", *((SaFloatT *)attrValue));
+		printf("%.8g", *((SaFloatT *)attrValue));
 		break;
 	case SA_IMM_ATTR_SADOUBLET:
-		printf("%.17g ", *((SaDoubleT *)attrValue));
+		printf("%.17g", *((SaDoubleT *)attrValue));
 		break;
 	case SA_IMM_ATTR_SANAMET: {
 		SaNameT *myNameT = (SaNameT *)attrValue;
-		printf("%s (%zu) ", saAisNameBorrow(myNameT),
+		printf("%s (%zu)", saAisNameBorrow(myNameT),
 		       strlen(saAisNameBorrow(myNameT)));
 		break;
 	}
 	case SA_IMM_ATTR_SASTRINGT:
-		printf("%s ", *((char **)attrValue));
+		printf("%s", *((char **)attrValue));
 		break;
 	case SA_IMM_ATTR_SAANYT: {
 		SaAnyT *anyp = (SaAnyT *)attrValue;
@@ -404,6 +409,7 @@ static void display_class_definition(const SaImmClassNameT className,
 static void display_object(const char *name,
 			   SaImmAccessorHandleT accessorHandle,
 			   int pretty_print,
+			   char delimiter,
 			   const SaImmAttrNameT *attributeNames)
 {
 	int i = 0, j;
@@ -436,9 +442,12 @@ static void display_object(const char *name,
 			printf("\n%-50s %-12s ", attr->attrName,
 			       get_attr_type_name(attr->attrValueType));
 			if (attr->attrValuesNumber > 0) {
-				for (j = 0; j < attr->attrValuesNumber; j++)
+				for (j = 0; j < attr->attrValuesNumber; j++) {
 					print_attr_value(attr->attrValueType,
 							 attr->attrValues[j]);
+					if ((j + 1) < attr->attrValuesNumber)
+						printf("%c", delimiter);
+				}
 			} else
 				printf("<Empty>");
 		}
@@ -452,7 +461,7 @@ static void display_object(const char *name,
 					    attr->attrValueType,
 					    attr->attrValues[j]);
 					if ((j + 1) < attr->attrValuesNumber)
-						printf(":");
+						printf("%c", delimiter);
 				}
 				printf("\n");
 			} else
@@ -470,6 +479,7 @@ int main(int argc, char *argv[])
 	    {"timeout", required_argument, 0, 't'},
 	    {"help", no_argument, 0, 'h'},
 	    {"pretty-print", required_argument, 0, 'p'},
+	    {"delimiter", required_argument, 0, 'd'},
 	    {0, 0, 0, 0}};
 	SaAisErrorT error;
 	SaImmHandleT immHandle;
@@ -481,6 +491,7 @@ int main(int argc, char *argv[])
 	int class_desc_print = 0;
 	int rc = EXIT_SUCCESS;
 	unsigned long timeoutVal = 60;
+	char delimiter = ' ';
 
 	/* Support for long DN */
 	setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1);
@@ -490,7 +501,7 @@ int main(int argc, char *argv[])
 	osaf_extended_name_init();
 
 	while (1) {
-		c = getopt_long(argc, argv, "a:p:t:ch", long_options, NULL);
+		c = getopt_long(argc, argv, "a:d:p:t:ch", long_options, NULL);
 
 		if (c ==
 		    -1) /* have all command-line options have been parsed? */
@@ -502,6 +513,7 @@ int main(int argc, char *argv[])
 			    attributeNames, ++len * sizeof(SaImmAttrNameT));
 			attributeNames[len - 2] = strdup(optarg);
 			attributeNames[len - 1] = NULL;
+			delimiter = ':';
 			pretty_print = 0;
 			break;
 		case 'c':
@@ -517,6 +529,15 @@ int main(int argc, char *argv[])
 		case 'p':
 			if (!strcasecmp(optarg, "no"))
 				pretty_print = 0;
+			break;
+		case 'd':
+			if (strlen(optarg) > 1) {
+				fprintf(
+				    stderr,
+				    "delimiter must be a single character\n");
+				exit(EXIT_FAILURE);
+			}
+			delimiter = optarg[0];
 			break;
 		default:
 			fprintf(stderr,
@@ -570,7 +591,7 @@ int main(int argc, char *argv[])
 		 * attributes for. */
 		while (optind < argc) {
 			display_object(argv[optind], accessorHandle,
-				       pretty_print, attributeNames);
+			       pretty_print, delimiter, attributeNames);
 			optind++;
 		}
 
