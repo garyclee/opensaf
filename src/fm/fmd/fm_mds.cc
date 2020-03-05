@@ -434,6 +434,14 @@ static uint32_t fm_mds_svc_evt(FM_CB *cb,
     return NCSCC_RC_FAILURE;
   }
 
+  if ((cb->role == PCS_RDA_STANDBY) && cb->peer_sc_up) {
+    if (svc_evt->i_node_id != cb->peer_node_id) {
+      TRACE("Ignore event of node %x. Peer node is %x",
+            (unsigned)svc_evt->i_node_id, (unsigned)cb->peer_node_id);
+      return NCSCC_RC_SUCCESS;
+    }
+  }
+
   switch (svc_evt->i_change) {
     case NCSMDS_DOWN:
       switch (svc_evt->i_svc_id) {
