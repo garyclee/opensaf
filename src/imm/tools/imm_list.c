@@ -75,7 +75,7 @@ static void usage(const char *progname)
 	printf(
 	    "\t\t--pretty-print does not work with the options -a and -c\n");
 	printf(
-	    "\t-d, --delimiter=<char> - separate multiple attribute values by <char>");
+	    "\t-d, --delimiter=<char> - separate multiple attribute values by <char>\n");
 	printf("\t-t, --timeout <sec>\n");
 	printf("\t\tutility timeout in seconds\n");
 
@@ -83,7 +83,7 @@ static void usage(const char *progname)
 	printf("\timmlist -a saAmfApplicationAdminState safApp=OpenSAF\n");
 	printf("\timmlist safApp=myApp1 safApp=myApp2\n");
 	printf("\timmlist --pretty-print=no -a saAmfAppType safApp=OpenSAF\n");
-	printf("\timmlist -d '|' -a safAmfNodeGroup safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster");
+	printf("\timmlist -d '|' -a safAmfNodeGroup safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster\n");
 }
 
 static void print_attr_value_raw(SaImmValueTypeT attrValueType,
