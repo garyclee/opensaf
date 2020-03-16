@@ -102,7 +102,7 @@ static int __create_pidfile(const char *pidfile)
 		syslog(LOG_WARNING,"truncation occurred writing pid file: %s", pidfiletmp);
 
 	/* open the file and associate a stream with it */
-	if (((fd = open(pidfiletmp, O_RDWR | O_CREAT, 0644)) == -1) ||
+	if (((fd = open(pidfiletmp, O_RDWR | O_CREAT, 0640)) == -1) ||
 	    ((file = fdopen(fd, "r+")) == NULL)) {
 		syslog(LOG_ERR, "open failed, pidfiletmp=%s, errno=%s",
 		       pidfiletmp, strerror(errno));
@@ -160,18 +160,20 @@ static void create_fifofile(const char *fifofile)
 {
 	mode_t mask;
 
+	/* Lets Remove any such file if it already exists */
+	if (unlink(fifofile) == -1 && errno != ENOENT) {
+		syslog(LOG_ERR, "Unable To Delete FIFO Error: %s\n",
+		       strerror(errno));
+		return;
+	}
+
 	mask = umask(0);
 
-	if (mkfifo(fifofile, 0666) == -1) {
-		if (errno == EEXIST) {
-			syslog(LOG_INFO, "mkfifo already exists: %s %s",
-			       fifofile, strerror(errno));
-		} else {
-			syslog(LOG_WARNING, "mkfifo failed: %s %s", fifofile,
-			       strerror(errno));
-			umask(mask);
-			return;
-		}
+	if (mkfifo(fifofile, 0660) == -1) {
+		syslog(LOG_ERR, "mkfifo failed: %s %s", fifofile,
+				strerror(errno));
+		umask(mask);
+		return;
 	}
 
 	do {
@@ -180,7 +182,7 @@ static void create_fifofile(const char *fifofile)
 	} while (fifo_fd == -1 && errno == EINTR);
 
 	if (fifo_fd == -1) {
-		syslog(LOG_WARNING, "open fifo failed: %s %s", fifofile,
+		syslog(LOG_ERR, "open fifo failed: %s %s", fifofile,
 		       strerror(errno));
 	}
 
@@ -464,6 +466,10 @@ void daemonize(int argc, char *argv[])
 				    LOG_INFO,
 				    "getgrouplist failed, uid=%d (%s). Continuing without supplementary groups.",
 				    pw->pw_uid, strerror(errno));
+			}
+			if ((pw->pw_uid > 0) && (pw->pw_gid > 0)) {
+				assert(chown(fifo_file, pw->pw_uid, pw->pw_gid) == 0);
+				assert(chown(__pidfile, pw->pw_uid, pw->pw_gid) == 0);
 			}
 			if ((pw->pw_gid > 0) && (setgid(pw->pw_gid) < 0)) {
 				syslog(LOG_ERR, "setgid failed, gid=%d (%s)",

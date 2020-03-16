@@ -26,6 +26,7 @@
  * library.                                                              *
  ************************************************************************/
 
+#include <pwd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "osaf/configmake.h"
@@ -66,12 +67,26 @@ uint32_t nid_create_ipc(char *strbuf)
 	mask = umask(0);
 
 	/* Create nid fifo */
-	if (mkfifo(NID_FIFO, 0666) < 0) {
+	if (mkfifo(NID_FIFO, 0660) < 0) {
 		sprintf(strbuf, " FAILURE: Unable To Create FIFO Error:%s\n",
 			strerror(errno));
 		umask(mask);
 		return NCSCC_RC_FAILURE;
 	}
+
+	const char *username = getenv("OPENSAF_USER");
+	long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+	char *buffer = (char *)malloc(bufsize >= 0 ? bufsize : 16384);
+	struct passwd pwd;
+	struct passwd *pw;
+
+	if (buffer != NULL &&
+	    getpwnam_r(username, &pwd, buffer, bufsize, &pw) == 0 &&
+	    pw != NULL) {
+		if ((pw->pw_uid > 0) && (pw->pw_gid > 0))
+			assert(chown(NID_FIFO, pw->pw_uid, pw->pw_gid) == 0);
+	}
+	free(buffer);
 
 	umask(mask);
 	return NCSCC_RC_SUCCESS;
