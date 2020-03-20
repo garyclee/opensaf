@@ -102,7 +102,7 @@ static int __create_pidfile(const char *pidfile)
 		syslog(LOG_WARNING,"truncation occurred writing pid file: %s", pidfiletmp);
 
 	/* open the file and associate a stream with it */
-	if (((fd = open(pidfiletmp, O_RDWR | O_CREAT, 0640)) == -1) ||
+	if (((fd = open(pidfiletmp, O_RDWR | O_CREAT, 0644)) == -1) ||
 	    ((file = fdopen(fd, "r+")) == NULL)) {
 		syslog(LOG_ERR, "open failed, pidfiletmp=%s, errno=%s",
 		       pidfiletmp, strerror(errno));
@@ -169,7 +169,7 @@ static void create_fifofile(const char *fifofile)
 
 	mask = umask(0);
 
-	if (mkfifo(fifofile, 0660) == -1) {
+	if (mkfifo(fifofile, 0666) == -1) {
 		syslog(LOG_ERR, "mkfifo failed: %s %s", fifofile,
 				strerror(errno));
 		umask(mask);
@@ -469,7 +469,9 @@ void daemonize(int argc, char *argv[])
 			}
 			if ((pw->pw_uid > 0) && (pw->pw_gid > 0)) {
 				assert(chown(fifo_file, pw->pw_uid, pw->pw_gid) == 0);
+				assert(chmod(fifo_file, 0660) == 0);
 				assert(chown(__pidfile, pw->pw_uid, pw->pw_gid) == 0);
+				assert(chmod(__pidfile, 0640) == 0);
 			}
 			if ((pw->pw_gid > 0) && (setgid(pw->pw_gid) < 0)) {
 				syslog(LOG_ERR, "setgid failed, gid=%d (%s)",
