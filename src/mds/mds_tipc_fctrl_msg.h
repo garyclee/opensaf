@@ -49,10 +49,13 @@ class Event {
     kEvtTmrAll,
     kEvtTmrTxProb,    // event that tx probation timer expired for once
     kEvtTmrChunkAck,  // event to send the chunk ack
+    kEvtShutDown,     // event to shutdown flow control thread
   };
   NCS_IPC_MSG next_{0};
   Type type_;
 
+  // Used for shutdown
+  NCS_SEL_OBJ destroy_ack_obj_;
   // Used for flow event only
   struct tipc_portid id_;
   uint16_t svc_id_{0};
@@ -69,10 +72,15 @@ class Event {
     mseq_(mseq), mfrag_(mfrag), fseq_(f_seq_num) {
     type_ = type;
   }
+  Event(Type type, NCS_SEL_OBJ destroy_ack_obj):
+    destroy_ack_obj_(destroy_ack_obj) {
+    type_ = type;
+  }
   bool IsTimerEvent() const { return (type_ > Type::kEvtTmrAll); }
   bool IsFlowEvent() const {
     return (Type::kEvtDataFlowAll < type_ && type_ < Type::kEvtTmrAll);
   }
+  bool IsShutDownEvent() const { return (type_ == Type::kEvtShutDown); }
 };
 
 class BaseMessage {
