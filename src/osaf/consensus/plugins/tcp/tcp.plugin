@@ -26,7 +26,6 @@ import syslog
 import threading
 
 
-counter_run = False
 counter_time = 0.0
 
 def time_counting(hb_interval):
@@ -35,9 +34,9 @@ def time_counting(hb_interval):
     but if it is container, clock time still jump.
     This function to help know node is frozen or arbitrator server issue
     '''
-    global counter_run, counter_time
+    global counter_time
     counter_time = 0.0
-    while (counter_run):
+    while (True):
         time.sleep(hb_interval)
         counter_time += hb_interval
 
@@ -494,34 +493,33 @@ class ArbitratorPlugin(object):
             return ret
 
         last_arb_timestamp = 0
-        global counter_run, counter_time
+        last_counter_time = 0
+        global counter_time
         counter = None
         while True:
             if key == self.takeover_request:
                 if self.is_active() is False:
                     # maybe a controller swap occurred
                     break
+                if counter is None:
+                    counter = threading.Thread(
+                                    target=time_counting,
+                                    args=(self.heartbeat_interval,))
+                    counter.setDaemon(True)
+                    counter.start()
                 while True:
                     try:
                         time_at_arb = self.proxy.heartbeat(self.hostname)
-                        if counter is not None:
-                            counter_run = False
-                            counter.join()
                         if (last_arb_timestamp != 0) and \
                            (time_at_arb - last_arb_timestamp > self.timeout):
-                            if counter_time < self.timeout:
+                            if counter_time - last_counter_time < self.timeout:
                                 syslog.syslog('VM/Container was frozen!')
                                 ret['code'] = 126
                                 return ret
                             syslog.syslog('Arb server issue?')
                             raise socket.error('Arb server issue?')
                         else:
-                            counter = threading.Thread(
-                                            target=time_counting,
-                                            args=(self.heartbeat_interval,))
-                            counter_run = True
-                            counter.setDaemon(True)
-                            counter.start()
+                            last_counter_time = counter_time
                             last_arb_timestamp = time_at_arb
                             break
                     except socket.error:
