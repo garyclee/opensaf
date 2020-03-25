@@ -13336,6 +13336,7 @@ void tet_sender2(MDS_SVC_ID svc_id, uint32_t msg_num, uint32_t msg_size,
 		} else {
 			printf("\nSender SENT message %d"
 				" successfully\n", i);
+			sleep(1); // Slow down sender to avoid msg drop
 		}
 	}
 	free(mesg);
