@@ -1321,6 +1321,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp,
       }
       csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
           m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+      osafassert(csi);
       // Mark CSI ASSIGNED in case of comp-restart recovery and RESTART admin op
       // on comp.
       if ((isRestartSet(comp->su) == false) &&

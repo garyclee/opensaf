@@ -1066,6 +1066,7 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp,
       m_AVND_COMP_ALL_CSI_SET(comp);
       curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
           m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+      osafassert(curr_csi);
       if (!m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi)) {
         /*
          * => prv si assignment did not complete
@@ -1163,7 +1164,7 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp,
     if (!curr_csi)
       curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
           m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
-
+    osafassert(curr_csi);
     /* determine the instantiation state of npi comp */
     if (!m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi) ||
         (m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi) &&
@@ -1631,7 +1632,7 @@ uint32_t avnd_comp_csi_assign_done(AVND_CB *cb, AVND_COMP *comp,
         m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
     csiname = "all CSIs";
   }
-
+  osafassert(curr_csi);
   LOG_IN("Assigned '%s' %s to '%s'", csiname.c_str(),
          ha_state[curr_csi->si->curr_state], comp->name.c_str());
 
