@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string>
+#include <regex>
 
 #include "base/logtrace.h"
 #include "base/osaf_time.h"
@@ -964,13 +965,13 @@ static int chr_cnt_b(char *str, char c, int lim) {
 /* Filename prefix (no timestamps or extension */
 static std::string file_name_find_g;
 static int filter_logfile_name(const struct dirent *finfo) {
-  int found = 0;
-
-  if ((strstr(finfo->d_name, file_name_find_g.c_str()) != nullptr) &&
-      (strstr(finfo->d_name, ".log") != nullptr))
-    found = 1;
-
-  return found;
+  const std::string pattern =
+      "^" + file_name_find_g + "_[0-9]{8}_[0-9]{6}.log$";
+  const std::regex e{pattern};
+  if (std::regex_match(finfo->d_name, e)) {
+    return 1;
+  }
+  return 0;
 }
 
 /**
