@@ -376,9 +376,8 @@ get_operation_invoke_name_modify(SaImmOiCcbIdT ccbId,
 			goto done;
 		}
 	}
-	/* If we get here no name is found! */
-	LOG_ER("%s no name was found", __FUNCTION__);
-	osafassert(0);
+	/* ntfimcnd was restarted durinng ccb modification */
+	osaf_extended_name_alloc("unknown", operation_invoke_name);
 
 done:
 	TRACE_LEAVE();
