@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -75,6 +76,8 @@ void avd_mds_d_enc(MDS_CALLBACK_ENC_INFO *enc_info) {
       ncs_encode_32bit(&data, msg->msg_info.d2d_chg_role_rsp.role);
       ncs_encode_32bit(&data, msg->msg_info.d2d_chg_role_rsp.status);
       break;
+    case AVD_D2D_REBOOT:
+      break;
     default:
       LOG_ER("%s: unknown msg %u", __FUNCTION__, msg->msg_type);
       break;
@@ -119,6 +122,8 @@ void avd_mds_d_dec(MDS_CALLBACK_DEC_INFO *dec_info) {
       d2d_msg->msg_info.d2d_chg_role_rsp.role =
           static_cast<SaAmfHAStateT>(ncs_decode_32bit(&data));
       d2d_msg->msg_info.d2d_chg_role_rsp.status = ncs_decode_32bit(&data);
+      break;
+    case AVD_D2D_REBOOT:
       break;
     default:
       LOG_ER("%s: unknown msg %u", __FUNCTION__, d2d_msg->msg_type);
@@ -209,6 +214,10 @@ uint32_t avd_d2d_msg_rcv(AVD_D2D_MSG *rcv_msg) {
         /* We should never fell into this else case */
         osafassert(0);
       }
+      break;
+    case AVD_D2D_REBOOT:
+      LOG_ER("Reboot order from Active as roaming SC split-brain detected");
+      opensaf_quick_reboot("Split-brain detected");
       break;
     default:
       LOG_ER("%s: unknown msg %u", __FUNCTION__, rcv_msg->msg_type);

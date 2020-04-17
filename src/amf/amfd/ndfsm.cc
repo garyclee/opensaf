@@ -1,8 +1,8 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
- * (C) Copyright 2017 Ericsson AB - All Rights Reserved.
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2017, 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -812,6 +812,8 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
         // Ignore amfnd down event in late after clm cb node left then joined
         // But not ignore if after headless
         LOG_WA("Ignore '%s' amfnd down event", node->node_name.c_str());
+        node->rcv_msg_id = 0;
+        node->snd_msg_id = 0;
         TRACE_LEAVE();
         return;
       }

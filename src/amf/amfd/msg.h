@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -40,6 +41,7 @@
 typedef enum {
   AVD_D2D_CHANGE_ROLE_REQ = AVSV_D2D_CHANGE_ROLE_REQ,
   AVD_D2D_CHANGE_ROLE_RSP,
+  AVD_D2D_REBOOT,
   AVD_D2D_MSG_MAX,
 } AVD_D2D_MSG_TYPE;
 

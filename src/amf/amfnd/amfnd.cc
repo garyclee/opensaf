@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -432,7 +433,7 @@ uint32_t avnd_evt_avd_reboot_evh(AVND_CB *cb, AVND_EVT *evt) {
     }
   }
 
-  LOG_NO("Received reboot order, ordering reboot now!");
+  LOG_NO("Received reboot order from %x, ordering reboot now!", info->node_id);
   opensaf_reboot(cb->node_info.nodeId,
                  osaf_extended_name_borrow(&cb->node_info.executionEnvironment),
                  "Received reboot order");

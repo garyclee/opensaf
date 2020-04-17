@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -72,6 +73,7 @@ typedef enum avd_evt_type {
   AVD_IMM_REINITIALIZED,
   AVD_EVT_UNASSIGN_SI_DEP_STATE,
   AVD_EVT_ND_MDS_VER_INFO,
+  AVD_EVT_ROAMING_SC_SPLITBRAIN,
   AVD_EVT_MAX
 } AVD_EVT_TYPE;
 

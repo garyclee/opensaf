@@ -2,7 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
- * Copyright Ericsson AB 2017 - All Rights Reserved.
+ * Copyright Ericsson AB 2017, 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -132,6 +132,9 @@ static const AVD_EVT_HDLR g_actv_list[AVD_EVT_MAX] = {
     invalid_evh,                /* AVD_EVT_INVALID */
     avd_sidep_unassign_evh,     /* AVD_EVT_UNASSIGN_SI_DEP_STATE */
     avd_avnd_mds_info_evh,      /* AVD_EVT_ND_MDS_VER_INFO*/
+
+    /* Roaming SC split-brain processing */
+    avd_roaming_sc_split_brain_evh, /* AVD_EVT_ROAMING_SC_SPLITBRAIN */
 };
 
 /* list of all the function pointers related to handling the events
