@@ -124,7 +124,11 @@ Cache::Data::Data(std::shared_ptr<WriteAsyncInfo> info,
 Cache::Data::Data(const CkptPushAsync* data) {
   TRACE_ENTER();
   param_      = std::make_shared<WriteAsyncInfo>(data);
-  queue_at_   = data->queue_at;
+  // Don't inherit the queue_at_ from the active node,
+  // since the timer on both nodes may be different.
+  // Queue_at now is about when the element is actually
+  // put into the queue of each logsv instance.
+  queue_at_   = base::TimespecToNanos(base::ReadMonotonicClock());
   seq_id_     = data->seq_id;
   log_record_ = strdup(data->log_record);
   size_       = strlen(log_record_);
