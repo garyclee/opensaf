@@ -3287,17 +3287,20 @@ static uint32_t mdtm_mcast_sendto(void *buffer, size_t size,
 	server_addr.addr.nameseq.lower = HTONL(MDS_MDTM_LOWER_INSTANCE);
 	/*This can be scope-down to dest_svc_id  server_inst TBD*/
 	server_addr.addr.nameseq.upper = HTONL(MDS_MDTM_UPPER_INSTANCE);
-	ssize_t send_len =
-	    mds_retry_sendto(tipc_cb.BSRsock, buffer, size, MSG_DONTWAIT,
-		   (struct sockaddr *)&server_addr, sizeof(server_addr));
+	while (1) {
+		ssize_t send_len =
+			mds_retry_sendto(tipc_cb.BSRsock, buffer, size, MSG_DONTWAIT,
+			(struct sockaddr *)&server_addr, sizeof(server_addr));
 
-	if (send_len == size) {
-		m_MDS_LOG_INFO("MDTM: Successfully sent mcast message");
-		return NCSCC_RC_SUCCESS;
-	} else {
-		m_MDS_LOG_ERR("MDTM: Failed to send Multicast message err :%s",
-			      strerror(errno));
-		return NCSCC_RC_FAILURE;
+		if ((size_t)send_len == size) {
+			m_MDS_LOG_INFO("MDTM: Successfully sent mcast message");
+			return NCSCC_RC_SUCCESS;
+		} else {
+			m_MDS_LOG_ERR("MDTM: Failed to send Multicast message err :%s",
+					strerror(errno));
+			if (errno == EAGAIN) continue;
+			return NCSCC_RC_FAILURE;
+		}
 	}
 }
 /****************************************************************************
