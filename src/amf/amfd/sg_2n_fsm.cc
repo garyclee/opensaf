@@ -1472,7 +1472,7 @@ uint32_t SG_2N::su_fault(AVD_CL_CB *cb, AVD_SU *su) {
 
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
       break;
   } /* switch(su->sg_of_su->sg_fsm_state) */
 
@@ -1537,7 +1537,7 @@ uint32_t SG_2N::susi_success_sg_realign(AVD_SU *su, AVD_SU_SI_REL *susi,
   m_AVD_CHK_OPLIST(su, flag);
 
   if (flag == false) {
-    LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+    LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
            su->name.length());
     goto done;
   }
@@ -1816,8 +1816,8 @@ uint32_t SG_2N::susi_success_sg_realign(AVD_SU *su, AVD_SU_SI_REL *susi,
         avd_cb->active_services_exist = true;
       }
     } else {
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, act);
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, state);
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, act);
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, state);
       LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       goto done;
@@ -1944,8 +1944,8 @@ uint32_t SG_2N::susi_success_sg_realign(AVD_SU *su, AVD_SU_SI_REL *susi,
       }
       goto done;
     } else {
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, state);
-      LOG_EM("%s:%u: %s ", __FILE__, __LINE__, su->name.c_str());
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, state);
+      LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.c_str());
     }
   }
 
@@ -2443,17 +2443,17 @@ uint32_t SG_2N::susi_success_si_oper(AVD_SU *su, AVD_SU_SI_REL *susi,
     } /* if ((act == AVSV_SUSI_ACT_DEL) && (susi->state == SA_AMF_HA_QUIESCED))
        */
     else {
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, susi->si->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, susi->si->name.c_str(),
              susi->si->name.length());
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
     }
 
   } else { /* if (susi != AVD_SU_SI_REL_NULL) */
-    LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+    LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
            su->name.length());
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
     goto done;
   } /* else (susi != AVD_SU_SI_REL_NULL) */
 
@@ -2485,7 +2485,7 @@ uint32_t SG_2N::susi_success(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
           m_AVD_SU_SI_TRG_DEL(cb, susi);
         }
       }
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       break; /* case AVD_SG_FSM_STABLE: */
     case AVD_SG_FSM_SG_REALIGN:
@@ -2556,8 +2556,8 @@ uint32_t SG_2N::susi_success(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
             }
           }
         } else {
-          LOG_EM("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)act));
-          LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+          LOG_ER("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)act));
+          LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
                  su->name.length());
           goto done;
         }
@@ -2666,8 +2666,8 @@ uint32_t SG_2N::susi_success(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
             }
           }
         } else {
-          LOG_EM("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)act));
-          LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+          LOG_ER("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)act));
+          LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
                  su->name.length());
           goto done;
         }
@@ -2675,9 +2675,9 @@ uint32_t SG_2N::susi_success(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
       /* if (su->sg_of_su->admin_state == NCS_ADMIN_STATE_SHUTDOWN) */
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              ((uint32_t)su->sg_of_su->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       goto done;
       break;
@@ -2712,7 +2712,7 @@ uint32_t SG_2N::susi_failed(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
         }
       }
 
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       break; /* case AVD_SG_FSM_STABLE: */
     case AVD_SG_FSM_SG_REALIGN:
@@ -2946,9 +2946,9 @@ uint32_t SG_2N::susi_failed(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
 
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              ((uint32_t)su->sg_of_su->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       goto done;
       break;
@@ -3720,9 +3720,9 @@ void SG_2N::node_fail(AVD_CL_CB *cb, AVD_SU *su) {
       /* if (su->sg_of_su->admin_state == NCS_ADMIN_STATE_SHUTDOWN) */
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              ((uint32_t)su->sg_of_su->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       goto done;
       break;
@@ -4109,8 +4109,8 @@ uint32_t SG_2N::sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg) {
       }      /* if (sg->admin_state == NCS_ADMIN_STATE_LOCK) */
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)sg->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, sg->name.c_str(),
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)sg->sg_fsm_state));
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, sg->name.c_str(),
              sg->name.length());
       goto done;
       break;

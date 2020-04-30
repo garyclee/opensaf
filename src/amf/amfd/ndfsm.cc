@@ -1145,7 +1145,7 @@ uint32_t avd_node_down(AVD_CL_CB *cb, SaClmNodeIdT node_id) {
 
   if ((avnd = avd_node_find_nodeid(node_id)) == nullptr) {
     /* log error that the node id is invalid */
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, node_id);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, node_id);
     return NCSCC_RC_FAILURE;
   }
 

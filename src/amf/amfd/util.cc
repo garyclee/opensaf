@@ -149,7 +149,7 @@ uint32_t avd_snd_node_data_verify_msg(AVD_CL_CB *cb, AVD_AVND *avnd) {
      */
 
     /* Log a fatal error that node record can't be null */
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, 0);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, 0);
     return NCSCC_RC_FAILURE;
   }
 
@@ -209,7 +209,7 @@ uint32_t avd_snd_node_up_msg(AVD_CL_CB *cb, AVD_AVND *avnd,
      */
 
     /* Log a fatal error that node record can't be null */
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, 0);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, 0);
     return NCSCC_RC_FAILURE;
   }
 
@@ -268,7 +268,7 @@ uint32_t avd_snd_oper_state_msg(AVD_CL_CB *cb, AVD_AVND *avnd,
      */
 
     /* Log a fatal error that AvND record can't be null */
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, 0);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, 0);
     return NCSCC_RC_FAILURE;
   }
 
@@ -788,7 +788,7 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
           /* log fatal error. This call for assignments has to be
            * called with a valid SU SI relationship value.
            */
-          LOG_EM("%s:%u: %u", __FILE__, __LINE__, 0);
+          LOG_ER("%s:%u: %u", __FILE__, __LINE__, 0);
           /* free the SUSI message */
           d2n_msg_free(susi_msg);
           TRACE_LEAVE();
@@ -817,7 +817,7 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
         /* log fatal error. This call for assignments has to be
          * called with a valid SU SI relationship value.
          */
-        LOG_EM("%s:%u: %u", __FILE__, __LINE__, 0);
+        LOG_ER("%s:%u: %u", __FILE__, __LINE__, 0);
         /* free the SUSI message */
         d2n_msg_free(susi_msg);
         TRACE_LEAVE();
@@ -844,7 +844,7 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
        */
 
       /* Log a fatal error that it is an invalid action */
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, actn);
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, actn);
       d2n_msg_free(susi_msg);
       TRACE_LEAVE();
       return NCSCC_RC_FAILURE;
@@ -909,7 +909,7 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
       if (actn == AVSV_SUSI_ACT_ASGN) {
         if (avd_prep_csi_attr_info(cb, compcsi_info, l_compcsi) ==
             NCSCC_RC_FAILURE) {
-          LOG_EM("%s:%u: %u", __FILE__, __LINE__, avnd->node_info.nodeId);
+          LOG_ER("%s:%u: %u", __FILE__, __LINE__, avnd->node_info.nodeId);
           d2n_msg_free(susi_msg);
           TRACE_LEAVE();
           return NCSCC_RC_FAILURE;
@@ -1212,7 +1212,7 @@ uint32_t avd_snd_set_leds_msg(AVD_CL_CB *cb, AVD_AVND *avnd) {
      */
 
     /* Log a fatal error that AvND record can't be null */
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, 0);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, 0);
     TRACE_LEAVE();
     return NCSCC_RC_FAILURE;
   }

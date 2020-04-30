@@ -560,7 +560,7 @@ uint32_t SG_NACV::su_fault(AVD_CL_CB *cb, AVD_SU *su) {
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
       /* log fatal error about the invalid value */
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
       return NCSCC_RC_FAILURE;
       break;
   } /* switch(su->sg_of_su->sg_fsm_state) */
@@ -574,7 +574,7 @@ uint32_t SG_NACV::su_insvc(AVD_CL_CB *cb, AVD_SU *su) {
   /* An SU will not become in service when the SG is being locked or shutdown.
    */
   if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_SG_ADMIN) {
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
     return NCSCC_RC_FAILURE;
   }
 
@@ -629,7 +629,7 @@ uint32_t SG_NACV::susi_success(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
         }
       }
       /* log informational error. */
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       break; /* case AVD_SG_FSM_STABLE: */
     case AVD_SG_FSM_SG_REALIGN:
@@ -948,9 +948,9 @@ uint32_t SG_NACV::susi_success(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
             }
 
             if (su_oper_list_front() != su) {
-              LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+              LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
                      su->name.length());
-              LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__,
+              LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__,
                      su->list_of_susi->si->name.c_str(),
                      su->list_of_susi->si->name.length());
 
@@ -1094,9 +1094,9 @@ uint32_t SG_NACV::susi_success(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
       /* if (state == SA_AMF_HA_QUIESCED) */
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              ((uint32_t)su->sg_of_su->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       return NCSCC_RC_FAILURE;
       break;
@@ -1116,7 +1116,7 @@ uint32_t SG_NACV::susi_failed(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
     case AVD_SG_FSM_STABLE:
 
       /* log fatal error. */
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       break; /* case AVD_SG_FSM_STABLE: */
     case AVD_SG_FSM_SG_REALIGN:
@@ -1239,9 +1239,9 @@ uint32_t SG_NACV::susi_failed(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
             }
 
             if (su_oper_list_front() != su) {
-              LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+              LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
                      su->name.length());
-              LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__,
+              LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__,
                      su->list_of_susi->si->name.c_str(),
                      su->list_of_susi->si->name.length());
 
@@ -1318,9 +1318,9 @@ uint32_t SG_NACV::susi_failed(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
          (state == SA_AMF_HA_QUIESCING))) */
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              ((uint32_t)su->sg_of_su->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       return NCSCC_RC_FAILURE;
       break;
@@ -1622,9 +1622,9 @@ void SG_NACV::node_fail(AVD_CL_CB *cb, AVD_SU *su) {
 
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              ((uint32_t)su->sg_of_su->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       return;
       break;
@@ -1878,8 +1878,8 @@ uint32_t SG_NACV::sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg) {
       }      /* if (sg->admin_state == NCS_ADMIN_STATE_LOCK) */
       break; /* case AVD_SG_FSM_SG_ADMIN: */
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)sg->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, sg->name.c_str(),
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)sg->sg_fsm_state));
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, sg->name.c_str(),
              sg->name.length());
       return NCSCC_RC_FAILURE;
       break;

@@ -598,7 +598,7 @@ static uint32_t avd_role_failover_qsd_actv(AVD_CL_CB *cb, SaAmfHAStateT role) {
            do node down processing for other node */
         avd_node_mark_absent(avnd_other);
       } else {
-        LOG_EM("%s:%u: %u", __FILE__, __LINE__, NCSCC_RC_FAILURE);
+        LOG_ER("%s:%u: %u", __FILE__, __LINE__, NCSCC_RC_FAILURE);
       }
 
       return NCSCC_RC_SUCCESS;
@@ -701,7 +701,7 @@ void avd_role_switch_ncs_su_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 
   /* get the avnd from node_id */
   if (nullptr == (avnd = avd_node_find_nodeid(cb->node_id_avd))) {
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, cb->node_id_avd);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, cb->node_id_avd);
     return;
   }
   other_avnd = avd_node_find_nodeid(cb->node_id_avd_other);
@@ -852,12 +852,12 @@ try_again:
   if (NCSCC_RC_SUCCESS !=
       (status = avsv_set_ckpt_role(cb, SA_AMF_HA_QUIESCED))) {
     /* Log error */
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, status);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, status);
   }
 
   /* Now Dispatch all the messages from the MBCSv mail-box */
   if (NCSCC_RC_SUCCESS != (rc = avsv_mbcsv_dispatch(cb, SA_DISPATCH_ALL))) {
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, cb->node_id_avd_other);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, cb->node_id_avd_other);
     cb->swap_switch = false;
     return;
   }
