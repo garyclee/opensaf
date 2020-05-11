@@ -344,14 +344,10 @@ int Cache::DecodeColdSync(NCS_UBAID* uba, lgsv_ckpt_header_t* header,
   uint32_t num_rec = header->num_ckpt_records;
   int rc = NCSCC_RC_SUCCESS;
   EDU_ERR ederror;
-  lgsv_ckpt_msg_v8_t msg_v8;
-  auto data = &msg_v8.ckpt_rec.push_async;
-  CkptPushAsync* cache_data;
   while (num_rec) {
-    cache_data = data;
     rc = m_NCS_EDU_EXEC(&lgs_cb->edu_hdl, EncodeDecodePushAsync,
                         uba, EDP_OP_TYPE_DEC,
-                        &cache_data, &ederror);
+                        vckpt_rec, &ederror);
     if (rc != NCSCC_RC_SUCCESS) {
       m_NCS_EDU_PRINT_ERROR_STRING(ederror);
       return rc;
