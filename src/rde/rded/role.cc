@@ -262,8 +262,8 @@ bool Role::IsCandidate() {
   // if relaxed node promotion is enabled, allow this node to be promoted
   // active if it can see a peer SC and this node has the lowest node ID
   if (consensus_service.IsRelaxedNodePromotionEnabled() == true &&
-      (cb->state == State::kNotActive ||
-       (cb->state == State::kNotActiveSeenPeer && IsLowestNodeid()))) {
+      cb->state == State::kNotActiveSeenPeer &&
+      IsLowestNodeid() == true) {
     LOG_NO("Relaxed node promotion enabled. This node is a candidate.");
     result = true;
   }
