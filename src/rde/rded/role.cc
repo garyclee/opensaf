@@ -262,8 +262,7 @@ bool Role::IsCandidate() {
   // if relaxed node promotion is enabled, allow this node to be promoted
   // active if it can see a peer SC and this node has the lowest node ID
   if (consensus_service.IsRelaxedNodePromotionEnabled() == true &&
-      cb->state == State::kNotActiveSeenPeer &&
-      IsLowestNodeid() == true) {
+      cb->state == State::kNotActiveSeenPeer) {
     LOG_NO("Relaxed node promotion enabled. This node is a candidate.");
     result = true;
   }
@@ -279,17 +278,6 @@ bool Role::IsPeerPresent() {
     result = true;
   }
 
-  return result;
-}
-
-bool Role::IsLowestNodeid() {
-  bool result = true;
-  RDE_CONTROL_BLOCK* cb = rde_get_control_block();
-
-  for (auto peer_id : cb->peer_controllers) {
-    if (peer_id < own_node_id_)
-      return false;
-  }
   return result;
 }
 
