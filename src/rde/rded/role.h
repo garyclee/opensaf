@@ -39,7 +39,8 @@ class Role {
   void AddPeer(NODE_ID node_id);
   bool IsCandidate();
   bool IsPeerPresent();
-  void SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id);
+  void SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id,
+                    uint64_t peer_promote_pending);
   timespec* Poll(timespec* ts);
   uint32_t SetRole(PCS_RDA_ROLE new_role);
   PCS_RDA_ROLE role() const;

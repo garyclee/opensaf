@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "base/conf.h"
+#include "base/time.h"
 #include "base/daemon.h"
 #include "base/logtrace.h"
 #include "base/ncs_main_papi.h"
@@ -108,7 +109,8 @@ static void handle_mbx_event() {
              msg->type == RDE_MSG_PEER_INFO_RESP ? "response" : "request",
              msg->fr_node_id, Role::to_string(msg->info.peer_info.ha_role));
       CheckForSplitBrain(msg);
-      role->SetPeerState(msg->info.peer_info.ha_role, msg->fr_node_id);
+      role->SetPeerState(msg->info.peer_info.ha_role, msg->fr_node_id,
+                         msg->info.peer_info.promote_pending);
       break;
     }
     case RDE_MSG_PEER_UP: {
@@ -283,9 +285,15 @@ static void CheckForSplitBrain(const rde_msg *msg) {
 }
 
 static void SendPeerInfoResp(MDS_DEST mds_dest) {
+  RDE_CONTROL_BLOCK *cb = rde_get_control_block();
   rde_msg peer_info_req;
   peer_info_req.type = RDE_MSG_PEER_INFO_RESP;
   peer_info_req.info.peer_info.ha_role = role->role();
+  if (role->role() == PCS_RDA_UNDEFINED && cb->promote_pending == 0) {
+    struct timespec now = base::ReadMonotonicClock();
+    cb->promote_pending = base::TimespecToMillis(now - cb->promote_start);
+  }
+  peer_info_req.info.peer_info.promote_pending = cb->promote_pending;
   rde_mds_send(&peer_info_req, mds_dest);
 }
 
