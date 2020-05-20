@@ -717,12 +717,6 @@ static void main_loop(void) {
         osafassert(0);
     }
 
-    if (fds[FD_MBCSV].revents & POLLIN) {
-      old_sync_state = cb->stby_sync_state;
-      if (NCSCC_RC_SUCCESS != avsv_mbcsv_dispatch(cb, SA_DISPATCH_ALL))
-        LOG_ER("avsv_mbcsv_dispatch FAILED");
-    }
-
     if (fds[FD_CLM].revents & POLLIN) {
       TRACE("CLM event rec");
       error = saClmDispatch(cb->clmHandle, SA_DISPATCH_ONE);
@@ -764,6 +758,12 @@ static void main_loop(void) {
         /* flush messages possibly queued in the callback */
         avd_d2n_msg_dequeue(cb);
       }
+    }
+
+    if (fds[FD_MBCSV].revents & POLLIN) {
+      old_sync_state = cb->stby_sync_state;
+      if (NCSCC_RC_SUCCESS != avsv_mbcsv_dispatch(cb, SA_DISPATCH_ALL))
+        LOG_ER("avsv_mbcsv_dispatch FAILED");
     }
 
     // Standby COLD_SYNC completed. Ask STANDBY to flush its job queue if size
