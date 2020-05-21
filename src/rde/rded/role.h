@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <set>
 #include <string>
+#include <atomic>
 #include "base/macros.h"
 #include "mds/mds_papi.h"
 #include "rde/agent/rda_papi.h"
@@ -58,7 +59,7 @@ class Role {
   void PromoteNode(const uint64_t cluster_size, const bool relaxed_mode);
 
   std::set<NODE_ID> known_nodes_;
-  PCS_RDA_ROLE role_;
+  std::atomic<PCS_RDA_ROLE> role_;
   NODE_ID own_node_id_;
   base::Process* proc_;
   timespec election_end_time_;

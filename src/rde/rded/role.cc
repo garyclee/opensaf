@@ -107,9 +107,14 @@ void Role::PromoteNode(const uint64_t cluster_size,
   rc = consensus_service.PromoteThisNode(true, cluster_size);
   if (rc == SA_AIS_ERR_EXIST) {
     LOG_WA("Another controller is already active");
+    if (role() == PCS_RDA_UNDEFINED) SetRole(PCS_RDA_QUIESCED);
     return;
   } else if (rc != SA_AIS_OK && relaxed_mode == true) {
     LOG_WA("Unable to set active controller in consensus service");
+    if (role() == PCS_RDA_QUIESCED) {
+      LOG_WA("Another controller is already promoted");
+      return;
+    }
     LOG_WA("Will become active anyway");
     promotion_pending = true;
   } else if (rc != SA_AIS_OK) {
