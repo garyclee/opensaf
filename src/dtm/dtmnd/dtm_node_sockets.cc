@@ -241,6 +241,10 @@ int comm_socket_setup_new(DTM_INTERNODE_CB *dtms_cb,
   struct addrinfo addr_criteria, *p; /* Criteria for address match */
   char foreign_address_eth[INET6_ADDRSTRLEN + IFNAMSIZ];
   int flag;
+  struct in_addr addr_ipv4;
+  struct sockaddr_in sockaddr;
+  struct in6_addr addr_ipv6;
+  struct sockaddr_in6 sockaddr6;
   TRACE_ENTER();
 
   /* Construct the serv address structure */
@@ -328,6 +332,30 @@ int comm_socket_setup_new(DTM_INTERNODE_CB *dtms_cb,
     close(sock_desc);
     sock_desc = -1;
     goto done;
+  }
+
+  if (dtms_cb->i_addr_family == AF_INET) {
+    if (inet_pton(AF_INET, dtms_cb->ip_addr.c_str(), &addr_ipv4) == 1) {
+      sockaddr.sin_family = AF_INET;
+      sockaddr.sin_port = 0;
+      sockaddr.sin_addr = addr_ipv4;
+      if (osaf_bind(sock_desc, (struct sockaddr *)&sockaddr,
+                    sizeof(sockaddr)) != 0)
+        LOG_WA("DTM:osaf_bind() ipv4 failed with errno %d", errno);
+    } else {
+      LOG_WA("DTM:inet_pton(%s) ipv4 failed", dtms_cb->ip_addr.c_str());
+    }
+  } else {
+    if (inet_pton(AF_INET6, dtms_cb->ip_addr.c_str(), &addr_ipv6) == 1) {
+      sockaddr6.sin6_family = AF_INET6;
+      sockaddr6.sin6_port = 0;
+      sockaddr6.sin6_addr = addr_ipv6;
+      if (osaf_bind(sock_desc, (struct sockaddr *)&sockaddr6,
+                    sizeof(sockaddr6)) != 0)
+        LOG_WA("DTM:osaf_bind() ipv6 failed with errno %d", errno);
+    } else {
+      LOG_WA("DTM:inet_pton(%s) ipv6 failed", dtms_cb->ip_addr.c_str());
+    }
   }
 
   /* Try to connect to the given port */
