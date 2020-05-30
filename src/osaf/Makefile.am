@@ -18,7 +18,11 @@ EXTRA_DIST += \
 	src/osaf/consensus/plugins/etcd.plugin \
 	src/osaf/consensus/plugins/etcd3.plugin \
 	src/osaf/consensus/plugins/sample.plugin \
-	src/osaf/consensus/plugins/README.etcd
+	src/osaf/consensus/plugins/README.etcd \
+	src/osaf/consensus/plugins/tcp/generate_cert.sh \
+	src/osaf/consensus/plugins/tcp/README \
+	src/osaf/consensus/plugins/tcp/tcp.plugin \
+	src/osaf/consensus/plugins/tcp/tcp_server.py
 
 noinst_HEADERS += \
 	src/osaf/immutil/immutil.h \
