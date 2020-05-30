@@ -26,7 +26,7 @@
 #include <memory>
 
 #include "log/logd/lgs.h"
-#include "log/logd/lgs_mbcsv_cache.h"
+#include "log/logd/lgs_mbcsv_v8.h"
 #include "base/macros.h"
 
 // This atomic variable stores the readiness status of file hdle thread.

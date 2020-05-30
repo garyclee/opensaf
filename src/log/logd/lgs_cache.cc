@@ -18,7 +18,7 @@
 #include "log/logd/lgs_cache.h"
 
 #include "log/logd/lgs_dest.h"
-#include "log/logd/lgs_mbcsv_cache.h"
+#include "log/logd/lgs_mbcsv_v8.h"
 #include "log/logd/lgs_evt.h"
 #include "log/logd/lgs_evt.h"
 #include "log/logd/lgs_mbcsv.h"
@@ -124,7 +124,11 @@ Cache::Data::Data(std::shared_ptr<WriteAsyncInfo> info,
 Cache::Data::Data(const CkptPushAsync* data) {
   TRACE_ENTER();
   param_      = std::make_shared<WriteAsyncInfo>(data);
-  queue_at_   = data->queue_at;
+  // Don't inherit the queue_at_ from the active node,
+  // since the timer on both nodes may be different.
+  // Queue_at now is about when the element is actually
+  // put into the queue of each logsv instance.
+  queue_at_   = base::TimespecToNanos(base::ReadMonotonicClock());
   seq_id_     = data->seq_id;
   log_record_ = strdup(data->log_record);
   size_       = strlen(log_record_);
@@ -340,14 +344,10 @@ int Cache::DecodeColdSync(NCS_UBAID* uba, lgsv_ckpt_header_t* header,
   uint32_t num_rec = header->num_ckpt_records;
   int rc = NCSCC_RC_SUCCESS;
   EDU_ERR ederror;
-  lgsv_ckpt_msg_v8_t msg_v8;
-  auto data = &msg_v8.ckpt_rec.push_async;
-  CkptPushAsync* cache_data;
   while (num_rec) {
-    cache_data = data;
     rc = m_NCS_EDU_EXEC(&lgs_cb->edu_hdl, EncodeDecodePushAsync,
                         uba, EDP_OP_TYPE_DEC,
-                        &cache_data, &ederror);
+                        vckpt_rec, &ederror);
     if (rc != NCSCC_RC_SUCCESS) {
       m_NCS_EDU_PRINT_ERROR_STRING(ederror);
       return rc;

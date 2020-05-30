@@ -1,3 +1,45 @@
+OpenSAF 5.20.05 (released 2020-05-30)
+-------------------------------------
+
+    * dtm: bind configured node ip for socket to setup new connection [#3192]
+    * amfd: process IMM evt higher than MBCSV evt in polling [#3190]
+    * osaf: fix coding issue identified by codechecker [#3189]
+    * Revert "rde: correct to promote node to active [#3108]"
+    * Revert "rde: fix no active node in relaxed node promotion [#3173]"
+    * log: improve robustness for apitest suite 5 test case 16 [#3187]
+    * lgs: map the CkptPushAsync to the right memory [#3183]
+    * ntf: fix ntfimcn fail to send notification with no space error [#3181]
+    * amfd: change LOG_EM to LOG_ER  [#3179]
+    * mds: forever retry EAGAIN in mds_mcast_sendto() [#3182]
+    * lgs: use local mononitic clock instead of getting from active  [#3180]
+    * ntf: set operation invoke name to unknown if failed to get it [#3178]
+    * amfnd: correct checking su assignement pending flag [#3176]
+    * log: log content is placed in a file of another stream [#3175]
+    * log: log content is placed in a file of another stream [#3175]
+    * rde: fix no active node in relaxed node promotion [#3173]
+    * amfnd: fix coding issues identified by codechecker [#3174]
+    * mds: fix mdstest 27 11 fail occassionally [#3172]
+    * base: fix transportd fail to monitor dtmd [#3170]
+    * mds: fix mds_tipc_fctrl_shutdown() stuck forever [#3169]
+    * osaf: improve tcp.plugin time_counting() start once [#3171]
+    * amfd: fix coding issue identify by codechecker [#3168]
+    * base: remove others permissions for osaf*.fifo and osaf*.pid [#3167]
+    * mds: add test use tipc multicast with flow control enable/disable [#3166]
+    * osaf: enhance vm frozen detection in tcp.plugin [#3164]
+    * amfnd: fix unexpected reboot after split-brain recovery [#3162]
+    * imm: enhance "immlist --help" output more appropriate [#3165]
+    * fm: ignore unexpected event on standby node [#3017]
+    * amfnd: reset component register once it is terminated [#3160]
+    * imm: imm_list tool add new option --delimiter [#3155]
+    * imm: fix non-local user cannot access IMM when accessControlMode is in ENFORCED [#3043]
+    * log: standby node is rebooted when nfs is unresponsive [#3161]
+    * rde: update mds registration when switched to Active role [#3159]
+    * osaf: fix etcd3.plugin watch takeover_request [#3158]
+    * amfnd: correct handling "terminate success" event in terminating state [#3157]
+    * clmd: retry once to send message to clmna [#3156]
+    * base: add serial number arithmetic (RFC1982) [#3074]
+    * amfnd: trigger SU FSM [#3152]
+
 OpenSAF 5.20.02 (released 2020-02-15)
 -------------------------------------
 

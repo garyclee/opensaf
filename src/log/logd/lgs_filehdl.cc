@@ -955,6 +955,19 @@ static int chr_cnt_b(char *str, char c, int lim) {
 }
 
 /**
+ * Check if all character is decimal digit
+ * @param data string to be checked
+ * @param size number of characters to check
+ * @return: true if all character is decimal digit
+ */
+static bool all_digits(const char *data, int size) {
+  for (int i = 0; i < size; i++) {
+    if (!isdigit(data[i])) return false;
+  }
+  return true;
+}
+
+/**
  * Filter function used by scandir.
  * Find a current log file if it exist
  * - name as in file_name_find[]
@@ -964,13 +977,34 @@ static int chr_cnt_b(char *str, char c, int lim) {
 /* Filename prefix (no timestamps or extension */
 static std::string file_name_find_g;
 static int filter_logfile_name(const struct dirent *finfo) {
-  int found = 0;
+  size_t name_len = strlen(file_name_find_g.c_str());
+  size_t fixed_length = name_len + strlen("_yyyymmdd_hhmmss.log");
 
-  if ((strstr(finfo->d_name, file_name_find_g.c_str()) != nullptr) &&
-      (strstr(finfo->d_name, ".log") != nullptr))
-    found = 1;
+  if (strlen(finfo->d_name) != fixed_length) return 0;
 
-  return found;
+  size_t day_length = strlen("yyyymmdd");
+  size_t time_length = strlen("hhmmss");
+  int day_offset = 1 + name_len;
+  int time_offset = 1 + day_offset + day_length;
+  int extension_offset = time_offset + time_length;
+
+  // File name is started with specific file name
+  if (strncmp(finfo->d_name, file_name_find_g.c_str(), name_len) != 0)
+    return 0;
+  // First "_" character
+  if (finfo->d_name[day_offset - 1] != '_') return 0;
+  // Date in yyyymmdd format
+  if (all_digits(finfo->d_name + day_offset, day_length) == false) return 0;
+  // Second "_" character
+  if (finfo->d_name[time_offset - 1] != '_') return 0;
+  // Time in hhmmss format
+  if (all_digits(finfo->d_name + time_offset, time_length) == false) return 0;
+  // ".log" file
+  if (strncmp(finfo->d_name + extension_offset, ".log", strlen(".log")) != 0)
+    return 0;
+
+  // Match format
+  return 1;
 }
 
 /**

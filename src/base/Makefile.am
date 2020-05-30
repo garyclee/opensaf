@@ -173,7 +173,8 @@ noinst_HEADERS += \
 	src/base/unix_client_socket.h \
 	src/base/unix_server_socket.h \
 	src/base/unix_socket.h \
-	src/base/usrbuf.h
+	src/base/usrbuf.h \
+	src/base/sna.h
 
 TESTS += bin/testleap bin/libbase_test bin/core_common_test
 
@@ -237,7 +238,8 @@ bin_libbase_test_SOURCES = \
 	src/base/tests/time_compare_test.cc \
 	src/base/tests/time_convert_test.cc \
 	src/base/tests/time_subtract_test.cc \
-	src/base/tests/unix_socket_test.cc
+	src/base/tests/unix_socket_test.cc \
+	src/base/tests/sna_test.cc
 
 bin_libbase_test_LDADD = \
 	$(GTEST_DIR)/lib/libgtest.la \

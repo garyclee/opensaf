@@ -202,7 +202,7 @@ void avd_reg_su_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 
   /* log an error since this shouldn't happen */
 
-  LOG_EM("%s:%u: %u", __FILE__, __LINE__, n2d_msg->msg_info.n2d_reg_su.error);
+  LOG_ER("%s:%u: %u", __FILE__, __LINE__, n2d_msg->msg_info.n2d_reg_su.error);
 
   /* call the routine to failover all the effected nodes
    * due to restarting this node
@@ -1041,7 +1041,7 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
           break;
         default:
           /* log error that a the object value is invalid */
-          LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+          LOG_ER("%s:%u: %u", __FILE__, __LINE__,
                  n2d_msg->msg_info.n2d_data_req.param_info.attr_id);
           break;
       } /* switch(n2d_msg->msg_info.n2d_data_req.param_info.obj_id) */
@@ -1168,7 +1168,7 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
           break;
         default:
           /* log error that a the object value is invalid */
-          LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+          LOG_ER("%s:%u: %u", __FILE__, __LINE__,
                  n2d_msg->msg_info.n2d_data_req.param_info.attr_id);
           break;
       } /* switch(n2d_msg->msg_info.n2d_data_req.param_info.obj_id) */
@@ -1177,7 +1177,7 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
     }
     default:
       /* log error that a the table value is invalid */
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              n2d_msg->msg_info.n2d_data_req.param_info.class_id);
       goto done;
       break;

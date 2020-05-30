@@ -67,7 +67,7 @@ uint32_t avd_start_tmr(AVD_CL_CB *cb, AVD_TMR *tmr, SaTimeT period) {
   tmr_period = (period / AVSV_NANOSEC_TO_LEAPTM);
 
   if (AVD_TMR_MAX <= tmr->type) {
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, tmr->type);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, tmr->type);
     TRACE_LEAVE();
     return NCSCC_RC_FAILURE;
   }
@@ -113,7 +113,7 @@ void avd_stop_tmr(AVD_CL_CB *cb, AVD_TMR *tmr) {
 
   /* If timer type is invalid just return */
   if (AVD_TMR_MAX <= tmr->type) {
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, tmr->type);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, tmr->type);
     TRACE_LEAVE();
     return;
   }

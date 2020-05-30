@@ -487,6 +487,9 @@ uint32_t avnd_err_process(AVND_CB *cb, AVND_COMP *comp,
   LOG_NO("'%s' faulted due to '%s' : Recovery is '%s'", comp->name.c_str(),
          g_comp_err[err_info->src], g_comp_rcvr[esc_rcvr - 1]);
 
+  if (comp->err_info.src == AVND_ERR_SRC_AVA_DN) {
+    m_AVND_COMP_REG_PARAM_RESET(cb, comp);
+  }
   /* execute the recovery */
   rc = avnd_err_recover(cb, comp->su, comp, esc_rcvr);
 

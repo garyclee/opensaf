@@ -15,7 +15,7 @@
  *
  */
 
-#include "log/logd/lgs_mbcsv_cache.h"
+#include "log/logd/lgs_mbcsv_v8.h"
 #include "log/logd/lgs_cache.h"
 
 uint32_t EncodeDecodePushAsync(EDU_HDL* edu_hdl, EDU_TKN* edu_tkn,

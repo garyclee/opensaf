@@ -218,6 +218,25 @@ uint32_t edp_ed_ckpt_msg_v9(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
            (reinterpret_cast<lgsv_ckpt_msg_v9_t *>(0))->ckpt_rec.lgs_cfg,
        0, nullptr},
 
+      /* Push a write async */
+      {EDU_EXEC, EncodeDecodePushAsync, 0, 0, static_cast<int>(EDU_EXIT),
+       (int64_t) &
+           (reinterpret_cast<lgsv_ckpt_msg_v9_t *>(0))->ckpt_rec.push_async,
+       0, nullptr},
+
+      /* Pop a write async */
+      {EDU_EXEC, EncodeDecodePopAsync, 0, 0, static_cast<int>(EDU_EXIT),
+       (int64_t) &
+           (reinterpret_cast<lgsv_ckpt_msg_v9_t *>(0))->ckpt_rec.pop_async,
+       0, nullptr},
+
+      /* Pop a write a sync and after done processing the write  request */
+      {EDU_EXEC, EncodeDecodePopAndWriteAsync, 0, 0,
+       static_cast<int>(EDU_EXIT),
+       (int64_t) & (reinterpret_cast<lgsv_ckpt_msg_v9_t *>(0))
+                       ->ckpt_rec.pop_and_write_async,
+       0, nullptr},
+
       {EDU_END, 0, 0, 0, 0, 0, 0, nullptr},
   };
 

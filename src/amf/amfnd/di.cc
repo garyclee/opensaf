@@ -882,8 +882,9 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
 
   if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED) return rc;
 
-  // should be in assignment pending state to be here
-  osafassert(m_AVND_SU_IS_ASSIGN_PEND(su));
+  if (m_AVND_SU_OPER_STATE_IS_ENABLED(su))
+    // should be in assignment pending state to be here
+    osafassert(m_AVND_SU_IS_ASSIGN_PEND(su));
 
   /* get the curr-si */
   curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);

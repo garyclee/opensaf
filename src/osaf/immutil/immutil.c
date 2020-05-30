@@ -1047,6 +1047,7 @@ static void *clistMalloc(struct Chunk *clist, size_t size)
 {
 	struct Chunk *chunk;
 
+	osafassert(clist);
 	size = (size + 3) & ~3;
 
 	if (size > CHUNK) {

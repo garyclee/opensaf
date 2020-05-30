@@ -43,6 +43,7 @@ class SaNameTWrapper {
 
   // note: SaNameT will become invalid if this SaNameTWrapper is destroyed
   operator const SaNameT() const { return name; }
+  operator SaNameT() { return name; }
 
   void set(const std::string &str) {
     osaf_extended_name_free(&name);

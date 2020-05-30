@@ -400,12 +400,10 @@ SaAisErrorT avd_node_config_get(void) {
                                      (SaImmAttrValuesT_2 ***)&attributes) ==
          SA_AIS_OK) {
     if (!is_config_valid(Amf::to_string(&dn), attributes, nullptr)) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
 
     if ((node = node_create(Amf::to_string(&dn), attributes)) == nullptr) {
-      error = SA_AIS_ERR_FAILED_OPERATION;
       goto done2;
     }
 
@@ -762,6 +760,7 @@ static void node_ccb_apply_delete_hdlr(AVD_AVND *node) {
     TRACE_ENTER();
     return;
   }
+  osafassert(node != nullptr);
   TRACE_ENTER2("'%s'", node->name.c_str());
   avd_cb->failover_list.erase(node->node_info.nodeId);
   avd_node_delete_nodeid(node);
@@ -779,7 +778,7 @@ static void node_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata) {
   node = avd_node_get(Amf::to_string(&opdata->objectName));
   osafassert(node != nullptr);
 
-  const SaNameTWrapper node_name(node->name);
+  SaNameTWrapper node_name(node->name);
 
   i = 0;
   /* Modifications can be done for the following parameters. */

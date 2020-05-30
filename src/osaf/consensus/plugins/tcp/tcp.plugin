@@ -23,7 +23,22 @@ import sys
 import time
 import xmlrpc.client
 import syslog
+import threading
 
+
+counter_time = 0.0
+
+def time_counting(hb_interval):
+    '''
+    When node is frozen, if it is VM, clock time not jump
+    but if it is container, clock time still jump.
+    This function to help know node is frozen or arbitrator server issue
+    '''
+    global counter_time
+    counter_time = 0.0
+    while (True):
+        time.sleep(hb_interval)
+        counter_time += hb_interval
 
 class ArbitratorPlugin(object):
     """ This class represents a TCP Plugin """
@@ -478,23 +493,33 @@ class ArbitratorPlugin(object):
             return ret
 
         last_arb_timestamp = 0
+        last_counter_time = 0
+        global counter_time
+        counter = None
         while True:
             if key == self.takeover_request:
                 if self.is_active() is False:
                     # maybe a controller swap occurred
                     break
+                if counter is None:
+                    counter = threading.Thread(
+                                    target=time_counting,
+                                    args=(self.heartbeat_interval,))
+                    counter.setDaemon(True)
+                    counter.start()
                 while True:
                     try:
                         time_at_arb = self.proxy.heartbeat(self.hostname)
-                        if last_arb_timestamp == 0:
-                            last_arb_timestamp = time_at_arb
-                            break
-                        elif (time_at_arb - last_arb_timestamp) > self.timeout:
-                            # VM was frozen?
-                            syslog.syslog('VM was frozen!')
-                            ret['code'] = 126
-                            return ret
+                        if (last_arb_timestamp != 0) and \
+                           (time_at_arb - last_arb_timestamp > self.timeout):
+                            if counter_time - last_counter_time < self.timeout:
+                                syslog.syslog('VM/Container was frozen!')
+                                ret['code'] = 126
+                                return ret
+                            syslog.syslog('Arb server issue?')
+                            raise socket.error('Arb server issue?')
                         else:
+                            last_counter_time = counter_time
                             last_arb_timestamp = time_at_arb
                             break
                     except socket.error:

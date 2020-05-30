@@ -376,9 +376,8 @@ get_operation_invoke_name_modify(SaImmOiCcbIdT ccbId,
 			goto done;
 		}
 	}
-	/* If we get here no name is found! */
-	LOG_ER("%s no name was found", __FUNCTION__);
-	osafassert(0);
+	/* ntfimcnd was restarted durinng ccb modification */
+	osaf_extended_name_alloc("unknown", operation_invoke_name);
 
 done:
 	TRACE_LEAVE();
@@ -681,8 +680,10 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 			    ccbUtilOperationData, rdn_attr_name, ccbLast);
 			if (internal_rc != 0) {
 				LOG_ER(
-				    "%s send_object_create_notification fail",
-				    __FUNCTION__);
+				    "%s send_object_create_notification %s fail",
+				    __FUNCTION__,
+				    osaf_extended_name_borrow(
+					    &ccbUtilOperationData->objectName));
 				goto done;
 			}
 			break;
@@ -707,8 +708,10 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 			    ccbUtilOperationData, invoke_name_ptr, ccbLast);
 			if (internal_rc != 0) {
 				LOG_ER(
-				    "%s send_object_delete_notification fail",
-				    __FUNCTION__);
+				    "%s send_object_delete_notification %s fail",
+				    __FUNCTION__,
+				    osaf_extended_name_borrow(
+					    &ccbUtilOperationData->objectName));
 				goto done;
 			}
 			break;
@@ -721,8 +724,10 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 			    ccbUtilOperationData, invoke_name_ptr, ccbLast);
 			if (internal_rc != 0) {
 				LOG_ER(
-				    "%s send_object_modify_notification fail",
-				    __FUNCTION__);
+				    "%s send_object_modify_notification %s fail",
+				    __FUNCTION__,
+				    osaf_extended_name_borrow(
+					    &ccbUtilOperationData->objectName));
 				goto done;
 			}
 			break;

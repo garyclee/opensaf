@@ -27,6 +27,8 @@
 
 #include "base/ncssysf_def.h"
 #include "base/ncssysf_tsk.h"
+#include "base/ncs_osprm.h"
+#include "base/osaf_poll.h"
 
 #include "mds/mds_log.h"
 #include "mds/mds_tipc_fctrl_portid.h"
@@ -106,7 +108,7 @@ void process_timer_event(const Event& evt) {
     static_cast<int>(evt.type_));
   for (auto i : portid_map) {
     TipcPortId* portid = i.second;
-
+    if (!portid) continue;
     if (evt.type_ == Event::Type::kEvtTmrTxProb) {
       if (portid->ReceiveTmrTxProb(kTxProbMaxRetries) == true) {
         txprob_restart = true;
@@ -194,6 +196,7 @@ bool mds_fctrl_mbx_cleanup(NCSCONTEXT arg, NCSCONTEXT msg) {
 }
 
 uint32_t process_all_events(void) {
+  bool running = true;
   enum { FD_FCTRL = 0, NUM_FDS };
 
   int poll_tmo = chunk_ack_timeout;
@@ -203,7 +206,7 @@ uint32_t process_all_events(void) {
       ncs_ipc_get_sel_obj(&mbx_events).rmv_obj;
   pfd[FD_FCTRL].events = POLLIN;
 
-  while (true) {
+  while (running) {
     int pollres;
 
     pollres = poll(pfd, NUM_FDS, poll_tmo);
@@ -231,9 +234,13 @@ uint32_t process_all_events(void) {
         if (evt->IsFlowEvent()) {
           process_flow_event(*evt);
         }
+        if (evt->IsShutDownEvent()) {
+          running = false;
+        }
 
         delete evt;
         portid_map_mutex.unlock();
+        if (!running) m_NCS_SEL_OBJ_IND(&evt->destroy_ack_obj_);
       }
     }
     // timeout, scan all portid and send ack msgs
@@ -243,6 +250,7 @@ uint32_t process_all_events(void) {
       portid_map_mutex.unlock();
     }
   }  /* while */
+  m_MDS_LOG_DBG("FCTRL: process_all_events() thread end");
   return NCSCC_RC_SUCCESS;
 }
 
@@ -305,7 +313,18 @@ uint32_t mds_tipc_fctrl_initialize(int dgramsock, struct tipc_portid id,
 uint32_t mds_tipc_fctrl_shutdown(void) {
   if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
 
-  portid_map_mutex.lock();
+  NCS_SEL_OBJ destroy_ack_obj;
+  m_NCS_SEL_OBJ_CREATE(&destroy_ack_obj);
+  Event* pevt = new Event(Event::Type::kEvtShutDown, destroy_ack_obj);
+  if (m_NCS_IPC_SEND(&mbx_events, pevt,
+      NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+    m_MDS_LOG_ERR("FCTRL: Failed to send shutdown, Error[%s]",
+        strerror(errno));
+    abort();
+  }
+  osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(destroy_ack_obj), 10000);
+  m_NCS_SEL_OBJ_DESTROY(&destroy_ack_obj);
+  memset(&destroy_ack_obj, 0, sizeof(destroy_ack_obj));
 
   if (ncs_task_release(p_task_hdl) != NCSCC_RC_SUCCESS) {
     m_MDS_LOG_ERR("FCTRL: Stop of the Created Task-failed, Error[%s]",
@@ -315,6 +334,7 @@ uint32_t mds_tipc_fctrl_shutdown(void) {
   m_NCS_IPC_DETACH(&mbx_events, mds_fctrl_mbx_cleanup, nullptr);
   m_NCS_IPC_RELEASE(&mbx_events, nullptr);
 
+  portid_map_mutex.lock();
   for (auto i : portid_map) delete i.second;
   portid_map.clear();
 

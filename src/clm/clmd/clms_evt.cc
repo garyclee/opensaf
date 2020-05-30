@@ -34,6 +34,7 @@
 #include "base/logtrace.h"
 #include "base/ncsgl_defs.h"
 #include "base/osaf_utility.h"
+#include "base/osaf_time.h"
 #include "clm/clmd/clms.h"
 
 static uint32_t process_api_evt(CLMSV_CLMS_EVT *evt);
@@ -535,6 +536,7 @@ uint32_t proc_node_up_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
   SaNameT node_name = {0};
   CLMSV_MSG clm_msg;
   SaBoolT check_member;
+  int retry = 0;
 
   TRACE_ENTER2("Node up mesg for nodename length %d %s",
                nodeup_info->node_name.length, nodeup_info->node_name.value);
@@ -636,8 +638,21 @@ uint32_t proc_node_up_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
   clm_msg.info.api_resp_info.type = CLMSV_CLUSTER_JOIN_RESP;
   clm_msg.info.api_resp_info.param.node_name = node_name;
   /*rc will be updated down in the positive flow */
-  rc = clms_mds_msg_send(cb, &clm_msg, &evt->fr_dest, &evt->mds_ctxt,
-                         MDS_SEND_PRIORITY_HIGH, NCSMDS_SVC_ID_CLMNA);
+  while (1) {
+    rc = clms_mds_msg_send(cb, &clm_msg, &evt->fr_dest, &evt->mds_ctxt,
+                          MDS_SEND_PRIORITY_HIGH, NCSMDS_SVC_ID_CLMNA);
+    if (rc == NCSCC_RC_SUCCESS || retry++ > 0) {
+      break;
+    }
+    osaf_nanosleep(&kTenMilliseconds);
+    /* If a node reboot up, clmna (on that node) svc_up is not yet come
+     * but clmd get message join request then send message to clmna failed.
+     * It leads to amfnd (on that node) timeout init clm agent and delay
+     * to send node up msg. This may cause amfd order reboot that node if
+     * osafAmfDelayNodeFailoverNodeWaitTimeout is set smaller than total
+     * time amfnd (on that node) retry until init clm agent successfully.
+     * One retry here would help avoid this scenario */
+  }
   /*if mds send failed, we need to report failure */
   if (rc != NCSCC_RC_SUCCESS) {
     LOG_NO("%s: send failed. dest:%" PRIx64, __FUNCTION__, evt->fr_dest);

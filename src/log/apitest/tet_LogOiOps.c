@@ -1729,7 +1729,7 @@ void change_root_path(void)
 	}
 
 	// Verify if the directory and subdirectly are created successfully
-	sleep(1); // to make sure logsv done processing of directories creation
+	sleep(2); // to make sure logsv done processing of directories creation
 	sprintf(command, "ls %s/testRoot 1>/dev/null", tstdir);
 	rc = systemCall(command);
 	if (rc != 0) {

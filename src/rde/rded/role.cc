@@ -150,8 +150,13 @@ void Role::NodePromoted() {
   // promoted to active from election
   ExecutePreActiveScript();
   LOG_NO("Switched to ACTIVE from %s", to_string(role()));
+  PCS_RDA_ROLE old_role = role_;
   role_ = PCS_RDA_ACTIVE;
   rde_rda_send_role(role_);
+  if (UpdateMdsRegistration(role_, old_role) != NCSCC_RC_SUCCESS) {
+    LOG_ER("Failed to update MDS Registration");
+    abort();
+  }
 
   Consensus consensus_service;
   RDE_CONTROL_BLOCK* cb = rde_get_control_block();
@@ -257,8 +262,7 @@ bool Role::IsCandidate() {
   // if relaxed node promotion is enabled, allow this node to be promoted
   // active if it can see a peer SC and this node has the lowest node ID
   if (consensus_service.IsRelaxedNodePromotionEnabled() == true &&
-      cb->state == State::kNotActiveSeenPeer &&
-      IsLowestNodeid() == true) {
+      cb->state == State::kNotActiveSeenPeer) {
     LOG_NO("Relaxed node promotion enabled. This node is a candidate.");
     result = true;
   }
@@ -274,17 +278,6 @@ bool Role::IsPeerPresent() {
     result = true;
   }
 
-  return result;
-}
-
-bool Role::IsLowestNodeid() {
-  bool result = true;
-  RDE_CONTROL_BLOCK* cb = rde_get_control_block();
-
-  for (auto peer_id : cb->peer_controllers) {
-    if (peer_id < own_node_id_)
-      return false;
-  }
   return result;
 }
 

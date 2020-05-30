@@ -250,7 +250,7 @@ static void clm_track_cb(
           memcpy(&(avnd_cb->node_info), &(notifItem->clusterNode),
                  sizeof(SaClmClusterNodeT_4));
           /*get the amf node from clm node name */
-          clm_to_amf_node();
+          if (avnd_cb->amf_nodeName.empty()) clm_to_amf_node();
           avnd_send_node_up_msg();
           avnd_cb->first_time_up = false;
         }

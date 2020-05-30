@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef LOG_LOGD_LGS_MBCSV_CACHE_H_
-#define LOG_LOGD_LGS_MBCSV_CACHE_H_
+#ifndef LOG_LOGD_LGS_MBCSV_V8_H_
+#define LOG_LOGD_LGS_MBCSV_V8_H_
 
 #include "log/logd/lgs_mbcsv_v2.h"
 #include "log/logd/lgs_mbcsv_v3.h"
@@ -107,4 +107,4 @@ void Dump(const CkptPushAsync* data);
 extern uint32_t test_counter;
 #endif
 
-#endif  // LOG_LOGD_LGS_MBCSV_CACHE_H_
+#endif  // LOG_LOGD_LGS_MBCSV_V8_H_

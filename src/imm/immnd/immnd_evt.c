@@ -894,8 +894,9 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt,
 			const char *authorized_group =
 			    immModel_authorizedGroup(immnd_cb);
 			if ((authorized_group != NULL) &&
-			    (osaf_user_is_member_of_group(sinfo->uid,
-							  authorized_group))) {
+			    (osaf_user_is_member_of_group(sinfo->uid, authorized_group) ||
+			     osaf_pid_has_supplementary_group(sinfo->pid,
+						authorized_group))) {
 				TRACE("configured group");
 			} else {
 				if (mode == ACCESS_CONTROL_PERMISSIVE) {

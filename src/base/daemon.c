@@ -160,18 +160,20 @@ static void create_fifofile(const char *fifofile)
 {
 	mode_t mask;
 
+	/* Lets Remove any such file if it already exists */
+	if (unlink(fifofile) == -1 && errno != ENOENT) {
+		syslog(LOG_ERR, "Unable To Delete FIFO Error: %s\n",
+		       strerror(errno));
+		return;
+	}
+
 	mask = umask(0);
 
 	if (mkfifo(fifofile, 0666) == -1) {
-		if (errno == EEXIST) {
-			syslog(LOG_INFO, "mkfifo already exists: %s %s",
-			       fifofile, strerror(errno));
-		} else {
-			syslog(LOG_WARNING, "mkfifo failed: %s %s", fifofile,
-			       strerror(errno));
-			umask(mask);
-			return;
-		}
+		syslog(LOG_ERR, "mkfifo failed: %s %s", fifofile,
+				strerror(errno));
+		umask(mask);
+		return;
 	}
 
 	do {
@@ -180,7 +182,7 @@ static void create_fifofile(const char *fifofile)
 	} while (fifo_fd == -1 && errno == EINTR);
 
 	if (fifo_fd == -1) {
-		syslog(LOG_WARNING, "open fifo failed: %s %s", fifofile,
+		syslog(LOG_ERR, "open fifo failed: %s %s", fifofile,
 		       strerror(errno));
 	}
 
@@ -464,6 +466,12 @@ void daemonize(int argc, char *argv[])
 				    LOG_INFO,
 				    "getgrouplist failed, uid=%d (%s). Continuing without supplementary groups.",
 				    pw->pw_uid, strerror(errno));
+			}
+			if ((pw->pw_uid > 0) && (pw->pw_gid > 0)) {
+				assert(chown(fifo_file, pw->pw_uid, pw->pw_gid) == 0);
+				assert(chmod(fifo_file, 0660) == 0);
+				assert(chown(__pidfile, pw->pw_uid, pw->pw_gid) == 0);
+				assert(chmod(__pidfile, 0640) == 0);
 			}
 			if ((pw->pw_gid > 0) && (setgid(pw->pw_gid) < 0)) {
 				syslog(LOG_ERR, "setgid failed, gid=%d (%s)",

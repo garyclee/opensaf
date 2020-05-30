@@ -13283,6 +13283,65 @@ static bool verify_counters(uint32_t expect_num)
 	return true;
 }
 
+void tet_sender2(MDS_SVC_ID svc_id, uint32_t msg_num, uint32_t msg_size,
+				int svc_num, MDS_SVC_ID to_svcids[])
+{
+	TET_MDS_MSG *mesg;
+	if (msg_size > TET_MSG_SIZE_MIN) {
+		printf("\nSender: msg_size > TET_MSG_SIZE_MIN\n");
+		exit(1);
+	}
+	mesg = (TET_MDS_MSG *)malloc(sizeof(TET_MDS_MSG));
+	memset(mesg, 0, sizeof(TET_MDS_MSG));
+
+	printf("\nStarted Sender (pid:%d) svc_id=%d\n",
+			(int)getpid(), svc_id);
+	if (adest_get_handle() != NCSCC_RC_SUCCESS) {
+		printf("\n: Sender FAIL to get adest handle\n");
+		exit(1);
+	}
+
+	if (mds_service_install(gl_tet_adest.mds_pwe1_hdl,
+				svc_id, 1,
+				NCSMDS_SCOPE_NONE, false, false) != NCSCC_RC_SUCCESS) {
+		printf("\nSender FAIL to install the service\n");
+		exit(1);
+	}
+
+	if (mds_service_subscribe(
+		gl_tet_adest.mds_pwe1_hdl, svc_id,
+		NCSMDS_SCOPE_INTRANODE,
+		svc_num, to_svcids) != NCSCC_RC_SUCCESS) {
+		printf("\nSender FAIL to subscribe receiver\n");
+		exit(1);
+	}
+
+	// Wait for receiver UP
+	sleep(5);
+
+	for (uint32_t i = 1; i <= msg_num; i++) {
+		/* to verify received correct order */
+		memset(mesg->send_data, 'X', msg_size);
+		sprintf(mesg->send_data, "%u", i);
+		mesg->send_len = msg_size;
+		if (mds_broadcast_to_svc(
+					gl_tet_adest.mds_pwe1_hdl,
+					svc_id,
+					to_svcids[0],
+					NCSMDS_SCOPE_NONE,
+					MDS_SEND_PRIORITY_MEDIUM,
+					mesg) != NCSCC_RC_SUCCESS) {
+			printf("\nSender FAIL send message\n");
+			exit(1);
+		} else {
+			printf("\nSender SENT message %d"
+				" successfully\n", i);
+			sleep(1); // Slow down sender to avoid msg drop
+		}
+	}
+	free(mesg);
+}
+
 void tet_sender(MDS_SVC_ID svc_id, uint32_t msg_num, uint32_t msg_size,
 				int svc_num, MDS_SVC_ID to_svcids[])
 {
@@ -13834,6 +13893,87 @@ void tet_mds_fctrl_compatibility_tp4(void)
 	} else {
 		printf("\nFAIL to fork()\n");
 	}
+	test_validate(FAIL, 0);
+}
+
+void tet_mcast_tp_1(void)
+{
+	int FAIL = 1;
+	uint32_t msg_num = 10;
+	uint32_t msg_size = 100000;
+
+	printf("\nTest Case 11: 2 Senders mcast big messages to 2 Receivers\n");
+	/*--------------------------------------------------------------------*/
+	pid_t pid = fork();
+	if (pid == 0) {
+		/* child as sender */
+		pid = fork();
+		if (pid == 0) {
+			FILE *fp = fopen("/tmp/mdstest.pid", "a");
+			fprintf(fp, " %d", getpid());
+			fclose(fp);
+			setenv("MDS_TIPC_FCTRL_ENABLED", "1", 1);
+			mds_startup();
+			MDS_SVC_ID to_svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+			MDS_SVC_ID svc_id = NCSMDS_SVC_ID_INTERNAL_MIN;
+			tet_sender2(svc_id, msg_num, msg_size, 1, to_svcids);
+			mds_shutdown();
+		} else if (pid > 0) {
+			FILE *fp = fopen("/tmp/mdstest.pid", "a");
+			fprintf(fp, " %d", getpid());
+			fclose(fp);
+			/* This sender disable MDS FCTRL */
+			mds_startup();
+			MDS_SVC_ID to_svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+			MDS_SVC_ID svc_id = NCSMDS_SVC_ID_INTERNAL_MIN+1;
+			tet_sender2(svc_id, msg_num, msg_size, 1, to_svcids);
+			mds_shutdown();
+		}
+	} else if (pid > 0) {
+		/* parent as receiver */
+		pid_t pid2 = fork();
+		if (pid2 == 0) {
+			/* This receiver disable MDS FCTRL */
+			mds_startup();
+			MDS_SVC_ID fr_svcids[] = {
+						NCSMDS_SVC_ID_INTERNAL_MIN,
+						NCSMDS_SVC_ID_INTERNAL_MIN+1};
+			MDS_SVC_ID svc_id = NCSMDS_SVC_ID_EXTERNAL_MIN;
+			FAIL = tet_receiver(svc_id, msg_num, msg_size,
+						2, fr_svcids);
+			mds_shutdown();
+			exit(FAIL);
+		} else if (pid2 > 0) {
+			setenv("MDS_TIPC_FCTRL_ENABLED", "1", 1);
+			mds_startup();
+			MDS_SVC_ID fr_svcids[] = {
+						NCSMDS_SVC_ID_INTERNAL_MIN,
+						NCSMDS_SVC_ID_INTERNAL_MIN+1};
+			MDS_SVC_ID svc_id = NCSMDS_SVC_ID_EXTERNAL_MIN;
+			FAIL = tet_receiver(svc_id, msg_num, msg_size,
+						2, fr_svcids);
+			mds_shutdown();
+			if (FAIL == 0) {
+				pid_t rc;
+				int status;
+				do {
+					rc = waitpid(pid2, &status, 0);
+				} while ((rc == -1) && (errno == EINTR));
+				if ((rc == -1) || \
+				    (WIFEXITED(status) && (WEXITSTATUS(status) != 0))) {
+					printf("\nThe other receiver FAIL\n");
+					FAIL = 1;
+				}
+			}
+		} else {
+			printf("\nFAIL to fork()\n");
+		}
+	} else {
+		printf("\nFAIL to fork()\n");
+	}
+	printf("\nkill mdstest processes rc: %d\n",
+		system("kill -9 $(cat /tmp/mdstest.pid);"
+			"rm -f /tmp/mdstest.pid"));
 	test_validate(FAIL, 0);
 }
 
@@ -14598,4 +14738,7 @@ __attribute__((constructor)) static void mdsTipcAPI_constructor(void)
 	test_case_add(
 		27, tet_mds_fctrl_compatibility_tp4,
 		"Sender disable MDS FCTRL but Receiver enable");
+	test_case_add(
+		27, tet_mcast_tp_1,
+		"2 Senders mcast big messages to 2 Receivers");
 }

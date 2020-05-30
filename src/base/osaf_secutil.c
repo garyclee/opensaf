@@ -42,6 +42,9 @@
 #include <pwd.h>
 #include <grp.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <assert.h>
 #include "base/osaf_poll.h"
 
 #include "base/logtrace.h"
@@ -184,6 +187,57 @@ static void *auth_server_main(void *_fd)
 	return 0;
 }
 
+/**
+ * Get all supplementary groups via process ID from /proc/<pid>/status
+ * @param pid: this param to get all information of process
+ * @return a string containing all group id separated by a space
+ *
+ * NOTE: The caller has to free the allocated memory returned by this function.
+ */
+static char *get_supplementary_group_list(pid_t pid)
+{
+	char process_info_path[255];
+	FILE *fd = NULL;
+
+	sprintf(process_info_path, "/proc/%d/status", pid);
+	while (true) {
+		fd = fopen(process_info_path, "r");
+		if (fd != NULL) break;
+
+		if (errno != EINTR) {
+			LOG_ER("%s fopen Fail %s", __func__, strerror(errno));
+			return NULL;
+		}
+	}
+
+	size_t line_buf_size = 0;
+	char *line_buf = NULL;
+	char *group_list = NULL;
+
+	while (getline(&line_buf, &line_buf_size, fd) != -1) {
+		const char *groups = "Groups:";
+		size_t groups_len = strlen(groups);
+		if (strncmp(line_buf, groups, groups_len) != 0) continue;
+
+		// No suplementary groups.
+		if (line_buf[groups_len + 1] == '\0') break;
+
+		// Exclude 'Groups:' string and a following tab
+		size_t len = strlen(line_buf) - groups_len - 1;
+		assert(len && "Invalid sumplementary group list");
+		group_list = (char *)malloc(len);
+		strcpy(group_list, line_buf + groups_len + 1);
+
+		// Remove a character 'new line' at the end of the string
+		group_list[len - 1] = '\0';
+		break;
+	}
+
+	free(line_buf);
+	fclose(fd);
+	return group_list;
+}
+
 /*************** public interface follows*************************** */
 
 int osaf_auth_server_create(const char *pathname,
@@ -303,6 +357,25 @@ bool osaf_user_is_member_of_group(uid_t uid, const char *groupname)
 	free(pwdmembuf);
 	free(grpmembuf);
 	return false;
+}
+
+bool osaf_pid_has_supplementary_group(pid_t pid, const char *groupname)
+{
+	struct group *gr = getgrnam(groupname);
+	if (gr == NULL) return false;
+
+	gid_t gid = gr->gr_gid;
+	char *group_list = get_supplementary_group_list(pid);
+	if (group_list == NULL) return false;
+
+	const char *delimiter = " ";
+	char *pch = strtok(group_list, delimiter);
+	while (pch != NULL && (gid_t)atoi(pch) != gid) {
+		pch = strtok(NULL, delimiter);
+	}
+
+	free(group_list);
+	return pch != NULL;
 }
 
 /* used in libraries, do not log. Only trace */

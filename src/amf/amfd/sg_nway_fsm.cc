@@ -211,7 +211,7 @@ uint32_t SG_NWAY::su_fault(AVD_CL_CB *cb, AVD_SU *su) {
       break;
 
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
       rc = NCSCC_RC_FAILURE;
   } /* switch */
 
@@ -228,7 +228,7 @@ uint32_t SG_NWAY::su_insvc(AVD_CL_CB *cb, AVD_SU *su) {
   /* An SU will not become in service when the SG is being locked or shutdown.
    */
   if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_SG_ADMIN) {
-    LOG_EM("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
+    LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
     rc = NCSCC_RC_FAILURE;
     goto done;
   }
@@ -283,7 +283,7 @@ uint32_t SG_NWAY::susi_success(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
       break;
 
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->sg_fsm_state);
       rc = NCSCC_RC_FAILURE;
       goto done;
   } /* switch */
@@ -442,9 +442,9 @@ uint32_t SG_NWAY::susi_failed(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
       break;
 
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              ((uint32_t)su->sg_of_su->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       rc = NCSCC_RC_FAILURE;
   } /* switch */
@@ -510,9 +510,9 @@ void SG_NWAY::node_fail(AVD_CL_CB *cb, AVD_SU *su) {
       break;
 
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__,
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__,
              ((uint32_t)su->sg_of_su->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, su->name.c_str(),
              su->name.length());
       goto done;
   } /* switch */
@@ -788,8 +788,8 @@ uint32_t SG_NWAY::sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg) {
       break;
 
     default:
-      LOG_EM("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)sg->sg_fsm_state));
-      LOG_EM("%s:%u: %s (%zu)", __FILE__, __LINE__, sg->name.c_str(),
+      LOG_ER("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)sg->sg_fsm_state));
+      LOG_ER("%s:%u: %s (%zu)", __FILE__, __LINE__, sg->name.c_str(),
              sg->name.length());
       rc = NCSCC_RC_FAILURE;
   } /* switch */
