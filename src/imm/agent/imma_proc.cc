@@ -2149,7 +2149,8 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
     case IMMA_CALLBACK_OM_ADMIN_OP_RSP: /*Async reply via OM. */
       /* ABT decide if it is A.2.1 or A.2.11 callback. */
       if (cl_node->isImmA2bCbk) {
-        if (!osaf_is_extended_names_enabled()) {
+        if (!osaf_is_extended_names_enabled() &&
+            callback->params) {
           int i = 0;
           while (callback->params[i]) {
             if (callback->params[i]->paramType == SA_IMM_ATTR_SANAMET &&
