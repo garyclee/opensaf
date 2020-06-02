@@ -2502,6 +2502,7 @@ done:
   lgs_free_edu_mem(param->fileFmt);
   lgs_free_edu_mem(param->logFileCurrent);
   lgs_free_edu_mem(param->logStreamName);
+  lgs_free_edu_mem(param->dest_names);
 
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
@@ -2813,6 +2814,7 @@ done:
   lgs_free_edu_mem(logFileFormat);
   lgs_free_edu_mem(logFileCurrent);
   lgs_free_edu_mem(name);
+  lgs_free_edu_mem(dest_names);
 
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;

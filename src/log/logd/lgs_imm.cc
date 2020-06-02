@@ -3027,6 +3027,13 @@ SaAisErrorT lgs_imm_init_configStreams(lgs_cb_t *cb) {
   }
 
 done:
+  /* Free memory allocated for attribute descriptions */
+  om_rc = saImmOmClassDescriptionMemoryFree_2(omHandle, attr_definitions);
+  if (om_rc != SA_AIS_OK) {
+    LOG_NO("saImmOmClassDescriptionMemoryFree_2() Fail %s",
+      saf_error(om_rc));
+  }
+
   /* Do not abort if error when finalizing */
   om_rc = immutil_saImmOmSearchFinalize(immSearchHandle);
   if (om_rc != SA_AIS_OK) {
