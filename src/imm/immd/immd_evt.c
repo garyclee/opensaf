@@ -448,12 +448,7 @@ static void immd_start_sync_ok(IMMD_CB *cb, SaUint32T rulingEpoch,
 	sync_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
 	sync_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
 	sync_evt.info.immnd.info.ctrl.nodeId = node_info->immnd_key;
-	sync_evt.info.immnd.info.ctrl.canBeCoord =
-	    (node_info->isOnController) ? 1 : (cb->mScAbsenceAllowed) ? 4 : 0;
-	sync_evt.info.immnd.info.ctrl.ndExecPid =
-	    (sync_evt.info.immnd.info.ctrl.canBeCoord == 4)
-		? (cb->mScAbsenceAllowed)
-		: node_info->immnd_execPid;
+	set_canBeCoord_and_execPid(&sync_evt, cb, node_info);
 	sync_evt.info.immnd.info.ctrl.isCoord = node_info->isCoord;
 	sync_evt.info.immnd.info.ctrl.syncStarted = node_info->syncStarted;
 	sync_evt.info.immnd.info.ctrl.nodeEpoch = node_info->epoch;
@@ -503,12 +498,7 @@ static void immd_abort_sync_ok(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info)
 	sync_evt.info.immnd.info.ctrl.nodeId = node_info->immnd_key;
 	sync_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
 	sync_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
-	sync_evt.info.immnd.info.ctrl.canBeCoord =
-	    (node_info->isOnController) ? 1 : (cb->mScAbsenceAllowed) ? 4 : 0;
-	sync_evt.info.immnd.info.ctrl.ndExecPid =
-	    (sync_evt.info.immnd.info.ctrl.canBeCoord == 4)
-		? (cb->mScAbsenceAllowed)
-		: node_info->immnd_execPid;
+	set_canBeCoord_and_execPid(&sync_evt, cb, node_info);
 	sync_evt.info.immnd.info.ctrl.isCoord = node_info->isCoord;
 	sync_evt.info.immnd.info.ctrl.syncStarted = node_info->syncStarted;
 	sync_evt.info.immnd.info.ctrl.nodeEpoch = node_info->epoch;
@@ -553,12 +543,7 @@ static void immd_prto_purge_mutations(IMMD_CB *cb,
 	sync_evt.info.immnd.info.ctrl.nodeId = node_info->immnd_key;
 	sync_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
 	sync_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
-	sync_evt.info.immnd.info.ctrl.canBeCoord =
-	    (node_info->isOnController) ? 1 : (cb->mScAbsenceAllowed) ? 4 : 0;
-	sync_evt.info.immnd.info.ctrl.ndExecPid =
-	    (sync_evt.info.immnd.info.ctrl.canBeCoord == 4)
-		? (cb->mScAbsenceAllowed)
-		: node_info->immnd_execPid;
+	set_canBeCoord_and_execPid(&sync_evt, cb, node_info);
 	sync_evt.info.immnd.info.ctrl.isCoord = node_info->isCoord;
 	sync_evt.info.immnd.info.ctrl.syncStarted = node_info->syncStarted;
 	sync_evt.info.immnd.info.ctrl.nodeEpoch = node_info->epoch;
@@ -590,12 +575,7 @@ static int immd_dump_ok(IMMD_CB *cb, SaUint32T rulingEpoch,
 	dump_evt.info.immnd.type = IMMND_EVT_D2ND_DUMP_OK;
 	dump_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
 	dump_evt.info.immnd.info.ctrl.nodeId = node_info->immnd_key;
-	dump_evt.info.immnd.info.ctrl.canBeCoord =
-	    (node_info->isOnController) ? 1 : (cb->mScAbsenceAllowed) ? 4 : 0;
-	dump_evt.info.immnd.info.ctrl.ndExecPid =
-	    (dump_evt.info.immnd.info.ctrl.canBeCoord == 4)
-		? (cb->mScAbsenceAllowed)
-		: node_info->immnd_execPid;
+	set_canBeCoord_and_execPid(&dump_evt, cb, node_info);
 	dump_evt.info.immnd.info.ctrl.isCoord = node_info->isCoord;
 	dump_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
 	dump_evt.info.immnd.info.ctrl.syncStarted = node_info->syncStarted;
@@ -669,12 +649,7 @@ static void immd_req_sync(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info)
 	rqsync_evt.info.immnd.type = IMMND_EVT_D2ND_SYNC_REQ;
 	rqsync_evt.info.immnd.info.ctrl.nodeId = node_info->immnd_key;
 	rqsync_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
-	rqsync_evt.info.immnd.info.ctrl.canBeCoord =
-	    (node_info->isOnController) ? 1 : (cb->mScAbsenceAllowed) ? 4 : 0;
-	rqsync_evt.info.immnd.info.ctrl.ndExecPid =
-	    (rqsync_evt.info.immnd.info.ctrl.canBeCoord == 4)
-		? (cb->mScAbsenceAllowed)
-		: node_info->immnd_execPid;
+	set_canBeCoord_and_execPid(&rqsync_evt, cb, node_info);
 	rqsync_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
 	rqsync_evt.info.immnd.info.ctrl.isCoord = node_info->isCoord;
 	rqsync_evt.info.immnd.info.ctrl.syncStarted = node_info->syncStarted;
@@ -829,12 +804,8 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 	accept_evt.info.immnd.info.ctrl.nodeId = node_info->immnd_key;
 	accept_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
 	accept_evt.info.immnd.info.ctrl.canBeCoord =
-	    (node_info->isOnController)
-		? 1
-		: 0; /* ScAbsenceAllowed case handled below*/
-	accept_evt.info.immnd.info.ctrl.ndExecPid =
-	    /*(accept_evt.info.immnd.info.ctrl.canBeCoord==4)?(cb->mScAbsenceAllowed):*/
-	    node_info->immnd_execPid;
+	    (node_info->isOnController) ? IMMSV_SC_COORD : IMMSV_NOT_COORD;
+	accept_evt.info.immnd.info.ctrl.ndExecPid = node_info->immnd_execPid;
 	accept_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
 	accept_evt.info.immnd.info.ctrl.nodeEpoch = node_info->epoch;
 	/* Sending back pbeEnabled from IMMD to IMMNDs not really needed.*/
@@ -856,7 +827,7 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 				    " Cluster is loading. 2PBE configured => Wait.",
 				    node_info->immnd_key, cb->node_id);
 				accept_evt.info.immnd.info.ctrl.canBeCoord =
-				    2; /* 2PBE => order preload. */
+				    IMMSV_2PBE_PRELOAD; /* 2PBE => order preload. */
 			} else if (!(cb->mScAbsenceAllowed) ||
 				   (mds_attached_nodes == 1) ||
 				   (accepted_nodes >
@@ -896,7 +867,7 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 			if (cb->mIs2Pbe) {
 				/* 2PBE is true => joining SC must sync AND get
 				 * informed of 2PBE. */
-				accept_evt.info.immnd.info.ctrl.canBeCoord = 3;
+				accept_evt.info.immnd.info.ctrl.canBeCoord = IMMSV_2PBE_SYNC;
 			}
 		}
 	} else if (cb->immnd_coord == 0 && cb->mScAbsenceAllowed &&
@@ -913,7 +884,7 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 		    "IMMND found at %x Cluster is loading. 2PBE configured => Wait.",
 		    node_info->immnd_key);
 		accept_evt.info.immnd.info.ctrl.canBeCoord =
-		    2; /* 2PBE => order preload. */
+		    IMMSV_2PBE_PRELOAD; /* 2PBE => order preload. */
 	}
 
 	if (node_info->isCoord) {
@@ -969,15 +940,15 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 
 		if (cb->mScAbsenceAllowed) {
 			osafassert(accept_evt.info.immnd.info.ctrl.canBeCoord <
-				   2); /* Not 2PBE */
+				   IMMSV_2PBE_PRELOAD); /* Not 2PBE */
 			accept_evt.info.immnd.info.ctrl
-			    .canBeCoord = 4; /* Allow all nodes including
-						payloads to be coord */
+			    .canBeCoord = IMMSV_VETERAN_COORD;
+			/* Allow all nodes including payloads to be coord */
 
 			if (check_ex_immd_node_id &&
 			    !is_on_same_partition_with_coord(cb, node_info)) {
 				LOG_WA("Going to reboot node 0x%x", node_info->immnd_key);
-				accept_evt.info.immnd.info.ctrl.canBeCoord = 255;
+				accept_evt.info.immnd.info.ctrl.canBeCoord = IMMSV_UNKNOWN;
 			}
 
 			accept_evt.info.immnd.info.ctrl.ndExecPid =

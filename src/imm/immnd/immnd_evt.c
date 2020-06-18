@@ -10499,20 +10499,20 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 	if (evt->info.ctrl.nodeId == cb->node_id) {
 		/*This node was introduced to the IMM cluster */
 		uint8_t oldCanBeCoord = cb->mCanBeCoord;
-		if (evt->info.ctrl.canBeCoord == 255) {
+		if (evt->info.ctrl.canBeCoord == IMMSV_UNKNOWN) {
 			LOG_NO("Used to be on another partition. Rebooting...");
 			opensaf_quick_reboot(
 			    "Used to be on another partition. Rebooting...");
 			return NCSCC_RC_SUCCESS;
-		} else if (evt->info.ctrl.canBeCoord == 3) {
+		} else if (evt->info.ctrl.canBeCoord == IMMSV_2PBE_SYNC) {
 			cb->m2Pbe = 1;
-			evt->info.ctrl.canBeCoord = 1;
+			evt->info.ctrl.canBeCoord = IMMSV_SC_COORD;
 			LOG_IN("2PBE SYNC CASE CAUGHT oldCanBeCoord:%u",
 			       oldCanBeCoord);
 		}
 		cb->mIntroduced = 1;
 		cb->mCanBeCoord = evt->info.ctrl.canBeCoord;
-		if ((cb->mCanBeCoord == 2) && (cb->m2Pbe < 2) &&
+		if ((cb->mCanBeCoord == IMMSV_2PBE_PRELOAD) && (cb->m2Pbe < 2) &&
 		    immnd_cb->isNodeTypeController) {
 			LOG_NO("2PBE startup arbitration initiated from IMMD");
 			cb->m2Pbe = 2;

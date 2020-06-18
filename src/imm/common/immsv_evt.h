@@ -438,12 +438,21 @@ typedef struct immsv_d2nd_ccbinit {
   IMMSV_OM_CCB_INITIALIZE i;
 } IMMSV_D2ND_CCBINIT;
 
+typedef enum immsv_coord_type {
+  IMMSV_NOT_COORD = 0, /* payload cannot be coordinator, except headless */
+  IMMSV_SC_COORD = 1, /* controller to be coordinator */
+  IMMSV_2PBE_PRELOAD = 2,
+  IMMSV_2PBE_SYNC = 3,
+  IMMSV_VETERAN_COORD = 4, /* veteran node after headless can be coordinator */
+  IMMSV_UNKNOWN = 5 /* Unknown node will be ordered reboot */
+} IMMSV_COORD_TYPE;
+
 typedef struct immsv_d2nd_control {
   SaUint32T nodeId;
   SaUint32T rulingEpoch;
   SaUint64T fevsMsgStart;
   SaUint32T ndExecPid;
-  uint8_t canBeCoord; /* 0=>payload; 1=>SC; 2=>2PBE_preload; 3=>2PBE_sync*/
+  IMMSV_COORD_TYPE canBeCoord;
   uint8_t isCoord;
   uint8_t syncStarted;
   SaUint32T nodeEpoch;

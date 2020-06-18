@@ -443,12 +443,7 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		send_evt.info.immnd.info.ctrl.nodeId =
 		    immnd_info_node->immnd_key;
 		send_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
-		send_evt.info.immnd.info.ctrl.canBeCoord =
-		    (immnd_info_node->isOnController)
-			? 1
-			: (cb->mScAbsenceAllowed) ? 4 : 0;
-		send_evt.info.immnd.info.ctrl.ndExecPid =
-		    immnd_info_node->immnd_execPid;
+		set_canBeCoord_and_execPid(&send_evt, cb, immnd_info_node);
 		send_evt.info.immnd.info.ctrl.isCoord = true;
 		send_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
 		send_evt.info.immnd.info.ctrl.syncStarted = false;
@@ -653,7 +648,7 @@ decided:
 		send_evt.info.immnd.info.ctrl.nodeId =
 		    immnd_info_node->immnd_key;
 		send_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
-		send_evt.info.immnd.info.ctrl.canBeCoord = true;
+		send_evt.info.immnd.info.ctrl.canBeCoord = IMMSV_SC_COORD;
 		send_evt.info.immnd.info.ctrl.ndExecPid =
 		    immnd_info_node->immnd_execPid;
 		send_evt.info.immnd.info.ctrl.isCoord = false;
@@ -694,7 +689,7 @@ decided:
 	send_evt.info.immnd.type = IMMND_EVT_D2ND_INTRO_RSP;
 	send_evt.info.immnd.info.ctrl.nodeId = immnd_info_node->immnd_key;
 	send_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
-	send_evt.info.immnd.info.ctrl.canBeCoord = true;
+	send_evt.info.immnd.info.ctrl.canBeCoord = IMMSV_SC_COORD;
 	send_evt.info.immnd.info.ctrl.ndExecPid =
 	    immnd_info_node->immnd_execPid;
 	send_evt.info.immnd.info.ctrl.isCoord = true;
