@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008-2010 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -279,6 +280,7 @@ int main(int argc, char *argv[])
 	const char *absentScStr = getenv("IMMSV_SC_ABSENCE_ALLOWED");
 	const char *veteranWaitStr =
 	    getenv("IMMSV_SC_ABSENCE_VETERAN_MAX_WAIT");
+	const char *coordSelectNodePtr = getenv("IMMSV_COORD_SELECT_NODE");
 	int32_t timeout = (-1);
 	int32_t total_wait = (-1);
 	int64_t start_time = 0LL;
@@ -287,6 +289,14 @@ int main(int argc, char *argv[])
 	uint32_t scAbsenceAllowed = 0;
 
 	daemonize(argc, argv);
+
+	immd_cb->coord_select_node = false;
+	if (coordSelectNodePtr) {
+		if (atoi(coordSelectNodePtr) == 1) {
+			LOG_NO("IMMSV_COORD_SELECT_NODE is enable");
+			immd_cb->coord_select_node = true;
+		}
+	}
 
 	if (absentScStr) {
 		scAbsenceAllowed = atoi(absentScStr);

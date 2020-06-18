@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -29,6 +30,7 @@ typedef enum immd_mbcsv_msg_type {
   IMMD_A2S_MSG_DUMP_OK,
   IMMD_A2S_MSG_RESET,
   IMMD_A2S_MSG_SYNC_ABORT,
+  IMMD_A2S_MSG_INTRO_RSP_2,
   IMMD_A2S_MSG_MAX_EVT
 } IMMD_MBCSV_MSG_TYPE;
 

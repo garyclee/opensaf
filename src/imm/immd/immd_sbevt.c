@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -177,6 +178,10 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 	}
 
 	if (immnd_info_node) {
+		LOG_NO(
+		    "SBY: Accept intro from %x with ex-IMMD %x",
+		    ctrl->nodeId, ctrl->ex_immd_node_id);
+		immnd_info_node->ex_immd_node_id = ctrl->ex_immd_node_id;
 		if (immnd_info_node->epoch < ctrl->nodeEpoch) {
 			LOG_NO("SBY: New Epoch for IMMND process at node %x "
 			       "old epoch: %u  new epoch:%u",
@@ -204,6 +209,7 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 		immnd_info_node->isCoord = ctrl->isCoord;
 
 		if (ctrl->isCoord) {
+			cb->ex_immd_node_id = immnd_info_node->ex_immd_node_id;
 			SaImmRepositoryInitModeT oldRim = cb->mRim;
 			cb->immnd_coord = immnd_info_node->immnd_key;
 			cb->payload_coord_dest =
@@ -211,7 +217,9 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 				? 0LL
 				: immnd_info_node->immnd_dest;
 			cb->m2PbeCanLoad = true;
-			LOG_NO("IMMND coord at %x", immnd_info_node->immnd_key);
+			LOG_NO(
+			    "IMMND coord at %x with ex-IMMD %x",
+			    immnd_info_node->immnd_key, cb->ex_immd_node_id);
 			immnd_info_node->syncStarted = ctrl->syncStarted;
 			cb->mRim = (ctrl->pbeEnabled == 4)
 				       ? SA_IMM_KEEP_REPOSITORY

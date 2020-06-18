@@ -76,3 +76,25 @@ Support for absent IMMD is incompatible with 2PBE. If both are configured then
 2PBE will win and the absence of IMMD feature will be ignored. An error message
 is printed in this case to the syslog at startup.
 
+
+SC ABSENCE and ROAMING SC
+=========================
+When both SC Absence and Roaming SC features are enabled, multiple partitioned
+clusters can occur due to network split. If PBE database is configured on local
+node then many diverted IMM databases can occur. If rejoining these partitioned
+clusters into one cluster, any undefined behavior may happen. To avoid this,
+IMM implements mechanism to reboot nodes used to be on different partition with
+selected coordinator [#2936]
+
+- IMMND sends re-introduce using refresh id 3 with ex-IMMD node id.
+- When a payload becomes controller, the IMMD will select IMMND coordinator
+(prioritize local IMMND) and send the reply message to reboot nodes which have
+ex-IMMD node id different from ex-IMMD of selected coordinator.
+- Active IMMD uses new IMMD_A2S_MSG_INTRO_RSP_2 to checkpoint node info with
+ex-IMMD to standby IMMD.
+- IMMND uses MDS_RED_SUBSCRIBE to know Active/Standby in order to discard FEVS
+from unknown IMMD or while waiting the acceptance of re-introduce message to
+avoid IMMND itself restarted due to OUT OR ORDER. This mechanism is also
+applicable for rejoining multiple headless partitions from network split.
+
+To enable this mechanism, please export IMMSV_COORD_SELECT_NODE=1 in immd.conf

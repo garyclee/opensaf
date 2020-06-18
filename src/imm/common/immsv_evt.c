@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -3395,7 +3396,7 @@ static uint32_t immsv_evt_enc_toplevel(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 				 * sublevel */
 			}
 
-			if ((immdevt->info.ctrl_msg.refresh == 2) &&
+			if ((immdevt->info.ctrl_msg.refresh >= 2) &&
 			    (immdevt->type ==
 			     IMMD_EVT_ND2D_INTRO)) { /* Intro after IMMD
 							restart. */
@@ -3419,6 +3420,12 @@ static uint32_t immsv_evt_enc_toplevel(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 				ncs_encode_32bit(
 				    &p8, immdevt->info.ctrl_msg.impl_count);
 				ncs_enc_claim_space(o_ub, 4);
+				if (immdevt->info.ctrl_msg.refresh == 3) {
+					IMMSV_RSRV_SPACE_ASSERT(p8, o_ub, 4);
+					ncs_encode_32bit(
+					    &p8, immdevt->info.ctrl_msg.ex_immd_node_id);
+					ncs_enc_claim_space(o_ub, 4);
+				}
 			}
 
 			break;
@@ -5127,7 +5134,7 @@ static uint32_t immsv_evt_dec_toplevel(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 				 * sublevel */
 			}
 
-			if ((immdevt->info.ctrl_msg.refresh == 2) &&
+			if ((immdevt->info.ctrl_msg.refresh >= 2) &&
 			    (immdevt->type ==
 			     IMMD_EVT_ND2D_INTRO)) { /* Intro after IMMD
 							restart. */
@@ -5155,6 +5162,13 @@ static uint32_t immsv_evt_dec_toplevel(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 				immdevt->info.ctrl_msg.impl_count =
 				    ncs_decode_32bit(&p8);
 				ncs_dec_skip_space(i_ub, 4);
+				if (immdevt->info.ctrl_msg.refresh == 3) {
+					IMMSV_FLTN_SPACE_ASSERT(p8, local_data, i_ub,
+								4);
+					immdevt->info.ctrl_msg.ex_immd_node_id =
+						ncs_decode_32bit(&p8);
+					ncs_dec_skip_space(i_ub, 4);
+				}
 			}
 
 			break;

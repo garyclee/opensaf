@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -158,7 +159,7 @@ uint32_t immnd_mds_register(IMMND_CB *cb)
 
 	/* STEP 3: Subscribe to IMMD up/down events */
 	svc_info.i_op =
-	    MDS_SUBSCRIBE; /* Normal mode subscription => vdest is used. */
+	    MDS_RED_SUBSCRIBE; /* Redundant mode subscription => vdest is used. */
 	svc_info.info.svc_subscribe.i_num_svcs = 1;
 	svc_info.info.svc_subscribe.i_scope = NCSMDS_SCOPE_NONE;
 	svc_info.info.svc_subscribe.i_svc_ids = svc_id;
@@ -541,6 +542,7 @@ static uint32_t immnd_mds_rcv(IMMND_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 
 	pEvt->sinfo.ctxt = rcv_info->i_msg_ctxt;
 	pEvt->sinfo.dest = rcv_info->i_fr_dest;
+	pEvt->sinfo.node_id = rcv_info->i_node_id;
 	pEvt->sinfo.to_svc = rcv_info->i_fr_svc_id;
 	pEvt->sinfo.pid = rcv_info->pid;
 	pEvt->sinfo.uid = rcv_info->uid;
@@ -594,14 +596,18 @@ static uint32_t immnd_mds_svc_evt(IMMND_CB *cb,
 			TRACE("IMMD SERVICE DOWN => CLUSTER GOING DOWN");
 			cb->fevs_replies_pending = 0;
 			cb->is_immd_up = false;
+			cb->immd_node_id = 0;
 			break;
 
 		case NCSMDS_UP:
 			TRACE(
-			    "NCSMDS_UP for IMMD. cb->is_immd_up = true; (v)dest:%llu",
-			    (long long unsigned int)svc_evt->i_dest);
+			    "NCSMDS_UP for IMMD. cb->is_immd_up = true; (v)dest:%llu"
+			    " svc_evt->i_node_id=%x",
+			    (long long unsigned int)svc_evt->i_dest,
+			    svc_evt->i_node_id);
 			cb->is_immd_up = true;
 			cb->immd_mdest_id = svc_evt->i_dest;
+			cb->immd_node_id = svc_evt->i_node_id;
 			break;
 
 		case NCSMDS_NO_ACTIVE:
@@ -621,20 +627,33 @@ static uint32_t immnd_mds_svc_evt(IMMND_CB *cb,
 			break;
 
 		case NCSMDS_NEW_ACTIVE:
-			TRACE("NCSMDS_NEW_ACTIVE IMMD");
-			cb->immd_mdest_id = svc_evt->i_dest;
+			TRACE("NCSMDS_NEW_ACTIVE IMMD %x", svc_evt->i_node_id);
+			/* In multi partitioned clusters rejoin, IMMND can get
+			 * NEW_ACTIVE from current and other partitions,
+			 * then get FEVS from it cause restart OUT OF ORDER */
+			if (cb->other_immd_id == svc_evt->i_node_id) {
+				cb->other_immd_id = cb->immd_node_id;
+				cb->immd_mdest_id = svc_evt->i_dest;
+				cb->immd_node_id = svc_evt->i_node_id;
+			}
 			break;
 
 		case NCSMDS_RED_UP:
-			LOG_ER("NCSMDS_RED_UP: SHOULD NOT HAPPEN");
+			TRACE("NCSMDS_RED_UP");
 			break;
 
 		case NCSMDS_RED_DOWN:
-			LOG_ER("NCSMDS_RED_DOWN: SHOULD NOT HAPPEN");
+			TRACE("NCSMDS_RED_DOWN");
 			break;
 
 		case NCSMDS_CHG_ROLE:
-			LOG_ER("NCSMDS_CHG_ROLE: SHOULD NOT HAPPEN");
+			TRACE("NCSMDS_CHG_ROLE");
+			/* Sometimes not get NEW_ACTIVE but only CHG_ROLE */
+			if (cb->other_immd_id == svc_evt->i_node_id) {
+				cb->other_immd_id = cb->immd_node_id;
+				cb->immd_mdest_id = svc_evt->i_dest;
+				cb->immd_node_id = svc_evt->i_node_id;
+			}
 			break;
 
 		default:
@@ -687,6 +706,7 @@ static uint32_t immnd_mds_svc_evt(IMMND_CB *cb,
 	evt->info.immnd.info.mds_info.dest = svc_evt->i_dest;
 	evt->info.immnd.info.mds_info.svc_id = svc_evt->i_svc_id;
 	evt->info.immnd.info.mds_info.role = svc_evt->i_role;
+	evt->info.immnd.info.mds_info.node_id = svc_evt->i_node_id;
 
 	/* Put it in IMMND's Event Queue */
 	rc = m_NCS_IPC_SEND(&cb->immnd_mbx, (NCSCONTEXT)evt, priority);

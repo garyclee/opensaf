@@ -2,7 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
- * Copyright Ericsson AB 2017 - All Rights Reserved.
+ * Copyright Ericsson AB 2017, 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -596,6 +596,15 @@ void immnd_process_evt(void)
 
 	if (evt->type != IMMSV_EVT_TYPE_IMMND) {
 		LOG_ER("IMMND - Unknown Event");
+		immnd_evt_destroy(evt, true, __LINE__);
+		return;
+	}
+
+	if ((evt->sinfo.to_svc == NCSMDS_SVC_ID_IMMD) &&
+	    (evt->sinfo.node_id != cb->immd_node_id) &&
+	    (evt->sinfo.node_id != cb->other_immd_id)) {
+		LOG_WA("DISCARD message from IMMD %x as ACT:%x SBY:%x",
+		    evt->sinfo.node_id, cb->immd_node_id, cb->other_immd_id);
 		immnd_evt_destroy(evt, true, __LINE__);
 		return;
 	}
@@ -10490,14 +10499,18 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 	if (evt->info.ctrl.nodeId == cb->node_id) {
 		/*This node was introduced to the IMM cluster */
 		uint8_t oldCanBeCoord = cb->mCanBeCoord;
-		cb->mIntroduced = 1;
-		if (evt->info.ctrl.canBeCoord == 3) {
+		if (evt->info.ctrl.canBeCoord == 255) {
+			LOG_NO("Used to be on another partition. Rebooting...");
+			opensaf_quick_reboot(
+			    "Used to be on another partition. Rebooting...");
+			return NCSCC_RC_SUCCESS;
+		} else if (evt->info.ctrl.canBeCoord == 3) {
 			cb->m2Pbe = 1;
 			evt->info.ctrl.canBeCoord = 1;
 			LOG_IN("2PBE SYNC CASE CAUGHT oldCanBeCoord:%u",
 			       oldCanBeCoord);
 		}
-
+		cb->mIntroduced = 1;
 		cb->mCanBeCoord = evt->info.ctrl.canBeCoord;
 		if ((cb->mCanBeCoord == 2) && (cb->m2Pbe < 2) &&
 		    immnd_cb->isNodeTypeController) {
@@ -10739,7 +10752,7 @@ void dequeue_outgoing(IMMND_CB *cb)
  *****************************************************************************/
 static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 					IMMSV_SEND_INFO *sinfo)
-{ /*sinfo not used */
+{
 	osafassert(evt);
 	SaUint64T msgNo = evt->info.fevsReq.sender_count; /*Global MsgNo */
 	SaImmHandleT clnt_hdl = evt->info.fevsReq.client_hdl;
@@ -10750,9 +10763,17 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 			     : false;
 	TRACE_ENTER();
 
+	if (cb->mIntroduced == 2) {
+		LOG_WA("DISCARD FEVS message:%llu from %x", msgNo, sinfo->node_id);
+		dequeue_outgoing(cb);
+		return NCSCC_RC_FAILURE;
+	}
+
 	if (cb->highestProcessed >= msgNo) {
 		/*We have already received this message, discard it. */
-		LOG_WA("DISCARD DUPLICATE FEVS message:%llu", msgNo);
+		LOG_WA(
+		    "DISCARD DUPLICATE FEVS message:%llu from %x",
+		    msgNo, sinfo->node_id);
 		dequeue_outgoing(cb);
 		return NCSCC_RC_FAILURE; /*TODO: ensure evt is discarded by
 					    invoker */
@@ -10795,8 +10816,9 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 		 * message */
 		if (cb->mAccepted) {
 			LOG_ER(
-			    "MESSAGE:%llu OUT OF ORDER my highest processed:%llu - exiting",
-			    msgNo, cb->highestProcessed);
+			    "MESSAGE:%llu from %x OUT OF ORDER "
+			    "my highest processed:%llu - exiting",
+			    msgNo, sinfo->node_id, cb->highestProcessed);
 			SyslogRecentFevs();
 			immnd_ackToNid(NCSCC_RC_FAILURE);
 			exit(1);
@@ -10843,6 +10865,8 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 	}
 
 done:
+	if (sinfo->node_id)
+		cb->ex_immd_node_id = sinfo->node_id;
 	cb->highestProcessed++;
 	dequeue_outgoing(cb);
 	TRACE_LEAVE();
@@ -12169,6 +12193,7 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 {
 	/*TRACE_ENTER(); */
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	bool is_headless = false;
 
 	if ((evt->info.mds_info.change == NCSMDS_DOWN) &&
 	    (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OM ||
@@ -12176,8 +12201,35 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 		TRACE_2("IMMA DOWN EVENT");
 		immnd_proc_imma_down(cb, evt->info.mds_info.dest,
 				     evt->info.mds_info.svc_id);
-	} else if ((evt->info.mds_info.change == NCSMDS_DOWN) &&
-		   evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD) {
+	}
+
+	/* In multi partitioned clusters rejoin, IMMND may not realize
+	 * headless due to see IMMDs from different partitions */
+	if ((evt->info.mds_info.change == NCSMDS_RED_UP) &&
+	    (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD) &&
+	    (evt->info.mds_info.node_id != cb->immd_node_id) &&
+	    (evt->info.mds_info.role == V_DEST_RL_STANDBY) &&
+	    (cb->other_immd_id == 0)) {
+		cb->other_immd_id = evt->info.mds_info.node_id;
+		TRACE_2("IMMD RED_UP EVENT %x role=%d ==> ACT:%x SBY:%x",
+		    evt->info.mds_info.node_id, evt->info.mds_info.role,
+		    cb->immd_node_id, cb->other_immd_id);
+	} else if ((evt->info.mds_info.change == NCSMDS_RED_DOWN) &&
+		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
+		if (cb->immd_node_id == evt->info.mds_info.node_id)
+			cb->immd_node_id = 0;
+		if (cb->other_immd_id == evt->info.mds_info.node_id)
+			cb->other_immd_id = 0;
+		TRACE_2("IMMD RED_DOWN EVENT %x role=%d ==> ACT:%x SBY:%x",
+		    evt->info.mds_info.node_id, evt->info.mds_info.role,
+		    cb->immd_node_id, cb->other_immd_id);
+		if ((cb->immd_node_id == 0) && (cb->other_immd_id == 0)) {
+			LOG_WA("Both Active & Standby DOWN, going to headless");
+			is_headless = true;
+		}
+	}
+
+	if (is_headless) {
 		/* Cluster is going down. */
 		if (cb->mScAbsenceAllowed == 0) {
 			/* Regular (non Hydra) exit on IMMD DOWN. */
@@ -12188,8 +12240,10 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 			exit(1);
 		} else { /* SC ABSENCE ALLOWED */
 			cb->mIntroduced = 2;
-			LOG_WA("SC Absence IS allowed:%u IMMD service is DOWN",
-			       cb->mScAbsenceAllowed);
+			LOG_WA(
+			    "SC Absence IS allowed:%u IMMD service is DOWN "
+			    "ex_immd_node_id=%x",
+			    cb->mScAbsenceAllowed, cb->ex_immd_node_id);
 			if (cb->mState < IMM_SERVER_SYNC_SERVER) {
 				immnd_ackToNid(NCSCC_RC_FAILURE);
 				exit(1);
@@ -12304,7 +12358,8 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 	} else if ((evt->info.mds_info.change == NCSMDS_UP) &&
 		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
 		LOG_NO(
-		    "IMMD service is UP ... ScAbsenseAllowed?:%u introduced?:%u",
+		    "IMMD(%x) service is UP ... ScAbsenseAllowed?:%u introduced?:%u",
+		    evt->info.mds_info.node_id,
 		    cb->mScAbsenceAllowed, cb->mIntroduced);
 		if ((cb->mIntroduced == 2) &&
 		    (immnd_introduceMe(cb) != NCSCC_RC_SUCCESS)) {
@@ -12315,11 +12370,6 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OI ||
 		    evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OM)) {
 		TRACE_2("IMMA UP EVENT");
-	} else if ((evt->info.mds_info.change == NCSMDS_RED_UP) &&
-		   (evt->info.mds_info.role == V_DEST_RL_ACTIVE) &&
-		   evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD) {
-		TRACE_2("IMMD new activeEVENT");
-		/*immnd_evt_immd_new_active(cb); */
 	} else if ((evt->info.mds_info.change == NCSMDS_CHG_ROLE) &&
 		   (evt->info.mds_info.role == V_DEST_RL_ACTIVE) &&
 		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {

@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -406,15 +407,19 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		if (self_re_elect) {
 			/* Ensure we re-elected ourselves. */
 			osafassert(immnd_info_node->immnd_key == cb->node_id);
-			LOG_NO("Coord re-elected, resides at %x",
-			       immnd_info_node->immnd_key);
+			LOG_NO(
+			    "Coord re-elected, resides at %x",
+			    immnd_info_node->immnd_key);
 
 		} else {
-			LOG_NO("New coord elected, resides at %x",
-			       immnd_info_node->immnd_key);
+			LOG_NO(
+			    "New coord elected, resides at %x with ex-IMMD %x",
+			    immnd_info_node->immnd_key,
+			    immnd_info_node->ex_immd_node_id);
 		}
 
 		cb->immnd_coord = immnd_info_node->immnd_key;
+		cb->ex_immd_node_id = immnd_info_node->ex_immd_node_id;
 		if (!cb->is_rem_immnd_up) {
 			if (cb->immd_remote_id &&
 			    m_IMMND_IS_ON_SCXB(
@@ -452,8 +457,9 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		send_evt.info.immnd.info.ctrl.pbeEnabled =
 		    (cb->mRim == SA_IMM_KEEP_REPOSITORY);
 
-		mbcp_msg.type = IMMD_A2S_MSG_INTRO_RSP;
+		mbcp_msg.type = IMMD_A2S_MSG_INTRO_RSP_2;
 		mbcp_msg.info.ctrl = send_evt.info.immnd.info.ctrl;
+		mbcp_msg.info.ctrl.ex_immd_node_id = immnd_info_node->ex_immd_node_id;
 		/*Checkpoint the new coordinator message to standby director.
 		   Syncronous call=>wait for ack */
 		if (immd_mbcsv_sync_update(cb, &mbcp_msg) != NCSCC_RC_SUCCESS) {

@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -151,6 +152,10 @@ typedef struct immnd_cb_tag {
 
   /* Information about the IMMD */
   MDS_DEST immd_mdest_id;
+  NODE_ID immd_node_id;
+  NODE_ID other_immd_id;
+  /* store current active IMMD node id (to use in re-intro after headless) */
+  NODE_ID ex_immd_node_id;
   bool is_immd_up;
 
   /* IMMND data */
