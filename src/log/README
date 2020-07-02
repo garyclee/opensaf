@@ -564,10 +564,6 @@ synchronization.
 The following is checkpointed and done on standby:
 ===================================================
 
-If something goes wrong the general behavior is to restart the component using
-saAmfComponentErrorReport(...,SA_AMF_COMPONENT_RESTART,...) in order to avoid
-being out of sync (will trig a mbcs cold sync).
-
 Checkpointed
 -------------
 
@@ -653,10 +649,6 @@ synchronization is trigged when standby detects a new active.
 Cold sync:
  - At start up / restart
  - When changing role
- - When standby detects out of sync.
-   AMF is requested to perform a component restart (of standby)
-   "saAmfComponentErrorReport(...,SA_AMF_COMPONENT_RESTART,...)"
-
 
 Synchronization of files and handling of log records
 ----------------------------------------------------

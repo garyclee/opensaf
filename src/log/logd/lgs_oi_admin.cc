@@ -343,11 +343,11 @@ static void createLogServerOi() {
              (ais_rc != SA_AIS_OK)) {
     LOG_WA("%s: Fail, OI creation timeout", __FUNCTION__);
     // The legacy behavior is to exit log service in this case
-    lgs_exit("createLogServerOi() failed", SA_AMF_COMPONENT_RESTART);
+    lgs_exit("createLogServerOi() failed");
   } else if (ais_rc != SA_AIS_OK) {
     LOG_WA("%s: Fail, OI creation error", __FUNCTION__);
     // The legacy behavior is to exit log service in this case
-    lgs_exit("createLogServerOi() failed", SA_AMF_COMPONENT_RESTART);
+    lgs_exit("createLogServerOi() failed");
   }
 
   // Save OI handle and selection object
@@ -452,8 +452,7 @@ void lgsOiStop() {
   if ((io_thread_stop_timeout.is_timeout() == true) &&
       (oi_create_is_executing == true)) {
     // The OI creation thread is hanging. Recover by restarting log server
-    lgs_exit("lgsOiStop: Stopping OI create thread timeout",
-             SA_AMF_COMPONENT_RESTART);
+    lgs_exit("lgsOiStop: Stopping OI create thread timeout");
   }
 
   // Note: oi_handle_ can be used unprotected here since we know that there is
