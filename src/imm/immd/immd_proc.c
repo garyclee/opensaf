@@ -824,6 +824,7 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info,
 			}
 
 			free(tmpData);
+			m_MMGR_FREE_BUFR_LIST(uba.start);
 		}
 	} else {
 		/* Standby NOT immediately sending D2ND_DISCARD_NODE. But will
@@ -935,6 +936,7 @@ void immd_pending_discards(IMMD_CB *cb)
 			}
 
 			free(tmpData);
+			m_MMGR_FREE_BUFR_LIST(uba.start);
 		}
 
 		LOG_IN("Removing pending discard for node:%x epoch:%u",
