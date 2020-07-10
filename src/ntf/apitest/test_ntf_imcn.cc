@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2013 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -24,10 +25,13 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <cfloat>
+#include <cmath>
 #include <saAis.h>
 #include <saImmOi.h>
 #include <saImmOm.h>
 #include <saNtf.h>
+#include <string>
 #include "base/time.h"
 #include "osaf/immutil/immutil.h"
 #include "osaf/apitest/util.h"
@@ -54,6 +58,8 @@ static char NAME3_STR[sizeof(NAME3) + 1] = { '\0' };
 static char BUF1_STR[sizeof(BUF1) + 1] = { '\0' };
 static char BUF2_STR[sizeof(BUF2) + 1] = { '\0' };
 static char BUF3_STR[sizeof(BUF3) + 1] = { '\0' };
+
+#define OLD_ATTR_PRESENT_DEFAULT SA_FALSE
 
 /**
  * Callback routine, called when subscribed notification arrives.
@@ -168,6 +174,123 @@ static SaBoolT bufs_equal1(const SaUint8T *recbuf,
   return rc;
 }
 
+static void print_notification_attr(SaNtfNotificationHandleT nHandle,
+    SaNtfElementIdT attributeId,
+    SaNtfValueTypeT attributeType,
+    SaNtfValueT* value,
+    int idx) {
+  SaUint16T numElem = 0;
+  char *str = NULL;
+  SaAisErrorT rc = SA_AIS_OK;
+
+  switch (attributeType) {
+  case SA_NTF_VALUE_STRING: {
+    rc = saNtfPtrValGet(
+        nHandle,
+        value,
+        reinterpret_cast<void **>(&str), &numElem);
+    if (rc == SA_AIS_OK) {
+      printf("[%d]: Id:%d Type:%d Value:(%d)%s\n", idx,
+        attributeId, attributeType, numElem, str);
+    } else {
+      printf("[%d]: Id:%d Type:%d Value:(%d)%s\n", idx,
+        attributeId, attributeType, numElem, "<Empty>");
+    }
+    break;
+  }
+  case SA_NTF_VALUE_UINT32: {
+    printf("[%d]: Id:%d Type:%d Value:%u\n", idx,
+        attributeId, attributeType, value->uint32Val);
+    break;
+  }
+  case SA_NTF_VALUE_INT32: {
+    printf("[%d]: Id:%d Type:%d Value:%d\n", idx,
+        attributeId, attributeType, value->int32Val);
+    break;
+  }
+  case SA_NTF_VALUE_UINT64: {
+    printf("[%d]: Id:%d Type:%d Value:%llu\n", idx,
+        attributeId, attributeType, value->uint64Val);
+    break;
+  }
+  case SA_NTF_VALUE_INT64: {
+    printf("[%d]: Id:%d Type:%d Value:%lld\n", idx,
+        attributeId, attributeType, value->int64Val);
+    break;
+  }
+  case SA_NTF_VALUE_FLOAT: {
+    printf("[%d]: Id:%d Type:%d Value:%f\n", idx,
+        attributeId, attributeType, value->floatVal);
+    break;
+  }
+  case SA_NTF_VALUE_DOUBLE: {
+    printf("[%d]: Id:%d Type:%d Value:%f\n", idx,
+        attributeId, attributeType, value->doubleVal);
+    break;
+  }
+  case SA_NTF_VALUE_LDAP_NAME:
+  case SA_NTF_VALUE_BINARY: {
+    SaUint8T *binptr = NULL;
+    rc = saNtfPtrValGet(
+        nHandle,
+        value,
+        reinterpret_cast<void **>(&binptr), &numElem);
+    if (rc == SA_AIS_OK) {
+      printf("[%d]: Id:%d Type:%d NumBytes:%u\n", idx,
+             attributeId, attributeType,
+             numElem);
+      print_mem((const unsigned char*) binptr, numElem);
+    } else {
+      printf("[%d]: Id:%d Type:%d NumBytes:(%u)%s\n", idx,
+        attributeId, attributeType, numElem, "<Empty>");
+    }
+    break;
+  }
+  default:
+    printf("Unsupported attribute type: %d\n",
+        attributeType);
+    break;
+  }
+}
+
+static void print_old_attrs(SaNtfNotificationHandleT nHandle,
+    SaNtfAttributeChangeT* attrChange, SaUint16T numAttributes) {
+  // Skip of none of the attribute exist
+  int count = -1;
+  for (int i = 0; i < numAttributes; ++i) {
+    // There is at least one old attribute value
+    if (attrChange[i].oldAttributePresent == SA_TRUE) {
+      count = i;
+      break;
+    }
+  }
+  // Nothing found, skip
+  if (count == -1)
+    return;
+  printf("Num possible old attributes    : %d\n", numAttributes);
+  for (int i = 0; i < numAttributes; ++i) {
+    if (attrChange[i].oldAttributePresent == SA_FALSE) {
+      printf("[%d]: Old Attribute not present\n", i);
+      continue;
+    }
+    print_notification_attr(nHandle,
+        attrChange[i].attributeId,
+        attrChange[i].attributeType,
+        &attrChange[i].oldAttributeValue, i);
+  }
+}
+
+static void print_new_attrs(SaNtfNotificationHandleT nHandle,
+    SaNtfAttributeChangeT* attrChange, SaUint16T numAttributes) {
+  printf("Num changed attributes   : %d\n", numAttributes);
+  for (int i = 0; i < numAttributes; ++i) {
+    print_notification_attr(nHandle,
+        attrChange[i].attributeId,
+        attrChange[i].attributeType,
+        &attrChange[i].newAttributeValue, i);
+  }
+}
+
 /**
  * Display the content of a notification.
  */
@@ -245,99 +368,10 @@ static void print_notif(NotifData *n) {
            nHeader->additionalInfo[i].infoType, numElem, str);
   }
   if (n->evType == SA_NTF_ATTRIBUTE_CHANGED) {
-    printf("Num changed attributes   : %d\n",
-           n->a_c_notif_ptr->numAttributes);
-    for (i = 0; i < n->a_c_notif_ptr->numAttributes; i++) {
-      if (n->a_c_notif_ptr->changedAttributes[i]
-        .attributeType == SA_NTF_VALUE_STRING) {
-        safassert(saNtfPtrValGet(
-            n->nHandle,
-            &n->a_c_notif_ptr->changedAttributes[i].newAttributeValue,
-            reinterpret_cast<void **>(&str), &numElem), SA_AIS_OK);
-        printf("[%d]: Id:%d Type:%d Value:(%d)%s\n", i,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeId,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType,
-               numElem, str);
-      } else if (n->a_c_notif_ptr->changedAttributes[i]
-               .attributeType == SA_NTF_VALUE_UINT32) {
-        printf("[%d]: Id:%d Type:%d Value:%u\n", i,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeId,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .newAttributeValue.uint32Val);
-      } else if (n->a_c_notif_ptr->changedAttributes[i]
-               .attributeType == SA_NTF_VALUE_INT32) {
-        printf("[%d]: Id:%d Type:%d Value:%d\n", i,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeId,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .newAttributeValue.int32Val);
-      } else if (n->a_c_notif_ptr->changedAttributes[i]
-               .attributeType == SA_NTF_VALUE_UINT64) {
-        printf("[%d]: Id:%d Type:%d Value:%llu\n", i,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeId,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .newAttributeValue.uint64Val);
-      } else if (n->a_c_notif_ptr->changedAttributes[i]
-               .attributeType == SA_NTF_VALUE_INT64) {
-        printf("[%d]: Id:%d Type:%d Value:%lld\n", i,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeId,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .newAttributeValue.int64Val);
-      } else if (n->a_c_notif_ptr->changedAttributes[i]
-               .attributeType == SA_NTF_VALUE_FLOAT) {
-        printf("[%d]: Id:%d Type:%d Value:%f\n", i,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeId,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .newAttributeValue.floatVal);
-      } else if (n->a_c_notif_ptr->changedAttributes[i]
-               .attributeType == SA_NTF_VALUE_DOUBLE) {
-        printf("[%d]: Id:%d Type:%d Value:%f\n", i,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeId,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .newAttributeValue.doubleVal);
-      } else if (n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType ==
-               SA_NTF_VALUE_BINARY ||
-           n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType ==
-               SA_NTF_VALUE_LDAP_NAME) {
-        SaUint8T *binptr = NULL;
-        safassert(saNtfPtrValGet(
-            n->nHandle,
-            &n->a_c_notif_ptr->changedAttributes[i].newAttributeValue,
-            reinterpret_cast<void **>(&binptr), &numElem), SA_AIS_OK);
-        printf("[%d]: Id:%d Type:%d NumBytes:%u\n", i,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeId,
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType,
-               numElem);
-        print_buf(binptr, numElem);
-      } else {
-        printf("Unsupported attribute type: %d\n",
-               n->a_c_notif_ptr->changedAttributes[i]
-             .attributeType);
-      }
-    }
+    print_new_attrs(n->nHandle, n->a_c_notif_ptr->changedAttributes,
+        n->a_c_notif_ptr->numAttributes);
+    print_old_attrs(n->nHandle, n->a_c_notif_ptr->changedAttributes,
+        n->a_c_notif_ptr->numAttributes);
   } else if (n->evType == SA_NTF_OBJECT_CREATION ||
        n->evType == SA_NTF_OBJECT_DELETION) {
     printf("Num attributes           : %d\n",
@@ -516,6 +550,171 @@ static SaBoolT is_equal_add_info(NotifData *n_exp, NotifData *n_rec) {
   return rc;
 }
 
+static SaBoolT is_equal_binary_attr(SaNtfNotificationHandleT eHandle,
+    SaNtfNotificationHandleT rHandle,
+    SaNtfValueT* eVal,
+    SaNtfValueT* rVal) {
+  SaBoolT res = SA_FALSE;
+  do {
+    SaUint8T *recptr = NULL;
+    SaUint8T *expptr = NULL;
+    SaUint16T exp_ln = 0;
+    SaUint16T rec_ln = 0;
+    SaAisErrorT rc = saNtfPtrValGet(
+      rHandle,
+      rVal,
+      reinterpret_cast<void **>(&recptr), &rec_ln);
+    if (rc != SA_AIS_OK) {
+      break;
+    }
+    rc = saNtfPtrValGet(
+      eHandle,
+      eVal,
+      reinterpret_cast<void **>(&expptr), &exp_ln);
+    if (rc != SA_AIS_OK) {
+      break;
+    }
+    if (rec_ln == exp_ln &&
+        bufs_equal(recptr, expptr,
+             rec_ln)) {
+      res = SA_TRUE;
+    } else if ((rec_ln * 2) == exp_ln &&
+         bufs_equal1(recptr, expptr,
+               rec_ln)) {
+      res = SA_TRUE;
+    }
+  } while (false);
+  return res;
+}
+
+static SaBoolT is_equal_str_attr(SaNtfNotificationHandleT eHandle,
+    SaNtfNotificationHandleT rHandle,
+    SaNtfValueT* eVal,
+    SaNtfValueT* rVal) {
+  SaBoolT res = SA_FALSE;
+  do {
+    char *eStr = NULL;
+    char *rStr = NULL;
+    SaUint16T elen = 0;
+    SaUint16T rlen = 0;
+    SaAisErrorT rc = saNtfPtrValGet(
+        eHandle,
+        eVal,
+        reinterpret_cast<void **>(&eStr), &elen);
+    if (rc != SA_AIS_OK) {
+      break;
+    }
+    rc = saNtfPtrValGet(
+        rHandle,
+        rVal,
+        reinterpret_cast<void **>(&rStr), &rlen);
+    if (rc != SA_AIS_OK) {
+      break;
+    }
+    if (!strncmp(eStr, "immcfg", 6)) {
+      elen = rlen = 6;
+    }
+    if (elen == rlen && !strncmp(eStr, rStr, elen)) {
+      res = SA_TRUE;
+    }
+  } while (false);
+  return res;
+}
+
+static SaBoolT is_equal_scalar_attr(SaNtfAttributeChangeT* n_exp,
+    SaNtfAttributeChangeT* n_rec) {
+  SaBoolT rc = SA_FALSE;
+  switch (n_rec->attributeType) {
+  case SA_NTF_VALUE_UINT32: {
+    if (n_exp->newAttributeValue.uint32Val ==
+        n_rec->newAttributeValue.uint32Val) {
+      if (n_exp->oldAttributePresent) {
+        if (n_exp->oldAttributeValue.uint32Val ==
+            n_rec->oldAttributeValue.uint32Val) {
+          rc = SA_TRUE;
+        }
+      } else {
+        rc = SA_TRUE;
+      }
+    }
+    break;
+  }
+  case SA_NTF_VALUE_INT32: {
+    if (n_exp->newAttributeValue.int32Val ==
+        n_rec->newAttributeValue.int32Val) {
+      if (n_exp->oldAttributePresent) {
+        if (n_exp->oldAttributeValue.int32Val ==
+            n_rec->oldAttributeValue.int32Val) {
+          rc = SA_TRUE;
+        }
+      } else {
+        rc = SA_TRUE;
+      }
+    }
+    break;
+  }
+  case SA_NTF_VALUE_UINT64: {
+    if (n_exp->newAttributeValue.uint64Val ==
+        n_rec->newAttributeValue.uint64Val) {
+      if (n_exp->oldAttributePresent) {
+        if (n_exp->oldAttributeValue.uint64Val ==
+            n_rec->oldAttributeValue.uint64Val) {
+          rc = SA_TRUE;
+        }
+      } else {
+        rc = SA_TRUE;
+      }
+    }
+    break;
+  }
+  case SA_NTF_VALUE_INT64: {
+    if (n_exp->newAttributeValue.int64Val ==
+        n_rec->newAttributeValue.int64Val) {
+      if (n_exp->oldAttributePresent) {
+        if (n_exp->oldAttributeValue.int64Val ==
+            n_rec->oldAttributeValue.int64Val) {
+          rc = SA_TRUE;
+        }
+      } else {
+        rc = SA_TRUE;
+      }
+     }
+    break;
+  }
+  case SA_NTF_VALUE_FLOAT: {
+    if (fabs(n_exp->newAttributeValue.floatVal -
+        n_rec->newAttributeValue.floatVal) < FLT_EPSILON ) {
+      if (n_exp->oldAttributePresent) {
+        if (fabs(n_exp->oldAttributeValue.floatVal -
+            n_rec->oldAttributeValue.floatVal) < FLT_EPSILON ) {
+          rc = SA_TRUE;
+        }
+      } else {
+        rc = SA_TRUE;
+      }
+    }
+    break;
+  }
+  case SA_NTF_VALUE_DOUBLE: {
+    if (fabs(n_exp->newAttributeValue.doubleVal -
+        n_rec->newAttributeValue.doubleVal) < DBL_EPSILON  ) {
+      if (n_exp->oldAttributePresent) {
+        if (fabs(n_exp->oldAttributeValue.doubleVal -
+            n_rec->oldAttributeValue.doubleVal) < DBL_EPSILON  ) {
+          rc = SA_TRUE;
+        }
+      } else {
+        rc = SA_TRUE;
+      }
+    }
+    break;
+  }
+  default:
+    rc = SA_FALSE;
+  }
+  return rc;
+}
+
 /**
  * Check whether the attributes list data is equal between received and expected
  * attribute change notification.
@@ -525,16 +724,14 @@ static SaBoolT is_equal_ch_attr(const NotifData *n_exp,
   SaBoolT rc = SA_TRUE;
   int i = 0;
   int j = 0;
-  char *exp_str = NULL;
-  char *rec_str = NULL;
-  SaUint16T exp_ln = 0;
-  SaUint16T rec_ln = 0;
 
   char elemVerified[256];
   memset(elemVerified, 0, n_rec->a_c_notif_ptr->numAttributes);
-  for (i = 0; i < n_rec->a_c_notif_ptr->numAttributes; i++) {
+  // For every received notification
+  for (i = 0; i < n_rec->a_c_notif_ptr->numAttributes; ++i) {
     rc = SA_FALSE;
-    for (j = 0; j < n_exp->a_c_notif_ptr->numAttributes; j++) {
+    // Look for a match in every expected notification
+    for (j = 0; j < n_exp->a_c_notif_ptr->numAttributes; ++j) {
       if ((n_exp->a_c_notif_ptr->changedAttributes[j]
          .attributeType ==
            n_rec->a_c_notif_ptr->changedAttributes[i]
@@ -544,56 +741,23 @@ static SaBoolT is_equal_ch_attr(const NotifData *n_exp,
            n_rec->a_c_notif_ptr->changedAttributes[i]
          .oldAttributePresent) &&
           elemVerified[j] == 0) {
-        if (n_exp->a_c_notif_ptr->changedAttributes[j]
-          .attributeType == SA_NTF_VALUE_STRING) {
-          safassert(saNtfPtrValGet(
-              n_exp->nHandle,
-              &n_exp->a_c_notif_ptr->changedAttributes[j].newAttributeValue,
-              reinterpret_cast<void **>(&exp_str), &exp_ln), SA_AIS_OK);
-          safassert(saNtfPtrValGet(
+        switch (n_exp->a_c_notif_ptr->changedAttributes[j] .attributeType) {
+        case SA_NTF_VALUE_STRING: {
+          rc = is_equal_str_attr(n_exp->nHandle,
               n_rec->nHandle,
-              &n_rec->a_c_notif_ptr->changedAttributes[i].newAttributeValue,
-              reinterpret_cast<void **>(&rec_str), &rec_ln), SA_AIS_OK);
-          if (!strncmp(rec_str, "immcfg", 6)) {
-            exp_ln = 6;
-            rec_ln = 6;
+              &n_exp->a_c_notif_ptr->changedAttributes[j].newAttributeValue,
+              &n_rec->a_c_notif_ptr->changedAttributes[i].newAttributeValue);
+
+          if ((rc == SA_TRUE) &&
+            n_exp->a_c_notif_ptr->changedAttributes[j].oldAttributePresent) {
+            rc = is_equal_str_attr(n_exp->nHandle,
+                n_rec->nHandle,
+                &n_exp->a_c_notif_ptr->changedAttributes[j].oldAttributeValue,
+                &n_rec->a_c_notif_ptr->changedAttributes[i].oldAttributeValue);
           }
-          if (exp_ln == rec_ln &&
-              !strncmp(exp_str, rec_str,
-                 exp_ln)) {
-            rc = SA_TRUE;
-            break;
-          }
-        } else if (n_exp->a_c_notif_ptr
-                 ->changedAttributes[j]
-                 .attributeType ==
-             SA_NTF_VALUE_UINT32) {
-          if (n_exp->a_c_notif_ptr
-            ->changedAttributes[j]
-            .newAttributeValue.uint32Val ==
-              n_rec->a_c_notif_ptr
-            ->changedAttributes[i]
-            .newAttributeValue.uint32Val) {
-            rc = SA_TRUE;
-            break;
-          }
-        } else if (n_exp->a_c_notif_ptr
-                 ->changedAttributes[j]
-                 .attributeType ==
-             SA_NTF_VALUE_INT32) {
-          if (n_exp->a_c_notif_ptr
-            ->changedAttributes[j]
-            .newAttributeValue.int32Val ==
-              n_rec->a_c_notif_ptr
-            ->changedAttributes[i]
-            .newAttributeValue.int32Val) {
-            rc = SA_TRUE;
-            break;
-          }
-        } else if (n_exp->a_c_notif_ptr
-                 ->changedAttributes[j]
-                 .attributeType ==
-             SA_NTF_VALUE_UINT64) {
+          break;
+        }
+        case SA_NTF_VALUE_UINT64: {
           /*
            * CCB ID is of this type. Check whether
            * it is the ccb id attribute and that a
@@ -609,99 +773,54 @@ static SaBoolT is_equal_ch_attr(const NotifData *n_exp,
                 ->changedAttributes[i]
                 .attributeId) {
             rc = SA_TRUE;
-            break;
-          } else if (n_exp->a_c_notif_ptr
-                   ->changedAttributes[j]
-                   .newAttributeValue
-                   .uint64Val ==
-               n_rec->a_c_notif_ptr
-                   ->changedAttributes[i]
-                   .newAttributeValue
-                   .uint64Val) {
+          } else if (is_equal_scalar_attr(
+              &n_exp->a_c_notif_ptr->changedAttributes[j],
+              &n_rec->a_c_notif_ptr->changedAttributes[i])) {
             rc = SA_TRUE;
-            break;
           }
-        } else if (n_exp->a_c_notif_ptr
-                 ->changedAttributes[j]
-                 .attributeType ==
-             SA_NTF_VALUE_INT64) {
-          if (n_exp->a_c_notif_ptr
-            ->changedAttributes[j]
-            .newAttributeValue.int64Val ==
-              n_rec->a_c_notif_ptr
-            ->changedAttributes[i]
-            .newAttributeValue.int64Val) {
-            rc = SA_TRUE;
-            break;
-          }
-        } else if (n_exp->a_c_notif_ptr
-                 ->changedAttributes[j]
-                 .attributeType ==
-             SA_NTF_VALUE_FLOAT) {
-          if (n_exp->a_c_notif_ptr
-            ->changedAttributes[j]
-            .newAttributeValue.floatVal ==
-              n_rec->a_c_notif_ptr
-            ->changedAttributes[i]
-            .newAttributeValue.floatVal) {
-            rc = SA_TRUE;
-            break;
-          }
-        } else if (n_exp->a_c_notif_ptr
-                 ->changedAttributes[j]
-                 .attributeType ==
-             SA_NTF_VALUE_DOUBLE) {
-          if (n_exp->a_c_notif_ptr
-            ->changedAttributes[j]
-            .newAttributeValue.doubleVal ==
-              n_rec->a_c_notif_ptr
-            ->changedAttributes[i]
-            .newAttributeValue.doubleVal) {
-            rc = SA_TRUE;
-            break;
-          }
-        } else if (n_exp->a_c_notif_ptr
-               ->changedAttributes[j]
-               .attributeType ==
-                 SA_NTF_VALUE_BINARY ||
-             n_exp->a_c_notif_ptr
-               ->changedAttributes[j]
-               .attributeType ==
-                 SA_NTF_VALUE_LDAP_NAME) {
-          SaUint8T *recptr = NULL;
-          SaUint8T *expptr = NULL;
-          safassert(
-              saNtfPtrValGet(
-            n_rec->nHandle,
-            &n_rec->a_c_notif_ptr->changedAttributes[i].newAttributeValue,
-            reinterpret_cast<void **>(&recptr), &rec_ln), SA_AIS_OK);
-          safassert(
-              saNtfPtrValGet(
-            n_exp->nHandle,
-            &n_exp->a_c_notif_ptr->changedAttributes[j].newAttributeValue,
-            reinterpret_cast<void **>(&expptr), &exp_ln), SA_AIS_OK);
-          if (rec_ln == exp_ln &&
-              bufs_equal(recptr, expptr,
-                   rec_ln)) {
-            rc = SA_TRUE;
-            break;
-          } else if ((rec_ln * 2) == exp_ln &&
-               bufs_equal1(recptr, expptr,
-                     rec_ln)) {
-            rc = SA_TRUE;
-            break;
-          }
-        } else {
           break;
         }
-      }
-    }
-    if (rc == SA_FALSE) {
-      break;
+        case SA_NTF_VALUE_BINARY:
+        case SA_NTF_VALUE_LDAP_NAME: {
+          rc = is_equal_binary_attr(n_exp->nHandle,
+              n_rec->nHandle,
+              &n_exp->a_c_notif_ptr->changedAttributes[j].newAttributeValue,
+              &n_rec->a_c_notif_ptr->changedAttributes[i].newAttributeValue);
+          if ((rc == SA_TRUE) &&
+              n_exp->a_c_notif_ptr->changedAttributes[j].oldAttributePresent) {
+            rc = is_equal_binary_attr(n_exp->nHandle,
+                n_rec->nHandle,
+                &n_exp->a_c_notif_ptr->changedAttributes[j].oldAttributeValue,
+                &n_rec->a_c_notif_ptr->changedAttributes[i].oldAttributeValue);
+          }
+          break;
+        }
+        // No need to parse the following cases individually
+        // No need to remove these comments either
+        // case SA_NTF_VALUE_UINT32:
+        // case SA_NTF_VALUE_INT32:
+        // case SA_NTF_VALUE_INT64:
+        // case SA_NTF_VALUE_FLOAT:
+        // case SA_NTF_VALUE_DOUBLE:
+        default:
+          rc = is_equal_scalar_attr(&n_exp->a_c_notif_ptr
+                        ->changedAttributes[j],
+                        &n_rec->a_c_notif_ptr
+                        ->changedAttributes[i]);
+          break;
+        }
+        // Found a match in expected notification data
+        if (rc == SA_TRUE) {
+          break;
+        }
+      }   // Compare attributes
+    }   // Looking for a match in expected notification
+    if (rc == SA_TRUE) {
+     elemVerified[j] = 1;
     } else {
-      elemVerified[j] = 1;
+      break;
     }
-  }
+  }  // For all received notification
   return rc;
 }
 
@@ -1162,7 +1281,9 @@ static SaAisErrorT set_attr_str(
         &n_exp->c_d_notif_ptr->objectAttributes[idx]
        .attributeValue);
     if (error == SA_AIS_OK) {
-      strcpy(reinterpret_cast<char *>(temp), attrValue);
+      //  strcpy(reinterpret_cast<char *>(temp), attrValue);
+      snprintf(reinterpret_cast<char *>(temp), strlen(attrValue) + 1,
+          "%s", attrValue);
       n_exp->c_d_notif_ptr->objectAttributes[idx]
           .attributeId = attrId;
       n_exp->c_d_notif_ptr->objectAttributes[idx]
@@ -1281,29 +1402,51 @@ static SaAisErrorT set_attr_extended_name(
 static SaAisErrorT set_attr_change_str(
     NotifData *n_exp, SaUint16T idx,
     SaNtfElementIdT attrId,
-    const char *newValue) {
+    const char *newValue,
+    SaBoolT oldAttrPresent = OLD_ATTR_PRESENT_DEFAULT,
+    const char *oldValue = NULL) {
   SaAisErrorT error = SA_AIS_OK;
   SaUint8T *temp = NULL;
 
-  if (n_exp->a_c_notif_ptr != NULL) {
+  do {
+    if (n_exp->a_c_notif_ptr == NULL) {
+      error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
+    }
+
     n_exp->a_c_notif_ptr->changedAttributes[idx]
-        .oldAttributePresent = SA_FALSE;
+        .oldAttributePresent = oldAttrPresent;
     error = saNtfPtrValAllocate(
         n_exp->nHandle, strlen(newValue) + 1, reinterpret_cast<void **>(&temp),
         &n_exp->a_c_notif_ptr->changedAttributes[idx]
        .newAttributeValue);
-    if (error == SA_AIS_OK) {
-      strcpy(reinterpret_cast<char *>(temp), newValue);
-      n_exp->a_c_notif_ptr->changedAttributes[idx]
-          .attributeId = attrId;
-      n_exp->a_c_notif_ptr->changedAttributes[idx]
-          .attributeType = SA_NTF_VALUE_STRING;
-    } else {
+    if (error != SA_AIS_OK) {
       error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
     }
-  } else {
-    error = SA_AIS_ERR_FAILED_OPERATION;
-  }
+    //  strcpy(reinterpret_cast<char *>(temp), newValue);
+    snprintf(reinterpret_cast<char *>(temp),
+        strlen(newValue) + 1, "%s", newValue);
+    n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .attributeId = attrId;
+    n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .attributeType = SA_NTF_VALUE_STRING;
+    if (!oldAttrPresent || !oldValue)
+      break;
+    SaUint8T *otmp = NULL;
+    error = saNtfPtrValAllocate(
+        n_exp->nHandle, strlen(oldValue) + 1, reinterpret_cast<void **>(&otmp),
+        &n_exp->a_c_notif_ptr->changedAttributes[idx]
+       .oldAttributeValue);
+    if (error != SA_AIS_OK) {
+      error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
+    }
+    //  strcpy(reinterpret_cast<char *>(otmp), oldValue);
+    snprintf(reinterpret_cast<char *>(otmp),
+        strlen(oldValue) + 1, "%s", oldValue);
+  } while (false);
+
   return error;
 }
 
@@ -1314,7 +1457,9 @@ static SaAisErrorT set_attr_change_buf(
     NotifData *n_exp, SaUint16T idx,
     SaNtfElementIdT attrId,
     SaNtfValueTypeT valType,
-    void *newValue) {
+    void *newValue,
+    SaBoolT oldAttrPresent = OLD_ATTR_PRESENT_DEFAULT,
+    void* oldValue = NULL) {
   SaAisErrorT error = SA_AIS_OK;
   SaUint16T numAlloc = (valType == SA_NTF_VALUE_BINARY)
          ? (reinterpret_cast<SaAnyT *>(newValue))->bufferSize
@@ -1323,26 +1468,45 @@ static SaAisErrorT set_attr_change_buf(
   SaUint8T *srcPtr = (valType == SA_NTF_VALUE_BINARY)
              ? (reinterpret_cast<SaAnyT *>(newValue))->bufferAddr
              : (reinterpret_cast<SaNameT *>(newValue))->value;
-
-  if (n_exp->a_c_notif_ptr != NULL) {
+  do {
+    if (n_exp->a_c_notif_ptr == NULL) {
+      error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
+    }
     n_exp->a_c_notif_ptr->changedAttributes[idx]
-        .oldAttributePresent = SA_FALSE;
+        .oldAttributePresent = oldAttrPresent;
     error = saNtfPtrValAllocate(
         n_exp->nHandle, numAlloc, reinterpret_cast<void **>(&temp),
         &n_exp->a_c_notif_ptr->changedAttributes[idx]
        .newAttributeValue);
-    if (error == SA_AIS_OK) {
-      memcpy(temp, srcPtr, numAlloc);
-      n_exp->a_c_notif_ptr->changedAttributes[idx]
-          .attributeId = attrId;
-      n_exp->a_c_notif_ptr->changedAttributes[idx]
-          .attributeType = valType;
-    } else {
+    if (error != SA_AIS_OK) {
       error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
     }
-  } else {
-    error = SA_AIS_ERR_FAILED_OPERATION;
-  }
+    memcpy(temp, srcPtr, numAlloc);
+    n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .attributeId = attrId;
+    n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .attributeType = valType;
+    if (!oldAttrPresent || !oldValue)
+      break;
+    SaUint16T onumAlloc = (valType == SA_NTF_VALUE_BINARY)
+           ? (reinterpret_cast<SaAnyT *>(oldValue))->bufferSize
+           : (reinterpret_cast<SaNameT *>(oldValue))->length;
+    SaUint8T *otemp = NULL;
+    SaUint8T *osrcPtr = (valType == SA_NTF_VALUE_BINARY)
+               ? (reinterpret_cast<SaAnyT *>(oldValue))->bufferAddr
+               : (reinterpret_cast<SaNameT *>(oldValue))->value;
+    error = saNtfPtrValAllocate(
+        n_exp->nHandle, onumAlloc, reinterpret_cast<void **>(&otemp),
+        &n_exp->a_c_notif_ptr->changedAttributes[idx]
+       .oldAttributeValue);
+    if (error != SA_AIS_OK) {
+      error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
+    }
+    memcpy(otemp, osrcPtr, onumAlloc);
+  } while (false);
   return error;
 }
 
@@ -1351,7 +1515,9 @@ static SaAisErrorT set_attr_change_extended_name(
     SaUint16T idx,
     SaNtfElementIdT attrId,
     SaNtfValueTypeT valType,
-    void *newValue) {
+    void *newValue,
+    SaBoolT oldAttrPresent = OLD_ATTR_PRESENT_DEFAULT,
+    void *oldValue = NULL) {
   assert(valType == SA_NTF_VALUE_LDAP_NAME);
   SaAisErrorT error = SA_AIS_OK;
   SaUint16T numAlloc = strlen(saAisNameBorrow(
@@ -1359,26 +1525,43 @@ static SaAisErrorT set_attr_change_extended_name(
   SaUint8T *temp = nullptr;
   SaUint8T *srcPtr = reinterpret_cast<SaUint8T*>(const_cast<char*>(
       saAisNameBorrow(reinterpret_cast<SaNameT *>(newValue))));
-
-  if (n_exp->a_c_notif_ptr != NULL) {
+  do {
+    if (n_exp->a_c_notif_ptr == NULL) {
+      error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
+    }
     n_exp->a_c_notif_ptr->changedAttributes[idx]
-        .oldAttributePresent = SA_FALSE;
+        .oldAttributePresent = oldAttrPresent;
     error = saNtfPtrValAllocate(
         n_exp->nHandle, numAlloc, reinterpret_cast<void **>(&temp),
         &n_exp->a_c_notif_ptr->changedAttributes[idx]
        .newAttributeValue);
-    if (error == SA_AIS_OK) {
-      memcpy(temp, srcPtr, numAlloc);
-      n_exp->a_c_notif_ptr->changedAttributes[idx]
-          .attributeId = attrId;
-      n_exp->a_c_notif_ptr->changedAttributes[idx]
-          .attributeType = valType;
-    } else {
+    if (error != SA_AIS_OK) {
       error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
     }
-  } else {
-    error = SA_AIS_ERR_FAILED_OPERATION;
-  }
+    memcpy(temp, srcPtr, numAlloc);
+    n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .attributeId = attrId;
+    n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .attributeType = valType;
+    if (!oldAttrPresent || !oldValue)
+      break;
+    SaUint16T onumAlloc = strlen(saAisNameBorrow(
+        reinterpret_cast<SaNameT *>(oldValue)));
+    SaUint8T *otemp = nullptr;
+    SaUint8T *osrcPtr = reinterpret_cast<SaUint8T*>(const_cast<char*>(
+        saAisNameBorrow(reinterpret_cast<SaNameT *>(oldValue))));
+    error = saNtfPtrValAllocate(
+        n_exp->nHandle, numAlloc, reinterpret_cast<void **>(&otemp),
+        &n_exp->a_c_notif_ptr->changedAttributes[idx]
+       .oldAttributeValue);
+    if (error != SA_AIS_OK) {
+      error = SA_AIS_ERR_FAILED_OPERATION;
+      break;
+    }
+    memcpy(otemp, osrcPtr, onumAlloc);
+  } while (false);
   return error;
 }
 
@@ -1390,31 +1573,57 @@ static SaAisErrorT set_attr_change_scalar(
     NotifData *n_exp, SaUint16T idx,
     SaNtfElementIdT attrId,
     SaNtfValueTypeT valType,
-    void *newValue) {
+    void *newValue,
+    SaBoolT oldAttrPresent = OLD_ATTR_PRESENT_DEFAULT,
+    void *oldValue = NULL) {
   SaAisErrorT error = SA_AIS_OK;
 
   n_exp->a_c_notif_ptr->changedAttributes[idx].attributeId = attrId;
   n_exp->a_c_notif_ptr->changedAttributes[idx].attributeType = valType;
   n_exp->a_c_notif_ptr->changedAttributes[idx].oldAttributePresent =
-      SA_FALSE;
+      oldAttrPresent;
   if (valType == SA_NTF_VALUE_UINT32) {
     n_exp->a_c_notif_ptr->changedAttributes[idx]
         .newAttributeValue.uint32Val = *reinterpret_cast<SaUint32T *>(newValue);
+    if (oldAttrPresent && oldValue) {
+      n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .oldAttributeValue.uint32Val = *reinterpret_cast<SaUint32T *>(oldValue);
+    }
   } else if (valType == SA_NTF_VALUE_INT32) {
     n_exp->a_c_notif_ptr->changedAttributes[idx]
         .newAttributeValue.int32Val = *reinterpret_cast<SaInt32T *>(newValue);
+    if (oldAttrPresent && oldValue) {
+      n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .oldAttributeValue.int32Val = *reinterpret_cast<SaInt32T *>(oldValue);
+    }
   } else if (valType == SA_NTF_VALUE_UINT64) {
     n_exp->a_c_notif_ptr->changedAttributes[idx]
         .newAttributeValue.uint64Val = *reinterpret_cast<SaUint64T *>(newValue);
+    if (oldAttrPresent && oldValue) {
+      n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .oldAttributeValue.uint64Val = *reinterpret_cast<SaUint64T *>(oldValue);
+    }
   } else if (valType == SA_NTF_VALUE_INT64) {
     n_exp->a_c_notif_ptr->changedAttributes[idx]
         .newAttributeValue.int64Val = *reinterpret_cast<SaInt64T *>(newValue);
+    if (oldAttrPresent && oldValue) {
+      n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .oldAttributeValue.int64Val = *reinterpret_cast<SaInt64T *>(oldValue);
+    }
   } else if (valType == SA_NTF_VALUE_FLOAT) {
     n_exp->a_c_notif_ptr->changedAttributes[idx]
         .newAttributeValue.floatVal = *reinterpret_cast<SaFloatT *>(newValue);
+    if (oldAttrPresent && oldValue) {
+      n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .oldAttributeValue.floatVal = *reinterpret_cast<SaFloatT *>(oldValue);
+    }
   } else if (valType == SA_NTF_VALUE_DOUBLE) {
     n_exp->a_c_notif_ptr->changedAttributes[idx]
         .newAttributeValue.doubleVal = *reinterpret_cast<SaDoubleT *>(newValue);
+    if (oldAttrPresent && oldValue) {
+      n_exp->a_c_notif_ptr->changedAttributes[idx]
+        .oldAttributeValue.doubleVal = *reinterpret_cast<SaDoubleT *>(oldValue);
+    }
   } else {
     error = SA_AIS_ERR_FAILED_OPERATION;
   }
@@ -3289,7 +3498,9 @@ void objectModifyTest_21(void) {
 
   /* modify an object */
   SaUint32T ivar = UINT32VAR2;
+  SaUint32T oivar = UINT32VAR1;
   SaFloatT fvar = FLOATVAR2;
+  SaFloatT ofvar = FLOATVAR1;
   snprintf(command, MAX_DATA, "immcfg -t 20 -a testUint32Cfg=%u"
            " -a testFloatCfg=%f %s", ivar, fvar, DNTESTCFG);
   assert(system(command) != -1);
@@ -3320,23 +3531,20 @@ void objectModifyTest_21(void) {
         SA_AIS_OK);
     safassert(set_add_info(&n_exp, 5, 5, "testFloatCfg"),
         SA_AIS_OK);
-    safassert(set_attr_change_str(&n_exp, 0, 0, "immcfg_xxx"),
-        SA_AIS_OK);
+    safassert(set_attr_change_str(&n_exp, 0, 0, "immcfg_xxx"), SA_AIS_OK);
     safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"),
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
-             SA_NTF_VALUE_UINT32, &ivar),
+             SA_NTF_VALUE_UINT32, &ivar, SA_TRUE, &oivar),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 5,
-             SA_NTF_VALUE_FLOAT, &fvar),
+             SA_NTF_VALUE_FLOAT, &fvar, SA_TRUE, &ofvar),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -3367,8 +3575,13 @@ void objectModifyTest_22(void) {
 
   SaNameT var1 = {.length = sizeof(NAME2)};
   memcpy(var1.value, NAME2, sizeof(NAME2));
+  SaNameT var1old = {.length = sizeof(NAME1)};
+  memcpy(var1old.value, NAME1, sizeof(NAME1));
+
   SaAnyT var2 = {.bufferSize = sizeof(BUF2),
            .bufferAddr = const_cast<SaUint8T *>(BUF2)};
+  SaAnyT var2old = {.bufferSize = sizeof(BUF1),
+           .bufferAddr = const_cast<SaUint8T *>(BUF1)};
 
   /* modify an object */
   snprintf(command, MAX_DATA, "immcfg -t 20 -a testNameCfg=%s "
@@ -3405,17 +3618,15 @@ void objectModifyTest_22(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 4, 4,
-                SA_NTF_VALUE_LDAP_NAME, &var1),
+                SA_NTF_VALUE_LDAP_NAME, &var1, SA_TRUE, &var1old),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 5, 5, SA_NTF_VALUE_BINARY,
-                &var2),
+                &var2, SA_TRUE, &var2old),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -3481,17 +3692,15 @@ void objectModifyTest_23(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar),SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
-             SA_NTF_VALUE_INT32, &addvar),
+             SA_NTF_VALUE_INT32, &addvar, SA_FALSE),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 4,
-             SA_NTF_VALUE_INT32, &oldvar),
+             SA_NTF_VALUE_INT32, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -3557,17 +3766,15 @@ void objectModifyTest_24(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
-             SA_NTF_VALUE_UINT32, &addvar),
+             SA_NTF_VALUE_UINT32, &addvar, SA_FALSE),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 4,
-             SA_NTF_VALUE_UINT32, &oldvar),
+             SA_NTF_VALUE_UINT32, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -3633,17 +3840,15 @@ void objectModifyTest_25(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
-             SA_NTF_VALUE_INT64, &addvar),
+             SA_NTF_VALUE_INT64, &addvar, SA_FALSE),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 4,
-             SA_NTF_VALUE_INT64, &oldvar),
+             SA_NTF_VALUE_INT64, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -3709,17 +3914,15 @@ void objectModifyTest_26(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
-             SA_NTF_VALUE_UINT64, &addvar),
+             SA_NTF_VALUE_UINT64, &addvar, SA_FALSE),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 4,
-             SA_NTF_VALUE_UINT64, &oldvar),
+             SA_NTF_VALUE_UINT64, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -3785,17 +3988,15 @@ void objectModifyTest_27(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
              SA_NTF_VALUE_FLOAT, &addvar),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 4,
-             SA_NTF_VALUE_FLOAT, &oldvar),
+             SA_NTF_VALUE_FLOAT, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -3861,17 +4062,15 @@ void objectModifyTest_28(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
              SA_NTF_VALUE_DOUBLE, &addvar),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 4,
-             SA_NTF_VALUE_DOUBLE, &oldvar),
+             SA_NTF_VALUE_DOUBLE, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -3936,17 +4135,15 @@ void objectModifyTest_29(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
              SA_NTF_VALUE_INT64, &addvar),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 4,
-             SA_NTF_VALUE_INT64, &oldvar),
+             SA_NTF_VALUE_INT64, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -4012,14 +4209,13 @@ void objectModifyTest_30(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_str(&n_exp, 4, 4, addvar), SA_AIS_OK);
-    safassert(set_attr_change_str(&n_exp, 5, 4, oldvar), SA_AIS_OK);
+    safassert(set_attr_change_str(&n_exp, 5, 4, oldvar,
+        SA_TRUE, oldvar), SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
       print_notif(&n_exp);
@@ -4086,14 +4282,12 @@ void objectModifyTest_31(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 4, 4,
-                SA_NTF_VALUE_LDAP_NAME, &oldvar),
+                SA_NTF_VALUE_LDAP_NAME, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 5, 4,
                 SA_NTF_VALUE_LDAP_NAME, &addvar),
@@ -4167,14 +4361,12 @@ void objectModifyTest_32(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 4, 4, SA_NTF_VALUE_BINARY,
-                &oldvar),
+                &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 5, 4, SA_NTF_VALUE_BINARY,
                 &addvar),
@@ -4208,7 +4400,9 @@ void objectModifyTest_33(void) {
 
   /* modify an object */
   SaStringT svar = STRINGVAR3;
+  SaStringT svarOld = STRINGVAR1;
   SaDoubleT dvar = DOUBLEVAR3;
+  SaDoubleT dvarOld = DOUBLEVAR1;
   snprintf(command, MAX_DATA,
     "immcfg -t 20 -a testStringCfg=%s -a testDoubleCfg=%lf %s",
     svar, dvar, DNTESTCFG);
@@ -4246,15 +4440,14 @@ void objectModifyTest_33(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
-    safassert(set_attr_change_str(&n_exp, 4, 4, svar), SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
+    safassert(set_attr_change_str(&n_exp, 4, 4, svar,
+        SA_TRUE, svarOld), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 5,
-             SA_NTF_VALUE_DOUBLE, &dvar),
+             SA_NTF_VALUE_DOUBLE, &dvar, SA_TRUE, &dvarOld),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -4285,6 +4478,7 @@ void objectModifyTest_34(void) {
 
   /* modify an object */
   SaTimeT tvar = TIMEVAR3;
+  SaTimeT tvarOld = TIMEVAR1;
   snprintf(command, MAX_DATA, "immcfg -t 20 -a testTimeCfg=%lld %s",
            (SaInt64T)tvar,  DNTESTCFG);
   assert(system(command) != -1);
@@ -4318,14 +4512,12 @@ void objectModifyTest_34(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
-             SA_NTF_VALUE_INT64, &tvar),
+             SA_NTF_VALUE_INT64, &tvar, SA_TRUE, &tvarOld),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -4397,24 +4589,22 @@ void objectModifyTest_35(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_str(&n_exp, 4, 4, saddvar),
         SA_AIS_OK);
-    safassert(set_attr_change_str(&n_exp, 5, 4, soldvar),
+    safassert(set_attr_change_str(&n_exp, 5, 4, soldvar, SA_TRUE, soldvar),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 6, 5,
              SA_NTF_VALUE_INT32, &iaddvar),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 7, 5,
-             SA_NTF_VALUE_INT32, &ioldvar1),
+             SA_NTF_VALUE_INT32, &ioldvar1, SA_TRUE, &ioldvar1),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 8, 5,
-             SA_NTF_VALUE_INT32, &ioldvar2),
+             SA_NTF_VALUE_INT32, &ioldvar2, SA_TRUE, &ioldvar2),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -4486,19 +4676,17 @@ void objectModifyTest_36(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
-    safassert(set_attr_change_str(&n_exp, 4, 4, soldvar),
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
+    safassert(set_attr_change_str(&n_exp, 4, 4, soldvar, SA_TRUE, soldvar),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 5,
-             SA_NTF_VALUE_INT32, &ivar1),
+             SA_NTF_VALUE_INT32, &ivar2, SA_TRUE, &idelvar),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 6, 5,
-             SA_NTF_VALUE_INT32, &ivar2),
+             SA_NTF_VALUE_INT32, &ivar1, SA_TRUE, &ivar1),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -4611,44 +4799,47 @@ void objectModifyTest_37(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
-             SA_NTF_VALUE_INT32, &i32var1),
+             SA_NTF_VALUE_INT32, &i32var1, SA_TRUE, &i32var1),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 4,
              SA_NTF_VALUE_INT32, &i32var11),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(
-            &n_exp, 6, 4, SA_NTF_VALUE_INT32, &i32var111),
+            &n_exp, 6, 4, SA_NTF_VALUE_INT32, &i32var111,
+            SA_TRUE, &i32var111),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(
             &n_exp, 7, 5, SA_NTF_VALUE_UINT32, &ui32var2),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(
-            &n_exp, 8, 5, SA_NTF_VALUE_UINT32, &ui32var22),
+            &n_exp, 8, 5, SA_NTF_VALUE_UINT32, &ui32var22,
+            SA_TRUE, &ui32var22),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(
-            &n_exp, 9, 5, SA_NTF_VALUE_UINT32, &ui32var222),
+            &n_exp, 9, 5, SA_NTF_VALUE_UINT32, &ui32var222,
+            SA_TRUE, &ui32var222),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 10, 6,
-             SA_NTF_VALUE_INT64, &i64var3),
+             SA_NTF_VALUE_INT64, &i64var3, SA_TRUE, &i64var3),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 11, 6,
-             SA_NTF_VALUE_INT64, &i64var33),
+             SA_NTF_VALUE_INT64, &i64var33, SA_TRUE, &i64var33),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(
             &n_exp, 12, 6, SA_NTF_VALUE_INT64, &i64var333),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(
-            &n_exp, 13, 7, SA_NTF_VALUE_UINT64, &ui64var4),
+            &n_exp, 13, 7, SA_NTF_VALUE_UINT64, &ui64var4,
+            SA_TRUE, &ui64var4),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(
-            &n_exp, 14, 7, SA_NTF_VALUE_UINT64, &ui64var44),
+            &n_exp, 14, 7, SA_NTF_VALUE_UINT64, &ui64var44,
+            SA_TRUE, &ui64var44),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(
             &n_exp, 15, 7, SA_NTF_VALUE_UINT64, &ui64var444),
@@ -4657,44 +4848,45 @@ void objectModifyTest_37(void) {
              SA_NTF_VALUE_FLOAT, &fvar5),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 17, 8,
-             SA_NTF_VALUE_FLOAT, &fvar55),
+             SA_NTF_VALUE_FLOAT, &fvar55, SA_TRUE, &fvar55),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 18, 8,
-             SA_NTF_VALUE_FLOAT, &fvar555),
+             SA_NTF_VALUE_FLOAT, &fvar555, SA_TRUE, &fvar555),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 19, 9,
              SA_NTF_VALUE_DOUBLE, &dvar66),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 20, 9,
-             SA_NTF_VALUE_DOUBLE, &dvar666),
+             SA_NTF_VALUE_DOUBLE, &dvar666, SA_TRUE, &dvar666),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 21, 10,
              SA_NTF_VALUE_INT64, &tvar77),
         SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 22, 10,
-             SA_NTF_VALUE_INT64, &tvar777),
+             SA_NTF_VALUE_INT64, &tvar777, SA_TRUE, &tvar777),
         SA_AIS_OK);
     safassert(set_attr_change_str(&n_exp, 23, 11, svar8),
         SA_AIS_OK);
-    safassert(set_attr_change_str(&n_exp, 24, 11, svar888),
+    safassert(set_attr_change_str(&n_exp, 24, 11, svar888,
+        SA_TRUE, svar888),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 25, 12,
                 SA_NTF_VALUE_LDAP_NAME, &nvar9),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 26, 12,
-                SA_NTF_VALUE_LDAP_NAME, &nvar99),
+                SA_NTF_VALUE_LDAP_NAME, &nvar99, SA_TRUE, &nvar99),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 27, 12,
-                SA_NTF_VALUE_LDAP_NAME, &nvar999),
+                SA_NTF_VALUE_LDAP_NAME, &nvar999, SA_TRUE, &nvar999),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 28, 13,
                 SA_NTF_VALUE_BINARY, &avar10),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 29, 13,
-                SA_NTF_VALUE_BINARY, &avar100),
+                SA_NTF_VALUE_BINARY, &avar100, SA_TRUE, &avar100),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 30, 13,
-                SA_NTF_VALUE_BINARY, &avar1000),
+                SA_NTF_VALUE_BINARY, &avar1000, SA_TRUE, &avar1000),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -4725,8 +4917,12 @@ void objectMultiCcbTest_38(void) {
   /* modify an object */
   SaUint32T var1 = 32000;
   SaInt32T var2 = -32000;
+  SaUint32T var1old = UINT32VAR2;
+  SaInt32T var2old = INT32VAR1;
   SaUint64T var3 = 64000;
   SaInt64T var4 = -64000;
+  SaUint64T var3old = UINT64VAR1;
+  SaInt64T var4old = INT64VAR1;
   SaImmHandleT omHandle = 0;
   SaImmAdminOwnerHandleT ownerHandle = 0;
   SaImmCcbHandleT immCcbHandle = 0;
@@ -4806,7 +5002,6 @@ void objectMultiCcbTest_38(void) {
       if (!rec_notif_data.populated)
         base::Sleep(base::kOneMillisecond);
     }
-
     NotifData n_exp;
     if (rec_notif_data.populated && noOfNotifs == 0) {
       safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED,
@@ -4829,24 +5024,24 @@ void objectMultiCcbTest_38(void) {
       safassert(
           set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"),
           SA_AIS_OK);
-      safassert(set_attr_change_str(&n_exp, 1, 1,
-                  "OsafNtfCmTestCFG"),
+      safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"),
           SA_AIS_OK);
       SaUint64T ccidVar = 3;
       safassert(set_attr_change_scalar(&n_exp, 2, 2,
                SA_NTF_VALUE_UINT64,
-               &ccidVar),
-          SA_AIS_OK);
-      SaUint32T ccbLast = 0;
+               &ccidVar), SA_AIS_OK);
+      SaUint32T ccbLast = 0;  // 0 when uncomment other cases
       safassert(set_attr_change_scalar(&n_exp, 3, 3,
                SA_NTF_VALUE_UINT32,
-               &ccbLast),
-          SA_AIS_OK);
+               &ccbLast), SA_AIS_OK);
+
       safassert(set_attr_change_scalar(
-              &n_exp, 4, 4, SA_NTF_VALUE_UINT32, &var1),
+              &n_exp, 4, 4, SA_NTF_VALUE_UINT32, &var1, SA_TRUE,
+              reinterpret_cast<void*>(&var1old)),
           SA_AIS_OK);
-      safassert(set_attr_change_scalar(
-              &n_exp, 5, 5, SA_NTF_VALUE_INT32, &var2),
+     safassert(set_attr_change_scalar(
+              &n_exp, 5, 5, SA_NTF_VALUE_INT32, &var2, SA_TRUE,
+              reinterpret_cast<void*>(&var2old)),
           SA_AIS_OK);
     } else if (rec_notif_data.populated && noOfNotifs == 1) {
       safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED,
@@ -4869,24 +5064,25 @@ void objectMultiCcbTest_38(void) {
       safassert(
           set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"),
           SA_AIS_OK);
-      safassert(set_attr_change_str(&n_exp, 1, 1,
-                  "OsafNtfCmTestCFG"),
+      safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"),
           SA_AIS_OK);
       SaUint64T ccidVar = 3;
       safassert(set_attr_change_scalar(&n_exp, 2, 2,
                SA_NTF_VALUE_UINT64,
-               &ccidVar),
-          SA_AIS_OK);
+               &ccidVar), SA_AIS_OK);
       SaUint32T ccbLast = 1;
       safassert(set_attr_change_scalar(&n_exp, 3, 3,
                SA_NTF_VALUE_UINT32,
-               &ccbLast),
+               &ccbLast), SA_AIS_OK);
+      safassert(set_attr_change_scalar(
+              &n_exp, 4, 4, SA_NTF_VALUE_UINT64, &var3,
+              SA_TRUE,
+              reinterpret_cast<void*>(&var3old)),
           SA_AIS_OK);
       safassert(set_attr_change_scalar(
-              &n_exp, 4, 4, SA_NTF_VALUE_UINT64, &var3),
-          SA_AIS_OK);
-      safassert(set_attr_change_scalar(
-              &n_exp, 5, 5, SA_NTF_VALUE_INT64, &var4),
+              &n_exp, 5, 5, SA_NTF_VALUE_INT64, &var4,
+              SA_TRUE,
+              reinterpret_cast<void*>(&var4old)),
           SA_AIS_OK);
     } else {
       error = SA_AIS_ERR_FAILED_OPERATION;
@@ -4920,6 +5116,7 @@ void objectMultiCcbTest_39(void) {
   /* modify an object */
   SaUint32T var1 = 32323;
   SaUint32T oldvar1 = 32000;
+  SaInt32T oldivar1 = -32000;
   SaInt32T var2 = -32323;
   SaUint64T var3 = 64000;
   SaInt64T var4 = -64000;
@@ -5057,25 +5254,22 @@ void objectMultiCcbTest_39(void) {
       safassert(
           set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"),
           SA_AIS_OK);
-      safassert(set_attr_change_str(&n_exp, 1, 1,
-                  "OsafNtfCmTestCFG"),
+      safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"),
           SA_AIS_OK);
       SaUint64T ccidVar = 3;
       safassert(set_attr_change_scalar(&n_exp, 2, 2,
                SA_NTF_VALUE_UINT64,
-               &ccidVar),
-          SA_AIS_OK);
+               &ccidVar), SA_AIS_OK);
       SaUint32T ccbLast = 0;
       safassert(set_attr_change_scalar(&n_exp, 3, 3,
                SA_NTF_VALUE_UINT32,
-               &ccbLast),
-          SA_AIS_OK);
+               &ccbLast), SA_AIS_OK);
       safassert(set_attr_change_scalar(
               &n_exp, 4, 4, SA_NTF_VALUE_UINT32, &var1),
           SA_AIS_OK);
       safassert(set_attr_change_scalar(&n_exp, 5, 4,
                SA_NTF_VALUE_UINT32,
-               &oldvar1),
+               &oldvar1, SA_TRUE, &oldvar1),
           SA_AIS_OK);
     } else if (rec_notif_data.populated && noOfNotifs == 1) {
       safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED,
@@ -5096,21 +5290,18 @@ void objectMultiCcbTest_39(void) {
       safassert(
           set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"),
           SA_AIS_OK);
-      safassert(set_attr_change_str(&n_exp, 1, 1,
-                  "OsafNtfCmTestCFG"),
+      safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"),
           SA_AIS_OK);
       SaUint64T ccidVar = 3;
       safassert(set_attr_change_scalar(&n_exp, 2, 2,
                SA_NTF_VALUE_UINT64,
-               &ccidVar),
-          SA_AIS_OK);
+               &ccidVar), SA_AIS_OK);
       SaUint32T ccbLast = 0;
       safassert(set_attr_change_scalar(&n_exp, 3, 3,
                SA_NTF_VALUE_UINT32,
-               &ccbLast),
-          SA_AIS_OK);
+               &ccbLast), SA_AIS_OK);
       safassert(set_attr_change_scalar(
-              &n_exp, 4, 4, SA_NTF_VALUE_INT32, &var2),
+              &n_exp, 4, 4, SA_NTF_VALUE_INT32, &var2, SA_TRUE, &oldivar1),
           SA_AIS_OK);
     } else if (rec_notif_data.populated && noOfNotifs == 2) {
       /*
@@ -5142,31 +5333,28 @@ void objectMultiCcbTest_39(void) {
       safassert(
           set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"),
           SA_AIS_OK);
-      safassert(set_attr_change_str(&n_exp, 1, 1,
-                  "OsafNtfCmTestCFG"),
+      safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"),
           SA_AIS_OK);
       SaUint64T ccidVar = 3;
       safassert(set_attr_change_scalar(&n_exp, 2, 2,
                SA_NTF_VALUE_UINT64,
-               &ccidVar),
-          SA_AIS_OK);
+               &ccidVar), SA_AIS_OK);
       SaUint32T ccbLast =
           1; /* Last notification of the CCB */
       safassert(set_attr_change_scalar(&n_exp, 3, 3,
                SA_NTF_VALUE_UINT32,
-               &ccbLast),
-          SA_AIS_OK);
+               &ccbLast), SA_AIS_OK);
       safassert(set_attr_change_scalar(&n_exp, 4, 6,
                SA_NTF_VALUE_FLOAT,
-               &oldvar6),
+               &oldvar6, SA_TRUE, &var6),
           SA_AIS_OK);
       safassert(set_attr_change_scalar(&n_exp, 5, 6,
                SA_NTF_VALUE_FLOAT,
-               &oldvar66),
+               &oldvar66, SA_TRUE, &oldvar66),
           SA_AIS_OK);
       safassert(set_attr_change_scalar(&n_exp, 6, 7,
                SA_NTF_VALUE_DOUBLE,
-               &oldvar5),
+               &oldvar5, SA_TRUE, &oldvar5),
           SA_AIS_OK);
 
     } else {
@@ -5966,6 +6154,11 @@ void objectModifyTest_3506(void) {
 
   SaAnyT var2 = {.bufferSize = sizeof(BUF2),
            .bufferAddr = const_cast<SaUint8T *>(BUF2)};
+  SaNameT var1old;
+  saAisNameLend((SaConstStringT)&extended_name_string_01,
+          &var1old);
+  SaAnyT var2old = {.bufferSize = sizeof(BUF1),
+           .bufferAddr = const_cast<SaUint8T *>(BUF1)};
 
   /* modify an object */
   snprintf(command, MAX_DATA, "immcfg -t 20 -a testNameCfg=%s"
@@ -6002,17 +6195,17 @@ void objectModifyTest_3506(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_extended_name(
-            &n_exp, 4, 4, SA_NTF_VALUE_LDAP_NAME, &var1),
+            &n_exp, 4, 4, SA_NTF_VALUE_LDAP_NAME, &var1,
+            SA_TRUE,
+            reinterpret_cast<void*>(&var1old)),
         SA_AIS_OK);
     safassert(set_attr_change_buf(&n_exp, 5, 5, SA_NTF_VALUE_BINARY,
-                &var2),
+                &var2, SA_TRUE, &var2old),
         SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
@@ -6080,14 +6273,12 @@ void objectModifyTest_3507(void) {
         SA_AIS_OK);
     SaUint64T ccidVar = 3;
     safassert(set_attr_change_scalar(&n_exp, 2, 2,
-             SA_NTF_VALUE_UINT64, &ccidVar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
-             SA_NTF_VALUE_UINT32, &ccbLast),
-        SA_AIS_OK);
+             SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_extended_name(
-            &n_exp, 4, 4, SA_NTF_VALUE_LDAP_NAME, &oldvar),
+            &n_exp, 4, 4, SA_NTF_VALUE_LDAP_NAME, &oldvar, SA_TRUE, &oldvar),
         SA_AIS_OK);
     safassert(set_attr_change_extended_name(
             &n_exp, 5, 4, SA_NTF_VALUE_LDAP_NAME, &addvar),
@@ -6181,6 +6372,7 @@ void objectModifyTest_empty_sanamet(void) {
   test_validate(error, SA_AIS_OK);
 }
 
+// cppcheck-suppress unusedFunction
 __attribute__((constructor)) static void ntf_imcn_constructor(void) {
   struct stat buf;
   int rc = 0;
@@ -6190,25 +6382,19 @@ __attribute__((constructor)) static void ntf_imcn_constructor(void) {
    */
   if (stat("//tmp//ntfsv_test_classes.xml", &buf) != 0) {
     rc = system(
-        "find / -name ntfsv_test_classes.xml > /tmp/ntftemp.txt");
+        "find /srv -name ntfsv_test_classes.xml > /tmp/ntftemp.txt");
     if (rc == 0) {
       FILE *f = fopen("/tmp/ntftemp.txt", "r");
       if (f != NULL) {
         char line[80];
         if (fgets(line, 80, f) != NULL) {
           if (strstr(line, ".xml") != NULL) {
-            char cp_cmd[80];
-            snprintf(cp_cmd, sizeof(cp_cmd), "cp ");
-            if ((strlen(line) - 1) > (sizeof(cp_cmd) - sizeof("cp "))) {
-              printf("line: %s too long", line);
-              if (fclose(f) != 0)
-                printf("fclose failed: %i", errno);
-              return;
-            }
-            line[strlen(line)] = '\0';
-            strcat(cp_cmd, line);  // don't add newline
-            strncat(cp_cmd, " /tmp/.", 80 - strlen(cp_cmd));
-            rc = system(cp_cmd);
+            // For gcc 8 warning message
+            std::string cp_cmd = "cp ";
+            line[strlen(line) -1] = '\0';  // Don't add new line
+            cp_cmd += line;
+            cp_cmd += " /tmp/.";
+            rc = system(cp_cmd.c_str());
           } else {
             rc = -1;
           }

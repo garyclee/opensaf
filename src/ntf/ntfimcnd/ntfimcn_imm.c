@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2013 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -289,6 +290,13 @@ static void free_ccb_data(CcbUtilCcbData_t *ccb_data) {
 			osaf_extended_name_free(ccb_data->userData);
 			free(ccb_data->userData);
 		}
+		// Free userData in CcbUtilOperationData
+		struct CcbUtilOperationData* oper_data =
+				ccb_data->operationListHead;
+		for (; oper_data!= NULL; oper_data = oper_data->next) {
+			free_imm_attrs((SaImmAttrValuesT_2**)
+			   oper_data->userData);
+		}
 		ccbutil_deleteCcbData(ccb_data);
 	}
 }
@@ -565,6 +573,20 @@ saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
 	SaNameT *invoker_name_ptr;
 	invoker_name_ptr = ccbUtilCcbData->userData;
 
+	/* Memorize the current attribute values with the modification */
+	if (ccbId > 0) {
+		struct CcbUtilOperationData *ccbOperData;
+		ccbOperData = ccbUtilCcbData->operationListTail;
+		SaImmAttrValuesT_2 **curAttr;
+		rc = get_current_attrs(objectName, attrMods, &curAttr);
+		if (SA_AIS_OK == rc) {
+			ccbOperData->userData = curAttr;
+		} else {
+			ccbOperData->userData = NULL;
+			LOG_ER("Failed to get current attributes rc = %u", rc);
+		}
+	}
+
 	if (ccbId == 0) {
 		/* Attribute change object create */
 		ccbUtilOperationData = ccbUtilCcbData->operationListHead;
@@ -718,7 +740,6 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 
 		case CCBUTIL_MODIFY:
 			invoke_name_ptr = ccbUtilCcbData->userData;
-
 			/* send_object_modify_notification */
 			internal_rc = ntfimcn_send_object_modify_notification(
 			    ccbUtilOperationData, invoke_name_ptr, ccbLast);
@@ -732,7 +753,6 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 			}
 			break;
 		}
-
 		ccbUtilOperationData = ccbUtilOperationData->next;
 	}
 
@@ -912,6 +932,11 @@ int ntfimcn_imm_init(ntfimcn_cb_t *cb)
 	if (initializeImmOmHandle(&cb->immOmHandle) == false) {
 		internal_rc = NTFIMCN_INTERNAL_ERROR;
 	}
+	cb->immAccessorHandle = 0;
+	if (immutil_saImmOmAccessorInitialize(cb->immOmHandle,
+		&cb->immAccessorHandle) == false) {
+		internal_rc = NTFIMCN_INTERNAL_ERROR;
+	}
 
 done:
 	TRACE_LEAVE();
@@ -974,3 +999,218 @@ static void finalizeImmOmHandle(SaImmHandleT immOmHandle) {
 		       saf_error(ais_rc));
 	}
 }
+
+SaAisErrorT get_current_attrs(const SaNameT *objectName,
+    const SaImmAttrModificationT_2 **attrMods,
+    SaImmAttrValuesT_2 ***curAttr) {
+	TRACE_ENTER();
+	SaAisErrorT rc = SA_AIS_OK;
+	// There is no new attribute modifications
+	if (attrMods == NULL) {
+		*curAttr = NULL;
+		return SA_AIS_ERR_INVALID_PARAM;
+	}
+	int len;
+	for (len = 0; attrMods[len] != NULL; ++len) ;
+	SaImmAttrNameT *attrNames = calloc((len + 1), sizeof(SaImmAttrNameT));
+	if (attrNames == NULL) {
+		*curAttr = NULL;
+		return SA_AIS_ERR_NO_MEMORY;
+	}
+	for (int i = 0; i < len; ++i) {
+		attrNames[i] = attrMods[i]->modAttr.attrName;
+	}
+	attrNames[len] = NULL;
+	// Get current attributes for the given attribute names
+	SaImmAttrValuesT_2 **resAttr;
+	rc = immutil_saImmOmAccessorGet_2(ntfimcn_cb.immAccessorHandle,
+	   objectName, attrNames, &resAttr);
+	if (SA_AIS_OK == rc) {
+		*curAttr =
+		  dupSaImmAttrValuesT_array(
+		      (const SaImmAttrValuesT_2**) resAttr);
+	}
+	else {
+		TRACE("immutil_saImmOmAccessorGet_2 failed rc = %u", rc);
+		*curAttr = NULL;
+	}
+	free(attrNames);
+	TRACE_LEAVE2("rc = %u", rc);
+	return rc;
+}
+
+static size_t value_size(SaImmValueTypeT type) {
+	size_t valueSize = 0;
+
+	switch (type)
+		{
+	case SA_IMM_ATTR_SAINT32T:
+		valueSize = sizeof(SaInt32T);
+		break;
+	case SA_IMM_ATTR_SAUINT32T:
+		valueSize = sizeof(SaUint32T);
+		break;
+	case SA_IMM_ATTR_SAINT64T:
+		valueSize = sizeof(SaInt64T);
+		break;
+	case SA_IMM_ATTR_SAUINT64T:
+		valueSize = sizeof(SaUint64T);
+		break;
+	case SA_IMM_ATTR_SATIMET:
+		valueSize = sizeof(SaTimeT);
+		break;
+	case SA_IMM_ATTR_SANAMET:
+		valueSize = sizeof(SaNameT);
+		break;
+	case SA_IMM_ATTR_SAFLOATT:
+		valueSize = sizeof(SaFloatT);
+		break;
+	case SA_IMM_ATTR_SADOUBLET:
+		valueSize = sizeof(SaDoubleT);
+		break;
+	case SA_IMM_ATTR_SASTRINGT:
+		valueSize = sizeof(SaStringT);
+		break;
+	case SA_IMM_ATTR_SAANYT:
+		valueSize = sizeof(SaAnyT);
+		break;
+	}
+	return valueSize;
+}
+
+static void copySaImmAttrValuesT(SaImmAttrValuesT_2 **dest,
+    const SaImmAttrValuesT_2 *src) {
+	SaImmAttrValuesT_2 *tdest = (SaImmAttrValuesT_2*) calloc(1,
+	    sizeof(SaImmAttrValuesT_2));
+	tdest->attrName = strdup(src->attrName);
+
+	tdest->attrValueType = src->attrValueType;
+	tdest->attrValuesNumber = src->attrValuesNumber;
+	SaUint32T count = src->attrValuesNumber;
+	size_t valSize = value_size(src->attrValueType);
+	if (src->attrValues == NULL){
+		*dest = tdest;
+		return;
+	}
+	tdest->attrValues = (SaImmAttrValueT*) malloc(
+	    sizeof(SaImmAttrValueT) * count);
+
+	for (unsigned int i = 0; i < count; ++i){
+		if (src->attrValues[i] == NULL) {
+			tdest->attrValues[i] = NULL;
+			continue;
+		}
+		tdest->attrValues[i] = malloc(valSize);
+		switch (src->attrValueType) {
+		case SA_IMM_ATTR_SASTRINGT: {
+			*((SaStringT*) tdest->attrValues[i]) = strdup(
+			    *((SaStringT*) src->attrValues[i]));
+			break;
+		}
+		case SA_IMM_ATTR_SANAMET: {
+			SaNameT *nameSrc = (SaNameT*) src->attrValues[i];
+			SaNameT *nameDest = (SaNameT*) tdest->attrValues[i];
+			osaf_extended_name_alloc(
+			    osaf_extended_name_borrow(nameSrc), nameDest);
+			break;
+		}
+		case SA_IMM_ATTR_SAANYT: {
+			SaAnyT *anySrc = (SaAnyT*) src->attrValues[i];
+			SaAnyT *anyDest = (SaAnyT*) tdest->attrValues[i];
+			anyDest->bufferSize = anySrc->bufferSize;
+			if (anyDest->bufferSize) {
+				anyDest->bufferAddr =
+				    (SaUint8T*) malloc(anyDest->bufferSize);
+				memcpy(anyDest->bufferAddr,
+				    anySrc->bufferAddr, anyDest->bufferSize);
+			} else {
+				anyDest->bufferAddr = NULL;
+			}
+			break;
+		}
+		default:
+			memcpy(tdest->attrValues[i],
+			    src->attrValues[i], valSize);
+			break;
+		}
+		}
+	*dest = tdest;
+	}
+
+SaImmAttrValuesT_2** dupSaImmAttrValuesT_array(const SaImmAttrValuesT_2 **src) {
+	// Return if there is no source
+	if (src == NULL) {
+		TRACE("src is null");
+		return NULL;
+	}
+	// Return if the source is just an array of NULL
+	int len = 0;
+	while (src[len] != NULL)
+		++len;
+	if (!len) {
+		TRACE("src length is null");
+		return NULL;
+	}
+	SaImmAttrValuesT_2 **attr = (SaImmAttrValuesT_2**) malloc(
+	    (len + 1) * sizeof(SaImmAttrValuesT_2*));
+	if (attr == NULL) {
+		TRACE("Failed to allocate memory");
+		return NULL;
+		}
+	// Deep clone the source to destination
+	for (int i = 0; i < len; ++i) {
+		copySaImmAttrValuesT(&attr[i], src[i]);
+	}
+	attr[len] = NULL;
+	return attr;
+}
+
+void free_imm_attrs(SaImmAttrValuesT_2 **attrs) {
+	if (attrs == NULL)
+		return;
+	SaImmAttrValuesT_2 *attr;
+	SaImmAttrValueT value;
+	for (int i = 0; (attr = attrs[i]) != NULL; ++i) {
+		free(attr->attrName);
+		if (attr->attrValues == NULL) {
+			continue;
+		}
+		for (unsigned int j = 0; j < attr->attrValuesNumber; ++j) {
+			value = attr->attrValues[j];
+			if (value == NULL) {
+				continue;
+			}
+			if (attr->attrValueType == SA_IMM_ATTR_SASTRINGT) {
+				free(*((SaStringT*) value));
+			}
+			else if (attr->attrValueType == SA_IMM_ATTR_SANAMET) {
+				osaf_extended_name_free((SaNameT*) value);
+			}
+			else if (attr->attrValueType == SA_IMM_ATTR_SAANYT) {
+				free(((SaAnyT*) value)->bufferAddr);
+			}
+			free(value);
+		}
+		free(attr->attrValues);
+		free(attr);
+	}
+	free(attrs);
+}
+
+const SaImmAttrValuesT_2* find_attr_from_name(
+   const SaImmAttrValuesT_2** attrs, SaImmAttrNameT name)
+{
+	const SaImmAttrValuesT_2* result = NULL;
+	if (!attrs)
+		return result;
+
+	const SaImmAttrValuesT_2* attr = NULL;
+	for (int i = 0; (attr = attrs[i]) != NULL; ++i) {
+		if (strcmp(attr->attrName, name) == 0) {
+			result = attr;
+			break;
+		}
+	}
+	return result;
+}
+
