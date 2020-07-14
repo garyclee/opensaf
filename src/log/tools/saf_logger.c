@@ -148,6 +148,7 @@ static SaAisErrorT write_log_record(SaLogHandleT logHandle,
 	int i = 0;
 	struct pollfd fds[1];
 	int ret;
+	int64_t start_time_us = get_current_SaTime() / 1000;
 	unsigned int wait_time = 0;
 
 	i++;
@@ -206,6 +207,7 @@ poll_retry:
 		return SA_AIS_ERR_BAD_OPERATION;
 	}
 
+	wait_time = (get_current_SaTime() / 1000) - start_time_us;
 	if (cb_error == SA_AIS_ERR_TRY_AGAIN &&
 	    wait_time < g_timeout*ONE_SECOND_TO_NS) {
 		usleep(HUNDRED_MS);
