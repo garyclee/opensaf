@@ -61,6 +61,19 @@ static char BUF3_STR[sizeof(BUF3) + 1] = { '\0' };
 
 #define OLD_ATTR_PRESENT_DEFAULT SA_FALSE
 
+/*
+ *  Ticket-3200
+ *  For IMM attributes with multiple values, if the number old attribute
+ *  values is greater than the number of new attribute values the old values
+ *  are not included in the notification data
+ *  The following test cases are changed, not to expect old attribute values
+ *  objectModifyTest_33
+ *  objectModifyTest_34
+ *  objectModifyTest_36
+ *  objectMultiCcbTest_38
+ *  objectMultiCcbTest_39
+ *
+ */
 /**
  * Callback routine, called when subscribed notification arrives.
  */
@@ -4400,9 +4413,7 @@ void objectModifyTest_33(void) {
 
   /* modify an object */
   SaStringT svar = STRINGVAR3;
-  SaStringT svarOld = STRINGVAR1;
   SaDoubleT dvar = DOUBLEVAR3;
-  SaDoubleT dvarOld = DOUBLEVAR1;
   snprintf(command, MAX_DATA,
     "immcfg -t 20 -a testStringCfg=%s -a testDoubleCfg=%lf %s",
     svar, dvar, DNTESTCFG);
@@ -4444,12 +4455,9 @@ void objectModifyTest_33(void) {
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
              SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
-    safassert(set_attr_change_str(&n_exp, 4, 4, svar,
-        SA_TRUE, svarOld), SA_AIS_OK);
+    safassert(set_attr_change_str(&n_exp, 4, 4, svar), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 5,
-             SA_NTF_VALUE_DOUBLE, &dvar, SA_TRUE, &dvarOld),
-        SA_AIS_OK);
-
+             SA_NTF_VALUE_DOUBLE, &dvar), SA_AIS_OK);
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
       print_notif(&n_exp);
       print_notif(&rec_notif_data);
@@ -4478,7 +4486,6 @@ void objectModifyTest_34(void) {
 
   /* modify an object */
   SaTimeT tvar = TIMEVAR3;
-  SaTimeT tvarOld = TIMEVAR1;
   snprintf(command, MAX_DATA, "immcfg -t 20 -a testTimeCfg=%lld %s",
            (SaInt64T)tvar,  DNTESTCFG);
   assert(system(command) != -1);
@@ -4517,8 +4524,7 @@ void objectModifyTest_34(void) {
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
              SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 4, 4,
-             SA_NTF_VALUE_INT64, &tvar, SA_TRUE, &tvarOld),
-        SA_AIS_OK);
+             SA_NTF_VALUE_INT64, &tvar), SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
       print_notif(&n_exp);
@@ -4680,14 +4686,11 @@ void objectModifyTest_36(void) {
     SaUint32T ccbLast = 1;
     safassert(set_attr_change_scalar(&n_exp, 3, 3,
              SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
-    safassert(set_attr_change_str(&n_exp, 4, 4, soldvar, SA_TRUE, soldvar),
-        SA_AIS_OK);
+    safassert(set_attr_change_str(&n_exp, 4, 4, soldvar), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 5, 5,
-             SA_NTF_VALUE_INT32, &ivar2, SA_TRUE, &idelvar),
-        SA_AIS_OK);
+             SA_NTF_VALUE_INT32, &ivar2), SA_AIS_OK);
     safassert(set_attr_change_scalar(&n_exp, 6, 5,
-             SA_NTF_VALUE_INT32, &ivar1, SA_TRUE, &ivar1),
-        SA_AIS_OK);
+             SA_NTF_VALUE_INT32, &ivar1), SA_AIS_OK);
 
     if (!compare_notifs(&n_exp, &rec_notif_data)) {
       print_notif(&n_exp);
@@ -4917,12 +4920,8 @@ void objectMultiCcbTest_38(void) {
   /* modify an object */
   SaUint32T var1 = 32000;
   SaInt32T var2 = -32000;
-  SaUint32T var1old = UINT32VAR2;
-  SaInt32T var2old = INT32VAR1;
   SaUint64T var3 = 64000;
   SaInt64T var4 = -64000;
-  SaUint64T var3old = UINT64VAR1;
-  SaInt64T var4old = INT64VAR1;
   SaImmHandleT omHandle = 0;
   SaImmAdminOwnerHandleT ownerHandle = 0;
   SaImmCcbHandleT immCcbHandle = 0;
@@ -5034,15 +5033,10 @@ void objectMultiCcbTest_38(void) {
       safassert(set_attr_change_scalar(&n_exp, 3, 3,
                SA_NTF_VALUE_UINT32,
                &ccbLast), SA_AIS_OK);
-
       safassert(set_attr_change_scalar(
-              &n_exp, 4, 4, SA_NTF_VALUE_UINT32, &var1, SA_TRUE,
-              reinterpret_cast<void*>(&var1old)),
-          SA_AIS_OK);
-     safassert(set_attr_change_scalar(
-              &n_exp, 5, 5, SA_NTF_VALUE_INT32, &var2, SA_TRUE,
-              reinterpret_cast<void*>(&var2old)),
-          SA_AIS_OK);
+              &n_exp, 4, 4, SA_NTF_VALUE_UINT32, &var1), SA_AIS_OK);
+      safassert(set_attr_change_scalar(
+              &n_exp, 5, 5, SA_NTF_VALUE_INT32, &var2), SA_AIS_OK);
     } else if (rec_notif_data.populated && noOfNotifs == 1) {
       safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED,
             DNTESTCFG, 6, 6),
@@ -5075,15 +5069,9 @@ void objectMultiCcbTest_38(void) {
                SA_NTF_VALUE_UINT32,
                &ccbLast), SA_AIS_OK);
       safassert(set_attr_change_scalar(
-              &n_exp, 4, 4, SA_NTF_VALUE_UINT64, &var3,
-              SA_TRUE,
-              reinterpret_cast<void*>(&var3old)),
-          SA_AIS_OK);
+              &n_exp, 4, 4, SA_NTF_VALUE_UINT64, &var3), SA_AIS_OK);
       safassert(set_attr_change_scalar(
-              &n_exp, 5, 5, SA_NTF_VALUE_INT64, &var4,
-              SA_TRUE,
-              reinterpret_cast<void*>(&var4old)),
-          SA_AIS_OK);
+              &n_exp, 5, 5, SA_NTF_VALUE_INT64, &var4), SA_AIS_OK);
     } else {
       error = SA_AIS_ERR_FAILED_OPERATION;
       break;
@@ -5345,17 +5333,11 @@ void objectMultiCcbTest_39(void) {
                SA_NTF_VALUE_UINT32,
                &ccbLast), SA_AIS_OK);
       safassert(set_attr_change_scalar(&n_exp, 4, 6,
-               SA_NTF_VALUE_FLOAT,
-               &oldvar6, SA_TRUE, &var6),
-          SA_AIS_OK);
+               SA_NTF_VALUE_FLOAT, &oldvar6), SA_AIS_OK);
       safassert(set_attr_change_scalar(&n_exp, 5, 6,
-               SA_NTF_VALUE_FLOAT,
-               &oldvar66, SA_TRUE, &oldvar66),
-          SA_AIS_OK);
+               SA_NTF_VALUE_FLOAT, &oldvar66), SA_AIS_OK);
       safassert(set_attr_change_scalar(&n_exp, 6, 7,
-               SA_NTF_VALUE_DOUBLE,
-               &oldvar5, SA_TRUE, &oldvar5),
-          SA_AIS_OK);
+               SA_NTF_VALUE_DOUBLE, &oldvar5), SA_AIS_OK);
 
     } else {
       error = SA_AIS_ERR_FAILED_OPERATION;

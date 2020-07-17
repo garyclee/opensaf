@@ -876,8 +876,16 @@ static int fill_attribute_info_modify(
 					    __FUNCTION__);
 					goto done;
 				}
-				// There can be more new attribute values than
-				// old attribute values
+				// No need to populate notification data when
+				// the number of old attribute values is
+				// greater than the number of new attribute
+				// values
+				if (old_imm_attr_value &&
+				    (old_imm_attr_value ->attrValuesNumber >
+				    imm_attr_mods->modAttr.attrValuesNumber))
+					continue;
+				// The number of old attributes is less than or
+				// equal to the number of new attribute values
 				if (old_imm_attr_value &&
 				   (vindex < old_imm_attr_value
 				    ->attrValuesNumber)) {
