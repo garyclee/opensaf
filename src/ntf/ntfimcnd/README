@@ -32,11 +32,11 @@ If Runtime data the notification(s) are sent when the first callback is
 invoked. No more callbacks will be invoked.
 If Config data the CCB data is saved and notification(s) are sent when the
 Apply callback is invoked.
-The old attribute values are fetched from IMM, if exists, are included in
-notifications. For multiple value attributes, if the number of old attributes
+The old attribute values are fetched from IMM, if exist, are included in
+notifications. For multiple value attributes, if the number of old attribute
 values is greater than the number of new attribute values, the old attribute
 values will not be included in notification.
-This has the advantage of avoiding the ambiguity that otherwise would publish
+This has the advantage of avoiding the ambiguity that would otherwise publish
 some old attribute values but not all.
 For more information about the special applier see README files in immsv.
 
