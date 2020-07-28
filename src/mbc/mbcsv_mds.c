@@ -391,6 +391,8 @@ uint32_t mbcsv_mds_rcv(NCSMDS_CALLBACK_INFO *cbinfo)
 			TRACE_LEAVE2("ipc send failed");
 			return NCSCC_RC_FAILURE;
 		}
+	} else {
+		m_MMGR_FREE_MBCSV_EVT(msg);
 	}
 
 	return NCSCC_RC_SUCCESS;

@@ -2085,6 +2085,7 @@ static uint32_t ckpt_decode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg) {
  *                     a) decode header.
  *                     b) decode individual records for
  *                        header->num_records times,
+ *                 4. async update counter
  *****************************************************************************/
 
 static uint32_t ckpt_decode_cold_sync(CLMS_CB *cb, NCS_MBCSV_CB_ARG *cbk_arg) {
@@ -2092,6 +2093,7 @@ static uint32_t ckpt_decode_cold_sync(CLMS_CB *cb, NCS_MBCSV_CB_ARG *cbk_arg) {
   CLMS_CKPT_REC msg;
   CLMS_CKPT_REC *data = nullptr;
   uint32_t num_rec = 0;
+  uint8_t *ptr;
   TRACE_ENTER();
 
   /*
@@ -2187,6 +2189,12 @@ static uint32_t ckpt_decode_cold_sync(CLMS_CB *cb, NCS_MBCSV_CB_ARG *cbk_arg) {
     memset(&data->param, 0, sizeof(data->param));
     --num_rec;
   }
+
+  /* Get the async update count */
+  ptr = ncs_dec_flatten_space(&cbk_arg->info.decode.i_uba,
+                              (uint8_t *)&cb->async_upd_cnt, sizeof(uint32_t));
+  cb->async_upd_cnt = ncs_decode_32bit(&ptr);
+  ncs_dec_skip_space(&cbk_arg->info.decode.i_uba, sizeof(uint32_t));
 
 done:
   if (rc != NCSCC_RC_SUCCESS) {

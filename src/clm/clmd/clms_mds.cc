@@ -1247,6 +1247,8 @@ static uint32_t clms_mds_svc_event(struct ncsmds_callback_info *info) {
         rc = NCSCC_RC_FAILURE;
         goto done;
       }
+    } else {
+      free(evt);
     }
   }
 done:
