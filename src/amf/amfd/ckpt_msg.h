@@ -115,6 +115,7 @@ typedef enum avsv_ckpt_msg_reo_type {
   AVSV_CKPT_AVD_IMM_JOB_QUEUE_STATUS,
   AVSV_CKPT_NODE_FAILOVER_STATE,
   AVSV_CKPT_SU_INST_PROCESSED,
+  AVSV_CKPT_RECVR_NODE_FOVER_SWOVER, // Checkpoint Node failover/switchover recovery
   AVSV_CKPT_MSG_MAX
 } AVSV_CKPT_MSG_REO_TYPE;
 

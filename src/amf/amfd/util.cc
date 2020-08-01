@@ -1397,6 +1397,7 @@ int amfd_file_dump(const char *filename) {
     fprintf(f, "    saAmfNodeOperState: %s\n",
             avd_oper_state_name[node->saAmfNodeOperState]);
     fprintf(f, "    node_state: %u\n", node->node_state);
+    fprintf(f, "    recvr_fail_sw: %u\n", node->recvr_fail_sw);
     fprintf(f, "    adest:%" PRIx64 "\n", node->adest);
     fprintf(f, "    rcv_msg_id: %u\n", node->rcv_msg_id);
     fprintf(f, "    snd_msg_id: %u\n", node->snd_msg_id);

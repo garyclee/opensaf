@@ -108,6 +108,7 @@ void AVD_AVND::initialize() {
   saAmfNodeOperState = SA_AMF_OPERATIONAL_DISABLED;
   admin_node_pend_cbk = {};
   su_cnt_admin_oper = {};
+  su_cnt_admin_repair = {};
   node_state = AVD_AVND_STATE_ABSENT;
   list_of_ncs_su = {};
   list_of_su = {};
@@ -1247,6 +1248,23 @@ void AVD_AVND::node_sus_termstate_set(bool term_state) const {
 }
 
 /**
+ * Update count of application SUs of the given node.
+ *
+ * @param node pointer
+ * @return None
+ */
+static uint32_t application_sus_count(AVD_AVND *node) {
+  uint32_t count = 0;
+  /* Count the applications SUs hosted on this node. */
+  for (const auto &su : node->list_of_su) {
+    if (su->su_is_external == false)
+      count++;
+  }
+  TRACE("count '%u'", count);
+  return count;
+}
+
+/**
  * Handle admin operations on SaAmfNode objects.
  *
  * @param immOiHandle
@@ -1532,9 +1550,44 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle,
       }
       break;
 
+    case SA_AMF_ADMIN_REPAIRED:
+      if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) {
+        report_admin_op_error(
+            immOiHandle, invocation, SA_AIS_ERR_NO_OP, nullptr,
+            "Admin repair request for '%s', op state already enabled",
+            node->name.c_str());
+        goto done;
+      }
+
+      if (node->node_info.member == false) {
+        LOG_NO("'%s' ADMIN_REPAIRED: CLM node is not member",
+            node->name.c_str());
+        avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN);
+        goto done;
+      }
+
+      if (0 == application_sus_count(node)) {
+        // Node is configured without appl su, return from here.
+        avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_ENABLED);
+        avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+        goto done;
+      }
+
+      /* forward the admin op req to the node director */
+      if (avd_admin_op_msg_snd(node->name, AVSV_SA_AMF_NODE, SA_AMF_ADMIN_REPAIRED,
+            node) == NCSCC_RC_SUCCESS) {
+        node->admin_node_pend_cbk.admin_oper = SA_AMF_ADMIN_REPAIRED;
+        node->admin_node_pend_cbk.invocation = invocation;
+        node->su_cnt_admin_repair = application_sus_count(node);
+      } else {
+        report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_TIMEOUT, nullptr,
+            "Admin op request send failed '%s'", node->name.c_str());
+      }
+      break;
+
     default:
       report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_NOT_SUPPORTED,
-                            nullptr, "UNSUPPORTED ADMIN OPERATION (%llu)",
+          nullptr, "UNSUPPORTED ADMIN OPERATION (%llu)",
                             operationId);
       break;
   }
@@ -1591,6 +1644,7 @@ void node_reset_su_try_inst_counter(const AVD_AVND *node) {
     su->sg_of_su->try_inst_counter = 0;
   }
 }
+
 /**
  * @brief  Checks all  nodegroup of nodes are in UNLOCKED state.
  * @param  ptr to Node (AVD_AVND).

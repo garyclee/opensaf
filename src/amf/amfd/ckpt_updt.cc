@@ -58,6 +58,7 @@ uint32_t avd_ckpt_node(AVD_CL_CB *cb, AVD_AVND *ckpt_node,
   /* Update all runtime attributes */
   node->saAmfNodeAdminState = ckpt_node->saAmfNodeAdminState;
   node->saAmfNodeOperState = ckpt_node->saAmfNodeOperState;
+  node->recvr_fail_sw = ckpt_node->recvr_fail_sw;
   node->node_state = ckpt_node->node_state;
   node->rcv_msg_id = ckpt_node->rcv_msg_id;
   node->snd_msg_id = ckpt_node->snd_msg_id;

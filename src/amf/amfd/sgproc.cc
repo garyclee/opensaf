@@ -877,6 +877,8 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
          */
         avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_DISABLED);
         node->recvr_fail_sw = true;
+        m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node,
+          AVSV_CKPT_RECVR_NODE_FOVER_SWOVER);
         for (const auto &i_su : node->list_of_su) {
           i_su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
         }
@@ -898,6 +900,8 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
          */
         avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_DISABLED);
         node->recvr_fail_sw = true;
+        m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node,
+          AVSV_CKPT_RECVR_NODE_FOVER_SWOVER);
 
         // if maintenance campaign is ongoing, disable node reboot
         if (su->restrict_auto_repair() == true) node_reboot_req = false;
@@ -1025,6 +1029,26 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
         }
       }
     } else { /* if(su->sg_of_su->sg_ncs_spec == true) */
+      // This is a case of Node repair
+      if ((n2d_msg->msg_info.n2d_opr_state.node_oper_state ==
+            SA_AMF_OPERATIONAL_ENABLED) &&
+          (node->admin_node_pend_cbk.invocation) &&
+          (node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_REPAIRED)) {
+        avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_ENABLED);
+        if (node->su_cnt_admin_repair > 0) node->su_cnt_admin_repair--;
+        if (node->su_cnt_admin_repair == 0) {
+          /* if this is the last SU then send out the pending callback */
+          avd_saImmOiAdminOperationResult(
+              cb->immOiHandle, node->admin_node_pend_cbk.invocation,
+              SA_AIS_OK);
+          node->admin_node_pend_cbk.invocation = 0;
+          node->admin_node_pend_cbk.admin_oper =
+            static_cast<SaAmfAdminOperationIdT>(0);
+          node->recvr_fail_sw = false;
+          m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node,
+            AVSV_CKPT_RECVR_NODE_FOVER_SWOVER);
+        }
+      }
       /* If oper state of Uninstantiated SU got ENABLED so try to instantiate it
          after evaluating SG. */
       if (su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) {
@@ -2326,6 +2350,7 @@ void avd_node_down_mw_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd) {
                           SA_AIS_ERR_REPAIR_PENDING, &avnd->admin_node_pend_cbk,
                           "node failure");
     avnd->su_cnt_admin_oper = 0;
+    avnd->su_cnt_admin_repair = 0;
   }
 
   TRACE_LEAVE();

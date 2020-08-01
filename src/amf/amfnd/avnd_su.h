@@ -461,5 +461,6 @@ extern AVND_SU *avnd_sudb_rec_get_next(AmfDb<std::string, AVND_SU> &sudb,
 extern void sudb_rec_comp_add(AVND_SU *su, AVND_COMP *comp, uint32_t *rc);
 uint32_t avnd_evt_avd_compcsi_evh(struct avnd_cb_tag *cb,
                                   struct avnd_evt_tag *evt);
+extern bool comp_in_term_failed_state(void);
 
 #endif  // AMF_AMFND_AVND_SU_H_

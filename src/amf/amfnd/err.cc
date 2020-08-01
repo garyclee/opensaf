@@ -1135,7 +1135,7 @@ uint32_t avnd_err_rcvr_node_failover(AVND_CB *cb, AVND_SU *failed_su,
   for (comp = avnd_compdb_rec_get_next(cb->compdb, ""); comp != nullptr;
        comp = avnd_compdb_rec_get_next(cb->compdb, comp->name)) {
     if (comp->su->is_ncs || comp->su->su_is_external) continue;
-
+    rc = avnd_comp_curr_info_del(cb, comp);
     rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
     if (rc != NCSCC_RC_SUCCESS) {
       LOG_ER("'%s' termination failed", comp->name.c_str());

@@ -92,6 +92,68 @@ static uint32_t avnd_evt_node_admin_op_req(AVND_CB *cb, AVND_EVT *evt) {
   cb->rcv_msg_id = info->msg_id;
 
   switch (info->oper_id) {
+    case SA_AMF_ADMIN_REPAIRED: {
+      /* Node has been repaired. Reset states of this node and all DISABLED
+       * SUs/comps. And update AMF director accordingly.
+       * No need to reset states of ENABLED SUs(in case of
+       * SA_AMF_NODE_SWITCHOVER, only faulty components/SU are disabled,
+       * other SUs assignments are simply switched over.)
+       * But for ENABLED Sus, send oper state message, so that, they
+       * are evaluated for assignments.
+       */
+      LOG_NO("Repair request for Node'%s'", Amf::to_string(&info->dn).c_str());
+
+      // Reset this node state first, so that when SU enabled message
+      // reaches at Amfd, it starts giving assignments to those SUs.
+      cb->oper_state = SA_AMF_OPERATIONAL_ENABLED;
+      cb->term_state = AVND_TERM_STATE_UP;
+      cb->node_err_esc_level = AVND_ERR_ESC_LEVEL_0;
+      cb->failed_su = nullptr;
+      cb->su_failover_cnt = 0;
+
+      /* Reset all faulty SUs and Comps */
+      for (AVND_SU *su = avnd_sudb_rec_get_next(cb->sudb, ""); su != nullptr;
+          su = avnd_sudb_rec_get_next(cb->sudb, su->name)) {
+        if (su->is_ncs || su->su_is_external)
+          continue;
+        su->comp_restart_cnt = 0;
+        su->su_restart_cnt = 0;
+        su->su_err_esc_level = AVND_ERR_ESC_LEVEL_0;
+        if (m_AVND_SU_OPER_STATE_IS_ENABLED(su)){
+          rc = avnd_di_oper_send(cb, su, 0);
+          continue;
+        }
+        // Reset the components states.
+        for (AVND_COMP *comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(
+              m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
+            comp; comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(
+              m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+          comp->admin_oper = false;
+          m_AVND_COMP_STATE_RESET(comp);
+          avnd_comp_pres_state_set(cb, comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+
+          m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_ENABLED);
+          avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompOperState_ID,
+              comp->name, comp->oper);
+        }
+
+        // Reset the SUs states.
+        if ((su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED) &&
+            (comp_in_term_failed_state() == false))
+          avnd_failed_state_file_delete();
+
+        su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
+        reset_suRestart_flag(su);
+        m_AVND_SU_STATE_RESET(su);
+        m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_ENABLED);
+        avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSUOperState_ID, su->name,
+            su->oper);
+        avnd_su_pres_state_set(cb, su, SA_AMF_PRESENCE_UNINSTANTIATED);
+        rc = avnd_di_oper_send(cb, su, 0);
+      } // End of for loop for su
+      break;
+    } // End of case SA_AMF_ADMIN_REPAIRED:
+
     default:
       LOG_NO("%s: unsupported adm op %u", __FUNCTION__, info->oper_id);
       rc = NCSCC_RC_FAILURE;
