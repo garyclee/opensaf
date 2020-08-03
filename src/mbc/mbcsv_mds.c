@@ -193,6 +193,7 @@ void mbcsv_mds_unreg(uint32_t pwe_hdl)
 uint32_t mbcsv_mds_send_msg(uint32_t send_type, MBCSV_EVT *msg, CKPT_INST *ckpt,
 			    MBCSV_ANCHOR anchor)
 {
+	uint32_t rc;
 	NCSMDS_INFO mds_info;
 	TRACE_ENTER2("sending to vdest:%" PRIx64, ckpt->my_vdest);
 
@@ -241,7 +242,7 @@ uint32_t mbcsv_mds_send_msg(uint32_t send_type, MBCSV_EVT *msg, CKPT_INST *ckpt,
 		return NCSCC_RC_FAILURE;
 	}
 
-	if (ncsmds_api(&mds_info) == NCSCC_RC_SUCCESS) {
+	if ((rc = ncsmds_api(&mds_info)) == NCSCC_RC_SUCCESS) {
 		/* If message is send resp  then free the message received in
 		 * response  */
 		if ((MDS_SENDTYPE_REDRSP == send_type) &&
@@ -253,7 +254,7 @@ uint32_t mbcsv_mds_send_msg(uint32_t send_type, MBCSV_EVT *msg, CKPT_INST *ckpt,
 		return NCSCC_RC_SUCCESS;
 	} else {
 		TRACE_LEAVE2("failure");
-		return NCSCC_RC_FAILURE;
+		return rc;
 	}
 }
 
@@ -379,7 +380,7 @@ uint32_t mbcsv_mds_rcv(NCSMDS_CALLBACK_INFO *cbinfo)
 		 * We found out the mailbox to which we can post a message. Now
 		 * construct and send this message to the mailbox.
 		 */
-		msg->msg_type = MBCSV_EVT_INTERNAL;
+		msg->msg_type = MBCSV_EVT_INTERNAL_RCV;
 
 		if (msg->info.peer_msg.type == MBCSV_EVT_INTERNAL_PEER_DISC) {
 			send_pri = NCS_IPC_PRIORITY_HIGH;
@@ -387,11 +388,19 @@ uint32_t mbcsv_mds_rcv(NCSMDS_CALLBACK_INFO *cbinfo)
 			send_pri = NCS_IPC_PRIORITY_NORMAL;
 
 		if (NCSCC_RC_SUCCESS != m_MBCSV_SND_MSG(&mbx, msg, send_pri)) {
+			if (msg->info.peer_msg.type == MBCSV_EVT_INTERNAL_CLIENT) {
+				m_MMGR_FREE_BUFR_LIST(
+				    msg->info.peer_msg.info.client_msg.uba.ub);
+			}
 			m_MMGR_FREE_MBCSV_EVT(msg);
 			TRACE_LEAVE2("ipc send failed");
 			return NCSCC_RC_FAILURE;
 		}
 	} else {
+		if (msg->info.peer_msg.type == MBCSV_EVT_INTERNAL_CLIENT) {
+			m_MMGR_FREE_BUFR_LIST(
+			    msg->info.peer_msg.info.client_msg.uba.ub);
+		}
 		m_MMGR_FREE_MBCSV_EVT(msg);
 	}
 
