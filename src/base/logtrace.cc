@@ -58,7 +58,7 @@ std::once_flag init_flag;
 thread_local LogTraceBuffer gl_thread_buffer{gl_local_thread_trace,
   global::thread_trace_buffer_size};
 
-static pid_t gettid() { return syscall(SYS_gettid); }
+static pid_t get_tid() { return syscall(SYS_gettid); }
 
 /**
  * USR2 signal handler to enable/disable trace (toggle)
@@ -83,7 +83,7 @@ void trace_output(const char *file, unsigned line, unsigned priority,
   assert(priority <= LOG_DEBUG && category < CAT_MAX);
 
   if (strncmp(file, "src/", 4) == 0) file += 4;
-  snprintf(preamble, sizeof(preamble), "%d:%s:%u %s %s", gettid(), file, line,
+  snprintf(preamble, sizeof(preamble), "%d:%s:%u %s %s", get_tid(), file, line,
            global::prefix_name[priority + category], format);
   // legacy trace
   if (is_logtrace_enabled(category)) {
@@ -110,7 +110,7 @@ void log_output(const char *file, unsigned line, unsigned priority,
   assert(priority <= LOG_DEBUG && category < CAT_MAX);
 
   if (strncmp(file, "src/", 4) == 0) file += 4;
-  snprintf(preamble, sizeof(preamble), "%d:%s:%u %s %s", gettid(), file, line,
+  snprintf(preamble, sizeof(preamble), "%d:%s:%u %s %s", get_tid(), file, line,
            global::prefix_name[priority + category], format);
   LogTraceClient::Log(gl_remote_osaflog,
       static_cast<base::LogMessage::Severity>(priority), preamble, ap);

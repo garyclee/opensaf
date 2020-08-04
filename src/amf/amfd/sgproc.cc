@@ -2624,9 +2624,8 @@ static uint32_t shutdown_contained_sus(AVD_CL_CB *cb, AVD_SU *container_su,
   }
 
 done:
-  return rc;
-
   TRACE_LEAVE();
+  return rc;
 }
 
 /*****************************************************************************
