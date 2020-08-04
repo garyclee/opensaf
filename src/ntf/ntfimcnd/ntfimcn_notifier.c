@@ -843,7 +843,7 @@ static int fill_attribute_info_modify(
 			// new attributes below. Can be multi value or
 			// no value
 			const SaImmAttrValuesT_2* old_imm_attr_value =
-			   find_attr_from_name(imm_attrs_in,
+			    immutil_findAttrByName(imm_attrs_in,
 			     imm_attr_mods->modAttr.attrName);
 			TRACE("old_imm_attr_value is <%s>",
 					old_imm_attr_value? "not null": "null");

@@ -51,34 +51,8 @@ int ntfimcn_imm_init(ntfimcn_cb_t *cb);
  * @return SaAisErrorT
  */
 SaAisErrorT get_current_attrs(const SaNameT *objectName,
-   const SaImmAttrModificationT_2 **attrMods, SaImmAttrValuesT_2 ***curAttr);
-
-/**
- * Deep clone IMM Attribute Values
- *
- * @param **src[in]
- */
-SaImmAttrValuesT_2** dupSaImmAttrValuesT_array(const SaImmAttrValuesT_2 **src);
-
-/**
- * Deallocate memory used for deep cloning IMM Attribute Values
- *
- * @param **attrs[in]
- */
-void free_imm_attrs(SaImmAttrValuesT_2 **attrs);
-
-/**
- * Find attribute values from the given attribute name
- * Reuturn NULL if no values found for the given name
- *
- * @param **attrs[in]
- * @param name[in]
- * @return SaImmAttrValuesT_2*
- */
-
-const SaImmAttrValuesT_2* find_attr_from_name(
-   const SaImmAttrValuesT_2** attrs, SaImmAttrNameT name);
-
+   const SaImmAttrModificationT_2 **attrMods,
+   SaImmAttrValuesT_2 ***curAttr);
 
 #ifdef __cplusplus
 }

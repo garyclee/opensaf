@@ -192,6 +192,42 @@ EXTERN_C CcbUtilOperationData_t *ccbutil_getCcbOpDataByDN(SaImmOiCcbIdT id,
 /*@{*/
 
 /**
+ * Get IMM Attribute Value size base on type
+ *
+ * @param type[in]
+ * @return size_t
+ */
+EXTERN_C size_t immutil_valueSize(SaImmValueTypeT type);
+
+/**
+ * Deep clone IMM Attribute Values array
+ *
+ * @param **src[in]
+ * @return SaImmAttrValuesT_2**
+ */
+EXTERN_C SaImmAttrValuesT_2** immutil_dupSaImmAttrValuesT(
+    const SaImmAttrValuesT_2 **src);
+
+/**
+ * Deallocate memory used for deep cloning IMM Attribute Values
+ *
+ * @param **attrs[in]
+ * @return void
+ */
+EXTERN_C void immutil_freeSaImmAttrValuesT(SaImmAttrValuesT_2 **attrs);
+
+/**
+ * Find attribute values from the given attribute name
+ * Reuturn NULL if no values found for the given name
+ *
+ * @param **attrs[in]
+ * @param name[in]
+ * @return SaImmAttrValuesT_2*
+ */
+EXTERN_C const SaImmAttrValuesT_2* immutil_findAttrByName(
+    const SaImmAttrValuesT_2** attrs, SaImmAttrNameT name);
+
+/**
  * Duplicates a string. The memory is owned by the passed CCB object and will be
  * freed automatically when this object is deleted.
  * @param ccb The owning CCB object
