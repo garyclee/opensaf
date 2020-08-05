@@ -167,7 +167,7 @@ class Cache {
     // Check if the data is valid or not. The data is not valid if either
     // the targeting stream is closed or the the time of its staying in the
     // queue is reaching the maximum.
-    bool is_valid(std::string* reason) const;
+    bool is_valid() const;
     // Dump the values of data's attributes.
     void Dump() const;
     // Clone values of my attributes to `CkptPushAsync`; and CkptPushAsync
