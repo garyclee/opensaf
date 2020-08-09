@@ -296,6 +296,8 @@ typedef struct avnd_pxied_rec {
 #define AVND_COMP_TYPE_LOCAL_NODE 0x00000001
 #define AVND_COMP_TYPE_INTER_NODE 0x00000002
 #define AVND_COMP_TYPE_EXT_CLUSTER 0x00000004
+// Not for proxy or proxied, it is used for error report, etc.
+#define AVND_COMP_TYPE_INTER_NODE_NP 0x00000008
 
 /*##########################################################################
                        COMPONENT DEFINITION (TOP LEVEL)

@@ -18,8 +18,10 @@
 
 #include <thread>
 #include <atomic>
+#include <string>
 #include "amf/amfnd/avnd.h"
 #include <poll.h>
+#include "osaf/immutil/immutil.h"
 #include "amf/amfnd/imm.h"
 
 ir_cb_t ir_cb;
@@ -106,45 +108,217 @@ void ImmReader::ir_process_event(AVND_EVT *evt) {
   uint32_t res = NCSCC_RC_SUCCESS;
   AVND_SU *su = 0;
   TRACE_ENTER2("Evt type:%u", evt->type);
+  if (AVND_EVT_IR == evt->type) {
+    /* get the su */
+    su = avnd_sudb_rec_get(avnd_cb->sudb,
+      Amf::to_string(&evt->info.ir_evt.su_name));
+    if (!su) {
+      TRACE("SU'%s', not found in DB",
+        osaf_extended_name_borrow(&evt->info.ir_evt.su_name));
+      goto done;
+    }
 
-  /* get the su */
-  su = avnd_sudb_rec_get(avnd_cb->sudb,
-                         Amf::to_string(&evt->info.ir_evt.su_name));
-  if (!su) {
-    TRACE("SU'%s', not found in DB",
-          osaf_extended_name_borrow(&evt->info.ir_evt.su_name));
-    goto done;
-  }
+    if (false == su->is_ncs) {
+      res = avnd_comp_config_get_su(su);
+    } else {
+      res = NCSCC_RC_FAILURE;
+    }
 
-  if (false == su->is_ncs) {
-    res = avnd_comp_config_get_su(su);
-  } else {
-    res = NCSCC_RC_FAILURE;
-  }
-
-  {
-    AVND_EVT *evt_ir = 0;
-    SaNameT copy_name;
-    TRACE("Sending to main thread.");
-    osaf_extended_name_alloc(su->name.c_str(), &copy_name);
-    evt_ir =
+    {
+      AVND_EVT *evt_ir = 0;
+      SaNameT copy_name;
+      TRACE("Sending to main thread.");
+      osaf_extended_name_alloc(su->name.c_str(), &copy_name);
+      evt_ir =
         avnd_evt_create(avnd_cb, AVND_EVT_IR, 0, nullptr, &copy_name, 0, 0);
-    osaf_extended_name_free(&copy_name);
-    if (res == NCSCC_RC_SUCCESS)
-      evt_ir->info.ir_evt.status = true;
-    else
-      evt_ir->info.ir_evt.status = false;
+      osaf_extended_name_free(&copy_name);
+      if (res == NCSCC_RC_SUCCESS)
+        evt_ir->info.ir_evt.status = true;
+      else
+        evt_ir->info.ir_evt.status = false;
 
-    res = m_NCS_IPC_SEND(&avnd_cb->mbx, evt_ir, evt_ir->priority);
+      res = m_NCS_IPC_SEND(&avnd_cb->mbx, evt_ir, evt_ir->priority);
 
-    if (NCSCC_RC_SUCCESS != res)
-      LOG_CR("AvND send event to main thread mailbox failed, type = %u",
-             evt_ir->type);
+      if (NCSCC_RC_SUCCESS != res)
+        LOG_CR("AvND send event to main thread mailbox failed, type = %u",
+          evt_ir->type);
 
-    TRACE("Imm Read:'%d'", evt_ir->info.ir_evt.status);
+      TRACE("Imm Read:'%d'", evt_ir->info.ir_evt.status);
 
-    /* if failure, free the event */
-    if (NCSCC_RC_SUCCESS != res) avnd_evt_destroy(evt_ir);
+      /* if failure, free the event */
+      if (NCSCC_RC_SUCCESS != res) avnd_evt_destroy(evt_ir);
+    }
+  } else if (AVND_EVT_AVA_ERR_REP == evt->type) {
+    AVSV_AMF_API_INFO *api_info = &evt->info.ava.msg->info.api_info;
+    AVSV_AMF_ERR_REP_PARAM *err_rep = &api_info->param.err_rep;
+    SaAisErrorT amf_rc = SA_AIS_OK;
+    AVND_COMP *comp = 0;
+    SaImmHandleT immOmHandle = 0;
+    SaVersionT immVersion = {'A', 2, 15};
+    SaImmAccessorHandleT accessorHandle = 0;
+    const SaImmAttrValuesT_2 **attributes;
+    std::string su_name;
+    SaNameT node_name, clm_node_name;
+    SaClmNodeIdT node_id;
+    SaAisErrorT error;
+    // Check if this component is already in the internode db.
+    // If it is, then it means that Error Report operation
+    // is already undergoing on this comp, so return TRY_AGAIN.
+    if (nullptr !=
+        avnd_cb->compdb_internode.find(Amf::to_string(&err_rep->err_comp))) {
+      LOG_NO("Already Error Report Operation undergoing on '%s'",
+        Amf::to_string(&err_rep->err_comp).c_str());
+      amf_rc = SA_AIS_ERR_TRY_AGAIN;
+      goto imm_not_initialized;
+    }
+    // Check if component is configured in the Cluster.
+    error = saImmOmInitialize_cond(&immOmHandle, nullptr, &immVersion);
+    if (error != SA_AIS_OK) {
+      LOG_ER("saImmOmInitialize failed: %u", error);
+      amf_rc = SA_AIS_ERR_TRY_AGAIN;
+      goto imm_not_initialized;
+    }
+
+    error = amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
+    if (error != SA_AIS_OK) {
+      LOG_ER("amf_saImmOmAccessorInitialize failed: %u", error);
+      amf_rc = SA_AIS_ERR_TRY_AGAIN;
+      goto immOmHandle_finalize;
+    }
+
+    // Find the component in the Imm DB.
+    if ((error = amf_saImmOmAccessorGet_o2(
+      immOmHandle, accessorHandle, Amf::to_string(&err_rep->err_comp), nullptr,
+      reinterpret_cast<SaImmAttrValuesT_2 ***>
+      (const_cast<SaImmAttrValuesT_2 ***>(&attributes)))) != SA_AIS_OK) {
+      if (error == SA_AIS_ERR_NOT_EXIST) {
+        LOG_NO("Component '%s' is not configured",
+          Amf::to_string(&err_rep->err_comp).c_str());
+        amf_rc = SA_AIS_ERR_NOT_EXIST;
+      } else {
+        LOG_ER("amf_saImmOmAccessorGet_o2(for Comp '%s') failed: %u",
+          Amf::to_string(&err_rep->err_comp).c_str(), error);
+        amf_rc = SA_AIS_ERR_TRY_AGAIN;
+      }
+
+      goto immOmAccessor_finalize;
+    }
+
+    // Component is configured. Now, extract SU name from comp name.
+    avnd_cpy_SU_DN_from_DN(su_name, Amf::to_string(&err_rep->err_comp));
+    TRACE("SU name '%s'", su_name.c_str());
+
+    // Get the SU attributes from Imm DB.
+    if ((error = amf_saImmOmAccessorGet_o2(
+      immOmHandle, accessorHandle, su_name, nullptr,
+      reinterpret_cast<SaImmAttrValuesT_2 ***>
+      (const_cast<SaImmAttrValuesT_2 ***>(&attributes)))) != SA_AIS_OK) {
+      if (error == SA_AIS_ERR_NOT_EXIST) {
+        LOG_NO("SU '%s' is not configured", su_name.c_str());
+        amf_rc = SA_AIS_ERR_NOT_EXIST;
+      } else {
+        LOG_ER("amf_saImmOmAccessorGet_o2(for SU '%s') failed: %u",
+          su_name.c_str(), error);
+        amf_rc = SA_AIS_ERR_TRY_AGAIN;
+      }
+
+      goto immOmAccessor_finalize;
+    }
+
+    // Get Amf node name, where this SU is hosted.
+    (void)immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSUHostedByNode"),
+                          attributes, 0, &node_name);
+    TRACE("Hosting Amf node '%s'", Amf::to_string(&node_name).c_str());
+
+    // Get Amf node attributes from Imm DB.
+    if ((error = amf_saImmOmAccessorGet_o2(
+      immOmHandle, accessorHandle, Amf::to_string(&node_name), nullptr,
+      reinterpret_cast<SaImmAttrValuesT_2 ***>
+      (const_cast<SaImmAttrValuesT_2 ***>(&attributes)))) != SA_AIS_OK) {
+      if (error == SA_AIS_ERR_NOT_EXIST) {
+        LOG_NO("Amf Node '%s' is not configured",
+               Amf::to_string(&node_name).c_str());
+        amf_rc = SA_AIS_ERR_NOT_EXIST;
+      } else {
+        LOG_ER("amf_saImmOmAccessorGet_o2(for node '%s') failed: %u",
+          Amf::to_string(&node_name).c_str(), error);
+        amf_rc = SA_AIS_ERR_TRY_AGAIN;
+      }
+
+      goto immOmAccessor_finalize;
+    }
+    TRACE("Hosting Amf node '%s' found.", Amf::to_string(&node_name).c_str());
+
+    // Find the Clm Node name from Amf node attributes.
+    (void)immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfNodeClmNode"),
+                           attributes, 0, &clm_node_name);
+    TRACE("Clm node name '%s'", Amf::to_string(&clm_node_name).c_str());
+
+    // Get Clm node attributes from Imm DB.
+    if ((error = amf_saImmOmAccessorGet_o2(
+        immOmHandle, accessorHandle, Amf::to_string(&clm_node_name),
+        nullptr, reinterpret_cast<SaImmAttrValuesT_2 ***>
+        (const_cast<SaImmAttrValuesT_2 ***>(&attributes)))) != SA_AIS_OK) {
+      if (error == SA_AIS_ERR_NOT_EXIST) {
+        LOG_NO("Clm Node '%s' is not configured",
+          Amf::to_string(&clm_node_name).c_str());
+        amf_rc = SA_AIS_ERR_NOT_EXIST;
+      } else {
+        LOG_ER("amf_saImmOmAccessorGet_o2(for clm node '%s') failed: %u",
+          Amf::to_string(&clm_node_name).c_str(), error);
+        amf_rc = SA_AIS_ERR_TRY_AGAIN;
+      }
+
+      goto immOmAccessor_finalize;
+    }
+    TRACE("Clm node '%s' found.", Amf::to_string(&clm_node_name).c_str());
+
+    // Find the configured value of saClmNodeID from Clm node attributes.
+    (void)immutil_getAttr(const_cast<SaImmAttrNameT>("saClmNodeID"),
+                           attributes, 0, &node_id);
+    TRACE("Node id '%u'", node_id);
+
+    // We have all the information, send the event to the destined node.
+    res = avnd_avnd_msg_send(avnd_cb, reinterpret_cast<uint8_t *>(api_info),
+                             api_info->type, &evt->mds_ctxt, node_id);
+    if (NCSCC_RC_SUCCESS != res) {
+      // We couldn't send this to the destined AvND, tell user to try again.
+      amf_rc = SA_AIS_ERR_UNAVAILABLE;
+      LOG_ER("avnd_int_ext_comp_hdlr:Msg Send Failed: '%u'", res);
+      goto immOmAccessor_finalize;
+    } else {
+      TRACE("avnd_avnd_msg_send:Msg Send Success");
+      // Add the internode component in the DB
+      comp = new AVND_COMP();
+      comp->name = Amf::to_string(&err_rep->err_comp);
+      comp->node_id = node_id;
+      comp->reg_dest = api_info->dest;
+      comp->mds_ctxt = evt->mds_ctxt;
+      comp->comp_type = AVND_COMP_TYPE_INTER_NODE_NP;
+      // Add to the internode available compdb.
+      res = avnd_cb->compdb_internode.insert(comp->name, comp);
+      if (NCSCC_RC_SUCCESS != res) {
+        delete comp;
+        comp = nullptr;
+        amf_rc = SA_AIS_ERR_TRY_AGAIN;
+        LOG_ER("compdb_internode.insert failed: '%u'", res);
+        goto immOmAccessor_finalize;
+      }
+      immutil_saImmOmAccessorFinalize(accessorHandle);
+      immutil_saImmOmFinalize(immOmHandle);
+      goto done;
+    }
+immOmAccessor_finalize:
+    immutil_saImmOmAccessorFinalize(accessorHandle);
+immOmHandle_finalize:
+    immutil_saImmOmFinalize(immOmHandle);
+imm_not_initialized:
+    /* send the response back to AvA */
+    res = avnd_amf_resp_send(avnd_cb, AVSV_AMF_ERR_REP, amf_rc, 0,
+                             &api_info->dest, &evt->mds_ctxt, comp, 0);
+    if (NCSCC_RC_SUCCESS != res) {
+      LOG_ER("avnd_amf_resp_send() failed: %u", res);
+    }
   }
 done:
   if (evt) avnd_evt_destroy(evt);

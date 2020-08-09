@@ -125,6 +125,8 @@ typedef struct avnd_cb_tag {
   SaTimeT scs_absence_max_duration;
   /* the timer for supervision of the absence of SC */
   AVND_TMR sc_absence_tmr;
+  // Used for storing comp, residing on other node.
+  AmfDb<std::string, AVND_COMP> compdb_internode;
 } AVND_CB;
 
 #define AVND_CB_NULL ((AVND_CB *)0)
