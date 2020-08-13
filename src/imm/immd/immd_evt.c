@@ -256,6 +256,9 @@ void immd_process_evt(void)
 		    rc, evt->info.immd.type);
 	}
 
+	if (evt->info.immd.type == IMMD_EVT_ND2D_ADMINIT_REQ)
+		osaf_extended_name_free(
+		    &evt->info.immd.info.admown_init.i.adminOwnerName);
 	/* Free the Event */
 	free(evt);
 	TRACE_LEAVE();

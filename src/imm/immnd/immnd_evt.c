@@ -566,6 +566,22 @@ uint32_t immnd_evt_destroy(IMMSV_EVT *evt, bool onheap, uint32_t line)
 		free(evt->info.immnd.info.ccbUpcallRsp.errorString.buf);
 		evt->info.immnd.info.ccbUpcallRsp.errorString.buf = NULL;
 		evt->info.immnd.info.ccbUpcallRsp.errorString.size = 0;
+		if (evt->info.immnd.type ==
+		    IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2)
+			osaf_extended_name_free(
+			    &evt->info.immnd.info.ccbUpcallRsp.name);
+	} else if ((evt->info.immnd.type ==
+		    IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP) ||
+		    (evt->info.immnd.type ==
+		    IMMND_EVT_A2ND_OI_CCB_AUG_INIT)) {
+		osaf_extended_name_free(
+		    &evt->info.immnd.info.ccbUpcallRsp.name);
+	} else if (evt->info.immnd.type == IMMND_EVT_A2ND_IMM_ADMINIT) {
+		osaf_extended_name_free(
+		    &evt->info.immnd.info.adminitReq.i.adminOwnerName);
+	} else if (evt->info.immnd.type == IMMND_EVT_D2ND_ADMINIT) {
+		osaf_extended_name_free(
+		    &evt->info.immnd.info.adminitGlobal.i.adminOwnerName);
 	} else if (evt->info.immnd.type == IMMND_EVT_D2ND_IMPLDELETE) {
 		for(uint32_t i=0; i<evt->info.immnd.info.impl_delete.size; ++i) {
 			free(evt->info.immnd.info.impl_delete.implNameList[i].buf);
