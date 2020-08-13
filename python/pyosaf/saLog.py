@@ -20,7 +20,7 @@ from ctypes import POINTER, CDLL, Structure, CFUNCTYPE, create_string_buffer, \
 from pyosaf.saAis import SaUint64T, Const, SaUint16T, SaVersionT, SaStringT, \
         SaUint32T, SaBoolT, SaEnumT, Enumeration, SaInvocationT, SaAisErrorT, \
         BYREF, SaDispatchFlagsT, SaNameT, SaTimeT, SaSelectionObjectT, \
-        SaUint8T, SaSizeT, SaInt8T, SaLimitValueT
+        SaUint8T, SaSizeT, SaInt8T, SaLimitValueT, PY3
 from pyosaf import saNtf
 
 # Only mirrors API calls implemented in osaf/libs/agents/saf/lga/lga_api.c
@@ -66,6 +66,8 @@ class SaLogBufferT(Structure):
 	_fields_ = [('logBufSize', SaSizeT),
 		('logBuf', POINTER(SaInt8T))]
 	def __init__(self, buf=''):
+		if PY3:
+			buf = buf.encode('utf-8')
 		super(SaLogBufferT, self).__init__(len(buf),
 			create_string_buffer(buf) if buf else None)
 

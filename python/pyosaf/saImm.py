@@ -24,7 +24,7 @@ from ctypes import cast, pointer, POINTER, Structure, Union
 from pyosaf.saAis import SaStringT, SaEnumT, SaInt32T, SaUint32T, SaInt64T, \
     SaUint64T, SaTimeT, SaNameT, SaFloatT, SaDoubleT, SaStringT, SaAnyT
 from pyosaf.saEnumConst import Enumeration, Const
-from pyosaf.saAis import SaVoidPtr
+from pyosaf.saAis import SaVoidPtr, PY3
 
 saImm = Const()
 
@@ -71,6 +71,8 @@ def unmarshalSaImmValue(void_ptr, value_type):
 	val_ptr = SaImmValueTypeMap.get(value_type)
 	if val_ptr and void_ptr:
 		if val_ptr == SaNameT:
+			return str(cast(void_ptr, POINTER(val_ptr))[0])
+		elif val_ptr == SaStringT and PY3:
 			return str(cast(void_ptr, POINTER(val_ptr))[0])
 		return cast(void_ptr, POINTER(val_ptr))[0]
 	return None

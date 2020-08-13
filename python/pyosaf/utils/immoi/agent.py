@@ -356,7 +356,7 @@ class OiAgent(object):
         """
         _, class_desc = self.imm_om.get_class_description(class_name)
         attr_desc = [attr for attr in class_desc if
-                     attr.attrName == attribute][0]
+                     str(attr.attrName) == attribute][0]
 
         return attr_desc.attrValueType
 

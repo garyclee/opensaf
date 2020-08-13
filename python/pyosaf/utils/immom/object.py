@@ -82,7 +82,7 @@ class ImmObject(object):
             SaImmAttrNameT: Attribute value type
         """
         for attr_def in self.class_desc[self.class_name]:
-            if attr_def.attrName == attr_name:
+            if str(attr_def.attrName) == attr_name:
                 return attr_def.attrValueType
 
     def __attr_is_multi_value(self, attr_name):

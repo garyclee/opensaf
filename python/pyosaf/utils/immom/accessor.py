@@ -121,11 +121,11 @@ class ImmOmAccessor(agent.OmAgentManager):
             attr_list = unmarshalNullArray(attributes)
             for attr in attr_list:
                 attr_range = list(range(attr.attrValuesNumber))
-                attrs[attr.attrName] = [attr.attrValueType,
-                                        [unmarshalSaImmValue(
-                                            attr.attrValues[val],
-                                            attr.attrValueType)
-                                         for val in attr_range]]
+                attrs[str(attr.attrName)] = [
+                    attr.attrValueType,
+                    [unmarshalSaImmValue(attr.attrValues[val],
+                                         attr.attrValueType)
+                     for val in attr_range]]
             if 'SaImmAttrClassName' not in attrs and class_name:
                 attrs['SaImmAttrClassName'] = class_name
             imm_obj = ImmObject(dn=object_name, attributes=attrs)

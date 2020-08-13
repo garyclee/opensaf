@@ -22,7 +22,8 @@ from ctypes import c_void_p, pointer, cast, POINTER
 from pyosaf.saAis import eSaAisErrorT, SaNameT, SaStringT, SaFloatT, \
     unmarshalNullArray, SaDoubleT, SaTimeT, SaUint64T, SaInt64T, SaUint32T, \
     SaInt32T
-from pyosaf.saImm import eSaImmScopeT, eSaImmValueTypeT, SaImmAttrValuesT_2
+from pyosaf.saImm import eSaImmScopeT, eSaImmValueTypeT, SaImmAttrValuesT_2, \
+    SaImmAttrNameT, SaImmClassNameT
 from pyosaf import saImm
 from pyosaf import saImmOm
 from pyosaf.utils.immom import agent
@@ -44,13 +45,13 @@ def _value_to_ctype_ptr(value_type, value):
     if value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAINT32T:
         ctypeptr = cast(pointer(SaInt32T(value)), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAUINT32T:
-        ctypeptr = cast(pointer(SaUint32T(long(value))), c_void_p)
+        ctypeptr = cast(pointer(SaUint32T(value)), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAINT64T:
-        ctypeptr = cast(pointer(SaInt64T(long(value))), c_void_p)
+        ctypeptr = cast(pointer(SaInt64T(value)), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAUINT64T:
-        ctypeptr = cast(pointer(SaUint64T(long(value))), c_void_p)
+        ctypeptr = cast(pointer(SaUint64T(value)), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SATIMET:
-        ctypeptr = cast(pointer(SaTimeT(long(value))), c_void_p)
+        ctypeptr = cast(pointer(SaTimeT(value)), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SANAMET:
         ctypeptr = cast(pointer(SaNameT(value)), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAFLOATT:
@@ -172,7 +173,7 @@ class Ccb(ImmOmAgent):
             for attr_name, type_values in obj.attrs.items():
                 values = type_values[1]
                 attr = SaImmAttrValuesT_2()
-                attr.attrName = attr_name
+                attr.attrName = SaImmAttrNameT(attr_name)
                 attr.attrValueType = type_values[0]
 
                 attr.attrValuesNumber = len(values)
@@ -180,7 +181,7 @@ class Ccb(ImmOmAgent):
                 attr_values.append(attr)
 
             rc = agent.saImmOmCcbObjectCreate_2(self.ccb_handle,
-                                                obj.class_name,
+                                                SaImmClassNameT(obj.class_name),
                                                 parent_name,
                                                 attr_values)
             if rc != eSaAisErrorT.SA_AIS_OK:
@@ -255,7 +256,7 @@ class Ccb(ImmOmAgent):
                 _, attr_def_list = self.get_class_description(class_name)
                 value_type = None
                 for attr_def in attr_def_list:
-                    if attr_def.attrName == attr_name:
+                    if str(attr_def.attrName) == attr_name:
                         value_type = attr_def.attrValueType
                         break
                 if value_type:
@@ -271,7 +272,7 @@ class Ccb(ImmOmAgent):
                 attr_mod = saImmOm.SaImmAttrModificationT_2()
                 attr_mod.modType = mod_type
                 attr_mod.modAttr = SaImmAttrValuesT_2()
-                attr_mod.modAttr.attrName = attr_name
+                attr_mod.modAttr.attrName = SaImmAttrNameT(attr_name)
                 attr_mod.modAttr.attrValueType = value_type
                 attr_mod.modAttr.attrValuesNumber = len(values)
                 attr_mod.modAttr.attrValues = marshal_c_array(value_type,

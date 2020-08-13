@@ -28,9 +28,19 @@ from datetime import datetime
 from baseimm import BaseOptions, BaseImmDocument, trace, retrieve_file_names, \
     print_info_stderr, abort_script, verify_input_file_read_access
 
+PY3 = True if sys.version_info[0] == 3 else False
+
+
+def bytes_to_str(bytes_obj, encoding):
+    """ Convert bytes object to string in python3 """
+    if PY3 and isinstance(bytes_obj, bytes):
+        return bytes_obj.decode(encoding)
+
+    return bytes_obj
+
 
 class Options(BaseOptions):
-    """ immxml-merge options"""
+    """ immxml-merge options """
     keepCommentElements = False
     ignoreVariants = False
     ignoreMissingClass = False
@@ -366,19 +376,25 @@ class MergedImmDocument(BaseImmDocument):
             heading = "<?xml version=\"1.0\"?>"
 
         file_object.write(heading)
-        file_object.write(
-            self.imm_content_element.toxml(encoding).replace("/>", ">") + "\n")
+        string = bytes_to_str(self.imm_content_element.toxml(encoding),
+                              encoding)
+        file_object.write(string.replace("/>", ">") + "\n")
         for class_element_tuple in self.classList:
             if Options.keepCommentElements:
                 for textNode in class_element_tuple[1][0]:
-                    file_object.write(textNode.toxml(encoding) + "\n")
-            file_object.write(class_element_tuple[1][1].toxml(encoding) + "\n")
+                    string = bytes_to_str(textNode.toxml(encoding), encoding)
+                    file_object.write(string + "\n")
+            string = bytes_to_str(class_element_tuple[1][1].toxml(encoding),
+                                  encoding)
+            file_object.write(string + "\n")
         for object_element_tuple in self.objectList:
             if Options.keepCommentElements:
                 for textNode in object_element_tuple[1][0]:
-                    file_object.write(textNode.toxml(encoding) + "\n")
-            file_object.write(
-                object_element_tuple[1][1].toxml(encoding) + "\n")
+                    string = bytes_to_str(textNode.toxml(encoding), encoding)
+                    file_object.write(string + "\n")
+            string = bytes_to_str(object_element_tuple[1][1].toxml(encoding),
+                                  encoding)
+            file_object.write(string + "\n")
         file_object.write("</imm:IMM-contents>")
         file_object.close()
         trace("Stored resulting xml document in tmp file: %s",
