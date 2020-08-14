@@ -409,8 +409,7 @@ uint32_t mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send,
 			continue;
 		}
 		TRACE("dispatching FSM for NCSMBCSV_SEND_ASYNC_UPDATE");
-		m_NCS_MBCSV_FSM_DISPATCH(peer_ptr, NCSMBCSV_SEND_ASYNC_UPDATE,
-					 &evt_msg);
+		m_NCS_MBCSV_FSM_DISPATCH(peer_ptr, NCSMBCSV_SEND_ASYNC_UPDATE, NULL);
 
 		if (false == peer_ptr->okay_to_async_updt) {
 			peer_ptr->ckpt_msg_sent = true;
@@ -471,7 +470,7 @@ uint32_t mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send,
 		while (NULL != tmp_ptr) {
 			TRACE("dispatching FSM for NCSMBCSV_SEND_ASYNC_UPDATE");
 			m_NCS_MBCSV_FSM_DISPATCH(
-			    tmp_ptr, NCSMBCSV_SEND_ASYNC_UPDATE, &evt_msg);
+			    tmp_ptr, NCSMBCSV_SEND_ASYNC_UPDATE, NULL);
 
 			if (false == tmp_ptr->okay_to_async_updt) {
 				tmp_ptr->ckpt_msg_sent = true;
