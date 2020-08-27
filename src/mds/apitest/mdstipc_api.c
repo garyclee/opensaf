@@ -13340,6 +13340,10 @@ void tet_sender2(MDS_SVC_ID svc_id, uint32_t msg_num, uint32_t msg_size,
 		}
 	}
 	free(mesg);
+	while (1) {
+		// Receiver will kill sender
+		sleep(1);
+	}
 }
 
 void tet_sender(MDS_SVC_ID svc_id, uint32_t msg_num, uint32_t msg_size,
@@ -13413,6 +13417,8 @@ void tet_sender(MDS_SVC_ID svc_id, uint32_t msg_num, uint32_t msg_size,
 					" successfully\n", i);
 			}
 		}
+		if (msg_num > 65535 && msg_size > 10000)
+			usleep(1000); // Slow down to avoid reaped by OOM killer
 	}
 	free(mesg);
 	while (1) {
@@ -13426,15 +13432,17 @@ int tet_receiver(MDS_SVC_ID svc_id, uint32_t msg_num,
 				uint32_t msg_size, int svc_num,
 				MDS_SVC_ID fr_svcids[])
 {
+	int rc = 1;
+
 	if (msg_size > TET_MSG_SIZE_MIN) {
 		printf("\nReceiver: msg_size > TET_MSG_SIZE_MIN\n");
-		return 1;
+		return rc;
 	}
 	printf("\nStarted Receiver (pid:%d) svc_id=%d\n",
 			(int)getpid(), svc_id);
 	if (adest_get_handle() != NCSCC_RC_SUCCESS) {
 		printf("\nReceiver FAIL to get adest handle\n");
-		return 1;
+		return rc;
 	}
 
 	sleep(1); //Let sender subscribe before receiver install
@@ -13449,7 +13457,7 @@ int tet_receiver(MDS_SVC_ID svc_id, uint32_t msg_num,
 		NCSMDS_SCOPE_INTRANODE,
 		svc_num, fr_svcids) != NCSCC_RC_SUCCESS) {
 		printf("\nReceiver FAIL to subscribe sender\n");
-		exit(1);
+		return rc;
 	}
 
 	struct pollfd sel;
@@ -13459,7 +13467,7 @@ int tet_receiver(MDS_SVC_ID svc_id, uint32_t msg_num,
 	sel.fd = m_GET_FD_FROM_SEL_OBJ(gl_tet_adest.svc[0].sel_obj);
 	sel.events = POLLIN;
 	while (1) {
-		int ret = osaf_poll(&sel, 1, 10000);
+		int ret = osaf_poll(&sel, 1, 1000);
 		if (ret > 0) {
 			gl_rcvdmsginfo.msg = NULL;
 			if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
@@ -13479,31 +13487,25 @@ int tet_receiver(MDS_SVC_ID svc_id, uint32_t msg_num,
 						" from %x\n", expected_buff,
 							msg->recvd_data,
 							gl_rcvdmsginfo.fr_dest);
-					free(expected_buff);
 					free(msg);
-					reset_counters();
-					return 1;
+					break;
 				}
 				free(msg);
+			} else if (gl_event_data.event == NCSMDS_DOWN) {
+				break;
 			}
-		} else {
+		} else if (verify_counters(msg_num)) {
+			printf("\nReceiver: get enough %d messages\n", msg_num);
+			rc = 0;
 			break;
 		}
-	}
-
-	printf("\nReceiver verify number of received messages\n");
-	if (!verify_counters(msg_num)) {
-		printf("\nReceiver: Not get enough %d messages\n", msg_num);
-		free(expected_buff);
-		reset_counters();
-		return 1;
 	}
 
 	printf("\nEnd Receiver (pid:%d) svc_id=%d\n",
 			(int)getpid(), svc_id);
 	free(expected_buff);
 	reset_counters();
-	return 0;
+	return rc;
 }
 
 void tet_overload_tp_1(void)
