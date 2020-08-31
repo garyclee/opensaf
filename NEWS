@@ -1,8 +1,8 @@
-OpenSAF 5.20.05 (released 2020-05-30)
+OpenSAF 5.20.08 (released 2020-08-31)
 -------------------------------------
 
 This is a major release containing new enhancements. Before installing or
-upgrading to OpenSAF 5.20.05, make sure your system meets the minimum version
+upgrading to OpenSAF 5.20.08, make sure your system meets the minimum version
 requirements of the following system components:
 
 - Linux kernel, version 2.6.39 or later. Recommended version is Linux 3.18 or
@@ -34,24 +34,38 @@ configuration object amfConfig=1,safApp=safAmfService.
 Important enhancements in this release
 --------------------------------------
 
-**OSAF enhancements**
+**AMF enhancements**
 
-- osaf: enhance vm frozen detection in tcp.plugin [#3164]
+- amf: Provide configuration option to run amfnd as non-root [#3205]
+- amf: implement node repair admin command [#3204] V2
 
 **IMM enhancements**
 
-- imm: imm_list tool add new option --delimiter [#3155]
+- imm: reboot nodes used to be different partition with coord [#2936]
+
+**NTF enhancements**
+
+- ntf: Handle IMM multiple value attribute in notification [#3200]
+- ntf: Enhance attribute change notification [#3196]
+
+**PYOSAF enhancements**
+
+- pyosaf: Support python3 [#3210]
+
+**RDE enhancements**
+
+- rde: allow node start first to be promoted in relax mode [#3191]
 
 Links
 -----
 
-* The complete list of enhancements in the 5.20.05 release can be found in this
+* The complete list of enhancements in the 5.20.08 release can be found in this
   report:
 
-https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A5.20.05+AND+_type%3Aenhancement
+https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A5.20.08+AND+_type%3Aenhancement
 
-* The documentation for the OpenSAF 5.20.05 release can be downloaded here:
+* The documentation for the OpenSAF 5.20.08 release can be downloaded here:
 
-http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.20.05.tar.gz/download
+http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.20.08.tar.gz/download
 
 You can also check the README of the respective OpenSAF service.
