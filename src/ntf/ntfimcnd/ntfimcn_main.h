@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2013 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -42,6 +43,8 @@ extern "C" {
 typedef struct {
   SaImmHandleT immOmHandle; /* Handle form IMM OM Initialize */
   SaImmOiHandleT immOiHandle; /* Handle from IMM OI initialize */
+  SaImmAccessorHandleT
+       immAccessorHandle;  /* Handle from IMM Accessor Interface */
   SaSelectionObjectT
       immSelectionObject;  /* Selection Object to wait for IMM events */
   SaNtfHandleT ntf_handle; /* Handle from NTF initialize */

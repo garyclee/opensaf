@@ -18,12 +18,14 @@
 '''
 Common types and prototypes used by all modules in pyosaf
 '''
+import sys
 from os import environ
-
 import ctypes
 from ctypes import pointer, POINTER, cast, byref, c_void_p, Structure, \
 	Union, CDLL
 from pyosaf.saEnumConst import Enumeration, Const
+
+PY3 = True if sys.version_info[0] == 3 else False
 
 SaInt8T = ctypes.c_char
 SaInt16T = ctypes.c_short
@@ -39,7 +41,21 @@ SaVoidPtr = c_void_p
 # Types used by the NTF/IMMS service
 SaFloatT = ctypes.c_float
 SaDoubleT = ctypes.c_double
-SaStringT = ctypes.c_char_p
+if PY3:
+	class SaStringT(ctypes.c_char_p):
+		def __init__(self, value=''):
+			if value is not None:
+				value = value.encode('utf-8')
+			super(SaStringT, self).__init__(value)
+
+		def __str__(self):
+			if self.value is not None:
+				return self.value.decode('utf-8')
+			else:
+				return self.__repr__()
+else:
+	SaStringT = ctypes.c_char_p
+
 
 SaTimeT = SaInt64T
 SaInvocationT = SaUint64T
@@ -177,6 +193,12 @@ if environ.get('SA_ENABLE_EXTENDED_NAMES') == '1':
 			immdll.saAisNameLend.argtypes = [SaConstStringT,
 											POINTER(SaNameT)]
 			immdll.saAisNameLend.restype = None
+			if PY3:
+				# Add name_in_bytes attribute to this object as a workaround
+				# To keep the `name` in bytes not to be freed by garbarge
+				# collector when it's still refered in `_opaque` of SaNameT
+				self.name_in_bytes = name.encode('utf-8')
+				name = self.name_in_bytes
 
 			immdll.saAisNameLend(name, BYREF(self))
 
@@ -185,7 +207,11 @@ if environ.get('SA_ENABLE_EXTENDED_NAMES') == '1':
 			"""
 			immdll.saAisNameBorrow.argtypes = [POINTER(SaNameT)]
 			immdll.saAisNameBorrow.restype = SaConstStringT
-			return immdll.saAisNameBorrow(BYREF(self))
+			name = immdll.saAisNameBorrow(BYREF(self))
+			if PY3:
+				return name.decode('utf-8')
+
+			return name
 else:
 	class SaNameT(Structure):
 		"""Contain names.
@@ -196,12 +222,17 @@ else:
 		def __init__(self, name=''):
 			"""Construct instance with contents of 'name'.
 			"""
+			if PY3:
+				name = name.encode('utf-8')
 			super(SaNameT, self).__init__(len(name), name)
 
 		def __str__(self):
 			"""Returns the content of SaNameT
 			"""
-			return self.value
+			if PY3:
+				return self.value.decode('utf-8')
+			else:
+				return self.value
 
 
 class SaVersionT(Structure):
@@ -210,6 +241,14 @@ class SaVersionT(Structure):
 	_fields_ = [('releaseCode', SaInt8T),
 		('majorVersion', SaUint8T),
 		('minorVersion', SaUint8T)]
+
+	def __init__(self, release='_', major=0, minor=0):
+		"""Construct instance with contents of 'name'.
+		"""
+		if PY3:
+			release = release[0].encode('utf-8')
+
+		super(SaVersionT, self).__init__(release, major, minor)
 
 
 class SaLimitValueT(Union):
@@ -259,7 +298,7 @@ def unmarshalNullArray(c_array):
 	if not c_array:
 		return []
 	ctype = c_array[0].__class__
-	if ctype is str:
+	if ctype is str or (PY3 and ctype is SaStringT):
 		return unmarshalSaStringTArray(c_array)
 	val_list = []
 	for ptr in c_array:
@@ -278,7 +317,7 @@ def unmarshalSaStringTArray(c_array):
 	for ptr in c_array:
 		if not ptr:
 			break
-		val_list.append(ptr)
+		val_list.append(str(ptr))
 	return val_list
 
 

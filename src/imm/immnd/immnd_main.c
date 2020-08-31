@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008-2010 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -298,6 +299,8 @@ static uint32_t immnd_initialize(char *progname)
 	immnd_cb->mFile = getenv("IMMSV_LOAD_FILE");
 	immnd_cb->clm_hdl = 0;
 	immnd_cb->clmSelectionObject = -1;
+	immnd_cb->immd_node_id = 0;
+	immnd_cb->other_immd_id = 0;
 
 	populate_reserved_class_names(immnd_cb);
 

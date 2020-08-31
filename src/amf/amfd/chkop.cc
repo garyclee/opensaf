@@ -883,6 +883,14 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action,
       cb->async_updt_cnt.node_updt++;
       break;
 
+    case AVSV_CKPT_RECVR_NODE_FOVER_SWOVER:
+      if (avd_cb->avd_peer_ver < AVD_MBCSV_SUB_PART_VERSION_12) {
+        /* No need to send the message to old std as this async is newly added.
+         */
+        return NCSCC_RC_SUCCESS;
+      }
+      cb->async_updt_cnt.node_updt++;
+      break;
     case AVSV_CKPT_AVD_APP_CONFIG:
       if ((avd_cb->avd_peer_ver >= AVD_MBCSV_SUB_PART_VERSION_4) &&
           ((action == NCS_MBCSV_ACT_ADD) || (action == NCS_MBCSV_ACT_RMV)))
@@ -1348,6 +1356,7 @@ static uint32_t avsv_validate_reo_type_in_csync(AVD_CL_CB *cb,
     case AVSV_CKPT_AVND_RCV_MSG_ID:
     case AVSV_CKPT_AVND_SND_MSG_ID:
     case AVSV_CKPT_NODE_FAILOVER_STATE:
+    case AVSV_CKPT_RECVR_NODE_FOVER_SWOVER:
       if (cb->synced_reo_type >= AVSV_CKPT_AVD_NODE_CONFIG)
         status = NCSCC_RC_SUCCESS;
       break;

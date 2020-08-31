@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -503,16 +504,20 @@ static uint32_t immd_mds_rcv(IMMD_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 	 * other IMMNDs. */
 	if (cb->mScAbsenceAllowed &&
 	    pEvt->info.immd.type == IMMD_EVT_ND2D_INTRO &&
-	    pEvt->info.immd.info.ctrl_msg.refresh == 2) {
+	    pEvt->info.immd.info.ctrl_msg.refresh >= 2) {
 
 		prio = NCS_IPC_PRIORITY_HIGH;
 
-		m_NCS_LOCK(&immd_cb->veteran_sync_lock, NCS_LOCK_WRITE);
-		if (cb->veteran_sync_sel.raise_obj !=
-		    -1) { /* Check if the sel_obj is not destroyed */
-			m_NCS_SEL_OBJ_IND(&cb->veteran_sync_sel);
+		if (rcv_info->i_node_id == cb->node_id) {
+			/* Prioritize re-intro from local IMMND */
+			prio = NCS_IPC_PRIORITY_VERY_HIGH;
+			m_NCS_LOCK(&immd_cb->veteran_sync_lock, NCS_LOCK_WRITE);
+			if (cb->veteran_sync_sel.raise_obj !=
+				-1) { /* Check if the sel_obj is not destroyed */
+				m_NCS_SEL_OBJ_IND(&cb->veteran_sync_sel);
+			}
+			m_NCS_UNLOCK(&immd_cb->veteran_sync_lock, NCS_LOCK_WRITE);
 		}
-		m_NCS_UNLOCK(&immd_cb->veteran_sync_lock, NCS_LOCK_WRITE);
 	}
 
 	/* Put it in IMMD's Event Queue */
@@ -559,6 +564,7 @@ static uint32_t immd_mds_svc_evt(IMMD_CB *cb,
 	evt->info.immd.info.mds_info.dest = svc_evt->i_dest;
 	evt->info.immd.info.mds_info.svc_id = svc_evt->i_svc_id;
 	evt->info.immd.info.mds_info.node_id = svc_evt->i_node_id;
+	evt->info.immd.info.mds_info.role = svc_evt->i_role;
 
 	/* Put it in IMMD's Event Queue */
 	uint32_t rc = m_NCS_IPC_SEND(&cb->mbx, (NCSCONTEXT)evt,

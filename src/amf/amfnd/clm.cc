@@ -50,7 +50,8 @@ static void clm_node_left(SaClmNodeIdT node_id) {
 
   TRACE_ENTER2("%u", node_id);
 
-  if (node_id == avnd_cb->node_info.nodeId) {
+  if ((node_id == avnd_cb->node_info.nodeId) &&
+      (avnd_cb->node_info.member == SA_TRUE)) {
     /* if you received a node left indication from clm for self node
        terminate all the non_ncs components; ncs components :-TBD */
 
@@ -63,7 +64,39 @@ static void clm_node_left(SaClmNodeIdT node_id) {
       }
     }
     goto done;
-  }
+  } else {
+    AVND_COMP *comp = nullptr;
+    uint32_t rc;
+    std::string name = "";
+    LOG_NO("Node Id:'%d'", node_id);
+    // Delete the responses, which was expected to come from this node.
+    while (nullptr != (comp =
+      avnd_compdb_rec_get_next(avnd_cb->compdb_internode, name))) {
+      name = comp->name;
+      // Check the node id
+      TRACE("Comp '%s'", comp->name.c_str());
+      if (comp->node_id == node_id) {
+        TRACE("Comp '%s' matched", comp->name.c_str());
+        if (comp->comp_type == AVND_COMP_TYPE_INTER_NODE_NP) {
+          // We have to forward this message to AvA. As of now
+          // hardcode the value of ERROR_REPORT.
+          rc = avnd_amf_resp_send(avnd_cb, AVSV_AMF_ERR_REP,
+                                  SA_AIS_ERR_TIMEOUT, nullptr,
+                                  &comp->reg_dest, &comp->mds_ctxt,
+                                  nullptr, false);
+          if (NCSCC_RC_SUCCESS != rc) {
+            LOG_ER("Sending error response failed for %s",
+                   comp->name.c_str());
+          }
+          TRACE("Comp '%s' deleted from internode comp DB",
+                comp->name.c_str());
+          avnd_cb->compdb_internode.erase(comp->name);
+          delete comp;
+          name = "";
+        }  // comp type
+      }  // Node id match
+    }  // while loop
+  }  // Different node id.
 
   /* We received a node left indication for external node,
      check if any internode component related to this Node exists */
@@ -222,13 +255,9 @@ static void clm_track_cb(
       if (false == avnd_cb->first_time_up) {
         /* When node reboots, we will get an exit cbk, so ignore if
            avnd_cb->first_time_up is false. */
-        if ((notifItem->clusterNode.nodeId == avnd_cb->node_info.nodeId) &&
-            (avnd_cb->node_info.member == SA_TRUE)) {
-          // Act only once on CLM callback.
-          clm_node_left(notifItem->clusterNode.nodeId);
-        }
+        // Act only once on CLM callback.
+        clm_node_left(notifItem->clusterNode.nodeId);
       }
-
     } else if (notifItem->clusterChange == SA_CLM_NODE_RECONFIGURED) {
       if (avnd_cb->node_info.nodeId == notifItem->clusterNode.nodeId) {
         TRACE("local CLM node reconfigured");
@@ -253,6 +282,8 @@ static void clm_track_cb(
           if (avnd_cb->amf_nodeName.empty()) clm_to_amf_node();
           avnd_send_node_up_msg();
           avnd_cb->first_time_up = false;
+        } else {
+          avnd_cb->node_info.member = SA_TRUE;
         }
       }
     } else

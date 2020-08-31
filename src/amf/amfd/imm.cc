@@ -178,7 +178,7 @@ AvdJobDequeueResultT ImmObjCreate::exec(AVD_CL_CB *cb) {
     goto done;
   }
   rc = saImmOiRtObjectCreate_2(immOiHandle, className_, parent_name,
-                               attrValues_);
+                               (const SaImmAttrValuesT_2**)attrValues_);
   cb->avd_imm_status = AVD_IMM_INIT_DONE;
 
   if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_EXIST)) {
@@ -208,31 +208,8 @@ done:
 
 //
 ImmObjCreate::~ImmObjCreate() {
-  unsigned int i, j;
-
-  for (i = 0; attrValues_[i] != nullptr; i++) {
-    SaImmAttrValuesT_2 *attrValue = (SaImmAttrValuesT_2 *)attrValues_[i];
-
-    if (attrValue->attrValueType == SA_IMM_ATTR_SASTRINGT) {
-      for (j = 0; j < attrValue->attrValuesNumber; j++) {
-        char *p = *((char **)attrValue->attrValues[j]);
-        delete[] p;
-      }
-    } else if (attrValue->attrValueType == SA_IMM_ATTR_SANAMET) {
-      for (j = 0; j < attrValue->attrValuesNumber; j++) {
-        SaNameT *name = reinterpret_cast<SaNameT *>(attrValue->attrValues[i]);
-        osaf_extended_name_free(name);
-      }
-    }
-    delete[] attrValue->attrName;
-    delete[] static_cast<char *>(
-        attrValue->attrValues[0]);  // free blob shared by all values
-    delete[] attrValue->attrValues;
-    delete attrValue;
-  }
-
+  immutil_freeSaImmAttrValuesT(attrValues_);
   delete[] className_;
-  delete[] attrValues_;
 }
 
 //
@@ -630,110 +607,18 @@ typedef struct avd_ccb_apply_ordered_list {
 
 static AvdCcbApplyOrderedListT *ccb_apply_list;
 
-/* ========================================================================
- *   FUNCTION PROTOTYPES
- * ========================================================================
- */
-
-static size_t value_size(SaImmValueTypeT attrValueType) {
-  size_t valueSize = 0;
-
-  switch (attrValueType) {
-    case SA_IMM_ATTR_SAINT32T:
-      valueSize = sizeof(SaInt32T);
-      break;
-    case SA_IMM_ATTR_SAUINT32T:
-      valueSize = sizeof(SaUint32T);
-      break;
-    case SA_IMM_ATTR_SAINT64T:
-      valueSize = sizeof(SaInt64T);
-      break;
-    case SA_IMM_ATTR_SAUINT64T:
-      valueSize = sizeof(SaUint64T);
-      break;
-    case SA_IMM_ATTR_SATIMET:
-      valueSize = sizeof(SaTimeT);
-      break;
-    case SA_IMM_ATTR_SANAMET:
-      valueSize = sizeof(SaNameT);
-      break;
-    case SA_IMM_ATTR_SAFLOATT:
-      valueSize = sizeof(SaFloatT);
-      break;
-    case SA_IMM_ATTR_SADOUBLET:
-      valueSize = sizeof(SaDoubleT);
-      break;
-    case SA_IMM_ATTR_SASTRINGT:
-      valueSize = sizeof(SaStringT);
-      break;
-    case SA_IMM_ATTR_SAANYT:
-      osafassert(0);
-      break;
-  }
-
-  return valueSize;
-}
-
-static void copySaImmAttrValuesT(SaImmAttrValuesT_2 *copy,
-                                 const SaImmAttrValuesT_2 *original) {
-  size_t valueSize = 0;
-  unsigned int i, valueCount = original->attrValuesNumber;
-  char *databuffer;
-
-  copy->attrName = StrDup(original->attrName);
-
-  copy->attrValuesNumber = valueCount;
-  copy->attrValueType = original->attrValueType;
-  if (valueCount == 0) return; /* (just in case...) */
-
-  copy->attrValues = new SaImmAttrValueT[valueCount];
-
-  valueSize = value_size(original->attrValueType);
-
-  // alloc blob shared by all values
-  databuffer = new char[valueCount * valueSize];
-
-  for (i = 0; i < valueCount; i++) {
-    copy->attrValues[i] = databuffer;
-    if (original->attrValueType == SA_IMM_ATTR_SASTRINGT) {
-      char *cporig = *((char **)original->attrValues[i]);
-      char **cpp = (char **)databuffer;
-      *cpp = StrDup(cporig);
-    } else if (original->attrValueType == SA_IMM_ATTR_SANAMET) {
-      SaNameT *orig = reinterpret_cast<SaNameT *>(original->attrValues[i]);
-      SaNameT *dest = reinterpret_cast<SaNameT *>(databuffer);
-      osaf_extended_name_alloc(osaf_extended_name_borrow(orig), dest);
-    } else {
-      memcpy(databuffer, original->attrValues[i], valueSize);
-    }
-    databuffer += valueSize;
-  }
-}
-
-static const SaImmAttrValuesT_2 *dupSaImmAttrValuesT(
-    const SaImmAttrValuesT_2 *original) {
-  SaImmAttrValuesT_2 *copy = new SaImmAttrValuesT_2;
-
-  copySaImmAttrValuesT(copy, original);
-  return copy;
-}
-
-static const SaImmAttrValuesT_2 **dupSaImmAttrValuesT_array(
-    const SaImmAttrValuesT_2 **original) {
-  const SaImmAttrValuesT_2 **copy;
-  unsigned int i, alen = 0;
-
-  if (original == nullptr) return nullptr;
-
-  while (original[alen] != nullptr) alen++;
-
-  copy = new const SaImmAttrValuesT_2 *[alen + 1]();
-
-  for (i = 0; i < alen; i++) copy[i] = dupSaImmAttrValuesT(original[i]);
-
-  return copy;
-}
-
+/*****************************************************************************
+ * Function: class_name_to_class_type
+ *
+ * Purpose: This function returns class ID corresponding to class name.
+ *
+ * Input: className  - Class name.
+ *
+ * Returns: AVSV_AMF_CLASS_ID
+ *
+ * NOTES: None.
+ *
+ **************************************************************************/
 static AVSV_AMF_CLASS_ID class_name_to_class_type(
     const std::string &className) {
   int i;
@@ -1900,7 +1785,7 @@ void avd_saImmOiRtObjectUpdate(const std::string &dn,
   ImmObjUpdate *ajob = new ImmObjUpdate;
   if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) ajob->implementer = false;
 
-  sz = value_size(attrValueType);
+  sz = immutil_valueSize(attrValueType);
 
   ajob->dn = dn;
   ajob->attributeName_ = StrDup(attributeName.c_str());
@@ -1977,7 +1862,7 @@ void avd_saImmOiRtObjectCreate(const std::string &className,
   ajob->className_ = StrDup(className.c_str());
   osafassert(ajob->className_ != nullptr);
   ajob->parentName_ = parentName;
-  ajob->attrValues_ = dupSaImmAttrValuesT_array(attrValues);
+  ajob->attrValues_ = immutil_dupSaImmAttrValuesT(attrValues);
   Fifo::queue(ajob);
 
   TRACE_LEAVE();
@@ -2392,13 +2277,13 @@ bool ImmObjCreate::immobj_update_required() {
                 *static_cast<SaAmfHAStateT *>(attribute->attrValues[0]),
                 susi->state);
         memcpy(attribute->attrValues[0], &susi->state,
-               value_size(attribute->attrValueType));
+               immutil_valueSize(attribute->attrValueType));
       } else if (!strcmp(attribute->attrName, "osafAmfSISUFsmState")) {
         TRACE_1("osafAmfSISUFsmState old value:%u, new value:%u",
                 *static_cast<AVD_SU_SI_STATE *>(attribute->attrValues[0]),
                 susi->fsm);
         memcpy(attribute->attrValues[0], &susi->fsm,
-               value_size(attribute->attrValueType));
+               immutil_valueSize(attribute->attrValueType));
       }
     }
   } else if (class_type == AVSV_SA_AMF_CSI_ASSIGNMENT) {
@@ -2450,7 +2335,7 @@ bool ImmObjCreate::immobj_update_required() {
                 *static_cast<SaAmfHAStateT *>(attribute->attrValues[0]),
                 susi->state);
         memcpy(attribute->attrValues[0], &susi->state,
-               value_size(attribute->attrValueType));
+               immutil_valueSize(attribute->attrValueType));
       }
     }
   }
@@ -2472,21 +2357,23 @@ bool ImmObjUpdate::su_get_attr_value() {
     TRACE_1("saAmfSUOperState old value:%u, new value:%u",
             *static_cast<SaAmfOperationalStateT *>(value_),
             su->saAmfSUOperState);
-    memcpy(value_, &su->saAmfSUOperState, value_size(attrValueType_));
+    memcpy(value_, &su->saAmfSUOperState, immutil_valueSize(attrValueType_));
   } else if (!strcmp(attributeName_, "saAmfSUReadinessState")) {
     TRACE_1("saAmfSuReadinessState old value:%u, new value:%u",
             *static_cast<SaAmfReadinessStateT *>(value_),
             su->saAmfSuReadinessState);
-    memcpy(value_, &su->saAmfSuReadinessState, value_size(attrValueType_));
+    memcpy(value_, &su->saAmfSuReadinessState,
+           immutil_valueSize(attrValueType_));
   } else if (!strcmp(attributeName_, "saAmfSUPresenceState")) {
     TRACE_1("saAmfSUPresenceState old value:%u, new value:%u",
             *static_cast<SaAmfPresenceStateT *>(value_),
             su->saAmfSUPresenceState);
-    memcpy(value_, &su->saAmfSUPresenceState, value_size(attrValueType_));
+    memcpy(value_, &su->saAmfSUPresenceState,
+           immutil_valueSize(attrValueType_));
   } else if (!strcmp(attributeName_, "saAmfSUAdminState")) {
     TRACE_1("saAmfSUAdminState old value:%u, new value:%u",
             *static_cast<SaAmfAdminStateT *>(value_), su->saAmfSUAdminState);
-    memcpy(value_, &su->saAmfSUAdminState, value_size(attrValueType_));
+    memcpy(value_, &su->saAmfSUAdminState, immutil_valueSize(attrValueType_));
   } else {
     // Other attributes not considered.
     ret = false;
@@ -2508,11 +2395,11 @@ bool ImmObjUpdate::siass_get_attr_value() {
   if (!strcmp(attributeName_, "saAmfSISUHAState")) {
     TRACE_1("saAmfSISUHAState old value:%u, new value:%u",
             *static_cast<SaAmfHAStateT *>(value_), susi->state);
-    memcpy(value_, &susi->state, value_size(attrValueType_));
+    memcpy(value_, &susi->state, immutil_valueSize(attrValueType_));
   } else if (!strcmp(attributeName_, "osafAmfSISUFsmState")) {
     TRACE_1("osafAmfSISUFsmState old value:%u, new value:%u",
             *static_cast<AVD_SU_SI_STATE *>(value_), susi->fsm);
-    memcpy(value_, &susi->fsm, value_size(attrValueType_));
+    memcpy(value_, &susi->fsm, immutil_valueSize(attrValueType_));
   } else
     return false;
   return true;
@@ -2545,7 +2432,7 @@ bool ImmObjUpdate::csiass_get_attr_value() {
   if (!strcmp(attributeName_, "saAmfCSICompHAState")) {
     TRACE_1("saAmfCSICompHAState old value:%u, new value:%u",
             *static_cast<SaAmfHAStateT *>(value_), susi->state);
-    memcpy(value_, &susi->state, value_size(attrValueType_));
+    memcpy(value_, &susi->state, immutil_valueSize(attrValueType_));
   } else
     return false;
 
@@ -2561,17 +2448,20 @@ bool ImmObjUpdate::comp_get_attr_value() {
     TRACE_1("saAmfCompOperState old value:%u, new value:%u",
             *static_cast<SaAmfOperationalStateT *>(value_),
             comp->saAmfCompOperState);
-    memcpy(value_, &comp->saAmfCompOperState, value_size(attrValueType_));
+    memcpy(value_, &comp->saAmfCompOperState,
+           immutil_valueSize(attrValueType_));
   } else if (!strcmp(attributeName_, "saAmfCompReadinessState")) {
     TRACE_1("saAmfCompReadinessState old value:%u, new value:%u",
             *static_cast<SaAmfReadinessStateT *>(value_),
             comp->saAmfCompReadinessState);
-    memcpy(value_, &comp->saAmfCompReadinessState, value_size(attrValueType_));
+    memcpy(value_, &comp->saAmfCompReadinessState,
+           immutil_valueSize(attrValueType_));
   } else if (!strcmp(attributeName_, "saAmfCompPresenceState")) {
     TRACE_1(" saAmfCompPresenceState old value:%u, new value:%u",
             *static_cast<SaAmfPresenceStateT *>(value_),
             comp->saAmfCompPresenceState);
-    memcpy(value_, &comp->saAmfCompPresenceState, value_size(attrValueType_));
+    memcpy(value_, &comp->saAmfCompPresenceState,
+           immutil_valueSize(attrValueType_));
   } else {
     // Other attributes not considered.
     return false;
@@ -2589,7 +2479,8 @@ bool ImmObjUpdate::si_get_attr_value() {
     TRACE_1("saAmfSIAssignmentState old value:%u, new value:%u",
             *static_cast<SaAmfAssignmentStateT *>(value_),
             si->saAmfSIAssignmentState);
-    memcpy(value_, &si->saAmfSIAssignmentState, value_size(attrValueType_));
+    memcpy(value_, &si->saAmfSIAssignmentState,
+           immutil_valueSize(attrValueType_));
   }
   return true;
 }
@@ -2606,11 +2497,13 @@ bool ImmObjUpdate::node_get_attr_value() {
     TRACE_1("saAmfNodeOperState old value:%u, new value:%u",
             *static_cast<SaAmfOperationalStateT *>(value_),
             node->saAmfNodeOperState);
-    memcpy(value_, &node->saAmfNodeOperState, value_size(attrValueType_));
+    memcpy(value_, &node->saAmfNodeOperState,
+           immutil_valueSize(attrValueType_));
   } else if (!strcmp(attributeName_, "saAmfNodeAdminState")) {
     TRACE_1("saAmfNodeAdminState old value:%u, new value:%u",
             *static_cast<SaAmfAdminStateT *>(value_), node->saAmfNodeAdminState);
-    memcpy(value_, &node->saAmfNodeAdminState, value_size(attrValueType_));
+    memcpy(value_, &node->saAmfNodeAdminState,
+           immutil_valueSize(attrValueType_));
   } else {
     // Other attributes not considered.
     ret = false;

@@ -3,6 +3,7 @@
 #      -*- OpenSAF  -*-
 #
 # (C) Copyright 2009 The OpenSAF Foundation
+# Copyright Ericsson AB 2020 - All Rights Reserved.
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -143,6 +144,7 @@ unset tipc
 # argument 3 is set to 1, "safe reboot" request.
 if [ "$#" = 0 ]; then
 	$icmd pkill -STOP osafamfd
+	$icmd pkill -STOP osafimmd
 	quick_local_node_reboot
 elif [ "$safe_reboot" = 1 ]; then
 	opensaf_safe_reboot

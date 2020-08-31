@@ -1825,7 +1825,7 @@ static uint32_t ckpt_decode_cold_sync(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg) {
 done:
   if (rc != NCSCC_RC_SUCCESS) {
     /* Do not allow standby to get out of sync */
-    lgs_exit("Cold sync failed", SA_AMF_COMPONENT_RESTART);
+    lgs_exit("Cold sync failed");
   }
   TRACE_LEAVE();
   return rc;
@@ -1934,7 +1934,7 @@ static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, void *data) {
       if ((client = lgs_client_new(param->mds_dest, param->client_id,
                                    param->stream_list)) == NULL) {
         /* Do not allow standby to get out of sync */
-        lgs_exit("Could not create new client", SA_AMF_COMPONENT_RESTART);
+        lgs_exit("Could not create new client");
       } else {
         client->client_ver = param->client_ver;
       }
@@ -1942,7 +1942,7 @@ static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, void *data) {
       /* Client with ID already exist, check other attributes */
       if (client->mds_dest != param->mds_dest) {
         /* Do not allow standby to get out of sync */
-        lgs_exit("Client attributes differ", SA_AMF_COMPONENT_RESTART);
+        lgs_exit("Client attributes differ");
       }
     }
   } else if (lgs_is_peer_v6()) {
@@ -1957,7 +1957,7 @@ static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, void *data) {
       if ((client = lgs_client_new(param->mds_dest, param->client_id,
                                    param->stream_list)) == NULL) {
         /* Do not allow standby to get out of sync */
-        lgs_exit("Could not create new client", SA_AMF_COMPONENT_RESTART);
+        lgs_exit("Could not create new client");
       } else {
         client->client_ver = param->client_ver;
       }
@@ -1965,7 +1965,7 @@ static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, void *data) {
       /* Client with ID already exist, check other attributes */
       if (client->mds_dest != param->mds_dest) {
         /* Do not allow standby to get out of sync */
-        lgs_exit("Client attributes differ", SA_AMF_COMPONENT_RESTART);
+        lgs_exit("Client attributes differ");
       }
     }
   } else {
@@ -1980,13 +1980,13 @@ static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, void *data) {
       if ((client = lgs_client_new(param->mds_dest, param->client_id,
                                    param->stream_list)) == NULL) {
         /* Do not allow standby to get out of sync */
-        lgs_exit("Could not create new client", SA_AMF_COMPONENT_RESTART);
+        lgs_exit("Could not create new client");
       }
     } else {
       /* Client with ID already exist, check other attributes */
       if (client->mds_dest != param->mds_dest) {
         /* Do not allow standby to get out of sync */
-        lgs_exit("Client attributes differ", SA_AMF_COMPONENT_RESTART);
+        lgs_exit("Client attributes differ");
       }
     }
   }
@@ -2488,7 +2488,7 @@ uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, void *data) {
     /* Do not allow standby to get out of sync */
     LOG_ER("%s - Failed to add stream '%s' to client %u", __FUNCTION__,
            param->logStreamName, param->clientId);
-    lgs_exit("Could not add stream to client", SA_AMF_COMPONENT_RESTART);
+    lgs_exit("Could not add stream to client");
   }
 
   /* Stream is opened  on standby. Remove from rtobj list if exist */
@@ -2502,6 +2502,7 @@ done:
   lgs_free_edu_mem(param->fileFmt);
   lgs_free_edu_mem(param->logFileCurrent);
   lgs_free_edu_mem(param->logStreamName);
+  lgs_free_edu_mem(param->dest_names);
 
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
@@ -2813,6 +2814,7 @@ done:
   lgs_free_edu_mem(logFileFormat);
   lgs_free_edu_mem(logFileCurrent);
   lgs_free_edu_mem(name);
+  lgs_free_edu_mem(dest_names);
 
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;

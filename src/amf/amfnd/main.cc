@@ -164,6 +164,7 @@ static void new_handler() {
 
 int main(int argc, char *argv[]) {
   uint32_t error;
+  char *val;
 
   // function to be called if new fails. The alternative of using catch of
   // std::bad_alloc will unwind the stack and thus no call chain will be
@@ -179,7 +180,13 @@ int main(int argc, char *argv[]) {
     goto done;
   }
 
-  daemonize_as_user("root", argc, argv);
+  if ((val = getenv("AMFND_NON_ROOT")) != nullptr) {
+    daemonize(argc, argv);
+    TRACE("AMFND will run as non-root");
+  } else {
+    daemonize_as_user("root", argc, argv);
+    TRACE("AMFND will run as root");
+  }
 
   // Enable long DN
   if (setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1) != 0) {

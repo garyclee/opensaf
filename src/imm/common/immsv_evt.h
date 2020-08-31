@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -324,6 +325,7 @@ typedef struct immsv_mds_info {
 typedef struct immsv_send_info {
   MDS_SVC_ID to_svc;      /* The service at the destination */
   MDS_DEST dest;          /* Who to send */
+  NODE_ID node_id;        /* Node ID of sender */
   MDS_SENDTYPES stype;    /* Send type */
   MDS_SYNC_SND_CTXT ctxt; /* MDS Opaque context */
   uint8_t mSynReqCount;
@@ -342,6 +344,7 @@ typedef struct immsv_fevs {
   /* Holds nodeId and connection */
   IMMSV_OCTET_STRING msg;
   uint8_t isObjSync; /* Used by coord to avoid unpacking, saves exec.*/
+  NODE_ID ex_immd_node_id;  // Old active IMMD info
 } IMMSV_FEVS;
 
 /****************************************************************************
@@ -435,12 +438,21 @@ typedef struct immsv_d2nd_ccbinit {
   IMMSV_OM_CCB_INITIALIZE i;
 } IMMSV_D2ND_CCBINIT;
 
+typedef enum immsv_coord_type {
+  IMMSV_NOT_COORD = 0, /* payload cannot be coordinator, except headless */
+  IMMSV_SC_COORD = 1, /* controller to be coordinator */
+  IMMSV_2PBE_PRELOAD = 2,
+  IMMSV_2PBE_SYNC = 3,
+  IMMSV_VETERAN_COORD = 4, /* veteran node after headless can be coordinator */
+  IMMSV_UNKNOWN = 5 /* Unknown node will be ordered reboot */
+} IMMSV_COORD_TYPE;
+
 typedef struct immsv_d2nd_control {
   SaUint32T nodeId;
   SaUint32T rulingEpoch;
   SaUint64T fevsMsgStart;
   SaUint32T ndExecPid;
-  uint8_t canBeCoord; /* 0=>payload; 1=>SC; 2=>2PBE_preload; 3=>2PBE_sync*/
+  IMMSV_COORD_TYPE canBeCoord;
   uint8_t isCoord;
   uint8_t syncStarted;
   SaUint32T nodeEpoch;
@@ -451,6 +463,7 @@ typedef struct immsv_d2nd_control {
   IMMSV_OCTET_STRING xmlFile;
   IMMSV_OCTET_STRING pbeFile;
 
+  NODE_ID ex_immd_node_id;  // Old active IMMD info
 } IMMSV_D2ND_CONTROL;
 
 /****************************************************************************
@@ -486,6 +499,7 @@ typedef struct immsv_nd2d_control {
   SaUint32T admo_id_count;  // Max received at IMMND for AdminOwner ID
   SaUint32T ccb_id_count;   // Max received at IMMND for CCB ID
   SaUint32T impl_count;     // Max received at IMMND for Implementer ID
+  NODE_ID ex_immd_node_id;  // Old active IMMD info
 } IMMSV_ND2D_CONTROL;
 
 typedef struct immsv_nd2d_2_pbe {

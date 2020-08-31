@@ -83,7 +83,7 @@ class ImmObjCreate : public ImmJob {
  public:
   SaImmClassNameT className_;
   std::string parentName_;
-  const SaImmAttrValuesT_2 **attrValues_;
+  SaImmAttrValuesT_2 **attrValues_;
 
   ImmObjCreate() : ImmJob(){};
   bool immobj_update_required();

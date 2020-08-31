@@ -1,3 +1,36 @@
+OpenSAF 5.20.08 (released 2020-08-31)
+-------------------------------------
+
+    * mds: improve mdstest suite 27 [#3216]
+    * mds: fix receiving old msg under flow control enabled [#3216]
+    * mbc: fix agent crash inside ncs_mbcsv_null_func() [#3214]
+    * imm: fix memleak detected by valgrind [#3213]
+    * pyosaf: Support python3 [#3210]
+    * osaf: move common functions into immutil [#3211]
+    * rde: allow node start first to be promoted in relax mode [#3191]
+    * amfnd: handle component failover during SURestart [#3207]
+    * log: check log record valid before write in FlushFrontElement [#3212]
+    * mbc: fix memleak detected by valgrind [#3208]
+    * nid: fix opensafd fail to start under gcov enabled [#3209]
+    * amf: Provide configuration option to run amfnd as non-root [#3205]
+    * amf: support error report on non local component [#109] V3
+    * amf: implement node repair admin command [#3204] V2
+    * clm: fix memory leak reported by valgrind [#3206]
+    * ntfimcnd: Correct spelling in README [#3201]
+    * imm: define macro for values of canBeCoord [#2936]
+    * imm: reboot nodes used to be different partition with coord [#2936]
+    * amf: enhance to work in roaming SC and headless [#2936]
+    * ntf: Update README for NTF notification enhancement [#3201]
+    * ntf: Handle IMM multiple value attribute in notification [#3200]
+    * saflogger: fix saflogger stuck long time in resilience [#3198]
+    * imm: fix memory leak reported by valgrind [#3199]
+    * ntf: Enhance attribute change notification [#3196]
+    * lgs: not invoke saAmfComponentErrorReport() [#3197]
+    * lgs: fix memory leak reeported by valgrind [#3195]
+    * rde: avoid dual active controllers in relax promotion mode [#3188]
+    * imm: add checking of return parameters [#3194]
+    * osaf: include tcp plugin in dist tarball
+
 OpenSAF 5.20.05 (released 2020-05-30)
 -------------------------------------
 

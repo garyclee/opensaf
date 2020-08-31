@@ -19,7 +19,8 @@
 import ctypes
 
 from pyosaf import saNtf
-from pyosaf.saAis import eSaBoolT, eSaAisErrorT, SaVoidPtr
+from pyosaf.saNtf import eSaNtfValueTypeT
+from pyosaf.saAis import eSaBoolT, eSaAisErrorT, SaVoidPtr, SaNameT, PY3
 from pyosaf.utils import log_warn, log_err, bad_handle_retry
 from pyosaf.utils.ntf import agent as ntf
 
@@ -87,6 +88,8 @@ class NtfProducer(ntf.NtfAgent):
         elif value_type == saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_LDAP_NAME \
                 or value_type == saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_STRING \
                 or value_type == saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_IPADDRESS:
+            if PY3:
+                value = value.encode('utf-8')
             len_value = len(value)
             dest_ptr = SaVoidPtr()
             rc = ntf.saNtfPtrValAllocate(ntf_handle, len_value + 1, dest_ptr,
@@ -300,14 +303,10 @@ class NtfProducer(ntf.NtfAgent):
         """
         header.eventType.contents.value = self.ntf_info.event_type
 
-        header.notificationObject.contents.value = \
-            self.ntf_info.notification_object
-        header.notificationObject.contents.length = \
-            len(self.ntf_info.notification_object)
+        header.notificationObject[0] = \
+            SaNameT(self.ntf_info.notification_object)
 
-        header.notifyingObject.contents.value = self.ntf_info.notifying_object
-        header.notifyingObject.contents.length = \
-            len(self.ntf_info.notifying_object)
+        header.notifyingObject[0] = SaNameT(self.ntf_info.notifying_object)
 
         header.notificationClassId.contents.vendorId = \
             self.ntf_info.ntf_class_id.vendorId
@@ -318,10 +317,13 @@ class NtfProducer(ntf.NtfAgent):
 
         header.eventTime.contents.value = self.ntf_info.event_time
 
-        header.lengthAdditionalText = len(self.ntf_info.additional_text)
+        additional_text = self.ntf_info.additional_text
+        if PY3:
+            additional_text = self.ntf_info.additional_text.encode('utf-8')
+        header.lengthAdditionalText = len(additional_text)
         ctypes.memmove(header.additionalText,
-                       self.ntf_info.additional_text,
-                       len(self.ntf_info.additional_text) + 1)
+                       additional_text,
+                       len(additional_text) + 1)
 
         if self.ntf_info.additional_info:
             for i, add_info in enumerate(self.ntf_info.additional_info):

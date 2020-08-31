@@ -2653,13 +2653,8 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 			/* if sndqueue is capable, then obtain the current
 			 * sending seq
 			 */
-			if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
-				&fctrl_seq_num) == NCSCC_RC_FAILURE){
-				m_MDS_LOG_ERR("FCTRL: Failed to send message"
-					" len :%d", len);
-				free(buffer_ack);
-				return NCSCC_RC_FAILURE;
-			}
+			mds_tipc_fctrl_sndqueue_capable(tipc_id, &fctrl_seq_num);
+
 			/* Add frag_hdr */
 			if (mdtm_add_frag_hdr(buffer_ack, len, frag_seq_num,
 				0, fctrl_seq_num) != NCSCC_RC_SUCCESS) {
@@ -2761,16 +2756,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 				/* if sndqueue is capable, then obtain the
 				 *  current sending seq
 				 */
-				if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
-					&fctrl_seq_num) == NCSCC_RC_FAILURE){
-					m_MDS_LOG_ERR("FCTRL: Failed to send"
-						" message len :%d",
-						len +
-						mds_and_mdtm_hdr_len);
-					m_MMGR_FREE_BUFR_LIST(usrbuf);
-					free(body);
-					return NCSCC_RC_FAILURE;
-				}
+				mds_tipc_fctrl_sndqueue_capable(tipc_id, &fctrl_seq_num);
 
 				if (mdtm_add_frag_hdr(body,
 					(len + mds_and_mdtm_hdr_len),
@@ -2880,17 +2866,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 			/* if sndqueue is capable, then obtain the current
 			 * sending seq
 			 */
-			if (mds_tipc_fctrl_sndqueue_capable(tipc_id,
-				&fctrl_seq_num) == NCSCC_RC_FAILURE) {
-				m_MDS_LOG_ERR("FCTRL: Failed to send message"
-					" len :%d",
-					req->msg.data.buff_info.len
-					+ mds_and_mdtm_hdr_len);
-				free(body);
-				mds_free_direct_buff(
-					req->msg.data.buff_info.buff);
-				return NCSCC_RC_FAILURE;
-			}
+			mds_tipc_fctrl_sndqueue_capable(tipc_id, &fctrl_seq_num);
 
 			if (mdtm_add_frag_hdr(body,
 				req->msg.data.buff_info.len +
@@ -3059,14 +3035,8 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 		/* if sndqueue is capable, then obtain the current
 		 * sending seq
 		 */
-		if (mds_tipc_fctrl_sndqueue_capable(id, &fctrl_seq_num)
-			== NCSCC_RC_FAILURE) {
-			m_MDS_LOG_ERR("FCTRL: Failed to send message"
-				" len :%d", len_buf);
-			m_MMGR_FREE_BUFR_LIST(usrbuf);
-			free(body);
-			return NCSCC_RC_FAILURE;
-		}
+		mds_tipc_fctrl_sndqueue_capable(id, &fctrl_seq_num);
+
 		if (mdtm_add_frag_hdr(body, len_buf, seq_num, frag_val,
 			fctrl_seq_num) != NCSCC_RC_SUCCESS) {
 			m_MDS_LOG_ERR("MDTM: Frag hde addition"

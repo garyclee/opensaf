@@ -77,6 +77,11 @@ void ncs_mbcsv_null_func(PEER_INST *peer, MBCSV_EVT *evt)
 	      peer->my_ckpt_inst->my_role,
 	      peer->my_ckpt_inst->my_mbcsv_inst->svc_id,
 	      peer->my_ckpt_inst->pwe_hdl);
+	if ((evt) && (evt->msg_type == MBCSV_EVT_INTERNAL_RCV) &&
+	    (evt->info.peer_msg.type == MBCSV_EVT_INTERNAL_CLIENT)) {
+		m_MMGR_FREE_BUFR_LIST(
+		    evt->info.peer_msg.info.client_msg.uba.ub);
+	}
 }
 
 /*****************************************************************************

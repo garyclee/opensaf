@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -45,5 +46,15 @@
 IMMD_CB *immd_cb;
 
 extern uint32_t initialize_for_assignment(IMMD_CB *cb, SaAmfHAStateT ha_state);
+
+static inline void set_canBeCoord_and_execPid(IMMSV_EVT *evt,
+                   IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info) {
+    evt->info.immnd.info.ctrl.canBeCoord =
+        (node_info->isOnController) ? IMMSV_SC_COORD :
+        (cb->mScAbsenceAllowed) ? IMMSV_VETERAN_COORD : IMMSV_NOT_COORD;
+    evt->info.immnd.info.ctrl.ndExecPid =
+        (evt->info.immnd.info.ctrl.canBeCoord == IMMSV_VETERAN_COORD) ?
+        (cb->mScAbsenceAllowed): node_info->immnd_execPid;
+}
 
 #endif  // IMM_IMMD_IMMD_H_

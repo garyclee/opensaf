@@ -27,7 +27,8 @@
 static void clm_node_join_complete(AVD_AVND *node) {
   TRACE_ENTER();
   /* Enable the node in any case. */
-  avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_ENABLED);
+  if(node->recvr_fail_sw == false)
+    avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_ENABLED);
 
   /* For each of the SUs calculate the readiness state.
    ** call the SG FSM with the new readiness state.

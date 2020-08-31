@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -140,13 +141,14 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 	    ctrl->nodeId, ctrl->nodeEpoch, ctrl->canBeCoord, ctrl->isCoord,
 	    ctrl->syncStarted, ctrl->rulingEpoch, ctrl->pbeEnabled);
 
-	if ((ctrl->canBeCoord > 1) && (ctrl->canBeCoord < 4) &&
+	if ((ctrl->canBeCoord > IMMSV_SC_COORD) &&
+	    (ctrl->canBeCoord < IMMSV_VETERAN_COORD) &&
 	    !(immd_cb->mIs2Pbe)) {
 		LOG_ER(
 		    "Active IMMD has 2PBE enabled, yet this standby is not enabled for 2PBE - exiting");
 		exit(1);
 	} else if ((cb->immnd_coord == 0) && immd_cb->mIs2Pbe &&
-		   (ctrl->canBeCoord == 1)) {
+		   (ctrl->canBeCoord == IMMSV_SC_COORD)) {
 		/* If 2Pbe is enabled, then ctrl->canBeCoord must be 2 or 3 for
 		   first node accpet message for each SC. Subsequent may have
 		   ctgrl->canBeCoord set to just 1. First message check done
@@ -177,6 +179,10 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 	}
 
 	if (immnd_info_node) {
+		LOG_NO(
+		    "SBY: Accept intro from %x with ex-IMMD %x",
+		    ctrl->nodeId, ctrl->ex_immd_node_id);
+		immnd_info_node->ex_immd_node_id = ctrl->ex_immd_node_id;
 		if (immnd_info_node->epoch < ctrl->nodeEpoch) {
 			LOG_NO("SBY: New Epoch for IMMND process at node %x "
 			       "old epoch: %u  new epoch:%u",
@@ -186,7 +192,7 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 			immnd_info_node->epoch = ctrl->nodeEpoch;
 		}
 		if (!(immnd_info_node->isOnController) && ctrl->canBeCoord &&
-		    (ctrl->canBeCoord < 4)) {
+		    (ctrl->canBeCoord < IMMSV_VETERAN_COORD)) {
 			immnd_info_node->isOnController = true;
 			TRACE_5(
 			    "Corrected isOnController status for immnd node info");
@@ -204,6 +210,7 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 		immnd_info_node->isCoord = ctrl->isCoord;
 
 		if (ctrl->isCoord) {
+			cb->ex_immd_node_id = immnd_info_node->ex_immd_node_id;
 			SaImmRepositoryInitModeT oldRim = cb->mRim;
 			cb->immnd_coord = immnd_info_node->immnd_key;
 			cb->payload_coord_dest =
@@ -211,7 +218,9 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 				? 0LL
 				: immnd_info_node->immnd_dest;
 			cb->m2PbeCanLoad = true;
-			LOG_NO("IMMND coord at %x", immnd_info_node->immnd_key);
+			LOG_NO(
+			    "IMMND coord at %x with ex-IMMD %x",
+			    immnd_info_node->immnd_key, cb->ex_immd_node_id);
 			immnd_info_node->syncStarted = ctrl->syncStarted;
 			cb->mRim = (ctrl->pbeEnabled == 4)
 				       ? SA_IMM_KEEP_REPOSITORY
@@ -238,7 +247,7 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 		}
 
 		if (!(ctrl->canBeCoord) ||
-		    (ctrl->canBeCoord == 4)) { /* payload node */
+		    (ctrl->canBeCoord == IMMSV_VETERAN_COORD)) { /* payload node */
 			/* Remove the node-id from the list of detached
 			 * payloads. */
 			IMMD_IMMND_DETACHED_NODE *detached_node =
@@ -274,7 +283,7 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 		      ctrl->xmlFile.buf, ctrl->pbeFile.buf);
 
 		if (ctrl->dir.size && cb->mDir == NULL &&
-		    (ctrl->canBeCoord && (ctrl->canBeCoord < 4))) {
+		    (ctrl->canBeCoord && (ctrl->canBeCoord < IMMSV_VETERAN_COORD))) {
 			TRACE("cb->mDir set to %s in standby", ctrl->dir.buf);
 			cb->mDir = ctrl->dir.buf; /*steal*/
 		} else if (ctrl->dir.size && cb->mDir) {
@@ -290,7 +299,7 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 		ctrl->dir.size = 0;
 
 		if (ctrl->xmlFile.size && cb->mFile == NULL &&
-		    (ctrl->canBeCoord && (ctrl->canBeCoord < 4))) {
+		    (ctrl->canBeCoord && (ctrl->canBeCoord < IMMSV_VETERAN_COORD))) {
 			TRACE("cb->mFile set to %s in standby",
 			      ctrl->xmlFile.buf);
 			cb->mFile = ctrl->xmlFile.buf; /*steal*/
@@ -307,7 +316,7 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 		ctrl->xmlFile.size = 0;
 
 		if (ctrl->pbeFile.size && cb->mPbeFile == NULL &&
-		    (ctrl->canBeCoord && (ctrl->canBeCoord < 4))) {
+		    (ctrl->canBeCoord && (ctrl->canBeCoord < IMMSV_VETERAN_COORD))) {
 			TRACE("cb->mPbeFile set to %s in standby",
 			      ctrl->pbeFile.buf);
 			cb->mPbeFile = ctrl->pbeFile.buf; /*steal*/

@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2013 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -289,6 +290,13 @@ static void free_ccb_data(CcbUtilCcbData_t *ccb_data) {
 			osaf_extended_name_free(ccb_data->userData);
 			free(ccb_data->userData);
 		}
+		// Free userData in CcbUtilOperationData
+		struct CcbUtilOperationData* oper_data =
+				ccb_data->operationListHead;
+		for (; oper_data!= NULL; oper_data = oper_data->next) {
+			immutil_freeSaImmAttrValuesT((SaImmAttrValuesT_2**)
+			   oper_data->userData);
+		}
 		ccbutil_deleteCcbData(ccb_data);
 	}
 }
@@ -565,6 +573,20 @@ saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
 	SaNameT *invoker_name_ptr;
 	invoker_name_ptr = ccbUtilCcbData->userData;
 
+	/* Memorize the current attribute values with the modification */
+	if (ccbId > 0) {
+		struct CcbUtilOperationData *ccbOperData;
+		ccbOperData = ccbUtilCcbData->operationListTail;
+		SaImmAttrValuesT_2 **curAttr;
+		rc = get_current_attrs(objectName, attrMods, &curAttr);
+		if (SA_AIS_OK == rc) {
+			ccbOperData->userData = curAttr;
+		} else {
+			ccbOperData->userData = NULL;
+			LOG_ER("Failed to get current attributes rc = %u", rc);
+		}
+	}
+
 	if (ccbId == 0) {
 		/* Attribute change object create */
 		ccbUtilOperationData = ccbUtilCcbData->operationListHead;
@@ -718,7 +740,6 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 
 		case CCBUTIL_MODIFY:
 			invoke_name_ptr = ccbUtilCcbData->userData;
-
 			/* send_object_modify_notification */
 			internal_rc = ntfimcn_send_object_modify_notification(
 			    ccbUtilOperationData, invoke_name_ptr, ccbLast);
@@ -732,7 +753,6 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
 			}
 			break;
 		}
-
 		ccbUtilOperationData = ccbUtilOperationData->next;
 	}
 
@@ -912,6 +932,11 @@ int ntfimcn_imm_init(ntfimcn_cb_t *cb)
 	if (initializeImmOmHandle(&cb->immOmHandle) == false) {
 		internal_rc = NTFIMCN_INTERNAL_ERROR;
 	}
+	cb->immAccessorHandle = 0;
+	if (immutil_saImmOmAccessorInitialize(cb->immOmHandle,
+		&cb->immAccessorHandle) == false) {
+		internal_rc = NTFIMCN_INTERNAL_ERROR;
+	}
 
 done:
 	TRACE_LEAVE();
@@ -973,4 +998,42 @@ static void finalizeImmOmHandle(SaImmHandleT immOmHandle) {
 		LOG_NO("%s saImmOmFinalize failed %s", __FUNCTION__,
 		       saf_error(ais_rc));
 	}
+}
+
+SaAisErrorT get_current_attrs(const SaNameT *objectName,
+    const SaImmAttrModificationT_2 **attrMods,
+    SaImmAttrValuesT_2 ***curAttr) {
+	TRACE_ENTER();
+	SaAisErrorT rc = SA_AIS_OK;
+	// There is no new attribute modifications
+	if (attrMods == NULL) {
+		*curAttr = NULL;
+		return SA_AIS_ERR_INVALID_PARAM;
+	}
+	int len;
+	for (len = 0; attrMods[len] != NULL; ++len) ;
+	SaImmAttrNameT *attrNames = calloc((len + 1), sizeof(SaImmAttrNameT));
+	if (attrNames == NULL) {
+		*curAttr = NULL;
+		return SA_AIS_ERR_NO_MEMORY;
+	}
+	for (int i = 0; i < len; ++i) {
+		attrNames[i] = attrMods[i]->modAttr.attrName;
+	}
+	attrNames[len] = NULL;
+	// Get current attributes for the given attribute names
+	SaImmAttrValuesT_2 **resAttr;
+	rc = immutil_saImmOmAccessorGet_2(ntfimcn_cb.immAccessorHandle,
+	   objectName, attrNames, &resAttr);
+	if (SA_AIS_OK == rc) {
+		*curAttr = immutil_dupSaImmAttrValuesT(
+		      (const SaImmAttrValuesT_2**) resAttr);
+	}
+	else {
+		TRACE("immutil_saImmOmAccessorGet_2 failed rc = %u", rc);
+		*curAttr = NULL;
+	}
+	free(attrNames);
+	TRACE_LEAVE2("rc = %u", rc);
+	return rc;
 }

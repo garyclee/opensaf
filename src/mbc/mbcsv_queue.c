@@ -77,12 +77,17 @@ uint32_t mbcsv_client_queue_init(MBCSV_REG *mbc_reg)
 ******************************************************************************/
 bool mbcsv_client_cleanup_mbx(NCSCONTEXT arg, NCSCONTEXT msg)
 {
-	MBCSV_EVT *node = (MBCSV_EVT *)msg;
+	MBCSV_EVT *evt = (MBCSV_EVT *)msg;
 	TRACE_ENTER();
 
-	/* deallocate the nodes */
-	if (NULL != node) {
-		m_MMGR_FREE_MBCSV_EVT(node);
+	/* deallocate the evt */
+	if (NULL != evt) {
+		if ((evt->msg_type == MBCSV_EVT_INTERNAL_RCV) &&
+		    (evt->info.peer_msg.type == MBCSV_EVT_INTERNAL_CLIENT)) {
+			m_MMGR_FREE_BUFR_LIST(
+			    evt->info.peer_msg.info.client_msg.uba.ub);
+		}
+		m_MMGR_FREE_MBCSV_EVT(evt);
 	}
 	TRACE_LEAVE();
 	return true;

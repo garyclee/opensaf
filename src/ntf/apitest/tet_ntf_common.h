@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -384,6 +385,8 @@ extern "C" {
 
 extern void saAisNameLend(SaConstStringT value, SaNameT *name);
 extern SaConstStringT saAisNameBorrow(const SaNameT *name);
+extern void print_mem(const unsigned char *mem, int len);
+
 
 #ifdef  __cplusplus
 }

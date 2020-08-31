@@ -105,10 +105,11 @@ class SearchIterator(agent.OmAgentManager, Iterator):
         attr_list = unmarshalNullArray(attributes)
         for attr in attr_list:
             attr_range = list(range(attr.attrValuesNumber))
-            attrs[attr.attrName] = [attr.attrValueType,
-                                    [unmarshalSaImmValue(attr.attrValues[val],
-                                                         attr.attrValueType)
-                                     for val in attr_range]]
+            attrs[str(attr.attrName)] = [
+                attr.attrValueType,
+                [unmarshalSaImmValue(attr.attrValues[val],
+                                     attr.attrValueType)
+                 for val in attr_range]]
         return ImmObject(str(obj_name), attrs)
 
     @bad_handle_retry

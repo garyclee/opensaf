@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -1393,4 +1394,32 @@ uint32_t avd_rde_set_role(SaAmfHAStateT role) {
     return NCSCC_RC_FAILURE;
   }
   return rc;
+}
+
+/****************************************************************************\
+ * Function: avd_roaming_sc_split_brain_evh
+ *
+ * Purpose:  Roaming SC split brain detected, send reboot order to standby.
+ *           Note: two actives will be rebooted by RDE.
+ *
+ * Input: cb - the AVD control block
+ *        evt - The event information.
+ *
+ * Returns: None.
+ *
+\**************************************************************************/
+void avd_roaming_sc_split_brain_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
+  (void)evt;
+  AVD_D2D_MSG d2d_msg;
+  TRACE_ENTER();
+
+  if ((cb->node_id_avd_other == 0) || (cb->other_avd_adest == 0)) {
+    return;
+  }
+  d2d_msg.msg_type = AVD_D2D_REBOOT;
+  if (avd_d2d_msg_snd(cb, &d2d_msg) != NCSCC_RC_SUCCESS) {
+    LOG_ER("Reboot order send failed for Standby AMFD");
+  }
+
+  TRACE_LEAVE();
 }

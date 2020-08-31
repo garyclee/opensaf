@@ -340,10 +340,8 @@ done:
   return rc;
 }
 
-void lgs_exit(const char *msg, SaAmfRecommendedRecoveryT rec_rcvr) {
+void lgs_exit(const char *msg) {
   LOG_ER("Exiting with message: %s", msg);
-  (void)saAmfComponentErrorReport(lgs_cb->amf_hdl, &lgs_cb->comp_name, 0,
-                                  rec_rcvr, SA_NTF_IDENTIFIER_UNUSED);
   exit(EXIT_FAILURE);
 }
 

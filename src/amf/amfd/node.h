@@ -108,6 +108,8 @@ class AVD_AVND {
                                             callbacks on this node */
   uint32_t su_cnt_admin_oper;             /* count to keep track SUs on this node
                                              undergoing node admin op */
+  uint32_t su_cnt_admin_repair; /* Count to keep track SUs on this node
+                                   being repaired by node admin repair op */
 
   /************ AMF B.04 **************************************************/
 

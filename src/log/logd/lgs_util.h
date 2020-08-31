@@ -64,7 +64,7 @@ extern int lgs_file_rename_h(const std::string &root_path,
                              const std::string &suffix, std::string *new_name);
 // extern uint32_t lgs_create_known_streams(lgs_cb_t *lgs_cb); /* Not used, no
 // code */
-extern void lgs_exit(const char *msg, SaAmfRecommendedRecoveryT rec_rcvr);
+extern void lgs_exit(const char *msg);
 extern bool lgs_relative_path_check_ts(const std::string &path);
 extern int lgs_make_reldir_h(const std::string &path);
 extern int lgs_check_path_exists_h(const std::string &path_to_check);

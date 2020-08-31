@@ -457,7 +457,6 @@ FSM. *                     Then depending on its current role it will start FSM.
 void mbcsv_clear_multiple_active_state(CKPT_INST *ckpt)
 {
 	PEER_INST *peer;
-	MBCSV_EVT rcvd_evt;
 	TRACE_ENTER();
 
 	/*
@@ -470,8 +469,7 @@ void mbcsv_clear_multiple_active_state(CKPT_INST *ckpt)
 		peer = ckpt->peer_list;
 		TRACE("multiple ACTIVE peers");
 
-		m_NCS_MBCSV_FSM_DISPATCH(peer, NCSMBCSV_EVENT_MULTIPLE_ACTIVE,
-					 &rcvd_evt);
+		m_NCS_MBCSV_FSM_DISPATCH(peer, NCSMBCSV_EVENT_MULTIPLE_ACTIVE, NULL);
 
 		TRACE_LEAVE();
 		return;
@@ -491,12 +489,12 @@ void mbcsv_clear_multiple_active_state(CKPT_INST *ckpt)
 				m_NCS_MBCSV_FSM_DISPATCH(
 				    peer,
 				    NCSMBCSV_EVENT_STATE_TO_KEEP_STBY_SYNC,
-				    &rcvd_evt);
+				    NULL);
 			else
 				m_NCS_MBCSV_FSM_DISPATCH(
 				    peer,
 				    NCSMBCSV_EVENT_STATE_TO_WAIT_FOR_CW_SYNC,
-				    &rcvd_evt);
+				    NULL);
 		}
 
 		peer = peer->next;

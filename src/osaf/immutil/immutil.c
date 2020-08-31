@@ -886,40 +886,7 @@ static void copySaImmAttrValuesT(struct Chunk *clist, SaImmAttrValuesT_2 *copy,
 		return; /* (just in case...) */
 	copy->attrValues =
 	    clistMalloc(clist, valueCount * sizeof(SaImmAttrValueT));
-
-	switch (original->attrValueType) {
-	case SA_IMM_ATTR_SAINT32T:
-		valueSize = sizeof(SaInt32T);
-		break;
-	case SA_IMM_ATTR_SAUINT32T:
-		valueSize = sizeof(SaUint32T);
-		break;
-	case SA_IMM_ATTR_SAINT64T:
-		valueSize = sizeof(SaInt64T);
-		break;
-	case SA_IMM_ATTR_SAUINT64T:
-		valueSize = sizeof(SaUint64T);
-		break;
-	case SA_IMM_ATTR_SATIMET:
-		valueSize = sizeof(SaTimeT);
-		break;
-	case SA_IMM_ATTR_SANAMET:
-		valueSize = sizeof(SaNameT);
-		break;
-	case SA_IMM_ATTR_SAFLOATT:
-		valueSize = sizeof(SaFloatT);
-		break;
-	case SA_IMM_ATTR_SADOUBLET:
-		valueSize = sizeof(SaDoubleT);
-		break;
-	case SA_IMM_ATTR_SASTRINGT:
-		valueSize = sizeof(SaStringT);
-		break;
-	case SA_IMM_ATTR_SAANYT:
-		valueSize = sizeof(SaAnyT);
-		break;
-	}
-
+	valueSize = immutil_valueSize(original->attrValueType);
 	databuffer = (char *)clistMalloc(clist, valueCount * valueSize);
 	for (i = 0; i < valueCount; i++) {
 		copy->attrValues[i] = databuffer;
@@ -2614,4 +2581,184 @@ immutil_saImmOmClassDescriptionMemoryFree_2(SaImmHandleT immHandle,
 		    "saImmOmClassDescriptionMemoryFree_2 FAILED, rc = %d",
 		    (int)rc);
 	return rc;
+}
+
+size_t immutil_valueSize(SaImmValueTypeT type)
+{
+	size_t valueSize = 0;
+
+	switch (type) {
+	case SA_IMM_ATTR_SAINT32T:
+		valueSize = sizeof(SaInt32T);
+		break;
+	case SA_IMM_ATTR_SAUINT32T:
+		valueSize = sizeof(SaUint32T);
+		break;
+	case SA_IMM_ATTR_SAINT64T:
+		valueSize = sizeof(SaInt64T);
+		break;
+	case SA_IMM_ATTR_SAUINT64T:
+		valueSize = sizeof(SaUint64T);
+		break;
+	case SA_IMM_ATTR_SATIMET:
+		valueSize = sizeof(SaTimeT);
+		break;
+	case SA_IMM_ATTR_SANAMET:
+		valueSize = sizeof(SaNameT);
+		break;
+	case SA_IMM_ATTR_SAFLOATT:
+		valueSize = sizeof(SaFloatT);
+		break;
+	case SA_IMM_ATTR_SADOUBLET:
+		valueSize = sizeof(SaDoubleT);
+		break;
+	case SA_IMM_ATTR_SASTRINGT:
+		valueSize = sizeof(SaStringT);
+		break;
+	case SA_IMM_ATTR_SAANYT:
+		valueSize = sizeof(SaAnyT);
+		break;
+	}
+	return valueSize;
+}
+
+static void _copySaImmAttrValuesT(SaImmAttrValuesT_2 **dest,
+    const SaImmAttrValuesT_2 *src)
+{
+	SaImmAttrValuesT_2 *tdest = (SaImmAttrValuesT_2*) calloc(1,
+	    sizeof(SaImmAttrValuesT_2));
+	tdest->attrName = strdup(src->attrName);
+
+	tdest->attrValueType = src->attrValueType;
+	tdest->attrValuesNumber = src->attrValuesNumber;
+	SaUint32T count = src->attrValuesNumber;
+	size_t valSize = immutil_valueSize(src->attrValueType);
+	if (src->attrValues == NULL){
+		*dest = tdest;
+		return;
+	}
+	tdest->attrValues = (SaImmAttrValueT*) malloc(
+	    sizeof(SaImmAttrValueT) * count);
+
+	for (unsigned int i = 0; i < count; ++i){
+		if (src->attrValues[i] == NULL) {
+			tdest->attrValues[i] = NULL;
+			continue;
+		}
+		tdest->attrValues[i] = malloc(valSize);
+		switch (src->attrValueType) {
+		case SA_IMM_ATTR_SASTRINGT: {
+			*((SaStringT*) tdest->attrValues[i]) = strdup(
+			    *((SaStringT*) src->attrValues[i]));
+			break;
+		}
+		case SA_IMM_ATTR_SANAMET: {
+			SaNameT *nameSrc = (SaNameT*) src->attrValues[i];
+			SaNameT *nameDest = (SaNameT*) tdest->attrValues[i];
+			osaf_extended_name_alloc(
+			    osaf_extended_name_borrow(nameSrc), nameDest);
+			break;
+		}
+		case SA_IMM_ATTR_SAANYT: {
+			SaAnyT *anySrc = (SaAnyT*) src->attrValues[i];
+			SaAnyT *anyDest = (SaAnyT*) tdest->attrValues[i];
+			anyDest->bufferSize = anySrc->bufferSize;
+			if (anyDest->bufferSize) {
+				anyDest->bufferAddr =
+				    (SaUint8T*) malloc(anyDest->bufferSize);
+				memcpy(anyDest->bufferAddr,
+				    anySrc->bufferAddr, anyDest->bufferSize);
+			} else {
+				anyDest->bufferAddr = NULL;
+			}
+			break;
+		}
+		default:
+			memcpy(tdest->attrValues[i],
+			    src->attrValues[i], valSize);
+			break;
+		}
+		}
+	*dest = tdest;
+}
+
+SaImmAttrValuesT_2** immutil_dupSaImmAttrValuesT(
+    const SaImmAttrValuesT_2 **src)
+{
+	// Return if there is no source
+	if (src == NULL) {
+		TRACE("src is null");
+		return NULL;
+	}
+	// Return if the source is just an array of NULL
+	int len = 0;
+	while (src[len] != NULL)
+		++len;
+	if (!len) {
+		TRACE("src length is null");
+		return NULL;
+	}
+	SaImmAttrValuesT_2 **attr =
+	    (SaImmAttrValuesT_2 **)malloc(
+	    (len + 1) * sizeof(SaImmAttrValuesT_2*));
+	if (attr == NULL) {
+		TRACE("Failed to allocate memory");
+		return NULL;
+		}
+	// Deep clone the source to destination
+	for (int i = 0; i < len; ++i) {
+		_copySaImmAttrValuesT(&attr[i], src[i]);
+	}
+	attr[len] = NULL;
+	return attr;
+}
+
+void immutil_freeSaImmAttrValuesT(SaImmAttrValuesT_2 **attrs)
+{
+	if (attrs == NULL)
+		return;
+	SaImmAttrValuesT_2 *attr;
+	SaImmAttrValueT value;
+	for (int i = 0; (attr = attrs[i]) != NULL; ++i) {
+		free(attr->attrName);
+		if (attr->attrValues == NULL) {
+			continue;
+		}
+		for (unsigned int j = 0; j < attr->attrValuesNumber; ++j) {
+			value = attr->attrValues[j];
+			if (value == NULL) {
+				continue;
+			}
+			if (attr->attrValueType == SA_IMM_ATTR_SASTRINGT) {
+				free(*((SaStringT*) value));
+			}
+			else if (attr->attrValueType == SA_IMM_ATTR_SANAMET) {
+				osaf_extended_name_free((SaNameT*) value);
+			}
+			else if (attr->attrValueType == SA_IMM_ATTR_SAANYT) {
+				free(((SaAnyT*) value)->bufferAddr);
+			}
+			free(value);
+		}
+		free(attr->attrValues);
+		free(attr);
+	}
+	free(attrs);
+}
+
+const SaImmAttrValuesT_2* immutil_findAttrByName(
+   const SaImmAttrValuesT_2** attrs, SaImmAttrNameT name)
+{
+	const SaImmAttrValuesT_2* result = NULL;
+	if (!attrs)
+		return result;
+
+	const SaImmAttrValuesT_2* attr = NULL;
+	for (int i = 0; (attr = attrs[i]) != NULL; ++i) {
+		if (strcmp(attr->attrName, name) == 0) {
+			result = attr;
+			break;
+		}
+	}
+	return result;
 }

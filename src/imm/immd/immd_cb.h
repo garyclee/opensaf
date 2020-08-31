@@ -1,7 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
- * Copyright Ericsson AB 2017 - All Rights Reserved.
+ * Copyright Ericsson AB 2017, 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -61,6 +61,7 @@ typedef struct immd_immnd_info_node {
   bool syncStarted;
   bool pbeConfigured; /* Pbe-file-name configured. Pbe may still be disabled. */
   bool isUp; /* True if received the MDS UP event */
+  NODE_ID ex_immd_node_id;  // Old active IMMD info
 } IMMD_IMMND_INFO_NODE;
 
 typedef struct immd_immnd_detached_node { /* IMMD SBY tracking of departed
@@ -155,6 +156,12 @@ typedef struct immd_cb_tag {
   NCS_LOCK veteran_sync_lock; /* Sync up with veteran payload after headless */
   NCS_SEL_OBJ
       veteran_sync_sel; /* Sync up with veteran payload after headless */
+
+  /* Store old active IMMD of selected IMMND coordinator.
+   * Use to consider reboot IMMNDs which are used to be different partitions
+   * with selected coordinator [#2936] */
+  NODE_ID ex_immd_node_id;
+  bool coord_select_node;
 } IMMD_CB;
 
 uint32_t immd_immnd_info_tree_init(IMMD_CB *cb);

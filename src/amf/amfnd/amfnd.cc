@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -26,7 +27,6 @@
 #include <cinttypes>
 
 #include "amf/amfnd/avnd.h"
-
 // Remember MDS install version of Agents. It can be used to send msg to Agent
 // based on their versions.
 std::map<MDS_DEST, MDS_SVC_PVT_SUB_PART_VER> agent_mds_ver_db;
@@ -202,12 +202,18 @@ uint32_t avnd_evt_avnd_avnd_api_resp_msg_hdl(AVND_CB *cb, AVND_EVT *evt) {
   AVND_COMP *o_comp =
       m_AVND_INT_EXT_COMPDB_REC_GET(cb->internode_avail_comp_db, comp_name);
   if (nullptr == o_comp) {
-    LOG_ER("Couldn't find comp in Inter/Ext Comp DB");
-    res = NCSCC_RC_FAILURE;
-    goto done;
+    TRACE("Couldn't find comp in Inter/Ext Comp DB");
+    // Check if it is a internode responses like error report, etc.
+    o_comp = avnd_cb->compdb_internode.find(comp_name);
+    if (nullptr == o_comp) {
+      LOG_ER("Couldn't find comp in internode comp DB");
+      res = NCSCC_RC_FAILURE;
+      goto done;
+    } else {
+      TRACE("Comp '%s' found in internode comp DB", o_comp->name.c_str());
+    }
   }
   reg_dest = o_comp->reg_dest;
-
   /*****************************************************************************
    *   Some processing for registration and unregistration starts
    *****************************************************************************/
@@ -274,9 +280,14 @@ uint32_t avnd_evt_avnd_avnd_api_resp_msg_hdl(AVND_CB *cb, AVND_EVT *evt) {
 
   /* We have to fprwrd this message to AvA.  */
   res = avnd_amf_resp_send(cb, resp_info->type, resp_info->rc,
-                           (uint8_t *)ha_state, &reg_dest, &avnd_msg->mds_ctxt,
+                           reinterpret_cast<uint8_t *>(ha_state),
+                           &o_comp->reg_dest, &avnd_msg->mds_ctxt,
                            nullptr, false);
-
+  if (o_comp->comp_type == AVND_COMP_TYPE_INTER_NODE_NP) {
+    TRACE("Comp '%s' deleted from internode comp DB", o_comp->name.c_str());
+    cb->compdb_internode.erase(o_comp->name);
+    delete o_comp;
+  }
   if (NCSCC_RC_SUCCESS != res) {
     LOG_ER("%s: Msg Send to AvA Failed:Comp:%s ,Type: %u, rc:%u, Dest:%" PRIu64,
            __FUNCTION__, comp_name.c_str(), resp_info->type, resp_info->rc,
@@ -383,8 +394,8 @@ done:
 
   if (NCSCC_RC_SUCCESS != rc) {
     LOG_ER(
-        "avnd_evt_avnd_avnd_cbk_msg_hdl():Failure:Type:%u Hdl:%llu and Inv:%llu",
-        cbk_info->type, cbk_info->hdl, cbk_info->inv);
+      "avnd_evt_avnd_avnd_cbk_msg_hdl():Failure:Type:%u Hdl:%llu and Inv:%llu",
+      cbk_info->type, cbk_info->hdl, cbk_info->inv);
   }
 
   TRACE_LEAVE2("%u", rc);
@@ -432,7 +443,7 @@ uint32_t avnd_evt_avd_reboot_evh(AVND_CB *cb, AVND_EVT *evt) {
     }
   }
 
-  LOG_NO("Received reboot order, ordering reboot now!");
+  LOG_NO("Received reboot order from %x, ordering reboot now!", info->node_id);
   opensaf_reboot(cb->node_info.nodeId,
                  osaf_extended_name_borrow(&cb->node_info.executionEnvironment),
                  "Received reboot order");

@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -595,18 +596,15 @@ uint32_t immnd_introduceMe(IMMND_CB *cb)
 
 	if (cb->mIntroduced == 2) {
 		LOG_NO(
-		    "Re-introduce-me highestProcessed:%llu highestReceived:%llu",
-		    cb->highestProcessed, cb->highestReceived);
-		send_evt.info.immd.info.ctrl_msg.refresh = 2;
-		send_evt.info.immd.info.ctrl_msg.fevs_count =
-		    cb->highestReceived;
-
-		send_evt.info.immd.info.ctrl_msg.admo_id_count =
-		    cb->mLatestAdmoId;
-		;
-		send_evt.info.immd.info.ctrl_msg.ccb_id_count =
-		    cb->mLatestCcbId;
+		    "Re-introduce-me highestProcessed:%llu highestReceived:%llu "
+		    "ex_immd_node_id=%x",
+		    cb->highestProcessed, cb->highestReceived, cb->ex_immd_node_id);
+		send_evt.info.immd.info.ctrl_msg.refresh = 3;
+		send_evt.info.immd.info.ctrl_msg.fevs_count = cb->highestReceived;
+		send_evt.info.immd.info.ctrl_msg.admo_id_count = cb->mLatestAdmoId;
+		send_evt.info.immd.info.ctrl_msg.ccb_id_count = cb->mLatestCcbId;
 		send_evt.info.immd.info.ctrl_msg.impl_count = cb->mLatestImplId;
+		send_evt.info.immd.info.ctrl_msg.ex_immd_node_id = cb->ex_immd_node_id;
 	}
 
 	if (!immnd_is_immd_up(cb)) {

@@ -23,7 +23,7 @@ from ctypes import pointer
 from pyosaf import saImmOm, saImm
 from pyosaf.saAis import saAis, SaVersionT, SaNameT, SaAisErrorT, \
     eSaAisErrorT, eSaBoolT, unmarshalNullArray
-from pyosaf.saImm import eSaImmScopeT
+from pyosaf.saImm import eSaImmScopeT, SaImmClassNameT, SaImmAttrNameT
 from pyosaf.utils import decorate, initialize_decorate, log_err
 
 # Decorate pure saImmOm* API's with error-handling retry and exception raising
@@ -211,7 +211,8 @@ class ImmOmAgent(OmAgentManager):
         def attr_def_copy(attr_def):
             """ Deep copy attributes """
             attr_def_cpy = saImm.SaImmAttrDefinitionT_2()
-            attr_def_cpy.attrName = attr_def.attrName[:]
+            attr_def_cpy.attrName = SaImmAttrNameT(
+                deepcopy(str(attr_def.attrName)))
             attr_def_cpy.attrValueType = attr_def.attrValueType
             attr_def_cpy.attrFlags = attr_def.attrFlags
 
@@ -220,7 +221,9 @@ class ImmOmAgent(OmAgentManager):
         class_attrs = []
         attr_defs = pointer(pointer(saImm.SaImmAttrDefinitionT_2()))
         category = saImm.SaImmClassCategoryT()
-        rc = saImmOmClassDescriptionGet_2(self.handle, class_name, category,
+        rc = saImmOmClassDescriptionGet_2(self.handle,
+                                          SaImmClassNameT(class_name),
+                                          category,
                                           attr_defs)
         if rc != eSaAisErrorT.SA_AIS_OK:
             log_err("saImmOmClassDescriptionGet_2 FAILED - %s" %
@@ -253,7 +256,7 @@ class ImmOmAgent(OmAgentManager):
         else:
             for attr_desc in class_attrs:
                 if attr_desc.attrFlags & saImm.saImm.SA_IMM_ATTR_RDN:
-                    return attr_desc.attrName
+                    return str(attr_desc.attrName)
 
     def invoke_admin_operation(self, dn, op_id, params=None):
         """ Invoke admin op for dn

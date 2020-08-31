@@ -64,6 +64,7 @@ static uint32_t dec_su_si_curr_stby(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_term_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_inst_msg_processed(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
+static uint32_t dec_recvr_node_fover_swover(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_switch(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t dec_su_pres_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
@@ -164,7 +165,8 @@ const AVSV_DECODE_CKPT_DATA_FUNC_PTR avd_dec_data_func_list[] = {
     dec_su_restart_count, dec_si_dep_state, dec_ng_admin_state,
     dec_avd_to_avd_job_queue_status,
     dec_node_failover_state,
-    dec_su_inst_msg_processed
+    dec_su_inst_msg_processed,
+    dec_recvr_node_fover_swover
 };
 
 /*
@@ -282,6 +284,8 @@ void decode_node_config(NCS_UBAID *ub, AVD_AVND *avnd,
   osaf_extended_name_free(&node_name);
   if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_10) {
     osaf_decode_uint32(ub, &avnd->failover_state);
+  if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_12)
+    osaf_decode_bool(ub, &avnd->recvr_fail_sw);
   }
   TRACE_LEAVE();
 }
@@ -3088,5 +3092,48 @@ static uint32_t dec_node_failover_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
     cb->async_updt_cnt.failover_updt++;
   }
 
+  return NCSCC_RC_SUCCESS;
+}
+
+/****************************************************************************\
+ * Function: dec_recvr_node_fover_swover
+ *
+ * Purpose:  Decode node failover/switchover recovery.
+ *
+ * Input: cb - CB pointer.
+ *        dec - Decode arguments passed by MBCSV.
+ *
+ * Returns: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ *
+ * NOTES:
+ *
+ *
+\**************************************************************************/
+static uint32_t dec_recvr_node_fover_swover(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec) {
+  AVD_AVND avnd;
+  AVD_AVND *avnd_struct;
+
+  TRACE_ENTER();
+
+  /*
+   * Action in this case is just to update.
+   */
+  SaNameT name;
+  osaf_decode_sanamet(&dec->i_uba, &name);
+  avnd.name = Amf::to_string(&name);
+  osaf_extended_name_free(&name);
+  osaf_decode_uint32(&dec->i_uba,
+                     reinterpret_cast<uint32_t *>(&avnd.recvr_fail_sw));
+
+  if (nullptr == (avnd_struct = avd_node_get(avnd.name))) {
+    LOG_ER("%s: node not found, nodeid=%s", __FUNCTION__, avnd.name.c_str());
+    return NCSCC_RC_FAILURE;
+  }
+
+  /* Update the fields received in this checkpoint message */
+  avnd_struct->recvr_fail_sw = avnd.recvr_fail_sw;
+
+  cb->async_updt_cnt.node_updt++;
+  TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
 }

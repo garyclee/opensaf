@@ -218,10 +218,13 @@ AVND_SU_SIQ_REC *avnd_su_siq_rec_buf(AVND_CB *cb, AVND_SU *su,
   uint32_t rc = NCSCC_RC_SUCCESS;
   TRACE_ENTER2("'%s'", su->name.c_str());
 
-  /* buffer the msg, if SU is inst-failed and all comps are not terminated */
+  /* buffer the msg, if SU is inst-failed and all comps are not terminated
+  or during SuRestart */
   if (((su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
        (!m_AVND_SU_IS_ALL_TERM(su))) ||
-      m_AVND_IS_SHUTTING_DOWN(cb)) {
+      m_AVND_IS_SHUTTING_DOWN(cb) ||
+      (m_AVND_SU_IS_RESTART(su) &&
+      su_all_comps_restartable(*su))) {
     siq = avnd_su_siq_rec_add(cb, su, param, &rc);
     TRACE_LEAVE();
     return siq;
@@ -303,15 +306,18 @@ uint32_t avnd_su_siq_prc(AVND_CB *cb, AVND_SU *su) {
     return rc;
   }
 
-  /* unlink the buffered msg from the queue */
-  ncs_db_link_list_delink(&su->siq, &siq->su_dll_node);
-
   /* initiate si asignment / removal */
   rc = avnd_su_si_msg_prc(cb, su, &siq->info);
 
-  /* delete the buffered msg */
-  avnd_su_siq_rec_del(cb, su, siq);
-
+  // Siq will used to su-si respond later
+  // in case modify SU-SI during SURestart
+  if ((siq->info.msg_act != AVSV_SUSI_ACT_MOD) ||
+      !m_AVND_SU_IS_RESTART(su)) {
+    /* unlink the buffered msg from the queue */
+    ncs_db_link_list_delink(&su->siq, &siq->su_dll_node);
+    /* delete the buffered msg */
+    avnd_su_siq_rec_del(cb, su, siq);
+  }
   TRACE_LEAVE2("%u", rc);
   return rc;
 }
@@ -1128,6 +1134,7 @@ static bool container_contained_shutdown(const AVND_SU *su) {
 uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
   AVND_SU_SI_REC *curr_si = 0;
   AVND_COMP_CSI_REC *curr_csi = 0, *t_csi = 0;
+  AVND_SU_SIQ_REC *siq = 0;
   uint32_t rc = NCSCC_RC_SUCCESS;
   bool opr_done;
 
@@ -1197,6 +1204,18 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
       (is_no_assignment_due_to_escalations(su) == false)) {
     rc = avnd_di_susi_resp_send(cb, su, m_AVND_SU_IS_ALL_SI(su) ? nullptr : si);
     if (NCSCC_RC_SUCCESS != rc) goto done;
+  }
+
+  // Modify event during SURestart should be respond
+  siq = reinterpret_cast<AVND_SU_SIQ_REC *>(m_NCS_DBLIST_FIND_LAST(&su->siq));
+  if (siq && (siq->info.msg_act == AVSV_SUSI_ACT_MOD) &&
+      m_AVND_SU_IS_RESTART(su)) {
+      ncs_db_link_list_delink(&su->siq, &siq->su_dll_node);
+      /* delete the buffered msg */
+      avnd_su_siq_rec_del(avnd_cb, su, siq);
+      rc = avnd_di_susi_resp_send(cb, su,
+                                  m_AVND_SU_IS_ALL_SI(su) ? nullptr : si);
+      if (NCSCC_RC_SUCCESS != rc) goto done;
   }
 
   if (si && (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED)) {
@@ -1683,16 +1702,23 @@ static uint32_t pi_su_instantiating_to_instantiated(AVND_SU *su) {
     /* reset the su failed flag & set the oper state to enabled */
     m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_ENABLED);
     TRACE("Setting the Oper state to Enabled");
-    /*
-     * reassign all the sis...
-     * it's possible that the si was never assigned. send su-oper
-     * enable msg instead.
-     */
-    if (su->si_list.n_nodes)
-      rc = avnd_su_si_reassign(avnd_cb, su);
-    else {
-      rc = avnd_di_oper_send(avnd_cb, su, 0);
-      reset_suRestart_flag(su);
+
+    AVND_SU_SIQ_REC *siq = 0;
+    siq = reinterpret_cast<AVND_SU_SIQ_REC *>(m_NCS_DBLIST_FIND_LAST(&su->siq));
+    if (siq && (siq->info.msg_act == AVSV_SUSI_ACT_MOD)) {
+      rc = avnd_su_siq_prc(avnd_cb, su);
+    } else {
+      /*
+       * reassign all the sis...
+       * it's possible that the si was never assigned. send su-oper
+       * enable msg instead.
+       */
+      if (su->si_list.n_nodes)
+        rc = avnd_su_si_reassign(avnd_cb, su);
+      else {
+        rc = avnd_di_oper_send(avnd_cb, su, 0);
+        reset_suRestart_flag(su);
+      }
     }
     su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
   } else {

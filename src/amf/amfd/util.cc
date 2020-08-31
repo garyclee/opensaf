@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -1396,6 +1397,7 @@ int amfd_file_dump(const char *filename) {
     fprintf(f, "    saAmfNodeOperState: %s\n",
             avd_oper_state_name[node->saAmfNodeOperState]);
     fprintf(f, "    node_state: %u\n", node->node_state);
+    fprintf(f, "    recvr_fail_sw: %u\n", node->recvr_fail_sw);
     fprintf(f, "    adest:%" PRIx64 "\n", node->adest);
     fprintf(f, "    rcv_msg_id: %u\n", node->rcv_msg_id);
     fprintf(f, "    snd_msg_id: %u\n", node->snd_msg_id);
@@ -1823,7 +1825,7 @@ void avd_d2n_reboot_snd(AVD_AVND *node) {
   AVD_DND_MSG *d2n_msg = new AVD_DND_MSG();
 
   d2n_msg->msg_type = AVSV_D2N_REBOOT_MSG;
-  d2n_msg->msg_info.d2n_reboot_info.node_id = node->node_info.nodeId;
+  d2n_msg->msg_info.d2n_reboot_info.node_id = avd_cb->node_id_avd;
   d2n_msg->msg_info.d2n_reboot_info.msg_id = ++(node->snd_msg_id);
 
   if (avd_d2n_msg_snd(avd_cb, node, d2n_msg) != NCSCC_RC_SUCCESS) {
@@ -2126,7 +2128,7 @@ uint32_t avd_send_reboot_msg_directly(AVD_AVND *node) {
   AVD_DND_MSG *d2n_msg = new AVD_DND_MSG();
 
   d2n_msg->msg_type = AVSV_D2N_REBOOT_MSG;
-  d2n_msg->msg_info.d2n_reboot_info.node_id = node->node_info.nodeId;
+  d2n_msg->msg_info.d2n_reboot_info.node_id = avd_cb->node_id_avd;
 
   if (node->adest == 0) {
     LOG_WA("Invalid adest for %x, msg type %u", node->node_info.nodeId,

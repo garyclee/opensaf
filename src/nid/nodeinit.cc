@@ -1612,6 +1612,15 @@ uint32_t create_svc_monitor_thread(void) {
     return NCSCC_RC_FAILURE;
   }
 
+  // Waiting until svc_monitor_thread is up and in ready state.
+  unsigned no_repeat = 0;
+  while (svc_monitor_thread_ready == false && no_repeat < 100) {
+    osaf_nanosleep(&kHundredMilliseconds);
+    no_repeat++;
+  }
+  osafassert(svc_monitor_thread_ready);
+  LOG_NO("svc_monitor_thread is up and in ready state");
+
   TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
 }
@@ -1661,16 +1670,6 @@ int main(int argc, char *argv[]) {
     LOG_ER("Failed to create service monitor thread, exiting");
     exit(EXIT_FAILURE);
   }
-
-  // Waiting until svc_monitor_thread is up and in ready state.
-  unsigned no_repeat = 0;
-  while (svc_monitor_thread_ready == false && no_repeat < 100) {
-    osaf_nanosleep(&kHundredMilliseconds);
-    no_repeat++;
-  }
-
-  osafassert(svc_monitor_thread_ready);
-  LOG_NO("svc_monitor_thread is up and in ready state");
 
   if (parse_nodeinit_conf(sbuf) != NCSCC_RC_SUCCESS) {
     LOG_ER("Failed to parse file %s. Exiting", sbuf);

@@ -54,6 +54,8 @@ struct RDE_CONTROL_BLOCK {
   State state{State::kNotActive};
   std::atomic<ConsensusState> consensus_service_state{ConsensusState::kUnknown};
   std::atomic<bool> state_refresh_thread_started{false}; // consensus service
+  struct timespec promote_start{0};
+  uint64_t promote_pending{0};
 };
 
 enum RDE_MSG_TYPE {
@@ -72,6 +74,7 @@ enum RDE_MSG_TYPE {
 
 struct rde_peer_info {
   PCS_RDA_ROLE ha_role;
+  uint64_t promote_pending;
 };
 
 struct rde_msg {

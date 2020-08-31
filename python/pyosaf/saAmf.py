@@ -19,7 +19,7 @@ from ctypes import POINTER, Structure, CFUNCTYPE, CDLL, Union
 from pyosaf.saAis import SaAisErrorT, SaInvocationT, SaNameT, SaUint64T, \
         SaUint32T, SaTimeT, SaUint8T, SaInt64T, SaInt32T, SaDispatchFlagsT, \
         SaVersionT, SaSelectionObjectT, SaEnumT, Enumeration, SaInt8T, \
-        SaUint16T, Const, BYREF
+        SaUint16T, Const, BYREF, PY3
 from pyosaf.saNtf import SaNtfIdentifierT, SaNtfCorrelationIdsT
 
 # Only mirrors API calls implemented in osaf/libs/agents/saf/ava/ava_api.c
@@ -61,7 +61,11 @@ class SaAmfHealthcheckKeyT(Structure):
 	def __init__(self, key=''):
 		"""Construct instance with contents of 'key'.
 		"""
-		super(SaAmfHealthcheckKeyT, self).__init__(key, len(key))
+		if PY3:
+			key = key.encode('utf-8')
+			super(SaAmfHealthcheckKeyT, self).__init__(key, len(key))
+		else:
+			super(SaAmfHealthcheckKeyT, self).__init__(key, len(key))
 
 SaAmfHAStateT = SaEnumT
 eSaAmfHAStateT = Enumeration((

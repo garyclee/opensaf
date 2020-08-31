@@ -49,6 +49,7 @@ typedef enum {
   MBCSV_EVT_MDS_SUBSCR,
   MBCSV_EVT_TMR,
   MBCSV_EVT_INTERNAL,
+  MBCSV_EVT_INTERNAL_RCV,
 } MBCSV_EVT_TYPE;
 
 typedef struct mbcsv_evt_tmr_info {

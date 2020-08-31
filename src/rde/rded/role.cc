@@ -107,9 +107,14 @@ void Role::PromoteNode(const uint64_t cluster_size,
   rc = consensus_service.PromoteThisNode(true, cluster_size);
   if (rc == SA_AIS_ERR_EXIST) {
     LOG_WA("Another controller is already active");
+    if (role() == PCS_RDA_UNDEFINED) SetRole(PCS_RDA_QUIESCED);
     return;
   } else if (rc != SA_AIS_OK && relaxed_mode == true) {
     LOG_WA("Unable to set active controller in consensus service");
+    if (role() == PCS_RDA_QUIESCED) {
+      LOG_WA("Another controller is already promoted");
+      return;
+    }
     LOG_WA("Will become active anyway");
     promotion_pending = true;
   } else if (rc != SA_AIS_OK) {
@@ -288,6 +293,9 @@ uint32_t Role::SetRole(PCS_RDA_ROLE new_role) {
       (old_role == PCS_RDA_UNDEFINED || old_role == PCS_RDA_QUIESCED)) {
     LOG_NO("Requesting ACTIVE role");
     new_role = PCS_RDA_UNDEFINED;
+    RDE_CONTROL_BLOCK* cb = rde_get_control_block();
+    cb->promote_start = base::ReadMonotonicClock();
+    cb->promote_pending = 0;
   }
   if (new_role != old_role) {
     LOG_NO("RDE role set to %s", to_string(new_role));
@@ -347,10 +355,23 @@ uint32_t Role::UpdateMdsRegistration(PCS_RDA_ROLE new_role,
   return rc;
 }
 
-void Role::SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id) {
+void Role::SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id,
+                        uint64_t peer_promote_pending) {
   if (role() == PCS_RDA_UNDEFINED) {
+    bool give_up = false;
+    RDE_CONTROL_BLOCK *cb = rde_get_control_block();
+    if (node_role == PCS_RDA_UNDEFINED) {
+      if (cb->promote_pending == 0) {
+        struct timespec now = base::ReadMonotonicClock();
+        cb->promote_pending = base::TimespecToMillis(now - cb->promote_start);
+      }
+      if ((cb->promote_pending < peer_promote_pending) ||
+          (cb->promote_pending == peer_promote_pending &&
+           node_id < own_node_id_))
+        give_up = true;
+    }
     if (node_role == PCS_RDA_ACTIVE || node_role == PCS_RDA_STANDBY ||
-        (node_role == PCS_RDA_UNDEFINED && node_id < own_node_id_)) {
+        give_up) {
       SetRole(PCS_RDA_QUIESCED);
       LOG_NO("Giving up election against 0x%" PRIx32
              " with role %s. "

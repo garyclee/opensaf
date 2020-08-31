@@ -59,9 +59,10 @@
 */
 
 #include "amf/amfnd/avnd.h"
+#include "osaf/immutil/immutil.h"
+#include "amf/amfnd/imm.h"
 
 /* static function declarations */
-
 static uint32_t avnd_err_escalate(AVND_CB *, AVND_SU *, AVND_COMP *,
                                   uint32_t *);
 
@@ -173,9 +174,32 @@ uint32_t avnd_evt_ava_err_rep_evh(AVND_CB *cb, AVND_EVT *evt) {
 
   /* check if component exists on local AvND node */
   comp = avnd_compdb_rec_get(cb->compdb, Amf::to_string(&err_rep->err_comp));
-  if (!comp) amf_rc = SA_AIS_ERR_NOT_EXIST;
 
-  /* determine other error codes, if any */
+  if (!comp) {
+    // Send the message to imm reader thread for further processing
+    TRACE("Err_Rep: Sending to Imm thread.");
+    AVSV_NDA_AVA_MSG *ava_msg =
+      static_cast<AVSV_NDA_AVA_MSG *>(calloc(1, sizeof(AVSV_NDA_AVA_MSG)));
+    memcpy(ava_msg, evt->info.ava.msg, sizeof(AVSV_NDA_AVA_MSG));
+    AVND_EVT *evt_er = avnd_evt_create(cb, AVND_EVT_AVA_ERR_REP,
+      &evt->mds_ctxt, &api_info->dest, reinterpret_cast<void *>(ava_msg), 0, 0);
+    rc = m_NCS_IPC_SEND(&ir_cb.mbx, evt_er, evt_er->priority);
+    if (NCSCC_RC_SUCCESS != rc) {
+      LOG_CR("AvND send event to IR mailbox failed, type = %u", evt_er->type);
+      /* if failure, free the event */
+        avnd_evt_destroy(evt_er);
+        amf_rc = SA_AIS_ERR_TRY_AGAIN;
+    } else {
+      goto done;
+    }
+  }
+
+  // If this node is disabled  or is not a member of Clm cluster, then
+  // return Unavailable for any operation like this.
+  if (comp && (cb->node_info.member == false)) {
+    amf_rc = SA_AIS_ERR_UNAVAILABLE;
+    goto send_resp;
+  }
 
   /* We need not entertain errors when comp is not in shape */
   if (comp && (m_AVND_COMP_PRES_STATE_IS_UNINSTANTIATED(comp) ||
@@ -209,6 +233,7 @@ uint32_t avnd_evt_ava_err_rep_evh(AVND_CB *cb, AVND_EVT *evt) {
            comp->name.c_str());
     amf_rc = SA_AIS_ERR_NOT_SUPPORTED;
   }
+send_resp:
   /* send the response back to AvA */
   rc = avnd_amf_resp_send(cb, AVSV_AMF_ERR_REP, amf_rc, 0, &api_info->dest,
                           &evt->mds_ctxt, comp, msg_from_avnd);
@@ -1135,7 +1160,7 @@ uint32_t avnd_err_rcvr_node_failover(AVND_CB *cb, AVND_SU *failed_su,
   for (comp = avnd_compdb_rec_get_next(cb->compdb, ""); comp != nullptr;
        comp = avnd_compdb_rec_get_next(cb->compdb, comp->name)) {
     if (comp->su->is_ncs || comp->su->su_is_external) continue;
-
+    rc = avnd_comp_curr_info_del(cb, comp);
     rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
     if (rc != NCSCC_RC_SUCCESS) {
       LOG_ER("'%s' termination failed", comp->name.c_str());

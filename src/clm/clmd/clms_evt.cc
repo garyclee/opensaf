@@ -2136,10 +2136,7 @@ void clms_remove_node_down_rec(SaClmNodeIdT node_id) {
  */
 void clms_evt_destroy(CLMSV_CLMS_EVT *evt) {
   osafassert(evt != nullptr);
-  if (evt->info.msg.info.api_info.type == CLMSV_CLUSTER_JOIN_REQ) {
-    TRACE("not calloced in server code,don't free it here");
-  } else
-    free(evt);
+  free(evt);
 }
 
 /*clms ack to response msg from clma

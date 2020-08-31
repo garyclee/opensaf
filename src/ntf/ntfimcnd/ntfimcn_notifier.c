@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2013 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -37,6 +38,8 @@
 #include "base/osaf_extended_name.h"
 
 #include "ntfimcn_main.h"
+#include "ntfimcn_imm.h"
+
 
 /* Release code, major version, minor version */
 const SaVersionT kNtfVersion = {'A', 0x01, 0x01};
@@ -244,6 +247,7 @@ done:
 	TRACE_LEAVE();
 	return internal_rc;
 }
+
 
 /**
  * Fill in the attribute value and type. The value can be of
@@ -747,7 +751,8 @@ done:
  */
 static int fill_attribute_info_modify(
     SaImmOiCcbIdT CcbId, SaConstStringT invoke_name,
-    const SaImmAttrModificationT_2 **imm_attr_mods_in,
+    const SaImmAttrModificationT_2 **imm_attr_mods_in, // New attributes
+    const SaImmAttrValuesT_2** imm_attrs_in,  // Old attributes if exist
     SaNtfAttributeChangeNotificationT *SaNtfAttributeChangeNotification,
     SaBoolT ccbLast)
 {
@@ -792,6 +797,7 @@ static int fill_attribute_info_modify(
 			}
 
 			/* Fill Corresponding Attribute Value */
+			/* The old value exists in IMM but not populated */
 			changedAttributes = &SaNtfAttributeChangeNotification
 						 ->changedAttributes[1];
 			changedAttributes->oldAttributePresent = SA_FALSE;
@@ -810,7 +816,6 @@ static int fill_attribute_info_modify(
 				       __FUNCTION__);
 				goto done;
 			}
-
 		} else if (strcmp(imm_attr_mods->modAttr.attrName,
 				  NTFIMCN_IMPLEMENTER_NAME) == 0) {
 			/* Do not handle here since it is handled separately.
@@ -834,6 +839,14 @@ static int fill_attribute_info_modify(
 				goto done;
 			}
 
+			// Get old attribute values corresponding to the
+			// new attributes below. Can be multi value or
+			// no value
+			const SaImmAttrValuesT_2* old_imm_attr_value =
+			    immutil_findAttrByName(imm_attrs_in,
+			     imm_attr_mods->modAttr.attrName);
+			TRACE("old_imm_attr_value is <%s>",
+					old_imm_attr_value? "not null": "null");
 			/* Fill Corresponding Attribute Value
 			 * Can be a multi value or no value.
 			 */
@@ -862,6 +875,39 @@ static int fill_attribute_info_modify(
 					    "%s: fill_attribute_value failed",
 					    __FUNCTION__);
 					goto done;
+				}
+				// No need to populate notification data when
+				// the number of old attribute values is
+				// greater than the number of new attribute
+				// values
+				if (old_imm_attr_value &&
+				    (old_imm_attr_value ->attrValuesNumber >
+				    imm_attr_mods->modAttr.attrValuesNumber))
+					continue;
+				// The number of old attributes is less than or
+				// equal to the number of new attribute values
+				if (old_imm_attr_value &&
+				   (vindex < old_imm_attr_value
+				    ->attrValuesNumber)) {
+					changedAttributes->oldAttributePresent =
+					   SA_TRUE;
+					internal_rc = fill_attribute_value(
+					  SaNtfAttributeChangeNotification
+					  ->notificationHandle,
+					  imm_attr_mods->modAttr.attrValueType,
+					  old_imm_attr_value->attrValues,
+					  vindex,  /* Index of attrValues in */
+					  add_index, /* Attribute Id */
+					  &changedAttributes->attributeId,
+					  &changedAttributes->attributeType,
+					  &changedAttributes
+					  ->oldAttributeValue);
+					if (internal_rc != 0) {
+					   LOG_ER(
+					   "%s: fill_attribute_value failed",
+					   __FUNCTION__);
+						goto done;
+					}
 				}
 			}
 
@@ -900,6 +946,7 @@ static int fill_attribute_info_modify(
 	}
 
 	/* Fill Corresponding Attribute Value */
+	/* The old value exists in IMM but not populated */
 	changedAttributes =
 	    &SaNtfAttributeChangeNotification->changedAttributes[0];
 	changedAttributes->oldAttributePresent = SA_FALSE;
@@ -1391,6 +1438,7 @@ int ntfimcn_send_object_modify_notification(
 	 */
 	internal_rc = fill_attribute_info_modify(
 	    CcbId, invoke_name_str, CcbUtilOperationData->param.modify.attrMods,
+	    (const SaImmAttrValuesT_2**) CcbUtilOperationData->userData,
 	    &SaNtfAttributeChangeNotification, ccbLast);
 	if (internal_rc != 0) {
 		LOG_ER("%s: ntfimcn_fill_attribute_info failed", __FUNCTION__);

@@ -180,16 +180,21 @@ bool Cache::Data::is_overdue() const {
   return (current - queue_at > max_resilience);
 }
 
-bool Cache::Data::is_valid(std::string* reason) const {
+bool Cache::Data::is_valid() const {
+  std::string reason{"Ok"};
+  bool rc = true;
   if (is_stream_open() == false) {
-    *reason = "the log stream has been closed";
-    return false;
+    reason = "the log stream has been closed";
+    rc = false;
+  } else if (is_overdue() == true) {
+    reason = "the record is overdue (stream: " + param_->stream()->name + ")";
+    rc = false;
   }
-  if (is_overdue() == true) {
-    *reason = "the record is overdue (stream: " + param_->stream()->name + ")";
-    return false;
+  if ((rc == false) && (is_client_alive() == false)) {
+    LOG_NO("Drop the invalid log record, reason: %s", reason.c_str());
+    LOG_NO("The record info: %s", log_record_);
   }
-  return true;
+  return rc;
 }
 
 void Cache::Data::CloneData(CkptPushAsync* output) const {
@@ -411,15 +416,8 @@ void Cache::PostWrite(std::shared_ptr<Data> data) {
 
 void Cache::PopOverdueData() {
   if (Empty() == true || is_active() == false) return;
-  std::string reason{"Ok"};
   auto data = Front();
-  if (data->is_valid(&reason) == false) {
-    // Either the targeting stream has been closed or the owner is dead.
-    // syslog the detailed info about dropped log record if latter case.
-    if (data->is_client_alive() == false) {
-      LOG_NO("Drop the invalid log record, reason: %s", reason.c_str());
-      LOG_NO("The record info: %s", data->record());
-    }
+  if (data->is_valid() == false) {
     Pop(false);
   }
 }
@@ -427,6 +425,10 @@ void Cache::PopOverdueData() {
 void Cache::FlushFrontElement() {
   if (Empty() || !is_active() || !is_iothread_ready()) return;
   auto data = Front();
+  if (data->is_valid() == false) {
+    Pop(false);
+    return;
+  }
   int rc = data->Write();
   // Write still gets timeout, do nothing.
   if ((rc == -1) || (rc == -2)) return;

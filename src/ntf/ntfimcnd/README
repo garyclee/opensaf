@@ -2,6 +2,7 @@
 #      -*- OpenSAF  -*-
 #
 # (C) Copyright 2013 The OpenSAF Foundation
+# Copyright Ericsson AB 2020 - All Rights Reserved.
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -31,6 +32,12 @@ If Runtime data the notification(s) are sent when the first callback is
 invoked. No more callbacks will be invoked.
 If Config data the CCB data is saved and notification(s) are sent when the
 Apply callback is invoked.
+The old attribute values are fetched from IMM, if exist, are included in
+notifications. For multiple value attributes, if the number of old attribute
+values is greater than the number of new attribute values, the old attribute
+values will not be included in notification.
+This has the advantage of avoiding the ambiguity that would otherwise publish
+some old attribute values but not all.
 For more information about the special applier see README files in immsv.
 
 Code

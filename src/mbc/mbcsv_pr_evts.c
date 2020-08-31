@@ -147,7 +147,8 @@ uint32_t mbcsv_process_events(MBCSV_EVT *rcvd_evt, uint32_t mbcsv_hdl)
 			goto pr_done;
 		}
 	} break;
-	case MBCSV_EVT_INTERNAL: {
+	case MBCSV_EVT_INTERNAL:
+	case MBCSV_EVT_INTERNAL_RCV: {
 		/*
 		 * Process all the received events.
 		 */

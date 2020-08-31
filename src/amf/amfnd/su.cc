@@ -639,7 +639,7 @@ done:
   return rc;
 }
 
-static bool comp_in_term_failed_state(void) {
+bool comp_in_term_failed_state(void) {
   for (AVND_COMP *comp = avnd_compdb_rec_get_next(avnd_cb->compdb, "");
        comp != nullptr;
        comp = avnd_compdb_rec_get_next(avnd_cb->compdb, comp->name)) {

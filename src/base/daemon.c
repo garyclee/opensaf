@@ -57,7 +57,7 @@
 
 #define DEFAULT_RUNAS_USERNAME "opensaf"
 
-static const char *internal_version_id_;
+static char internal_version_id_[53];
 
 static char fifo_file[NAME_MAX];
 static char __pidfile[NAME_MAX];
@@ -294,7 +294,8 @@ void daemonize(int argc, char *argv[])
 	char buf1[256 + sizeof("_SCHED_PRIORITY")] = {0};
 	char buf2[256 + sizeof("_SCHED_POLICY")] = {0};
 
-	internal_version_id_ = strdup("@(#) $Id: " INTERNAL_VERSION_ID " $");
+	snprintf(internal_version_id_, 53,
+						"%s", "@(#) $Id: " INTERNAL_VERSION_ID " $");
 
 	if (argc > 0 && argv != NULL) {
 		__parse_options(argc, argv);

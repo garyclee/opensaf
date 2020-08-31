@@ -2,6 +2,7 @@
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  * Copyright (C) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -400,9 +401,11 @@ static uint32_t avd_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *evt_info) {
     case NCSMDS_UP:
       switch (evt_info->i_svc_id) {
         case NCSMDS_SVC_ID_AVD:
+          TRACE("NCSMDS_UP AVD %x", evt_info->i_node_id);
           /* if((Is this up from other node) && (Is this Up from an Adest)) */
           if ((evt_info->i_node_id != cb->node_id_avd) &&
-              (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest))) {
+              (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest)) &&
+              (cb->other_avd_adest == 0)) {
             cb->node_id_avd_other = evt_info->i_node_id;
             cb->other_avd_adest = evt_info->i_dest;
             cb->stby_sync_state = AVD_STBY_OUT_OF_SYNC;
@@ -441,14 +444,44 @@ static uint32_t avd_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *evt_info) {
       }
       break;
 
+    case NCSMDS_RED_UP:
+      if ((evt_info->i_svc_id == NCSMDS_SVC_ID_AVD) &&
+          (evt_info->i_role == V_DEST_RL_ACTIVE) &&
+          (cb->node_id_avd != evt_info->i_node_id) &&
+          (cb->other_avd_adest) &&
+          (cb->node_id_avd_other != evt_info->i_node_id)) {
+        if (cb->avail_state_avd == SA_AMF_HA_STANDBY) {
+          LOG_ER("Standby peer see two peers: %x and %x",
+            cb->node_id_avd_other, evt_info->i_node_id);
+          opensaf_reboot(0, NULL, "Standby peer see two peers");
+        } else if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+          // Send reboot order to known standby (multi clusters rejoin)
+          AVD_EVT *evt = new AVD_EVT();
+          evt->rcv_evt = AVD_EVT_ROAMING_SC_SPLITBRAIN;
+          if (m_NCS_IPC_SEND(&cb->avd_mbx, evt, NCS_IPC_PRIORITY_HIGH) !=
+              NCSCC_RC_SUCCESS) {
+            LOG_ER("%s: ncs_ipc_send failed", __FUNCTION__);
+            delete evt;
+          }
+        }
+      }
+      break;
+
     case NCSMDS_DOWN:
       switch (evt_info->i_svc_id) {
         case NCSMDS_SVC_ID_AVD:
+          TRACE("NCSMDS_DOWN AVD %x", evt_info->i_node_id);
           /* if(Is this down from an Adest) && (Is this adest same as Adest in
            * CB) */
           if (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest) &&
               m_NCS_MDS_DEST_EQUAL(&evt_info->i_dest, &cb->other_avd_adest)) {
-            memset(&cb->other_avd_adest, '\0', sizeof(MDS_DEST));
+            cb->other_avd_adest = 0;
+            if ((cb->avail_state_avd == SA_AMF_HA_STANDBY) &&
+                (cb->stby_sync_state == AVD_STBY_OUT_OF_SYNC)) {
+              LOG_ER("FAILOVER StandBy --> Active FAILED,"
+                " Standby OUT OF SYNC");
+              opensaf_quick_reboot("FAILOVER failed");
+            }
           }
           break;
 

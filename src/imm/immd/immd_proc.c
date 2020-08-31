@@ -1,6 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
+ * Copyright Ericsson AB 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -406,15 +407,19 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		if (self_re_elect) {
 			/* Ensure we re-elected ourselves. */
 			osafassert(immnd_info_node->immnd_key == cb->node_id);
-			LOG_NO("Coord re-elected, resides at %x",
-			       immnd_info_node->immnd_key);
+			LOG_NO(
+			    "Coord re-elected, resides at %x",
+			    immnd_info_node->immnd_key);
 
 		} else {
-			LOG_NO("New coord elected, resides at %x",
-			       immnd_info_node->immnd_key);
+			LOG_NO(
+			    "New coord elected, resides at %x with ex-IMMD %x",
+			    immnd_info_node->immnd_key,
+			    immnd_info_node->ex_immd_node_id);
 		}
 
 		cb->immnd_coord = immnd_info_node->immnd_key;
+		cb->ex_immd_node_id = immnd_info_node->ex_immd_node_id;
 		if (!cb->is_rem_immnd_up) {
 			if (cb->immd_remote_id &&
 			    m_IMMND_IS_ON_SCXB(
@@ -438,12 +443,7 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		send_evt.info.immnd.info.ctrl.nodeId =
 		    immnd_info_node->immnd_key;
 		send_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
-		send_evt.info.immnd.info.ctrl.canBeCoord =
-		    (immnd_info_node->isOnController)
-			? 1
-			: (cb->mScAbsenceAllowed) ? 4 : 0;
-		send_evt.info.immnd.info.ctrl.ndExecPid =
-		    immnd_info_node->immnd_execPid;
+		set_canBeCoord_and_execPid(&send_evt, cb, immnd_info_node);
 		send_evt.info.immnd.info.ctrl.isCoord = true;
 		send_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
 		send_evt.info.immnd.info.ctrl.syncStarted = false;
@@ -452,8 +452,9 @@ bool immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		send_evt.info.immnd.info.ctrl.pbeEnabled =
 		    (cb->mRim == SA_IMM_KEEP_REPOSITORY);
 
-		mbcp_msg.type = IMMD_A2S_MSG_INTRO_RSP;
+		mbcp_msg.type = IMMD_A2S_MSG_INTRO_RSP_2;
 		mbcp_msg.info.ctrl = send_evt.info.immnd.info.ctrl;
+		mbcp_msg.info.ctrl.ex_immd_node_id = immnd_info_node->ex_immd_node_id;
 		/*Checkpoint the new coordinator message to standby director.
 		   Syncronous call=>wait for ack */
 		if (immd_mbcsv_sync_update(cb, &mbcp_msg) != NCSCC_RC_SUCCESS) {
@@ -647,7 +648,7 @@ decided:
 		send_evt.info.immnd.info.ctrl.nodeId =
 		    immnd_info_node->immnd_key;
 		send_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
-		send_evt.info.immnd.info.ctrl.canBeCoord = true;
+		send_evt.info.immnd.info.ctrl.canBeCoord = IMMSV_SC_COORD;
 		send_evt.info.immnd.info.ctrl.ndExecPid =
 		    immnd_info_node->immnd_execPid;
 		send_evt.info.immnd.info.ctrl.isCoord = false;
@@ -688,7 +689,7 @@ decided:
 	send_evt.info.immnd.type = IMMND_EVT_D2ND_INTRO_RSP;
 	send_evt.info.immnd.info.ctrl.nodeId = immnd_info_node->immnd_key;
 	send_evt.info.immnd.info.ctrl.rulingEpoch = cb->mRulingEpoch;
-	send_evt.info.immnd.info.ctrl.canBeCoord = true;
+	send_evt.info.immnd.info.ctrl.canBeCoord = IMMSV_SC_COORD;
 	send_evt.info.immnd.info.ctrl.ndExecPid =
 	    immnd_info_node->immnd_execPid;
 	send_evt.info.immnd.info.ctrl.isCoord = true;
@@ -824,6 +825,7 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info,
 			}
 
 			free(tmpData);
+			m_MMGR_FREE_BUFR_LIST(uba.start);
 		}
 	} else {
 		/* Standby NOT immediately sending D2ND_DISCARD_NODE. But will
@@ -935,6 +937,7 @@ void immd_pending_discards(IMMD_CB *cb)
 			}
 
 			free(tmpData);
+			m_MMGR_FREE_BUFR_LIST(uba.start);
 		}
 
 		LOG_IN("Removing pending discard for node:%x epoch:%u",

@@ -347,30 +347,19 @@ uint32_t mds_tipc_fctrl_shutdown(void) {
   return NCSCC_RC_SUCCESS;
 }
 
-uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id,
+void mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id,
           uint16_t* next_seq) {
-  if (is_fctrl_enabled == false) return NCSCC_RC_SUCCESS;
-
-  uint32_t rc = NCSCC_RC_SUCCESS;
+  if (is_fctrl_enabled == false) return;
 
   portid_map_mutex.lock();
 
   TipcPortId *portid = portid_lookup(id);
-  if (portid == nullptr) {
-    m_MDS_LOG_ERR("FCTRL: [me] --> [node:%x, ref:%u], "
-        "[line:%u], Error[PortId not found]",
-        id.node, id.ref, __LINE__);
-    rc = NCSCC_RC_FAILURE;
-  } else {
-    if (portid->state_ != TipcPortId::State::kDisabled) {
+  if (portid && portid->state_ != TipcPortId::State::kDisabled) {
       // assign the sequence number of the outgoing message
       *next_seq = portid->GetCurrentSeq();
-    }
   }
 
   portid_map_mutex.unlock();
-
-  return rc;
 }
 
 uint32_t mds_tipc_fctrl_trysend(struct tipc_portid id, const uint8_t *buffer,
@@ -564,12 +553,10 @@ uint32_t mds_tipc_fctrl_rcv_data(uint8_t *buffer, uint16_t len,
       // no need to decode intro message
       // the decoding intro message type is done in header decoding
       // send to the event thread
-      pevt = new Event(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0);
-      if (m_NCS_IPC_SEND(&mbx_events, pevt,
-          NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-        m_MDS_LOG_ERR("FCTRL: Failed to send msg to mbx_events, Error[%s]",
-            strerror(errno));
-      }
+      portid_map_mutex.lock();
+      Event evt(Event::Type::kEvtRcvIntro, id, 0, 0, 0, 0);
+      process_flow_event(evt);
+      portid_map_mutex.unlock();
     } else {
       m_MDS_LOG_ERR("FCTRL: [me] <-- [node:%x, ref:%u], "
           "[msg_type:%u], Error[not supported message type]",

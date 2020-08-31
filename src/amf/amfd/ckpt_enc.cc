@@ -63,6 +63,7 @@ static uint32_t enc_su_si_curr_stby(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_term_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_inst_msg_processed(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
+static uint32_t enc_recvr_node_fover_swover(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_switch(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t enc_su_pres_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
@@ -166,7 +167,7 @@ const AVSV_ENCODE_CKPT_DATA_FUNC_PTR avd_enc_ckpt_data_func_list[] = {
     enc_comp_pres_state, enc_comp_restart_count, nullptr, /* AVSV_SYNC_COMMIT */
     enc_su_restart_count, enc_si_dep_state, enc_ng_admin_state,
     enc_avd_to_avd_job_queue_status,
-    enc_node_failover_state, enc_su_inst_msg_processed};
+    enc_node_failover_state, enc_su_inst_msg_processed, enc_recvr_node_fover_swover};
 
 /*
  * Function list for encoding the cold sync response data
@@ -269,6 +270,8 @@ void encode_node_config(NCS_UBAID *ub, const AVD_AVND *avnd,
   if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_10) {
     osaf_encode_uint32(ub, avnd->failover_state);
   }
+  if (peer_version >= AVD_MBCSV_SUB_PART_VERSION_12)
+    osaf_encode_bool(ub, avnd->recvr_fail_sw);
 }
 
 /****************************************************************************\
@@ -2462,5 +2465,38 @@ static uint32_t enc_node_failover_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc) {
     osafassert(0);
   }
 
+  return NCSCC_RC_SUCCESS;
+}
+
+/****************************************************************************\
+ * Function: enc_recvr_node_fover_swover
+ *
+ * Purpose:  Encode node failover/switchover recovery.
+ *
+ * Input: cb - CB pointer.
+ *        enc - Encode arguments passed by MBCSV.
+ *
+ * Returns: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ *
+ * NOTES:
+ *
+ *
+\**************************************************************************/
+static uint32_t enc_recvr_node_fover_swover(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc) {
+  TRACE_ENTER();
+
+  const AVD_AVND *avnd = reinterpret_cast<AVD_AVND *>(enc->io_reo_hdl);
+
+  /*
+   * Action in this case is just to update. If action passed is add/rmv then log
+   * error. Call EDU encode to encode this field.
+   */
+  if (NCS_MBCSV_ACT_UPDATE == enc->io_action) {
+    osaf_encode_sanamet_o2(&enc->io_uba, avnd->name.c_str());
+    osaf_encode_uint32(&enc->io_uba, avnd->recvr_fail_sw);
+  } else
+    osafassert(0);
+
+  TRACE_LEAVE();
   return NCSCC_RC_SUCCESS;
 }

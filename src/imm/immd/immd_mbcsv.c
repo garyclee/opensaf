@@ -1,7 +1,7 @@
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
- * Copyright Ericsson AB 2017 - All Rights Reserved.
+ * Copyright Ericsson AB 2017, 2020 - All Rights Reserved.
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARANTY; without even the implied warranty of MERCHANTABILITY
@@ -526,6 +526,7 @@ static uint32_t mbcsv_enc_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		break;
 
 	case IMMD_A2S_MSG_INTRO_RSP:
+	case IMMD_A2S_MSG_INTRO_RSP_2:
 	case IMMD_A2S_MSG_SYNC_START:
 	case IMMD_A2S_MSG_SYNC_ABORT:
 	case IMMD_A2S_MSG_DUMP_OK:
@@ -580,9 +581,9 @@ static uint32_t mbcsv_enc_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		ncs_enc_claim_space(&arg->info.encode.io_uba, sizeof(uint8_t));
 		ncs_encode_8bit(&uns8_ptr, immd_msg->info.ctrl.pbeEnabled);
 
-		if ((arg->info.encode.io_reo_type == IMMD_A2S_MSG_INTRO_RSP) &&
-		    (immd_msg->info.ctrl.pbeEnabled >=
-		     3)) { /* extended intro */
+		if (((arg->info.encode.io_reo_type == IMMD_A2S_MSG_INTRO_RSP) ||
+		     (arg->info.encode.io_reo_type == IMMD_A2S_MSG_INTRO_RSP_2)) &&
+		    (immd_msg->info.ctrl.pbeEnabled >= 3)) { /* extended intro */
 			TRACE_5("Encoding Fs params for mbcp to standy immd");
 
 			uns32_ptr = ncs_enc_reserve_space(
@@ -620,6 +621,13 @@ static uint32_t mbcsv_enc_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 			os = &(immd_msg->info.ctrl.pbeFile);
 			immsv_evt_enc_inline_string(&arg->info.encode.io_uba,
 						    os);
+		}
+		if (arg->info.encode.io_reo_type == IMMD_A2S_MSG_INTRO_RSP_2) {
+			uns32_ptr = ncs_enc_reserve_space(&arg->info.encode.io_uba,
+							  sizeof(uint32_t));
+			osafassert(uns32_ptr);
+			ncs_enc_claim_space(&arg->info.encode.io_uba, sizeof(uint32_t));
+			ncs_encode_32bit(&uns32_ptr, immd_msg->info.ctrl.ex_immd_node_id);
 		}
 		break;
 
@@ -1044,6 +1052,7 @@ static uint32_t mbcsv_dec_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		break;
 
 	case IMMD_A2S_MSG_INTRO_RSP:
+	case IMMD_A2S_MSG_INTRO_RSP_2:
 	case IMMD_A2S_MSG_SYNC_START:
 	case IMMD_A2S_MSG_SYNC_ABORT:
 	case IMMD_A2S_MSG_DUMP_OK:
@@ -1087,7 +1096,8 @@ static uint32_t mbcsv_dec_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		immd_msg->info.ctrl.pbeEnabled = ncs_decode_8bit(&ptr);
 		ncs_dec_skip_space(&arg->info.decode.i_uba, sizeof(uint8_t));
 
-		if ((evt_type == IMMD_A2S_MSG_INTRO_RSP) &&
+		if (((evt_type == IMMD_A2S_MSG_INTRO_RSP) ||
+		     (evt_type == IMMD_A2S_MSG_INTRO_RSP_2)) &&
 		    (immd_msg->info.ctrl.pbeEnabled >= 3)) {
 			TRACE("Decoding Fs params for mbcp to standy immd");
 
@@ -1117,6 +1127,12 @@ static uint32_t mbcsv_dec_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 					   sizeof(uint32_t));
 			immsv_evt_dec_inline_string(&arg->info.decode.i_uba,
 						    os);
+		}
+		if (evt_type == IMMD_A2S_MSG_INTRO_RSP_2) {
+			ptr = ncs_dec_flatten_space(&arg->info.decode.i_uba, data,
+							sizeof(uint32_t));
+			immd_msg->info.ctrl.ex_immd_node_id = ncs_decode_32bit(&ptr);
+			ncs_dec_skip_space(&arg->info.decode.i_uba, sizeof(uint32_t));
 		}
 
 		rc = immd_process_node_accept(cb, &immd_msg->info.ctrl);

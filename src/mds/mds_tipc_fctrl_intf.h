@@ -37,7 +37,7 @@ uint32_t mds_tipc_fctrl_portid_down(struct tipc_portid id, uint32_t type);
 uint32_t mds_tipc_fctrl_portid_terminate(struct tipc_portid id);
 uint32_t mds_tipc_fctrl_drop_data(uint8_t *buffer, uint16_t len,
     struct tipc_portid id);
-uint32_t mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id,
+void mds_tipc_fctrl_sndqueue_capable(struct tipc_portid id,
     uint16_t* next_seq);
 uint32_t mds_tipc_fctrl_trysend(struct tipc_portid id, const uint8_t *buffer,
     uint16_t len, uint8_t* is_queued);
