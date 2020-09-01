@@ -20,8 +20,6 @@
 #define NTF_NTFIMCND_NTFIMCN_IMM_H_
 
 #include "ntfimcn_main.h"
-#include <stdbool.h>
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,22 +35,6 @@ extern "C" {
  * @return (-1) if init fail
  */
 int ntfimcn_imm_init(ntfimcn_cb_t *cb);
-
-/**
- * For a given array of IMM Attribute Modifications, fetch the
- * corresponding current IMM Attribute Values. The return data
- * curAttr is managed by IMM unless a copy is requested.
- * Deep clone method is used to copy the returned IMM Attribute Values
- *
- * @param *objectName[in]
- * @param **attrMods[in]
- * @param ***curAttr[out]
- * @param copy[in]
- * @return SaAisErrorT
- */
-SaAisErrorT get_current_attrs(const SaNameT *objectName,
-   const SaImmAttrModificationT_2 **attrMods,
-   SaImmAttrValuesT_2 ***curAttr);
 
 #ifdef __cplusplus
 }

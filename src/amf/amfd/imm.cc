@@ -206,9 +206,19 @@ done:
   return res;
 }
 
+const size_t ImmObjCreate::INIT_MEMREF_SIZE;
+
+ImmObjCreate::ImmObjCreate() :
+    className_(NULL),
+    parentName_(),
+    attrValues_(NULL),
+    memRef(NULL)
+{
+  memRef = immutil_getMem(INIT_MEMREF_SIZE);
+}
 //
 ImmObjCreate::~ImmObjCreate() {
-  immutil_freeSaImmAttrValuesT(attrValues_);
+  immutil_freeMem(memRef);
   delete[] className_;
 }
 
@@ -1862,7 +1872,8 @@ void avd_saImmOiRtObjectCreate(const std::string &className,
   ajob->className_ = StrDup(className.c_str());
   osafassert(ajob->className_ != nullptr);
   ajob->parentName_ = parentName;
-  ajob->attrValues_ = immutil_dupSaImmAttrValuesT(attrValues);
+  ajob->attrValues_ = immutil_dupSaImmAttrValuesT_array(ajob->memRef,
+      attrValues);
   Fifo::queue(ajob);
 
   TRACE_LEAVE();

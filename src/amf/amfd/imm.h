@@ -84,12 +84,18 @@ class ImmObjCreate : public ImmJob {
   SaImmClassNameT className_;
   std::string parentName_;
   SaImmAttrValuesT_2 **attrValues_;
+  // Memory used to deep clone SaImmAttrValuesT_2**
+  // memRef must be allocated by immutil_getMem() and free by immutil_freeMem()
+  void* memRef;
 
-  ImmObjCreate() : ImmJob(){};
+  ImmObjCreate();
   bool immobj_update_required();
   AvdJobDequeueResultT exec(AVD_CL_CB *cb);
 
   ~ImmObjCreate();
+
+ private:
+  static const size_t INIT_MEMREF_SIZE = 512;
 };
 
 //
