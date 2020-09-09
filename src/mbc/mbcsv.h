@@ -70,4 +70,6 @@ typedef uint64_t MBCSV_ANCHOR;
 #include "mbcsv_mds.h"
 #include "mbc/mbcsv_dl_api.h"
 
+extern bool mds_enc_cb_done;
+
 #endif  // MBC_MBCSV_H_
