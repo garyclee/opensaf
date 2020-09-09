@@ -40,6 +40,7 @@
 #include "mbcsv.h"
 #include "base/ncssysf_mem.h"
 
+bool mds_enc_cb_done;
 /**************************************************************************\
 * PROCEDURE: mbcsv_rmv_reg_inst
 *
@@ -492,6 +493,7 @@ uint32_t mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send,
 				    *uba;
 				evt_msg.info.peer_msg.info.client_msg.uba
 				    .start = dup_ub;
+				mds_enc_cb_done = false;
 
 				switch (msg_to_send->i_send_type) {
 				case NCS_MBCSV_SND_SYNC: {
@@ -513,10 +515,8 @@ uint32_t mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send,
 				}
 				tmp_ptr->ckpt_msg_sent = true;
 			}
-			if ((rc != NCSCC_RC_SUCCESS) &&
-			    (rc != NCSCC_RC_REQ_TIMOUT)) {
+			if (rc != NCSCC_RC_SUCCESS && !mds_enc_cb_done)
 				m_MMGR_FREE_BUFR_LIST(dup_ub);
-			}
 			tmp_ptr = tmp_ptr->next;
 		}
 
@@ -741,10 +741,12 @@ uint32_t mbcsv_send_notify_msg(uint32_t msg_dest, CKPT_INST *ckpt_inst,
 					    .uba = *uba;
 					evt_msg.info.peer_msg.info.client_msg
 					    .uba.start = dup_ub;
+					mds_enc_cb_done = false;
 
 					if (m_NCS_MBCSV_MDS_ASYNC_SEND(
 					    &evt_msg, ckpt_inst,
-					    peer->peer_anchor) != NCSCC_RC_SUCCESS)
+					    peer->peer_anchor) != NCSCC_RC_SUCCESS &&
+					    !mds_enc_cb_done)
 						m_MMGR_FREE_BUFR_LIST(dup_ub);
 				}
 			}

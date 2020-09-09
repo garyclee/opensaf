@@ -706,6 +706,7 @@ uint32_t mbcsv_mds_enc(MDS_CLIENT_HDL yr_svc_hdl, NCSCONTEXT msg,
 		    NCS_MBCSV_MSG_SYNC_SEND_RSP)
 			ncs_enc_append_usrbuf(
 			    uba, mm->info.peer_msg.info.client_msg.uba.start);
+		mds_enc_cb_done = true;
 
 		break;
 	}
