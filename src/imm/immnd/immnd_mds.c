@@ -552,7 +552,10 @@ static uint32_t immnd_mds_rcv(IMMND_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 	}
 
 	/* Put it in IMMND's Event Queue */
-	if (pEvt->info.immnd.type == IMMND_EVT_A2ND_IMM_INIT)
+	if (pEvt->info.immnd.type == IMMND_EVT_D2ND_INTRO_RSP)
+		rc = m_NCS_IPC_SEND(&cb->immnd_mbx, (NCSCONTEXT)pEvt,
+				    NCS_IPC_PRIORITY_VERY_HIGH);
+	else if (pEvt->info.immnd.type == IMMND_EVT_A2ND_IMM_INIT)
 		rc = m_NCS_IPC_SEND(&cb->immnd_mbx, (NCSCONTEXT)pEvt,
 				    NCS_IPC_PRIORITY_HIGH);
 	else

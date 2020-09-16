@@ -625,6 +625,21 @@ void immnd_process_evt(void)
 		return;
 	}
 
+	if ((cb->mIntroduced == 2) &&
+	    ((evt->info.immnd.type == IMMND_EVT_D2ND_SYNC_START) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_SYNC_ABORT) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_PBE_PRTO_PURGE_MUTATIONS) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_DUMP_OK) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_LOADING_OK) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_GLOB_FEVS_REQ) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_GLOB_FEVS_REQ_2))) {
+		LOG_WA("DISCARD message %s from IMMD %x as re-intro on-going",
+		    immsv_get_immnd_evt_name(evt->info.immnd.type),
+		    evt->sinfo.node_id);
+		immnd_evt_destroy(evt, true, __LINE__);
+		return;
+	}
+
 	if ((evt->info.immnd.type != IMMND_EVT_D2ND_GLOB_FEVS_REQ) &&
 	    (evt->info.immnd.type != IMMND_EVT_D2ND_GLOB_FEVS_REQ_2))
 		immsv_msg_trace_rec(evt->sinfo.dest, evt);
@@ -10778,12 +10793,6 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 			     ? evt->info.fevsReq.isObjSync
 			     : false;
 	TRACE_ENTER();
-
-	if (cb->mIntroduced == 2) {
-		LOG_WA("DISCARD FEVS message:%llu from %x", msgNo, sinfo->node_id);
-		dequeue_outgoing(cb);
-		return NCSCC_RC_FAILURE;
-	}
 
 	if (cb->highestProcessed >= msgNo) {
 		/*We have already received this message, discard it. */
