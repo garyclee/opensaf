@@ -287,6 +287,7 @@ static void free_ccb_data(CcbUtilCcbData_t *ccb_data) {
 	if (ccb_data != NULL) {
 		if (ccb_data->userData != NULL) {
 			osaf_extended_name_free(ccb_data->userData);
+			free(ccb_data->userData);
 		}
 		ccbutil_deleteCcbData(ccb_data);
 	}
