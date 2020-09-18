@@ -511,8 +511,8 @@ bool SmfAdminStateHandler::changeAdminState(SaAmfAdminStateT fromState,
              saf_error(errno_));
     }
   } else if (nodeList_.size() == 1) {
-    TRACE("%s: Use serialized for one node", __FUNCTION__);
-    rc = adminOperationSerialized(toState, nodeList_);
+    TRACE("%s: admin op for one node", __FUNCTION__);
+    rc = adminOperationParallel(toState, nodeList_);
     if (rc == false) {
       LOG_NO("%s: setAdminStateNode() Fail %s", __FUNCTION__,
              saf_error(errno_));
@@ -521,9 +521,9 @@ bool SmfAdminStateHandler::changeAdminState(SaAmfAdminStateT fromState,
 
   // Set admin state for SUs
   if ((rc == true) && (!suList_.empty())) {
-    TRACE("%s: Use serialized for SUs", __FUNCTION__);
+    TRACE("%s: admin op for SUs", __FUNCTION__);
     // Do only if setting admin state for nodes did not fail
-    rc = adminOperationSerialized(toState, suList_);
+    rc = adminOperationParallel(toState, suList_);
     if (rc == false) {
       LOG_NO("%s: setAdminStateSUs() Fail %s", __FUNCTION__,
              saf_error(errno_));
@@ -576,22 +576,54 @@ bool SmfAdminStateHandler::adminOperationNodeGroup(
 // Set given admin state to all units in the given unitList
 // Return false if Fail. errno_ is set
 //
-bool SmfAdminStateHandler::adminOperationSerialized(
+bool SmfAdminStateHandler::adminOperationParallel(
     SaAmfAdminOperationIdT adminState,
     const std::list<unitNameAndState> &i_unitList) {
   bool rc = true;
-  errno_ = SA_AIS_OK;
 
   TRACE_ENTER();
 
+  timespec now = base::ReadMonotonicClock();
+  timespec timeout = now + base::NanosToTimespec(smfd_cb->adminOpTimeout);
+
   if (!i_unitList.empty()) {
-    for (auto &unit : i_unitList) {
-      rc = adminOperation(adminState, unit.name);
-      if (rc == false) {
-        // Failed to set admin state
-        break;
+    for (auto &unit : i_unitList)
+      adminOperationAsync(adminState, unit.name);
+
+    bool adminFail = false;
+    while (base::ReadMonotonicClock() < timeout) {
+      auto it = adminAsyncList_.begin();
+      while (it != adminAsyncList_.end()) {
+        if ((*it)->isAdminAsyncDone()) {
+          if ((*it)->getAdminAsyncResult() != SA_AIS_OK) {
+            LOG_ER("Admin op FAIL %s for %s",
+                   saf_error((*it)->getAdminAsyncResult()),
+                   (*it)->getAdminAsyncObject().c_str());
+            adminFail = true;
+            rc = false;
+            break;
+          } else {
+            delete (*it);
+            it = adminAsyncList_.erase(it);
+            continue;
+          }
+        }
+        it++;
       }
+      if (adminFail) break;  // one admin operation fail
+      if (adminAsyncList_.empty()) break;  // all admin operations done OK
+      sleep(1);
     }
+
+    for (auto &immUtil : adminAsyncList_) {
+      if (adminFail == false) {
+        LOG_ER("Admin op TIMEOUT for %s",
+              immUtil->getAdminAsyncObject().c_str());
+        rc = false;
+      }
+      delete immUtil;
+    }
+    adminAsyncList_.clear();
   }
 
   TRACE_LEAVE();
@@ -666,6 +698,8 @@ SaAmfAdminStateT SmfAdminStateHandler::getAdminState(
 
   SaAmfAdminStateT adminState = SA_AMF_ADMIN_UNLOCKED;
   if (p_adminState != nullptr) adminState = *p_adminState;
+
+  immutil_saImmOmAccessorFinalize(accessorHandle_);
 
   TRACE_LEAVE();
   return adminState;
@@ -971,4 +1005,18 @@ bool SmfAdminStateHandler::adminOperation(SaAmfAdminOperationIdT adminOperation,
 
   TRACE_LEAVE2("%s", rc ? "OK" : "FAIL");
   return rc;
+}
+
+///
+/// Set given admin state (Async) to one unit
+///
+void SmfAdminStateHandler::adminOperationAsync(
+          SaAmfAdminOperationIdT adminOperation, const std::string &unitName) {
+  TRACE_ENTER();
+  SmfImmUtils *immUtil = new SmfImmUtils();
+  TRACE("\t Unit name '%s', adminOperation=%d", unitName.c_str(),
+        adminOperation);
+  immUtil->callAdminOperationAsync(unitName, adminOperation);
+  adminAsyncList_.push_back(immUtil);
+  TRACE_LEAVE();
 }
