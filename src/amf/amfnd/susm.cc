@@ -1162,6 +1162,12 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
                                            AVND_SU_SI_ASSIGN_STATE_REMOVED);
         LOG_NO("Removed '%s' from '%s'", curr_si->name.c_str(),
                su->name.c_str());
+      } else if (m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_UNASSIGNED(curr_si) &&
+            (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED)) {
+        m_AVND_SU_SI_CURR_ASSIGN_STATE_SET(curr_si,
+                                   AVND_SU_SI_ASSIGN_STATE_REMOVED);
+        LOG_NO("Removed '%s' from '%s'", curr_si->name.c_str(),
+               su->name.c_str());
       } else {
         LOG_CR("current si name ='%s'", curr_si->name.c_str());
         LOG_CR(
@@ -1630,6 +1636,11 @@ uint32_t avnd_su_pres_fsm_run(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp,
     if (cb->term_state == AVND_TERM_STATE_NODE_SWITCHOVER_STARTED) {
       LOG_NO("Informing director of Nodeswitchover");
       rc = avnd_di_oper_send(avnd_cb, su, SA_AMF_NODE_SWITCHOVER);
+    } else if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED) {
+      AVND_SU_SI_REC *si = 0;
+      rc = avnd_su_si_unmark(cb, su);
+      if (rc != NCSCC_RC_SUCCESS) goto done;
+      rc = avnd_su_si_oper_done(cb, su, m_AVND_SU_IS_ALL_SI(su) ? 0 : si);
     } else {
       LOG_NO("Informing director of sufailover");
       rc = avnd_di_oper_send(avnd_cb, su, AVSV_ERR_RCVR_SU_FAILOVER);
