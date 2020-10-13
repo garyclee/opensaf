@@ -64,7 +64,7 @@ uint32_t avd_sg_nway_si_assign(AVD_CL_CB *, AVD_SG *);
 /* The following are for N-way Active redundancy model */
 AVD_SU *avd_sg_nacvred_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg);
 
-uint32_t avd_count_node_up(AVD_CL_CB *cb);
+uint32_t avd_count_node_up();
 uint32_t avd_evt_queue_count(AVD_CL_CB *cb);
 uint32_t avd_count_sync_node_size(AVD_CL_CB *cb);
 void avd_process_state_info_queue(AVD_CL_CB *cb);
