@@ -659,6 +659,8 @@ static bool avd_sg_2n_assign_act_si(AVD_CL_CB *cb, AVD_SG *sg, AVD_SU *su) {
       if (avd_new_assgn_susi(cb, su, i_si, SA_AMF_HA_ACTIVE, false,
                              &tmp_susi) == NCSCC_RC_SUCCESS) {
         l_flag = true;
+        if (i_si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS)
+          avd_sidep_si_dep_state_set(i_si, AVD_SI_ASSIGNED);
       } else {
         LOG_ER("%s:%u: %s", __FILE__, __LINE__, i_si->name.c_str());
       }
