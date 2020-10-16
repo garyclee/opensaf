@@ -1691,6 +1691,10 @@ static uint32_t immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt,
 
 	immd_immnd_info_node_get(&cb->immnd_tree, &sinfo->dest, &node_info);
 	if (!node_info) {
+		if (evt->info.ctrl_msg.refresh == 3) {
+			LOG_WA("Drop re-intro from old IMMND dest %" PRIu64, sinfo->dest);
+			goto done;
+		}
 		LOG_WA("Node not found dest %" PRIu64
 		       ", add the missing IMMND node",
 		       sinfo->dest);
