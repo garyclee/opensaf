@@ -12230,15 +12230,29 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 
 	/* In multi partitioned clusters rejoin, IMMND may not realize
 	 * headless due to see IMMDs from different partitions */
-	if ((evt->info.mds_info.change == NCSMDS_RED_UP) &&
+	if ((evt->info.mds_info.change == NCSMDS_DOWN) &&
+	    (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
+		is_headless = true;
+		cb->immd_node_id = 0;
+		cb->other_immd_id = 0;
+	} else if ((evt->info.mds_info.change == NCSMDS_RED_UP) &&
 	    (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD) &&
-	    (evt->info.mds_info.node_id != cb->immd_node_id) &&
-	    (evt->info.mds_info.role == V_DEST_RL_STANDBY) &&
-	    (cb->other_immd_id == 0)) {
-		cb->other_immd_id = evt->info.mds_info.node_id;
-		TRACE_2("IMMD RED_UP EVENT %x role=%d ==> ACT:%x SBY:%x",
-		    evt->info.mds_info.node_id, evt->info.mds_info.role,
-		    cb->immd_node_id, cb->other_immd_id);
+	    (evt->info.mds_info.node_id != cb->immd_node_id)) {
+		if ((evt->info.mds_info.role == V_DEST_RL_STANDBY) &&
+		    (cb->other_immd_id == 0)) {
+			cb->other_immd_id = evt->info.mds_info.node_id;
+			TRACE_2("IMMD RED_UP EVENT %x role=%d ==> ACT:%x SBY:%x",
+			    evt->info.mds_info.node_id, evt->info.mds_info.role,
+			    cb->immd_node_id, cb->other_immd_id);
+		} else if ((evt->info.mds_info.role == V_DEST_RL_ACTIVE) &&
+		    (cb->immd_node_id != 0) &&
+		    (cb->node_id != cb->immd_node_id)) {
+			LOG_WA("See two Active IMMD: %x %x, going to headless",
+			    cb->immd_node_id, evt->info.mds_info.node_id);
+			is_headless = true;
+			cb->immd_node_id = 0;
+			cb->other_immd_id = 0;
+		}
 	} else if ((evt->info.mds_info.change == NCSMDS_RED_DOWN) &&
 		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
 		if (cb->immd_node_id == evt->info.mds_info.node_id)
