@@ -2652,11 +2652,13 @@ void cpnd_ckpt_sc_cpnd_mdest_del(CPND_CB *cb)
 	cpnd_ckpt_node_getnext(cb, 0, &ckpt_node);
 	while (ckpt_node != NULL) {
 		CPSV_CPND_DEST_INFO *dest_list = NULL;
+		CPSV_CPND_DEST_INFO *next = NULL;
 
 		dest_list = ckpt_node->cpnd_dest_list;
 
 		/* Delete SC cpnd mdests in the cpnd_dest_list */
 		while (dest_list) {
+			next = dest_list->next;
 			if ((m_CPND_IS_ON_SCXB(
 				cb->cpnd_active_id,
 				cpnd_get_node_id_from_mds_dest(
@@ -2667,8 +2669,7 @@ void cpnd_ckpt_sc_cpnd_mdest_del(CPND_CB *cb)
 				    dest_list->dest))))
 				cpnd_ckpt_remote_cpnd_del(ckpt_node,
 							  dest_list->dest);
-
-			dest_list = dest_list->next;
+			dest_list = next;
 		}
 
 		SaCkptCheckpointHandleT prev_ckpt_id;
