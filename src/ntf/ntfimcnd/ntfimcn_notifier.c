@@ -233,6 +233,12 @@ static int fill_value_array(SaNtfNotificationHandleT notificationHandle,
 
 	TRACE_ENTER();
 
+	if (value_in_size > USHRT_MAX) {
+		LOG_WA("Failed to prepare notification as attr value size "
+		       "(%llu) > MAX(%u)", value_in_size, USHRT_MAX);
+		internal_rc = (-1);
+		goto done;
+	}
 	rc = saNtfPtrValAllocate(notificationHandle, value_in_size,
 				 (void **)&dest_ptr, value_out);
 	if (rc != SA_AIS_OK) {
