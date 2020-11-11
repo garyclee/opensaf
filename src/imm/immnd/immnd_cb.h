@@ -207,6 +207,8 @@ typedef struct immnd_cb_tag {
       clm_init_sel_obj; /* Selection object wait for  clms intialization*/
   bool isClmNodeJoined; /* True => If clm joined the cluster*/
   NCS_PATRICIA_TREE immnd_clm_list; /* IMMND_IMM_CLIENT_NODE - node */
+  tmr_t splitbrain_tmr;
+  bool splitbrain_tmr_run;
 } IMMND_CB;
 
 /* CB prototypes */

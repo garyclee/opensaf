@@ -33,6 +33,7 @@
 #endif
 
 #include "imm/common/immsv.h"
+#include "base/ncssysf_tmr.h"
 #include "immnd_cb.h"
 #include "immnd_init.h"
 

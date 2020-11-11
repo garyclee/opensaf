@@ -897,7 +897,8 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 		LOG_NO(
 		    "IMMND coord at %x with ex-IMMD %x",
 		    node_info->immnd_key, node_info->ex_immd_node_id);
-		cb->ex_immd_node_id = node_info->ex_immd_node_id;
+		if (check_ex_immd_node_id && node_info->ex_immd_node_id)
+			cb->ex_immd_node_id = node_info->ex_immd_node_id;
 	}
 
 	mbcp_msg.type = IMMD_A2S_MSG_INTRO_RSP; /* Mbcp intro to SBY. */
@@ -1253,6 +1254,7 @@ static uint32_t immd_evt_proc_immnd_announce_sync(IMMD_CB *cb, IMMD_EVT *evt,
 			   Loop through all nodes */
 
 			cb->mRulingEpoch++;
+			cb->ex_immd_node_id = cb->node_id;
 
 			/*Only updates epoch for coord. */
 			/*node_info->epoch = cb->mRulingEpoch; */
@@ -1691,8 +1693,9 @@ static uint32_t immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt,
 
 	immd_immnd_info_node_get(&cb->immnd_tree, &sinfo->dest, &node_info);
 	if (!node_info) {
-		if (evt->info.ctrl_msg.refresh == 3) {
-			LOG_WA("Drop re-intro from old IMMND dest %" PRIu64, sinfo->dest);
+		if ((evt->info.ctrl_msg.refresh == 3) &&
+		    (sinfo->node_id != cb->node_id)) {
+			TRACE("Drop re-intro from old IMMND %x", sinfo->node_id);
 			goto done;
 		}
 		LOG_WA("Node not found dest %" PRIu64
@@ -3308,7 +3311,15 @@ static uint32_t immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 				    mds_info->dest);
 				goto done;
 			} else {
-				TRACE_5("IMMND DOWN PROCESS detected by IMMD");
+				if (node_info->immnd_execPid == 0) {
+					TRACE_5(
+					    "Ignore IMMND %x DOWN not yet accepted intro",
+					    node_info->immnd_key);
+					immd_immnd_info_node_delete(cb, node_info);
+					goto done;
+				}
+				TRACE_5("IMMND %x DOWN PROCESS detected by IMMD",
+				    node_info->immnd_key);
 				immd_process_immnd_down(cb, node_info, true);
 			}
 		}
