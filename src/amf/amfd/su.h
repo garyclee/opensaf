@@ -146,6 +146,7 @@ class AVD_SU {
   void lock(SaImmOiHandleT immoi_handle, SaInvocationT invocation,
             SaAmfAdminStateT adm_state);
   bool any_susi_fsm_in(uint32_t check_fsm);
+  bool any_sponsor_si_under_failover();
   SaAisErrorT check_su_stability();
   uint32_t curr_num_standby_sis();
   uint32_t curr_num_active_sis();

@@ -2405,7 +2405,8 @@ bool AVD_SG::any_assignment_in_progress() {
   for (const auto &su : list_of_su) {
     if (su->any_susi_fsm_in(AVD_SU_SI_STATE_ASGN) ||
         su->any_susi_fsm_in(AVD_SU_SI_STATE_UNASGN) ||
-        su->any_susi_fsm_in(AVD_SU_SI_STATE_MODIFY)) {
+        su->any_susi_fsm_in(AVD_SU_SI_STATE_MODIFY) ||
+        su->any_sponsor_si_under_failover()) {
       pending = true;
       break;
     }
