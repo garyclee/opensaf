@@ -1083,8 +1083,7 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp,
           if (curr_csi->curr_assign_state ==
                   AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED &&
               curr_csi->prv_assign_state ==
-                  AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED &&
-                  !m_AVND_SU_IS_RESTART(comp->su)) {
+                  AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED) {
             // Mark suspending_assignment for all unassigned csi(s) which are
             // going to be assigned to *curr_csi->comp*
             for (t_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(

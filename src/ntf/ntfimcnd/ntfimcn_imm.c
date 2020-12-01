@@ -37,9 +37,8 @@
 
 #include <saImmOm.h>
 #include <saImmOi.h>
-#include "osaf/immutil/immutil.h"
 
-#include "ntfimcn_main.h"
+#include "ntfimcn_imm.h"
 #include "ntfimcn_notifier.h"
 
 /*
@@ -289,13 +288,6 @@ static void free_ccb_data(CcbUtilCcbData_t *ccb_data) {
 		if (ccb_data->userData != NULL) {
 			osaf_extended_name_free(ccb_data->userData);
 			free(ccb_data->userData);
-		}
-		// Free userData in CcbUtilOperationData
-		struct CcbUtilOperationData* oper_data =
-				ccb_data->operationListHead;
-		for (; oper_data!= NULL; oper_data = oper_data->next) {
-			immutil_freeSaImmAttrValuesT((SaImmAttrValuesT_2**)
-			   oper_data->userData);
 		}
 		ccbutil_deleteCcbData(ccb_data);
 	}
@@ -578,7 +570,8 @@ saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
 		struct CcbUtilOperationData *ccbOperData;
 		ccbOperData = ccbUtilCcbData->operationListTail;
 		SaImmAttrValuesT_2 **curAttr;
-		rc = get_current_attrs(objectName, attrMods, &curAttr);
+		rc = immutil_getCurrentAttrs(ccbUtilCcbData->memref,
+		     objectName, attrMods, &curAttr);
 		if (SA_AIS_OK == rc) {
 			ccbOperData->userData = curAttr;
 		} else {
@@ -998,42 +991,4 @@ static void finalizeImmOmHandle(SaImmHandleT immOmHandle) {
 		LOG_NO("%s saImmOmFinalize failed %s", __FUNCTION__,
 		       saf_error(ais_rc));
 	}
-}
-
-SaAisErrorT get_current_attrs(const SaNameT *objectName,
-    const SaImmAttrModificationT_2 **attrMods,
-    SaImmAttrValuesT_2 ***curAttr) {
-	TRACE_ENTER();
-	SaAisErrorT rc = SA_AIS_OK;
-	// There is no new attribute modifications
-	if (attrMods == NULL) {
-		*curAttr = NULL;
-		return SA_AIS_ERR_INVALID_PARAM;
-	}
-	int len;
-	for (len = 0; attrMods[len] != NULL; ++len) ;
-	SaImmAttrNameT *attrNames = calloc((len + 1), sizeof(SaImmAttrNameT));
-	if (attrNames == NULL) {
-		*curAttr = NULL;
-		return SA_AIS_ERR_NO_MEMORY;
-	}
-	for (int i = 0; i < len; ++i) {
-		attrNames[i] = attrMods[i]->modAttr.attrName;
-	}
-	attrNames[len] = NULL;
-	// Get current attributes for the given attribute names
-	SaImmAttrValuesT_2 **resAttr;
-	rc = immutil_saImmOmAccessorGet_2(ntfimcn_cb.immAccessorHandle,
-	   objectName, attrNames, &resAttr);
-	if (SA_AIS_OK == rc) {
-		*curAttr = immutil_dupSaImmAttrValuesT(
-		      (const SaImmAttrValuesT_2**) resAttr);
-	}
-	else {
-		TRACE("immutil_saImmOmAccessorGet_2 failed rc = %u", rc);
-		*curAttr = NULL;
-	}
-	free(attrNames);
-	TRACE_LEAVE2("rc = %u", rc);
-	return rc;
 }

@@ -2693,6 +2693,25 @@ bool AVD_SU::any_susi_fsm_in(uint32_t check_fsm) {
   return rc;
 }
 /**
+ * @brief    Checks if sponsor SI under failover
+ * @result   true/false
+ */
+bool AVD_SU::any_sponsor_si_under_failover() {
+  TRACE_ENTER2("SU:'%s'", name.c_str());
+  bool rc = false;
+  for (AVD_SU_SI_REL *susi = list_of_susi; susi && rc == false;
+       susi = susi->su_next) {
+    TRACE("SUSI:'%s,%s', si_dep_state:'%d'", susi->su->name.c_str(),
+          susi->si->name.c_str(), susi->si->si_dep_state);
+    if (susi->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
+      rc = true;
+      TRACE("Found");
+    }
+  }
+  TRACE_LEAVE();
+  return rc;
+}
+/**
  * @brief  Verify if SU is stable for admin operation on any higher
            level enity like SG, Node and Nodegroup etc.
  * @param  ptr to su(AVD_SU).

@@ -343,6 +343,7 @@ int main(int argc, char *argv[])
 		if (fds[FD_TERM].revents & POLLIN) {
 			TRACE("Exit via FD_TERM calling stop_ntfimcn()");
 			(void)stop_ntfimcn();
+			saClmFinalize(ntfs_cb->clm_hdl);
 			daemon_exit();
 		}
 

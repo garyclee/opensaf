@@ -1,3 +1,29 @@
+OpenSAF 5.20.11 (released 2020-11-30)
+-------------------------------------
+
+    * imm: fix amfd stuck when multi partitioned clusters rejoin [#3237]
+    * ntf: fix memleak detected by valgrind [#3238]
+    * amf: fix amfd crash in multi partitioned clusters rejoin [#3236]
+    * imm: prevent override delimiter value when using with option -a [#3235]
+    * log: fix memleak detected by valgrind [#3234]
+    * fm: fix unexpected node reboot [#3230]
+    * ntf: fix coredump while creating object having string value, SA_NOTIFY [#3232]
+    * amf: correct behavior SU restart [#3233]
+    * ckpt: fix ckptnd crash in cpnd_ckpt_sc_cpnd_mdest_del [#3231]
+    * imm: fix no expected reboot when multi partitioned clusters rejoin [#3229]
+    * base: Use non-blocking socketpair in sysf_exc module V3 [#3222]
+    * amf: fix lock SU operation keep return TRY_AGAIN forever [#3227]
+    * amf: fix coredump in start up [#3186]
+    * imm: drop re-intro message from down IMMND [#3228]
+    * amf: Increase sync node size equal with clusters size [#3225]
+    * amf: ignore sufailover when shutdown initiated [#3223]
+    * smf: improve admin operation from serial to parallel [#3221]
+    * ntf: fix memleak detected by valgrind [#3220]
+    * imm: fix immnd crash in multi partitioned clusters rejoin [#3219]
+    * amf: fix amfd crash in multi partitioned clusters rejoin [#3218]
+    * mbc: fix agent crash if mds sendto() error [#3217]
+    * osaf: Enhance deep clone of Imm Attr values in immutil [#3215]
+
 OpenSAF 5.20.08 (released 2020-08-31)
 -------------------------------------
 

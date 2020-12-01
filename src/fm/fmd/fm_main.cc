@@ -572,7 +572,8 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt) {
       LOG_NO("Current role: %s", role_string[fm_cb->role]);
       if ((fm_mbx_evt->node_id == fm_cb->peer_node_id)) {
         /* Check whether node(AMF) initialization is done */
-        if (fm_cb->csi_assigned == false) {
+        if ((fm_cb->csi_assigned == false) &&
+            (fm_cb->role != PCS_RDA_ACTIVE)) {
           opensaf_reboot(0, NULL,
                          "Failover occurred, but this node is not yet ready");
         }

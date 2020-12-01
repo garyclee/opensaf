@@ -190,7 +190,22 @@ EXTERN_C CcbUtilOperationData_t *ccbutil_getCcbOpDataByDN(SaImmOiCcbIdT id,
  * exported in a common library.
  */
 /*@{*/
-
+/**
+ * Allocate memory managed by ImmHelpUtils
+ *
+ * @param size[in]
+ *
+ * @return void*
+ */
+EXTERN_C void* immutil_getMem(size_t size);
+/**
+ * Deallocate memory managed by ImmHelpUtils
+ *
+ * @param memRef[in]
+ *
+ * @return void*
+ */
+EXTERN_C void immutil_freeMem(void* memRef);
 /**
  * Get IMM Attribute Value size base on type
  *
@@ -198,23 +213,32 @@ EXTERN_C CcbUtilOperationData_t *ccbutil_getCcbOpDataByDN(SaImmOiCcbIdT id,
  * @return size_t
  */
 EXTERN_C size_t immutil_valueSize(SaImmValueTypeT type);
+/**
+ * For a given array of IMM Attribute Modifications, fetch the
+ * corresponding current IMM Attribute Values. The return data
+ * Deep clone method is used to copy the returned IMM Attribute Values
+ *
+ * @param *memRef[in]
+ * @param *objectName[in]
+ * @param **attrMods[in]
+ * @param ***curAttr[out]
+ * @param copy[in]
+ * @return SaAisErrorT
+ */
+EXTERN_C SaAisErrorT immutil_getCurrentAttrs(void* memRef,
+    const SaNameT *objectName, const SaImmAttrModificationT_2 **attrMods,
+    SaImmAttrValuesT_2 ***curAttr);
 
 /**
- * Deep clone IMM Attribute Values array
+ * Deep clone IMM Attribute Values array. The memory reference memRef must be
+ * obtained by immutil_getMem()
  *
+ * @param *memRef[in]
  * @param **src[in]
  * @return SaImmAttrValuesT_2**
  */
-EXTERN_C SaImmAttrValuesT_2** immutil_dupSaImmAttrValuesT(
+EXTERN_C SaImmAttrValuesT_2** immutil_dupSaImmAttrValuesT_array(void* memRef,
     const SaImmAttrValuesT_2 **src);
-
-/**
- * Deallocate memory used for deep cloning IMM Attribute Values
- *
- * @param **attrs[in]
- * @return void
- */
-EXTERN_C void immutil_freeSaImmAttrValuesT(SaImmAttrValuesT_2 **attrs);
 
 /**
  * Find attribute values from the given attribute name

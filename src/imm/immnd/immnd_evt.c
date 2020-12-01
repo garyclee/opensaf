@@ -625,6 +625,21 @@ void immnd_process_evt(void)
 		return;
 	}
 
+	if ((cb->mIntroduced == 2) &&
+	    ((evt->info.immnd.type == IMMND_EVT_D2ND_SYNC_START) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_SYNC_ABORT) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_PBE_PRTO_PURGE_MUTATIONS) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_DUMP_OK) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_LOADING_OK) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_GLOB_FEVS_REQ) ||
+	     (evt->info.immnd.type == IMMND_EVT_D2ND_GLOB_FEVS_REQ_2))) {
+		LOG_WA("DISCARD message %s from IMMD %x as re-intro on-going",
+		    immsv_get_immnd_evt_name(evt->info.immnd.type),
+		    evt->sinfo.node_id);
+		immnd_evt_destroy(evt, true, __LINE__);
+		return;
+	}
+
 	if ((evt->info.immnd.type != IMMND_EVT_D2ND_GLOB_FEVS_REQ) &&
 	    (evt->info.immnd.type != IMMND_EVT_D2ND_GLOB_FEVS_REQ_2))
 		immsv_msg_trace_rec(evt->sinfo.dest, evt);
@@ -10526,6 +10541,10 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 			LOG_IN("2PBE SYNC CASE CAUGHT oldCanBeCoord:%u",
 			       oldCanBeCoord);
 		}
+		if ((cb->mIntroduced == 2) && (!evt->info.ctrl.isCoord)) {
+			LOG_WA("Restart to sync with Coord! Exit");
+			exit(EXIT_SUCCESS);
+		}
 		cb->mIntroduced = 1;
 		cb->mCanBeCoord = evt->info.ctrl.canBeCoord;
 		if ((cb->mCanBeCoord == IMMSV_2PBE_PRELOAD) && (cb->m2Pbe < 2) &&
@@ -10778,12 +10797,6 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt,
 			     ? evt->info.fevsReq.isObjSync
 			     : false;
 	TRACE_ENTER();
-
-	if (cb->mIntroduced == 2) {
-		LOG_WA("DISCARD FEVS message:%llu from %x", msgNo, sinfo->node_id);
-		dequeue_outgoing(cb);
-		return NCSCC_RC_FAILURE;
-	}
 
 	if (cb->highestProcessed >= msgNo) {
 		/*We have already received this message, discard it. */
@@ -12193,6 +12206,12 @@ void immnd_evt_ccb_augment_admo(IMMND_CB *cb, IMMND_EVT *evt,
 	TRACE_LEAVE();
 }
 
+void splitbrain_tmr_exp(void *arg)
+{
+	(void)arg;
+	LOG_ER("Split-brain detected! Rebooting...");
+	opensaf_quick_reboot("Split-brain detected! Rebooting...");
+}
 /****************************************************************************
  * Name          : immnd_evt_proc_mds_evt
  *
@@ -12210,38 +12229,69 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 	/*TRACE_ENTER(); */
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	bool is_headless = false;
+	IMMSV_MDS_INFO *mdsInfo = &evt->info.mds_info;
 
-	if ((evt->info.mds_info.change == NCSMDS_DOWN) &&
-	    (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OM ||
-	     evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OI)) {
+	if ((mdsInfo->change == NCSMDS_DOWN) &&
+	    (mdsInfo->svc_id == NCSMDS_SVC_ID_IMMA_OM ||
+	     mdsInfo->svc_id == NCSMDS_SVC_ID_IMMA_OI)) {
 		TRACE_2("IMMA DOWN EVENT");
-		immnd_proc_imma_down(cb, evt->info.mds_info.dest,
-				     evt->info.mds_info.svc_id);
+		immnd_proc_imma_down(cb, mdsInfo->dest,
+				     mdsInfo->svc_id);
 	}
 
 	/* In multi partitioned clusters rejoin, IMMND may not realize
 	 * headless due to see IMMDs from different partitions */
-	if ((evt->info.mds_info.change == NCSMDS_RED_UP) &&
-	    (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD) &&
-	    (evt->info.mds_info.node_id != cb->immd_node_id) &&
-	    (evt->info.mds_info.role == V_DEST_RL_STANDBY) &&
-	    (cb->other_immd_id == 0)) {
-		cb->other_immd_id = evt->info.mds_info.node_id;
-		TRACE_2("IMMD RED_UP EVENT %x role=%d ==> ACT:%x SBY:%x",
-		    evt->info.mds_info.node_id, evt->info.mds_info.role,
-		    cb->immd_node_id, cb->other_immd_id);
-	} else if ((evt->info.mds_info.change == NCSMDS_RED_DOWN) &&
-		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
-		if (cb->immd_node_id == evt->info.mds_info.node_id)
-			cb->immd_node_id = 0;
-		if (cb->other_immd_id == evt->info.mds_info.node_id)
-			cb->other_immd_id = 0;
-		TRACE_2("IMMD RED_DOWN EVENT %x role=%d ==> ACT:%x SBY:%x",
-		    evt->info.mds_info.node_id, evt->info.mds_info.role,
-		    cb->immd_node_id, cb->other_immd_id);
-		if ((cb->immd_node_id == 0) && (cb->other_immd_id == 0)) {
-			LOG_WA("Both Active & Standby DOWN, going to headless");
+	if (mdsInfo->svc_id == NCSMDS_SVC_ID_IMMD) {
+		switch (mdsInfo->change) {
+		case NCSMDS_DOWN:
 			is_headless = true;
+			cb->immd_node_id = 0;
+			cb->other_immd_id = 0;
+			break;
+		case NCSMDS_RED_UP:
+			if ((mdsInfo->role == V_DEST_RL_STANDBY) &&
+			    (cb->other_immd_id == 0)) {
+				cb->other_immd_id = mdsInfo->node_id;
+			} else if (mdsInfo->role == V_DEST_RL_ACTIVE) {
+				if ((cb->immd_node_id != 0) &&
+				    (cb->immd_node_id != mdsInfo->node_id)) {
+					if (cb->node_id != cb->immd_node_id) {
+						LOG_WA(
+						    "See two Active IMMD: %x %x, going to headless",
+						    cb->immd_node_id, mdsInfo->node_id);
+						is_headless = true;
+						cb->immd_node_id = 0;
+						cb->other_immd_id = 0;
+					} else if (!cb->splitbrain_tmr_run) {
+					// Normally, RDE will handle split-brain detection.
+					// In roaming SC split/join, sometimes RDE don't detect
+					// split-brain but IMMND does, start timer reboot node.
+						LOG_WA(
+						    "Another Active IMMD %x. Start split-brain timer",
+						    mdsInfo->node_id);
+						cb->splitbrain_tmr = ncs_tmr_start(
+						    cb->splitbrain_tmr, 1000,  // 10s
+						    splitbrain_tmr_exp, NULL, NULL, 0);
+						cb->splitbrain_tmr_run = true;
+					}
+				}
+			}
+			break;
+		case NCSMDS_RED_DOWN:
+			if (cb->immd_node_id == mdsInfo->node_id)
+				cb->immd_node_id = 0;
+			if (cb->other_immd_id == mdsInfo->node_id)
+				cb->other_immd_id = 0;
+			TRACE_2("IMMD RED_DOWN EVENT %x role=%d ==> ACT:%x SBY:%x",
+			    mdsInfo->node_id, mdsInfo->role,
+			    cb->immd_node_id, cb->other_immd_id);
+			if ((cb->immd_node_id == 0) && (cb->other_immd_id == 0)) {
+				LOG_WA("Both Active & Standby DOWN, going to headless");
+				is_headless = true;
+			}
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -12371,29 +12421,28 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 			}
 		}
 
-	} else if ((evt->info.mds_info.change == NCSMDS_UP) &&
-		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
+	} else if ((mdsInfo->change == NCSMDS_UP) &&
+		   (mdsInfo->svc_id == NCSMDS_SVC_ID_IMMD)) {
 		LOG_NO(
 		    "IMMD(%x) service is UP ... ScAbsenseAllowed?:%u introduced?:%u",
-		    evt->info.mds_info.node_id,
+		    mdsInfo->node_id,
 		    cb->mScAbsenceAllowed, cb->mIntroduced);
 		if ((cb->mIntroduced == 2) &&
 		    (immnd_introduceMe(cb) != NCSCC_RC_SUCCESS)) {
 			LOG_WA(
 			    "IMMND re-introduceMe after IMMD restart failed, will retry");
 		}
-	} else if ((evt->info.mds_info.change == NCSMDS_UP) &&
-		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OI ||
-		    evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OM)) {
+	} else if ((mdsInfo->change == NCSMDS_UP) &&
+		   (mdsInfo->svc_id == NCSMDS_SVC_ID_IMMA_OI ||
+		    mdsInfo->svc_id == NCSMDS_SVC_ID_IMMA_OM)) {
 		TRACE_2("IMMA UP EVENT");
-	} else if ((evt->info.mds_info.change == NCSMDS_CHG_ROLE) &&
-		   (evt->info.mds_info.role == V_DEST_RL_ACTIVE) &&
-		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
-
+	} else if ((mdsInfo->change == NCSMDS_CHG_ROLE) &&
+		   (mdsInfo->role == V_DEST_RL_ACTIVE) &&
+		   (mdsInfo->svc_id == NCSMDS_SVC_ID_IMMD)) {
 		TRACE_2("IMMD FAILOVER");
 		/* The IMMD has failed over. */
 		immnd_proc_imma_discard_stales(cb);
-	} else if (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMND) {
+	} else if (mdsInfo->svc_id == NCSMDS_SVC_ID_IMMND) {
 		LOG_NO("MDS SERVICE EVENT OF TYPE IMMND!!");
 	}
 	/*TRACE_LEAVE(); */

@@ -33,10 +33,11 @@
 #include "base/sysf_exc_scr.h"
 #include "base/ncssysf_def.h"
 
+#include <poll.h>
 #include <sched.h>
 
 SYSF_EXECUTE_MODULE_CB module_cb;
-
+static struct pollfd fds[1];
 /*****************************************************************************
 
   PROCEDURE        : ncs_exc_mdl_start_timer
@@ -108,8 +109,19 @@ void ncs_exec_module_signal_hdlr(int signal)
 
 		/*  printf("\n In  SIGCHLD Handler \n"); */
 
-		if (-1 == write(module_cb.write_fd, (const void *)&info,
+		while (-1 == write(module_cb.write_fd, (const void *)&info,
 				sizeof(EXEC_MOD_INFO))) {
+			/* Only continue if the error is EINTR which may be
+			 * caused by the signal interupt, and do not try again
+			 * with EAGAIN and EWOULDBLOCK since that will become
+			 * the reason to cause the threads hanging with
+			 * BLOCKING socketpair and the ncs_exec_mod_hdlr scans
+			 * all child pid for each read()
+			 */
+			if (errno == EINTR)
+				continue;
+
+			break;
 			perror("ncs_exec_module_signal_hdlr: write");
 		}
 	}
@@ -137,11 +149,7 @@ void ncs_exec_module_timer_hdlr(void *uarg)
 	EXEC_MOD_INFO info = {.pid = NCS_PTR_TO_INT32_CAST(uarg),
 			      .status = 0,
 			      .type = SYSF_EXEC_INFO_TIME_OUT};
-
-	if (-1 == write(module_cb.write_fd, (const void *)&info,
-			sizeof(EXEC_MOD_INFO))) {
-		perror("ncs_exec_module_timer_hdlr: write");
-	}
+	give_exec_mod_cb(info.pid, info.status, info.type);
 }
 
 /**************************************************************************\
@@ -169,8 +177,25 @@ void ncs_exec_mod_hdlr(void)
 	SYSF_PID_LIST *exec_pid = NULL;
 	int status = -1;
 	int pid = -1;
+	int polltmo = -1;
+
+	fds[0].fd = module_cb.read_fd;
+	fds[0].events = POLLIN;
 
 	while (1) {
+		int pollretval = poll(fds, 1, polltmo);
+
+		if (pollretval == -1) {
+			if (errno == EINTR)
+				continue;
+
+			LOG_ER("ncs_exec_mod_hdlr: poll FAILED - %s",
+				strerror(errno));
+			break;
+		}
+		if ((fds[0].revents & POLLIN) == false)
+			continue;
+
 		while ((ret_val = read(
 			    module_cb.read_fd, (((uint8_t *)&info) + count),
 			    (maxsize - count))) != (maxsize - count)) {
@@ -178,66 +203,40 @@ void ncs_exec_mod_hdlr(void)
 				if (errno == EBADF)
 					return;
 
-				perror("ncs_exec_mod_hdlr: read fail:");
 				continue;
 			}
 			count += ret_val;
 		} /* while */
 
-		if (info.type == SYSF_EXEC_INFO_TIME_OUT) {
-			/* printf("Time out signal \n"); */
-			pid = info.pid;
-			give_exec_mod_cb(info.pid, info.status, info.type);
-
-		} /* if */
-		else {
 		repeat_srch_from_beginning:
-			m_NCS_LOCK(&module_cb.tree_lock, NCS_LOCK_WRITE);
+		m_NCS_LOCK(&module_cb.tree_lock, NCS_LOCK_WRITE);
 
-			for (exec_pid =
-				 (SYSF_PID_LIST *)ncs_patricia_tree_getnext(
-				     &module_cb.pid_list, NULL);
-			     exec_pid != NULL;
-			     exec_pid =
-				 (SYSF_PID_LIST *)ncs_patricia_tree_getnext(
-				     &module_cb.pid_list,
-				     (const uint8_t *)&exec_pid->pid)) {
-				pid = exec_pid->pid;
-				/*printf(" Going to wait on waitpid  %d \n",
-				 * pid); */
+		for (exec_pid = (SYSF_PID_LIST *)ncs_patricia_tree_getnext(
+			     &module_cb.pid_list, NULL);
+		     exec_pid != NULL;
+		     exec_pid = (SYSF_PID_LIST *)ncs_patricia_tree_getnext(
+			     &module_cb.pid_list, (const uint8_t *)&exec_pid->pid)) {
+			pid = exec_pid->pid;
 
-				if ((pid == waitpid(pid, &status, WNOHANG))) {
-					/* TIMED OUT CHILDS which are terminated
-					 * by sending  SIG CHILD */
-					if (exec_pid->exec_info_type ==
-					    SYSF_EXEC_INFO_TIME_OUT) {
-						ncs_patricia_tree_del(
-						    &module_cb.pid_list,
-						    (NCS_PATRICIA_NODE *)
-							exec_pid);
-
-						free(exec_pid);
-						m_NCS_UNLOCK(
-						    &module_cb.tree_lock,
-						    NCS_LOCK_WRITE);
-
-					} else {
-						info.pid = pid;
-						info.status = status;
-						info.type =
-						    SYSF_EXEC_INFO_SIG_CHLD;
-						m_NCS_UNLOCK(
-						    &module_cb.tree_lock,
-						    NCS_LOCK_WRITE);
-						give_exec_mod_cb(info.pid,
-								 info.status,
-								 info.type);
-					}
-					goto repeat_srch_from_beginning;
+			if (pid == waitpid(pid, &status, WNOHANG)) {
+				/* TIMED OUT CHILDS which are terminated
+				 * by sending  SIG CHILD */
+				if (exec_pid->exec_info_type == SYSF_EXEC_INFO_TIME_OUT) {
+					ncs_patricia_tree_del(&module_cb.pid_list,
+					    (NCS_PATRICIA_NODE *)exec_pid);
+					free(exec_pid);
+					m_NCS_UNLOCK(&module_cb.tree_lock, NCS_LOCK_WRITE);
+				} else {
+					info.pid = pid;
+					info.status = status;
+					info.type = SYSF_EXEC_INFO_SIG_CHLD;
+					m_NCS_UNLOCK(&module_cb.tree_lock, NCS_LOCK_WRITE);
+					give_exec_mod_cb(info.pid, info.status, info.type);
 				}
-			} /*for */
-			m_NCS_UNLOCK(&module_cb.tree_lock, NCS_LOCK_WRITE);
-		} /* else */
+				goto repeat_srch_from_beginning;
+			}
+		} /*for */
+		m_NCS_UNLOCK(&module_cb.tree_lock, NCS_LOCK_WRITE);
 		count = 0;
 	} /* while(1) */
 }
@@ -430,7 +429,7 @@ uint32_t start_exec_mod_cb(void)
 		return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 	}
 
-	if (0 != socketpair(AF_UNIX, SOCK_DGRAM, 0, spair)) {
+	if (0 != socketpair(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0, spair)) {
 		perror("init_exec_mod_cb: socketpair: ");
 		return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 	}

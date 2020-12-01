@@ -83,7 +83,7 @@ static void usage(const char *progname)
 	printf("\timmlist -a saAmfApplicationAdminState safApp=OpenSAF\n");
 	printf("\timmlist safApp=myApp1 safApp=myApp2\n");
 	printf("\timmlist --pretty-print=no -a saAmfAppType safApp=OpenSAF\n");
-	printf("\timmlist -d '|' -a safAmfNodeGroup safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster\n");
+	printf("\timmlist -d '|' -a saAmfNGNodeList safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster\n");
 }
 
 static void print_attr_value_raw(SaImmValueTypeT attrValueType,
@@ -492,6 +492,7 @@ int main(int argc, char *argv[])
 	int rc = EXIT_SUCCESS;
 	unsigned long timeoutVal = 60;
 	char delimiter = ' ';
+	bool is_existed_delimiter = false;
 
 	/* Support for long DN */
 	setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1);
@@ -513,7 +514,8 @@ int main(int argc, char *argv[])
 			    attributeNames, ++len * sizeof(SaImmAttrNameT));
 			attributeNames[len - 2] = strdup(optarg);
 			attributeNames[len - 1] = NULL;
-			delimiter = ':';
+			if (!is_existed_delimiter)
+				delimiter = ':';
 			pretty_print = 0;
 			break;
 		case 'c':
@@ -537,6 +539,7 @@ int main(int argc, char *argv[])
 				    "delimiter must be a single character\n");
 				exit(EXIT_FAILURE);
 			}
+			is_existed_delimiter = true;
 			delimiter = optarg[0];
 			break;
 		default:

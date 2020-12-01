@@ -25,6 +25,7 @@
 
 #include <string>
 #include <list>
+#include <mutex>
 
 #include "ais/include/saImmOm.h"
 #include "ais/include/saAis.h"
@@ -189,6 +190,32 @@ class SmfImmUtils {
       const SaImmAdminOperationParamsT_2** i_params = NULL,
       SaTimeT i_timeout = SA_TIME_ONE_MINUTE);
 
+  ///
+  /// Purpose: Call administrative operation async on an object.
+  /// @param   i_dn DN of object to call.
+  /// @param   i_operationId The operation id.
+  /// @return  void
+  ///
+  void callAdminOperationAsync(
+      const std::string& i_dn, SaAmfAdminOperationIdT i_operationId);
+
+  ///
+  /// Purpose: Check admin operation async done or not.
+  /// @return  True if successful, otherwise false
+  ///
+  bool isAdminAsyncDone() { return !m_asyncThreadRunning; }
+
+  ///
+  /// Purpose: Check admin operation async result.
+  /// @return  SaAisErrorT
+  ///
+  SaAisErrorT getAdminAsyncResult() { return m_admOiReturn; }
+
+  ///
+  /// Purpose: Get object name of admin async operation.
+  /// @return  std::string
+  ///
+  std::string getAdminAsyncObject() { return m_objectDn; }
 
   // Fill in a CCB descriptor (immccb.h), store rollback data for
   // each operation in the CCB and apply the modifications
@@ -214,12 +241,22 @@ class SmfImmUtils {
  private:
   bool initialize(void);
   bool finalize(void);
+  void adminOperationAsyncThread(void);
+  static SmfImmUtils* me;
+  static std::mutex m_mutex;
+  static void adminOperationInvokeCallback(
+      SaInvocationT invocation, SaAisErrorT opRetVal, SaAisErrorT error);
 
   static SaVersionT s_immVersion;
 
   SaImmHandleT m_omHandle;
   SaImmAdminOwnerHandleT m_ownerHandle;
   SaImmAccessorHandleT m_accessorHandle;
+
+  SaImmAdminOperationIdT m_adminOperId;
+  std::string m_objectDn;
+  bool m_asyncThreadRunning;
+  SaAisErrorT m_admOiReturn;
 };
 
 #endif  // SMF_SMFD_SMFUTILS_H_

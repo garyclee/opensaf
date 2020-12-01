@@ -169,7 +169,7 @@ uint32_t avd_count_sync_node_size(AVD_CL_CB *cb) {
   uint32_t count = 0;
   TRACE_ENTER();
 
-  count = node_name_db->size() - 1;
+  count = node_name_db->size();
 
   TRACE("sync node size:%d", count);
   return count;
@@ -180,15 +180,13 @@ uint32_t avd_count_sync_node_size(AVD_CL_CB *cb) {
  * Purpose:  Helper function count number of nodes that sent node_up msg to
  *           director
  *
- * Input: cb - the AVD control block
- *
  * Returns: Number of node
  *
  * NOTES:
  *
  *
  **************************************************************************/
-uint32_t avd_count_node_up(AVD_CL_CB *cb) {
+uint32_t avd_count_node_up() {
   uint32_t received_count = 0;
   AVD_AVND *node = nullptr;
 
@@ -196,8 +194,7 @@ uint32_t avd_count_node_up(AVD_CL_CB *cb) {
 
   for (const auto &value : *node_name_db) {
     node = value.second;
-    if (node->node_up_msg_count > 0 &&
-        node->node_info.nodeId != cb->node_id_avd)
+    if (node->node_up_msg_count > 0)
       ++received_count;
   }
   TRACE("Number of node director(s) that director received node_up msg:%u",
@@ -329,7 +326,7 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
     }
     uint32_t rc_node_up;
     avnd->node_up_msg_count++;
-    rc_node_up = avd_count_node_up(cb);
+    rc_node_up = avd_count_node_up();
     if (rc_node_up == sync_nd_size) {
       if (cb->node_sync_tmr.is_active) {
         avd_stop_tmr(cb, &cb->node_sync_tmr);

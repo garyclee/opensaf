@@ -88,7 +88,7 @@ static uint32_t ckpt_encode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg);
 static uint32_t ckpt_enc_cold_sync_data(lgs_cb_t *lgs_cb,
                                         NCS_MBCSV_CB_ARG *cbk_arg,
                                         bool data_req);
-static uint32_t ckpt_encode_async_update(lgs_cb_t *lgs_cb, EDU_HDL edu_hdl,
+static uint32_t ckpt_encode_async_update(lgs_cb_t *lgs_cb,
                                          NCS_MBCSV_CB_ARG *cbk_arg);
 static uint32_t ckpt_decode_cold_sync(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg);
 static uint32_t ckpt_peer_info_cbk_handler(NCS_MBCSV_CB_ARG *arg);
@@ -689,7 +689,7 @@ static uint32_t ckpt_encode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg) {
   switch (cbk_arg->info.encode.io_msg_type) {
     case NCS_MBCSV_MSG_ASYNC_UPDATE:
       /* Encode async update */
-      if ((rc = ckpt_encode_async_update(lgs_cb, lgs_cb->edu_hdl, cbk_arg)) !=
+      if ((rc = ckpt_encode_async_update(lgs_cb, cbk_arg)) !=
           NCSCC_RC_SUCCESS)
         TRACE("  ckpt_encode_async_update FAILED");
       break;
@@ -1005,7 +1005,7 @@ static uint32_t edu_enc_reg_list(lgs_cb_t *cb, NCS_UBAID *uba) {
  * Notes         : None.
  ****************************************************************************/
 
-static uint32_t ckpt_encode_async_update(lgs_cb_t *lgs_cb, EDU_HDL edu_hdl,
+static uint32_t ckpt_encode_async_update(lgs_cb_t *lgs_cb,
                                          NCS_MBCSV_CB_ARG *cbk_arg) {
   lgsv_ckpt_msg_v9_t *data_v9 = NULL;
   lgsv_ckpt_msg_v8_t *data_v8 = NULL;
@@ -1064,7 +1064,7 @@ static uint32_t ckpt_encode_async_update(lgs_cb_t *lgs_cb, EDU_HDL edu_hdl,
     return NCSCC_RC_FAILURE;
   }
   /* Encode async record,except publish & subscribe */
-  rc = m_NCS_EDU_EXEC(&edu_hdl, edp_function, &cbk_arg->info.encode.io_uba,
+  rc = m_NCS_EDU_EXEC(&lgs_cb->edu_hdl, edp_function, &cbk_arg->info.encode.io_uba,
                       EDP_OP_TYPE_ENC, vdata, &ederror);
 
   if (rc != NCSCC_RC_SUCCESS) {

@@ -84,10 +84,12 @@ class SmfAdminStateHandler {
   bool adminOperationNodeGroup(SaAmfAdminStateT fromState,
                                  SaAmfAdminOperationIdT toState);
   // Using m_suList
-  bool adminOperationSerialized(SaAmfAdminOperationIdT adminState,
+  bool adminOperationParallel(SaAmfAdminOperationIdT adminState,
                                 const std::list<unitNameAndState>& i_nodeList);
   bool nodeGroupAdminOperation(SaAmfAdminOperationIdT adminState);
   bool adminOperation(SaAmfAdminOperationIdT adminState,
+                      const std::string& unitName);
+  void adminOperationAsync(SaAmfAdminOperationIdT adminState,
                       const std::string& unitName);
 
   SaAmfAdminStateT getAdminState(const std::string& i_unit);
@@ -96,6 +98,7 @@ class SmfAdminStateHandler {
   std::list<unitNameAndState>* allUnits_;
   std::list<unitNameAndState> suList_;
   std::list<unitNameAndState> nodeList_;
+  std::list<class SmfImmUtils*> adminAsyncList_;
 
   const SaVersionT immVersion_{'A', 2, 17};
 
@@ -127,5 +130,5 @@ class SmfAdminStateHandler {
   DELETE_COPY_AND_MOVE_OPERATORS(SmfAdminStateHandler);
 };
 
-#endif /* SMF_SMFD_SMFADMINSTATE_H_ */
+#endif  // SMF_SMFD_SMFADMINSTATE_H_
 

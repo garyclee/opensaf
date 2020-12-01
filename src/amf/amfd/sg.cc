@@ -2243,6 +2243,16 @@ void avd_sg_read_headless_cached_rta(AVD_CL_CB *cb) {
           if (op_su) {
             if (op_su->sg_of_su->any_assignment_in_progress()) {
               avd_sg_su_oper_list_add(avd_cb, op_su, false, false);
+            } else {
+              TRACE("No any assignment in progress, clean %s",
+                    op_su->name.c_str());
+              const SaNameTWrapper su_name(op_su->name);
+              avd_saImmOiRtObjectUpdate_sync(
+                  sg->name,
+                  const_cast<SaImmAttrNameT>("osafAmfSGSuOperationList"),
+                  SA_IMM_ATTR_SANAMET,
+                  (void *)static_cast<const SaNameT *>(su_name),
+                  SA_IMM_ATTR_VALUES_DELETE);
             }
           }
         }
@@ -2395,7 +2405,8 @@ bool AVD_SG::any_assignment_in_progress() {
   for (const auto &su : list_of_su) {
     if (su->any_susi_fsm_in(AVD_SU_SI_STATE_ASGN) ||
         su->any_susi_fsm_in(AVD_SU_SI_STATE_UNASGN) ||
-        su->any_susi_fsm_in(AVD_SU_SI_STATE_MODIFY)) {
+        su->any_susi_fsm_in(AVD_SU_SI_STATE_MODIFY) ||
+        su->any_sponsor_si_under_failover()) {
       pending = true;
       break;
     }

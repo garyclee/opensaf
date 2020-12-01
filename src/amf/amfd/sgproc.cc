@@ -2480,9 +2480,7 @@ uint32_t avd_sg_su_oper_list_add(AVD_CL_CB *cb, AVD_SU *su, bool ckpt,
   }
 
   TRACE("added %s to %s", su->name.c_str(), su->sg_of_su->name.c_str());
-
   su_oper_list.push_back(su);
-
   if (!ckpt) {
     // Update to IMM if headless is enabled
     if (cb->scs_absence_max_duration > 0 && wrt_to_imm) {
@@ -2539,6 +2537,7 @@ uint32_t avd_sg_su_oper_list_del(AVD_CL_CB *cb, AVD_SU *su, bool ckpt,
     goto done;
   }
 
+  TRACE("erased %s to %s", su->name.c_str(), su->sg_of_su->name.c_str());
   su_oper_list.erase(elem);
   if (!ckpt) {
     // Update to IMM if headless is enabled

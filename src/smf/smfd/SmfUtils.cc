@@ -21,8 +21,10 @@
  */
 #include "smf/smfd/SmfUtils.h"
 
+#include <poll.h>
 #include <unistd.h>
 #include <string.h>
+#include <thread>
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -218,7 +220,7 @@ std::string replaceAllCopy(const std::string &i_haystack,
 //================================================================================
 
 SmfImmUtils::SmfImmUtils()
-    : m_omHandle(0), m_ownerHandle(0), m_accessorHandle(0) {
+    : m_omHandle(0), m_ownerHandle(0), m_accessorHandle(0), m_adminOperId(0) {
   initialize();
 }
 
@@ -227,13 +229,34 @@ SmfImmUtils::SmfImmUtils()
 // ------------------------------------------------------------------------------
 SmfImmUtils::~SmfImmUtils() { finalize(); }
 
+SmfImmUtils *SmfImmUtils::me(0);
+std::mutex SmfImmUtils::m_mutex;
+void SmfImmUtils::adminOperationInvokeCallback(
+    SaInvocationT invocation, SaAisErrorT opRetVal, SaAisErrorT error) {
+  TRACE("Admin async operation %s inv=%llu return error=%d opRetVal=%d",
+        me->getAdminAsyncObject().c_str(), invocation, error, opRetVal);
+  me->m_admOiReturn = SA_AIS_ERR_TRY_AGAIN;
+  if (error == SA_AIS_ERR_TRY_AGAIN) {
+    return;
+  } else if (error == SA_AIS_OK) {
+    if (opRetVal == SA_AIS_ERR_BUSY || opRetVal == SA_AIS_ERR_TRY_AGAIN)
+      return;
+    me->m_admOiReturn = opRetVal;
+  } else {
+    me->m_admOiReturn = error;
+  }
+  me->m_asyncThreadRunning = false;
+}
+
+
 // ------------------------------------------------------------------------------
 // initialize()
 // ------------------------------------------------------------------------------
 bool SmfImmUtils::initialize(void) {
   SaVersionT local_version = s_immVersion;
+  static SaImmCallbacksT immOmCb = {SmfImmUtils::adminOperationInvokeCallback};
   if (m_omHandle == 0) {
-    (void)immutil_saImmOmInitialize(&m_omHandle, NULL, &local_version);
+    (void)immutil_saImmOmInitialize(&m_omHandle, &immOmCb, &local_version);
   }
 
   if (m_ownerHandle == 0) {
@@ -245,6 +268,9 @@ bool SmfImmUtils::initialize(void) {
     (void)immutil_saImmOmAccessorInitialize(m_omHandle, &m_accessorHandle);
   }
 
+  m_asyncThreadRunning = false;
+  m_admOiReturn = SA_AIS_OK;
+
   return true;
 }
 
@@ -252,6 +278,9 @@ bool SmfImmUtils::initialize(void) {
 // finalize()
 // ------------------------------------------------------------------------------
 bool SmfImmUtils::finalize(void) {
+
+  m_asyncThreadRunning = false;
+
   if (m_ownerHandle != 0) {
     (void)immutil_saImmOmAdminOwnerFinalize(m_ownerHandle);
   }
@@ -547,6 +576,95 @@ done:
   return rc;
 }
 
+static std::atomic<SaInvocationT> smfd_adminAsyncInv{0};
+// ----------------------------------------------------------------------------
+// adminOperationAsyncThread()
+// ----------------------------------------------------------------------------
+void SmfImmUtils::adminOperationAsyncThread(void) {
+  struct pollfd fds;
+  SaAisErrorT rc;
+  SaSelectionObjectT selObj = -1;
+
+  TRACE_ENTER();
+  rc = immutil_saImmOmSelectionObjectGet(m_omHandle, &selObj);
+  if (rc != SA_AIS_OK) {
+    LOG_ER("saImmOmSelectionObjectGet FAILED: %s", saf_error(rc));
+    return;
+  }
+
+  fds.fd = (int)selObj;
+  fds.events = POLLIN;
+  m_asyncThreadRunning = true;
+  m_admOiReturn = SA_AIS_ERR_TRY_AGAIN;
+
+  while (m_asyncThreadRunning) {
+    if (m_admOiReturn == SA_AIS_ERR_TRY_AGAIN) {
+      SaNameT objectName;
+      osaf_extended_name_lend(m_objectDn.c_str(), &objectName);
+      const SaNameT *objectNames[2];
+      objectNames[0] = &objectName;
+      objectNames[1] = NULL;
+      rc = immutil_saImmOmAdminOwnerSet(
+                  m_ownerHandle, objectNames, SA_IMM_ONE);
+      if (rc != SA_AIS_OK) {
+        LOG_NO("Fail to set admin owner, rc=%s, dn=[%s]", saf_error(rc),
+              m_objectDn.c_str());
+        continue;
+      }
+      const SaImmAdminOperationParamsT_2 *params[1] = {NULL};
+      rc = immutil_saImmOmAdminOperationInvokeAsync_2(
+              m_ownerHandle, smfd_adminAsyncInv++,
+              &objectName, 0, m_adminOperId, params);
+      immutil_saImmOmAdminOwnerRelease(m_ownerHandle, objectNames, SA_IMM_ONE);
+      if (rc != SA_AIS_OK) {
+        LOG_NO("Fail to invoke admin operation, rc=%s. dn=[%s], opId=[%llu]",
+              saf_error(rc), m_objectDn.c_str(), m_adminOperId);
+        continue;
+      }
+      TRACE("Invoked admin operation async on %s", m_objectDn.c_str());
+      m_admOiReturn = SA_AIS_OK;
+    }
+
+    int ret = poll(&fds, 1, 1000);
+    if (ret == -1) {
+      LOG_ER("poll error: %s\n", strerror(errno));
+      break;
+    }
+
+    if ((ret > 0) && (fds.revents & POLLIN)) {
+      TRACE("Callback for admin async: %s", m_objectDn.c_str());
+      std::lock_guard<std::mutex> guard(m_mutex);
+      me = this;
+      saImmOmDispatch(m_omHandle, SA_DISPATCH_ONE);
+      if (m_admOiReturn == SA_AIS_ERR_TRY_AGAIN) sleep(1);
+    }
+  }
+
+  m_asyncThreadRunning = false;
+  TRACE_LEAVE();
+}
+
+// ------------------------------------------------------------------------------
+// callAdminOperationAsync()
+// ------------------------------------------------------------------------------
+void SmfImmUtils::callAdminOperationAsync(
+    const std::string &i_dn, SaAmfAdminOperationIdT i_operationId) {
+  if (m_asyncThreadRunning) {
+    LOG_ER("Already invoke admin async with this instance");
+    return;
+  }
+
+  m_objectDn = i_dn;
+  m_adminOperId = i_operationId;
+  try {
+    std::thread(&SmfImmUtils::adminOperationAsyncThread, this).detach();
+  } catch (const std::system_error& e) {
+    LOG_ER("Failed to create thread adminOperationAsyncThread");
+    exit(EXIT_FAILURE);
+  }
+  while (!m_asyncThreadRunning) { base::Sleep(base::kOneMillisecond); }
+}
+
 // ------------------------------------------------------------------------------
 // callAdminOperation()
 // ------------------------------------------------------------------------------
@@ -588,41 +706,24 @@ SaAisErrorT SmfImmUtils::callAdminOperation(
   }
 
   /* Call the admin operation */
-
   TRACE("call immutil_saImmOmAdminOperationInvoke_2");
-  rc = immutil_saImmOmAdminOperationInvoke_2(m_ownerHandle, &objectName, 0,
-                                             i_operationId, i_params,
-                                             &returnValue, i_timeout);
-  while ((rc == SA_AIS_OK) && (returnValue == SA_AIS_ERR_TRY_AGAIN) &&
-         (retry > 0)) {
-    sleep(2);
+  while (1) {
     rc = immutil_saImmOmAdminOperationInvoke_2(m_ownerHandle, &objectName, 0,
-                                               i_operationId, i_params,
-                                               &returnValue, i_timeout);
-    retry--;
+                                              i_operationId, i_params,
+                                              &returnValue, i_timeout);
+    if ((rc != SA_AIS_OK) || (returnValue != SA_AIS_ERR_TRY_AGAIN) ||
+        (--retry <= 0)) break;
+    sleep(2);
   }
 
-  if (retry <= 0) {
-    LOG_NO(
-        "Fail to invoke admin operation, too many SA_AIS_ERR_TRY_AGAIN, giving up. dn=[%s], opId=[%u]",
-        i_dn.c_str(), i_operationId);
-    rc = SA_AIS_ERR_TRY_AGAIN;
-    goto done;
-  }
-
-  if (rc != SA_AIS_OK) {
-    LOG_NO("Fail to invoke admin operation, rc=%s. dn=[%s], opId=[%u]",
-           saf_error(rc), i_dn.c_str(), i_operationId);
-    goto done;
-  }
-
-  if ((returnValue != SA_AIS_OK) &&
-      (returnValue != SA_AIS_ERR_REPAIR_PENDING)) {
+  if (rc == SA_AIS_OK) {
     TRACE("Admin operation %u on %s, return value=%s", i_operationId,
           i_dn.c_str(), saf_error(returnValue));
+    rc = returnValue;
+  } else {
+    LOG_ER("Fail to invoke admin operation, rc=%s. dn=[%s], opId=[%u]",
+           saf_error(rc), i_dn.c_str(), i_operationId);
   }
-
-  rc = returnValue;
 
 done:
   SaAisErrorT release_rc = immutil_saImmOmAdminOwnerRelease(m_ownerHandle,

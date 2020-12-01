@@ -301,6 +301,8 @@ static uint32_t immnd_initialize(char *progname)
 	immnd_cb->clmSelectionObject = -1;
 	immnd_cb->immd_node_id = 0;
 	immnd_cb->other_immd_id = 0;
+	immnd_cb->splitbrain_tmr = ncs_tmr_alloc(NULL, 0);
+	immnd_cb->splitbrain_tmr_run = false;
 
 	populate_reserved_class_names(immnd_cb);
 

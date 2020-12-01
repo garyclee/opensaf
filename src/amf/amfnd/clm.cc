@@ -138,7 +138,7 @@ done:
   TRACE_LEAVE();
 }
 
-static void clm_to_amf_node(void) {
+static SaAisErrorT clm_to_amf_node(void) {
   SaAisErrorT error;
   SaImmSearchHandleT searchHandle;
   SaNameT amfdn, clmdn;
@@ -157,8 +157,7 @@ static void clm_to_amf_node(void) {
 
   error = saImmOmInitialize_cond(&immOmHandle, nullptr, &immVersion);
   if (SA_AIS_OK != error) {
-    LOG_WA("saImmOmInitialize failed. Use previous value of nodeName.");
-    osafassert(avnd_cb->amf_nodeName.empty() == false);
+    LOG_WA("saImmOmInitialize failed: %u", error);
     goto done1;
   }
 
@@ -192,6 +191,7 @@ done:
   immutil_saImmOmFinalize(immOmHandle);
 done1:
   TRACE_LEAVE2("%u", error);
+  return error;
 }
 
 /****************************************************************************
@@ -279,7 +279,15 @@ static void clm_track_cb(
           memcpy(&(avnd_cb->node_info), &(notifItem->clusterNode),
                  sizeof(SaClmClusterNodeT_4));
           /*get the amf node from clm node name */
-          if (avnd_cb->amf_nodeName.empty()) clm_to_amf_node();
+          if (avnd_cb->amf_nodeName.empty()) {
+            if (clm_to_amf_node() == SA_AIS_ERR_TRY_AGAIN) {
+              // Take one more try
+              if (clm_to_amf_node() != SA_AIS_OK) {
+                LOG_ER("clm_to_amf_node() failed");
+                exit(EXIT_FAILURE);
+              }
+            }
+          }
           avnd_send_node_up_msg();
           avnd_cb->first_time_up = false;
         } else {

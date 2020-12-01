@@ -259,6 +259,7 @@ uint32_t initialize_for_assignment(IMMD_CB *cb, SaAmfHAStateT ha_state)
 	}
 
 done:
+	cb->ex_immd_node_id = cb->node_id;
 	TRACE_LEAVE2("rc = %u", rc);
 	return rc;
 }
