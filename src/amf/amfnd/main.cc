@@ -608,12 +608,16 @@ void avnd_main_process(void) {
     }
 
     if (fds[FD_AMFD_FIFO].revents & POLLERR) {
-      LOG_ER("AMFD has unexpectedly crashed. Rebooting node");
-      opensaf_reboot(
-          avnd_cb->node_info.nodeId,
-          osaf_extended_name_borrow(&avnd_cb->node_info.executionEnvironment),
-          "AMFD has unexpectedly crashed. Rebooting node");
-      exit(0);
+      if (!m_AVND_IS_SHUTTING_DOWN(avnd_cb)) {
+        LOG_ER("AMFD has unexpectedly crashed. Rebooting node");
+        opensaf_reboot(
+            avnd_cb->node_info.nodeId,
+            osaf_extended_name_borrow(&avnd_cb->node_info.executionEnvironment),
+            "AMFD has unexpectedly crashed. Rebooting node");
+        exit(0);
+      } else {
+        LOG_WA("Ignore because AMFND is in SHUTDOWN state");
+      }
     }
 
     if (avnd_cb->clmHandle && (fds[FD_CLM].revents & POLLIN)) {
