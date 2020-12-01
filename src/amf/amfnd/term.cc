@@ -205,7 +205,7 @@ uint32_t avnd_evt_avd_set_leds_evh(AVND_CB *cb, AVND_EVT *evt) {
   cb->amfd_sync_required = false;
   if (cb->led_state == AVND_LED_STATE_GREEN) {
     // Resend buffered headless msg
-    avnd_diq_rec_send_buffered_msg(cb);
+    avnd_diq_rec_send_buffered_msg(cb, false);
     goto done;
   }
 

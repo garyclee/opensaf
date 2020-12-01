@@ -317,6 +317,7 @@ AVND_CB *avnd_cb_create() {
   cb->oper_state = SA_AMF_OPERATIONAL_ENABLED;
   cb->term_state = AVND_TERM_STATE_UP;
   cb->led_state = AVND_LED_STATE_RED;
+  cb->is_ncs_su_assigned = false;
 
   /* assign the default timeout values (in nsec) */
   cb->msg_resp_intv = AVND_AVD_MSG_RESP_TIME * 1000000;

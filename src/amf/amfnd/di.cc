@@ -543,8 +543,7 @@ void avnd_send_node_up_msg(void) {
   msg.type = AVND_MSG_AVD;
   msg.info.avd->msg_type = AVSV_N2D_NODE_UP_MSG;
   msg.info.avd->msg_info.n2d_node_up.msg_id = ++(cb->snd_msg_id);
-  msg.info.avd->msg_info.n2d_node_up.leds_set =
-      cb->led_state == AVND_LED_STATE_GREEN ? true : false;
+  msg.info.avd->msg_info.n2d_node_up.leds_set = cb->is_ncs_su_assigned;
   osaf_extended_name_alloc(cb->amf_nodeName.c_str(),
                            &msg.info.avd->msg_info.n2d_node_up.node_name);
   msg.info.avd->msg_info.n2d_node_up.node_id = cb->node_info.nodeId;
@@ -652,7 +651,7 @@ uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt) {
      * node_up in both cases but only sync info is sent for recovery
      */
     if (evt->info.mds.i_change == NCSMDS_UP) {
-      if (cb->is_avd_down && cb->led_state == AVND_LED_STATE_GREEN) {
+      if (cb->is_avd_down && cb->is_ncs_su_assigned) {
         avnd_sync_sisu(cb);
         avnd_sync_csicomp(cb);
       }
@@ -665,7 +664,7 @@ uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt) {
      * only want to send node_up/sync info in case of recovery.
      */
     if (evt->info.mds.i_change == NCSMDS_NEW_ACTIVE && cb->is_avd_down) {
-      if (cb->led_state == AVND_LED_STATE_GREEN) {
+      if (cb->is_ncs_su_assigned) {
         // node_up, sync sisu, compcsi info to AVND for recovery
         avnd_sync_sisu(cb);
         avnd_sync_csicomp(cb);
@@ -1376,6 +1375,12 @@ void avnd_di_msg_ack_process(AVND_CB *cb, uint32_t mid) {
         // then perform last step clean up
         avnd_stop_tmr(cb, &rec->resp_tmr);
         avnd_last_step_clean(cb);
+      } else if (rec->msg.info.avd->msg_type == AVSV_N2D_NODE_UP_MSG) {
+        TRACE("msg node_up acked");
+        // Resend buffered headless msg for NCS SUs
+        if (cb->is_ncs_su_assigned) {
+          avnd_diq_rec_send_buffered_msg(cb, true);
+        }
       }
       TRACE("remove msg %u from queue", msg_id);
       avnd_diq_rec_del(cb, rec);
@@ -1541,15 +1546,17 @@ void avnd_diq_rec_del(AVND_CB *cb, AVND_DND_MSG_LIST *rec) {
   Description   : Resend buffered msg
 
   Arguments     : cb  - ptr to the AvND control block
+                  only_ncs  - only send msg for NCS SUs
 
   Return Values : None.
 
   Notes         : None.
 ******************************************************************************/
-void avnd_diq_rec_send_buffered_msg(AVND_CB *cb) {
+void avnd_diq_rec_send_buffered_msg(AVND_CB *cb, bool only_ncs) {
   TRACE_ENTER();
   // Resend msgs from queue because amfnd dropped during headless
   // or headless-synchronization
+  std::vector<AVND_DND_MSG_LIST*> tmp_dnd_list;
 
   for (auto iter = cb->dnd_list.begin(); iter != cb->dnd_list.end();) {
     auto pending_rec = *iter;
@@ -1564,6 +1571,10 @@ void avnd_diq_rec_send_buffered_msg(AVND_CB *cb) {
       // only resend if this SUSI does exist
       AVND_SU *su = cb->sudb.find(Amf::to_string(
           &pending_rec->msg.info.avd->msg_info.n2d_su_si_assign.su_name));
+      if (only_ncs && su && !su->is_ncs) {
+        ++iter;
+        continue;
+      }
       if (su != nullptr && su->si_list.n_nodes > 0) {
         pending_rec->msg.info.avd->msg_info.n2d_su_si_assign.msg_id =
             ++(cb->snd_msg_id);
@@ -1586,12 +1597,18 @@ void avnd_diq_rec_send_buffered_msg(AVND_CB *cb) {
         iter = cb->dnd_list.erase(iter);
         avnd_msg_content_free(cb, &pending_rec->msg);
         delete pending_rec;
+        continue;
       }
     } else if (pending_rec->msg.info.avd->msg_type == AVSV_N2D_OPERATION_STATE_MSG &&
                pending_rec->msg.info.avd->msg_info.n2d_opr_state.msg_id == 0) {
+        AVND_SU *su = cb->sudb.find(Amf::to_string(
+            &pending_rec->msg.info.avd->msg_info.n2d_opr_state.su_name));
+        if (only_ncs && su && !su->is_ncs) {
+          ++iter;
+          continue;
+        }
         pending_rec->msg.info.avd->msg_info.n2d_opr_state.msg_id =
             ++(cb->snd_msg_id);
-
         LOG_NO(
             "Found and resend buffered oper_state msg for SU:'%s', "
             "su_oper_state:'%u', node_oper_state:'%u', recovery:'%u'",
@@ -1606,22 +1623,29 @@ void avnd_diq_rec_send_buffered_msg(AVND_CB *cb) {
         ++iter;
     } else if (pending_rec->msg.info.avd->msg_type == AVSV_N2D_DATA_REQUEST_MSG &&
                pending_rec->msg.info.avd->msg_info.n2d_data_req.msg_id == 0) {
+        AVND_SU *su = cb->sudb.find(Amf::to_string(
+            &pending_rec->msg.info.avd->msg_info.n2d_data_req.param_info.name));
+        if (only_ncs && su && !su->is_ncs) {
+          ++iter;
+          continue;
+        }
         pending_rec->msg.info.avd->msg_info.n2d_data_req.msg_id =
               ++(cb->snd_msg_id);
-
         LOG_NO(
             "Found and resend buffered Data Req msg for SU:'%s', msg_id:'%u'",
             osaf_extended_name_borrow(&pending_rec->msg.info.avd->msg_info
                                            .n2d_data_req.param_info.name),
             pending_rec->msg.info.avd->msg_info.n2d_data_req.msg_id);
        ++iter;
-     } else {
-       ++iter;
-     }
+    } else {
+      ++iter;
+      if (only_ncs) continue;
+    }
+    tmp_dnd_list.push_back(pending_rec);
   }
 
   TRACE("retransmit message to amfd");
-  for (auto pending_rec : cb->dnd_list) {
+  for (auto pending_rec : tmp_dnd_list) {
     avnd_diq_rec_send(cb, pending_rec);
   }
   TRACE_LEAVE();

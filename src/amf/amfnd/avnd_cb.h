@@ -120,6 +120,7 @@ typedef struct avnd_cb_tag {
   bool reboot_in_progress;
   AVND_SU *failed_su;
   bool cont_reboot_in_progress;
+  bool is_ncs_su_assigned;
 
   /* the duration that amfnd should tolerate absence of any SC */
   SaTimeT scs_absence_max_duration;
