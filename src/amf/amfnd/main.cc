@@ -615,8 +615,6 @@ void avnd_main_process(void) {
             osaf_extended_name_borrow(&avnd_cb->node_info.executionEnvironment),
             "AMFD has unexpectedly crashed. Rebooting node");
         exit(0);
-      } else {
-        LOG_WA("Ignore because AMFND is in SHUTDOWN state");
       }
     }
 
