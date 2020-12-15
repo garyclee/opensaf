@@ -10542,8 +10542,10 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 			       oldCanBeCoord);
 		}
 		if ((cb->mIntroduced == 2) && (!evt->info.ctrl.isCoord)) {
-			LOG_WA("Restart to sync with Coord! Exit");
-			exit(EXIT_SUCCESS);
+			if (evt->info.ctrl.fevsMsgStart != cb->highestReceived) {
+				LOG_WA("Restart to sync with Coord! Exit");
+				exit(EXIT_SUCCESS);
+			}
 		}
 		cb->mIntroduced = 1;
 		cb->mCanBeCoord = evt->info.ctrl.canBeCoord;
