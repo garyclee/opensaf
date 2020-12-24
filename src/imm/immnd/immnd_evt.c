@@ -10321,7 +10321,7 @@ static uint32_t immnd_evt_proc_start_sync(IMMND_CB *cb, IMMND_EVT *evt,
 				   Nodes. This is mostly relevant for "standby"
 				   i.e. the non-coord immnd which is on an SC.
 				 */
-				cb->mLostNodes = 0;
+				immModel_resetDiscardNodes(cb);
 			}
 		}
 		immModel_prepareForSync(cb, cb->mSync);
@@ -10487,7 +10487,7 @@ static uint32_t immnd_evt_proc_sync_req(IMMND_CB *cb, IMMND_EVT *evt,
 		TRACE_2("Set marker for sync at coordinator");
 		cb->mSyncRequested = true;
 		if (cb->mLostNodes > 0) {
-			cb->mLostNodes--;
+			immModel_eraseDiscardNode(cb, evt->info.ctrl.nodeId);
 		}
 		/*osafassert(cb->mRulingEpoch == evt->info.ctrl.rulingEpoch); */
 		TRACE_2("At COORD: My Ruling Epoch:%u Cenral Ruling Epoch:%u",
@@ -10989,7 +10989,6 @@ static void immnd_evt_proc_discard_node(IMMND_CB *cb, IMMND_EVT *evt,
 	/* We should remember the nodeId/pid pair to avoid a redundant message
 	   causing a newly reattached node being discarded.
 	 */
-	cb->mLostNodes++;
 	immModel_discardNode(cb, evt->info.ctrl.nodeId, &arrSize, &idArr,
 			     &globArrSize, &globIdArr);
 	if (globArrSize) {

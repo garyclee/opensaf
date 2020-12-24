@@ -786,7 +786,7 @@ static SaInt32T immnd_syncNeeded(IMMND_CB *cb)
 			 */
 			LOG_IN("Postponing sync, waiting for %u nodes",
 			       cb->mLostNodes);
-			cb->mLostNodes--;
+			immModel_eraseDiscardNode(cb, 0);
 		} else {
 			cb->mSyncRequested =
 			    false; /*reset sync request marker */

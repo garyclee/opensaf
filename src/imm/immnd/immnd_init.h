@@ -154,6 +154,10 @@ bool immModel_ccbAbort(IMMND_CB *cb, SaUint32T ccbId, SaUint32T *arrSize,
 void immModel_getCcbIdsForOrigCon(IMMND_CB *cb, SaUint32T origConn,
                                   SaUint32T *arrSize, SaUint32T **ccbIdArr);
 
+void immModel_resetDiscardNodes(IMMND_CB* cb);
+
+void immModel_eraseDiscardNode(IMMND_CB* cb, SaUint32T nodeId);
+
 void immModel_discardNode(IMMND_CB *cb, SaUint32T nodeId, SaUint32T *arrSize,
                           SaUint32T **ccbIdArr, SaUint32T *globArrSize,
                           SaUint32T **globccbIdArr);
