@@ -77,7 +77,7 @@ class SafObject(object):
 
     @staticmethod
     def resolveStates(attribs):
-        for (attr, vals) in attribs.iteritems():
+        for (attr, vals) in attribs.items():
             enum = SafObject.resolver.get(attr)
             if enum:
                 vals[1] = [enum.whatis(val) for val in vals[1]]
@@ -92,7 +92,7 @@ class SafObject(object):
         attrList = unmarshalNullArray(attribs)
         for attr in attrList:
             attrRange = range(attr.attrValuesNumber)
-            self.attribs[attr.attrName] = [
+            self.attribs[str(attr.attrName)] = [
                 saImm.eSaImmValueTypeT.whatis(attr.attrValueType),
                 [saImm.unmarshalSaImmValue(
                     attr.attrValues[val],

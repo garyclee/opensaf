@@ -22,7 +22,7 @@ from ctypes import pointer
 
 from pyosaf import saImmOm, saImm
 from pyosaf.saAis import saAis, SaVersionT, SaNameT, SaAisErrorT, \
-    eSaAisErrorT, eSaBoolT, unmarshalNullArray
+    eSaAisErrorT, eSaBoolT, unmarshalNullArray, SaStringT
 from pyosaf.saImm import eSaImmScopeT, SaImmClassNameT, SaImmAttrNameT
 from pyosaf.utils import decorate, initialize_decorate, log_err
 
@@ -221,8 +221,10 @@ class ImmOmAgent(OmAgentManager):
         class_attrs = []
         attr_defs = pointer(pointer(saImm.SaImmAttrDefinitionT_2()))
         category = saImm.SaImmClassCategoryT()
+        c_class_name = class_name if isinstance(
+            class_name, SaStringT) else SaImmClassNameT(class_name)
         rc = saImmOmClassDescriptionGet_2(self.handle,
-                                          SaImmClassNameT(class_name),
+                                          c_class_name,
                                           category,
                                           attr_defs)
         if rc != eSaAisErrorT.SA_AIS_OK:

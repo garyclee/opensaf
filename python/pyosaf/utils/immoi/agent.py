@@ -26,7 +26,7 @@ Supported functions:
 """
 from __future__ import print_function
 from copy import deepcopy
-from ctypes import c_char_p, c_void_p, cast, pointer
+from ctypes import c_void_p, cast, pointer
 
 from pyosaf.saAis import SaStringT, SaVersionT, SaNameT, SaSelectionObjectT, \
     eSaDispatchFlagsT, eSaAisErrorT
@@ -386,9 +386,9 @@ class OiAgent(object):
             list: List of object names
         """
         # Marshall the search parameter
-        c_class_name = c_char_p(class_name)
+        c_class_name = SaStringT(class_name)
         c_search_param = SaImmSearchParametersT_2()
-        c_search_param.searchOneAttr.attrName = "SaImmAttrClassName"
+        c_search_param.searchOneAttr.attrName = SaStringT("SaImmAttrClassName")
         c_search_param.searchOneAttr.attrValueType = \
             eSaImmValueTypeT.SA_IMM_ATTR_SASTRINGT
         c_search_param.searchOneAttr.attrValue = \

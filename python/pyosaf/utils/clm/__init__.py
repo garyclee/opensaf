@@ -67,9 +67,9 @@ class ClusterNode(object):
                 cluster membership
         """
         self.node_id = node_id
-        self.node_address_value = node_address.value
+        self.node_address_value = str(node_address)
         self.node_address_family = node_address.family
-        self.node_name = node_name.value
+        self.node_name = str(node_name)
         self.execution_environment = execution_environment
         self.member = member
         self.boot_timestamp = boot_timestamp
