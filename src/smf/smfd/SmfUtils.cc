@@ -269,7 +269,7 @@ bool SmfImmUtils::initialize(void) {
   }
 
   m_asyncThreadRunning = false;
-  m_admOiReturn = SA_AIS_OK;
+  m_admOiReturn = SA_AIS_ERR_TRY_AGAIN;
 
   return true;
 }
@@ -649,6 +649,7 @@ void SmfImmUtils::adminOperationAsyncThread(void) {
 // ------------------------------------------------------------------------------
 void SmfImmUtils::callAdminOperationAsync(
     const std::string &i_dn, SaAmfAdminOperationIdT i_operationId) {
+  TRACE_ENTER();
   if (m_asyncThreadRunning) {
     LOG_ER("Already invoke admin async with this instance");
     return;
@@ -662,7 +663,11 @@ void SmfImmUtils::callAdminOperationAsync(
     LOG_ER("Failed to create thread adminOperationAsyncThread");
     exit(EXIT_FAILURE);
   }
-  while (!m_asyncThreadRunning) { base::Sleep(base::kOneMillisecond); }
+
+  while (!m_asyncThreadRunning && (m_admOiReturn == SA_AIS_ERR_TRY_AGAIN)) {
+    base::Sleep(base::kOneMillisecond);
+  }
+  TRACE_LEAVE();
 }
 
 // ------------------------------------------------------------------------------
