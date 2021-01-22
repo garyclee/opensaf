@@ -1624,6 +1624,49 @@ int is_adest_sel_obj_found(int si)
 	}
 	return 0;
 }
+
+uint32_t wait_adest_sel_obj(MDS_SVC_ID svc_id, int64_t timeout /* in seconds */)
+{
+	int FAIL = 0;
+	int svc_idx = -1;
+	struct pollfd sel;
+	unsigned int count;
+
+	for (int i = 0; i < gl_tet_adest.svc_count; i++) {
+		if (gl_tet_adest.svc[i].svc_id == svc_id) {
+			svc_idx = i;
+			break;
+		}
+	}
+	if (svc_idx < 0) {
+		printf("\nNot found the service id %u\n", svc_id);
+		FAIL = 1;
+	} else {
+		/* Polling the sel_obj */
+		sel.fd =
+		    m_GET_FD_FROM_SEL_OBJ(gl_tet_adest.svc[svc_idx].sel_obj);
+		sel.events = POLLIN;
+		count = osaf_poll(&sel, 1, timeout * 1000);
+		switch (count) {
+		case -1:
+			printf("Poll failed - %s", strerror(errno));
+			FAIL = 1;
+			break;
+		case 0:
+			printf("\nTIMED OUT\n");
+			FAIL = 1;
+			break;
+		case 1:
+			if ((sel.revents & POLLIN) == 0) {
+				printf("\nEvent type mismatch\n");
+				FAIL = 1;
+			}
+			break;
+		}
+	}
+	return FAIL;
+}
+
 uint32_t tet_create_task(NCS_OS_CB task_startup, NCSCONTEXT *t_handle)
 {
 	char taskname[] = "MDS_Tipc test";

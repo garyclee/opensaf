@@ -5136,6 +5136,10 @@ void tet_send_response_tp_5()
 			printf("\nFail\n");
 			FAIL = 1;
 		}
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
 					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
@@ -5220,6 +5224,10 @@ void tet_send_response_tp_6()
 		if (mds_service_subscribe(
 			gl_tet_adest.mds_pwe1_hdl, NCSMDS_SVC_ID_EXTERNAL_MIN,
 			NCSMDS_SCOPE_NONE, 1, svcids) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}
@@ -6891,9 +6899,13 @@ void tet_send_response_ack_tp_5()
 			printf("\nFail\n");
 			FAIL = 1;
 		}
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
-					 NCSMDS_SVC_ID_EXTERNAL_MIN,
-					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+					NCSMDS_SVC_ID_EXTERNAL_MIN,
+					SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}
@@ -6972,6 +6984,10 @@ void tet_send_response_ack_tp_6()
 		if (mds_service_subscribe(
 			gl_tet_adest.mds_pwe1_hdl, NCSMDS_SVC_ID_EXTERNAL_MIN,
 			NCSMDS_SCOPE_NONE, 1, svcids) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}
@@ -9224,6 +9240,10 @@ void tet_direct_send_all_tp_5()
 			printf("\nFail");
 			FAIL = 1;
 		}
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
 					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
@@ -9471,6 +9491,10 @@ void tet_direct_send_all_tp_6()
 			gl_tet_adest.mds_pwe1_hdl, NCSMDS_SVC_ID_EXTERNAL_MIN,
 			NCSMDS_SCOPE_NONE, 1, svcids) != NCSCC_RC_SUCCESS) {
 			printf("\nFail");
+			FAIL = 1;
+		}
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
 			FAIL = 1;
 		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
