@@ -23,6 +23,7 @@ readonly directory="/opensaf/"
 readonly etcd_options=""
 readonly etcd_timeout="3s"
 readonly heartbeat_interval=2
+readonly etcd_tolerance_timeout=6
 
 export ETCDCTL_API=3
 
@@ -332,46 +333,53 @@ unlock() {
 #   non-zero - failure
 watch() {
   readonly watch_key="$1"
-
   # get baseline
   orig_value=$(get "$watch_key")
   result=$?
-
+  tol_timeout=0
   if [ "$result" -le 1 ]; then
-      if [ "$result" -eq 0 ] && [ "$watch_key" == "$takeover_request" ]; then
-        state=$(echo $orig_value | awk '{print $4}')
-        if [ "$state" == "NEW" ]; then
-          # takeover_request already exists; maybe it was created
-          # while this node was being promoted
-          echo $orig_value
-          return 0
-        fi
+    if [ "$result" -eq 0 ] && [ "$watch_key" == "$takeover_request" ]; then
+      state=$(echo $orig_value | awk '{print $4}')
+      if [ "$state" == "NEW" ]; then
+        # takeover_request already exists; maybe it was created
+        # while this node was being promoted
+        echo $orig_value
+        return 0
       fi
+    fi
     while true
     do
       sleep $heartbeat_interval
       current_value=$(get "$watch_key")
       result=$?
       if [ "$result" -gt 1 ]; then
-        # etcd down?
-        if [ "$watch_key" == "$takeover_request" ]; then
-          hostname=`cat $node_name_file`
-          echo "$hostname SC-0 10000000 UNDEFINED"
-          return 0
-        else
-          return 1
-        fi
-      elif [ "$orig_value" != "$current_value" ]; then
-        if [ "$watch_key" == "$takeover_request" ]; then
-          state=$(echo $orig_value | awk '{print $4}')
-          if [ "$state" == "REJECTED" ] && [ -z "$current_value" ]; then
-            # value is cleared after lease time, keep watching
-            orig_value=""
-            continue
+        # etcd down?, check the healthiness of self endpoint
+        $(etcdctl endpoint health >/dev/null 2>&1)
+        is_healthy=$?
+        ((tol_timeout=tol_timeout+heartbeat_interval))
+        if [ $tol_timeout -ge $etcd_tolerance_timeout ] || [ $is_healthy -ne 0 ]; then
+          if [ "$watch_key" == "$takeover_request" ]; then
+            hostname=`cat $node_name_file`
+            echo "$hostname SC-0 10000000 UNDEFINED"
+            return 0
+          else
+            return 1
           fi
         fi
-        echo $current_value
-        return 0
+      else
+        tol_timeout=0
+        if [ "$orig_value" != "$current_value" ]; then
+          if [ "$watch_key" == "$takeover_request" ]; then
+            state=$(echo $orig_value | awk '{print $4}')
+            if [ "$state" == "REJECTED" ] && [ -z "$current_value" ]; then
+              # value is cleared after lease time, keep watching
+              orig_value=""
+              continue
+            fi
+          fi
+          echo $current_value
+          return 0
+        fi
       fi
     done
   else
