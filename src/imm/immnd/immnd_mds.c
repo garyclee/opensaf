@@ -599,7 +599,6 @@ static uint32_t immnd_mds_svc_evt(IMMND_CB *cb,
 			TRACE("IMMD SERVICE DOWN => CLUSTER GOING DOWN");
 			cb->fevs_replies_pending = 0;
 			cb->is_immd_up = false;
-			cb->immd_node_id = 0;
 			break;
 
 		case NCSMDS_UP:
