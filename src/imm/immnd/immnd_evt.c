@@ -12230,6 +12230,7 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 	/*TRACE_ENTER(); */
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	bool is_headless = false;
+	bool already_headless = false;
 	IMMSV_MDS_INFO *mdsInfo = &evt->info.mds_info;
 
 	if ((mdsInfo->change == NCSMDS_DOWN) &&
@@ -12243,11 +12244,17 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 	/* In multi partitioned clusters rejoin, IMMND may not realize
 	 * headless due to see IMMDs from different partitions */
 	if (mdsInfo->svc_id == NCSMDS_SVC_ID_IMMD) {
+		if ((cb->immd_node_id == 0) && (cb->other_immd_id == 0)) {
+			TRACE_2("Node already headless");
+			already_headless = true;
+		}
 		switch (mdsInfo->change) {
 		case NCSMDS_DOWN:
-			is_headless = true;
-			cb->immd_node_id = 0;
-			cb->other_immd_id = 0;
+			if (!already_headless) {
+				is_headless = true;
+				cb->immd_node_id = 0;
+				cb->other_immd_id = 0;
+			}
 			break;
 		case NCSMDS_RED_UP:
 			if ((mdsInfo->role == V_DEST_RL_STANDBY) &&
@@ -12286,7 +12293,8 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 			TRACE_2("IMMD RED_DOWN EVENT %x role=%d ==> ACT:%x SBY:%x",
 			    mdsInfo->node_id, mdsInfo->role,
 			    cb->immd_node_id, cb->other_immd_id);
-			if ((cb->immd_node_id == 0) && (cb->other_immd_id == 0)) {
+			if (!already_headless && (cb->immd_node_id == 0) &&
+			    (cb->other_immd_id == 0)) {
 				LOG_WA("Both Active & Standby DOWN, going to headless");
 				is_headless = true;
 			}
