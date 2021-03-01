@@ -55,7 +55,7 @@ class ImmObject(object):
             rc, class_desc = _imm_om.get_class_description(class_name)
             if rc != eSaAisErrorT.SA_AIS_OK:
                 raise SafException(rc)
-            self.class_desc[class_name] = class_desc
+            self.class_desc[str(class_name)] = class_desc
         elif attributes is not None:
             assert class_name is None
             self.__dict__["attrs"] = attributes
@@ -65,7 +65,7 @@ class ImmObject(object):
                 rc, class_desc = _imm_om.get_class_description(class_name)
                 if rc != eSaAisErrorT.SA_AIS_OK:
                     raise SafException(rc)
-                self.class_desc[class_name] = class_desc
+                self.class_desc[str(class_name)] = class_desc
         else:
             raise ValueError("Class and attributes are None")
 
@@ -81,7 +81,7 @@ class ImmObject(object):
         Returns:
             SaImmAttrNameT: Attribute value type
         """
-        for attr_def in self.class_desc[self.class_name]:
+        for attr_def in self.class_desc[str(self.class_name)]:
             if str(attr_def.attrName) == attr_name:
                 return attr_def.attrValueType
 
@@ -94,8 +94,8 @@ class ImmObject(object):
         Returns:
             SaImmAttrFlagsT: Attribute flag
         """
-        for attr_def in self.class_desc[self.class_name]:
-            if attr_def.attrName == attr_name:
+        for attr_def in self.class_desc[str(self.class_name)]:
+            if str(attr_def.attrName) == attr_name:
                 return attr_def.attrFlags & saImm.SA_IMM_ATTR_MULTI_VALUE
 
     def __getattr__(self, name):

@@ -502,7 +502,7 @@ static uint32_t clma_dec_cluster_ntf_buf_msg(
   total_bytes += 4;
 
   param->notification = static_cast<SaClmClusterNotificationT_4 *>(
-      malloc(sizeof(SaClmClusterNotificationT_4) * param->numberOfItems));
+      calloc(param->numberOfItems, sizeof(SaClmClusterNotificationT_4)));
   if (param->notification == nullptr) {
     TRACE("Can not allocate memory notification!!!\n");
     TRACE_LEAVE();

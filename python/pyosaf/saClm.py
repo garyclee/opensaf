@@ -19,7 +19,7 @@ from ctypes import POINTER, CDLL, Structure, CFUNCTYPE
 from pyosaf.saAis import SaUint64T, SaUint32T, Const, SaEnumT, Enumeration, \
         SaBoolT, SaTimeT, SaNameT, SaAisErrorT, SaInvocationT, BYREF, \
         SaVersionT, SaSelectionObjectT, SaInt8T, SaDispatchFlagsT, SaUint8T, \
-        SaUint16T
+        SaUint16T, PY3
 from pyosaf import saNtf
 
 clmdll = CDLL('libSaClm.so.0')
@@ -81,17 +81,27 @@ eSaClmAdditionalInfoIdT_4 = Enumeration((
 ))
 
 class SaClmNodeAddressT(Structure):
-	"""Contain string representation of communication address associated
-	with cluster node.
-	"""
-	_fields_ = [('family', SaClmNodeAddressFamilyT),
-		('length', SaUint16T),
-		('value', SaInt8T*saClm.SA_CLM_MAX_ADDRESS_LENGTH)]
-	def __init__(self, family=0, address=''):
-		"""Construct instance of 'family' with contents of 'name'.
-		"""
-		super(SaClmNodeAddressT, self).__init__(family,
-				len(address), address)
+    """Contain string representation of communication address associated
+    with cluster node.
+    """
+    _fields_ = [('family', SaClmNodeAddressFamilyT),
+                ('length', SaUint16T),
+                ('value', SaInt8T * saClm.SA_CLM_MAX_ADDRESS_LENGTH)]
+
+    def __init__(self, family=0, address=''):
+        """Construct instance of 'family' with contents of 'name'.
+        """
+        if PY3:
+            address = address.encode('utf-8')
+        super(SaClmNodeAddressT, self).__init__(family,
+                                                len(address), address)
+
+    def __str__(self):
+        """Returns the content of SaClmNodeAddressT
+        """
+        if PY3:
+            return self.value.decode('utf-8')
+        return self.value
 
 SaClmChangeStepT = SaEnumT
 eSaClmChangeStepT = Enumeration((

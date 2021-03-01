@@ -23,7 +23,7 @@ from copy import deepcopy
 
 from pyosaf import saNtf
 from pyosaf.saAis import BYREF, eSaAisErrorT, SaVoidPtr, SaNameT, SaUint16T, \
-    SaStringT
+    SaStringT, PY3
 from pyosaf.utils import bad_handle_retry, log_err, log_warn
 from pyosaf.utils.ntf import agent as ntf
 
@@ -457,6 +457,8 @@ class NtfConsumer(ntf.NtfAgent):
         rc = ntf.saNtfPtrValGet(ntf_handle, value, data_ptr, data_size)
         if rc != eSaAisErrorT.SA_AIS_OK:
             log_warn("saNtfPtrValGet FAILED - %s" % (eSaAisErrorT.whatis(rc)))
+        if PY3:
+            return str(ctypes.cast(data_ptr, SaStringT))
         return ctypes.cast(data_ptr, SaStringT).value
 
     def _get_ntf_value(self, ntf_handle, value, value_type):
@@ -508,7 +510,8 @@ class NtfConsumer(ntf.NtfAgent):
             ctypes.create_string_buffer(ntf_header.lengthAdditionalText)
         ctypes.memmove(additional_text_str, ntf_header.additionalText,
                        ntf_header.lengthAdditionalText)
-        ntf_info.additional_text = additional_text_str.value
+        ntf_info.additional_text = additional_text_str.value.decode(
+            'utf-8') if PY3 else additional_text_str.value
 
         for i in range(ntf_header.numAdditionalInfo):
             c_add_info = ntf_header.additionalInfo[i]

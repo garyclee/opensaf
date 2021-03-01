@@ -25,7 +25,7 @@ from pyosaf.saAis import eSaAisErrorT, unmarshalNullArray, \
     unmarshalSaStringTArray
 from pyosaf import saImm, saImmOi
 from pyosaf.saImm import eSaImmValueTypeT, eSaImmAttrModificationTypeT, \
-    eSaImmClassCategoryT, SaImmClassNameT, unmarshalSaImmValue
+    eSaImmClassCategoryT, SaImmClassNameT, unmarshalSaImmValue, SaStringT, PY3
 from pyosaf.saImmOi import SaImmOiImplementerNameT
 from pyosaf.utils import SafException, decorate, bad_handle_retry, log_err
 from pyosaf.utils.immoi import OiAgent
@@ -285,7 +285,7 @@ class Implementer(OiAgent):
         if not c_array:
             return []
         ctype = c_array[0].__class__
-        if ctype is str:
+        if ctype is str or (PY3 and ctype is SaStringT):
             return unmarshalSaStringTArray(c_array)
         val_list = []
         i = 0
@@ -489,7 +489,7 @@ class Implementer(OiAgent):
         implementer_objection = None
 
         for attr in unmarshalNullArray(c_attr_modification):
-            attr_name = attr.modAttr.attrName
+            attr_name = str(attr.modAttr.attrName)
             attr_type = attr.modAttr.attrValueType
             mod_type = attr.modType
             attr_values = self.unmarshal_len_array(
@@ -541,7 +541,7 @@ class Implementer(OiAgent):
         attributes = {}
 
         for attr in unmarshalNullArray(c_attr_values):
-            attr_name = attr.attrName
+            attr_name = str(attr.attrName)
             attr_type = attr.attrValueType
             nr_values = attr.attrValuesNumber
 
@@ -556,8 +556,8 @@ class Implementer(OiAgent):
         _, description = self.imm_om.get_class_description(class_name)
 
         for attribute in description:
-            if attribute.attrName not in attributes:
-                attributes[attribute.attrName] = None
+            if str(attribute.attrName) not in attributes:
+                attributes[str(attribute.attrName)] = None
 
         # Create a new CCB in the cache if needed
         if ccb_id not in list(self.ccbs.keys()):
@@ -566,7 +566,7 @@ class Implementer(OiAgent):
         # Cache the create operation
         self.ccbs[ccb_id].append({'type': 'CREATE',
                                   'parent': parent,
-                                  'className': class_name,
+                                  'className': str(class_name),
                                   'attributes': attributes})
 
         # Tell the implementer about the operation

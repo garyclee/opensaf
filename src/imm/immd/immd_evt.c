@@ -785,13 +785,15 @@ static void immd_kill_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info)
 static uint16_t accepted_nodes = 0;
 
 static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
-			     bool doReply, bool knownVeteran, bool check_ex_immd_node_id)
+			     bool doReply, bool knownVeteran, bool check_ex_immd)
 {
 	IMMSV_EVT accept_evt;
 	IMMD_MBCSV_MSG mbcp_msg;
 	bool isOnController = node_info->isOnController;
 	bool fsParamMbcp = false;
-	TRACE_ENTER();
+	TRACE_ENTER2(
+	    "Accept IMMND %x doReply=%d knownVeteran=%d check_ex_immd=%d",
+	    node_info->immnd_key, doReply, knownVeteran, check_ex_immd);
 
 	memset(&accept_evt, 0, sizeof(IMMSV_EVT));
 	memset(&mbcp_msg, 0, sizeof(IMMD_MBCSV_MSG));
@@ -799,9 +801,6 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 		++accepted_nodes;
 	}
 
-	LOG_NO(
-	    "Accept intro from %x with ex-IMMD %x",
-	    node_info->immnd_key, node_info->ex_immd_node_id);
 	accept_evt.type = IMMSV_EVT_TYPE_IMMND;
 	accept_evt.info.immnd.type = IMMND_EVT_D2ND_INTRO_RSP;
 	accept_evt.info.immnd.info.ctrl.nodeId = node_info->immnd_key;
@@ -844,7 +843,7 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 				cb->immnd_coord = node_info->immnd_key;
 				node_info->isCoord = true;
 			} else if (cb->mScAbsenceAllowed && doReply) {
-				if ((check_ex_immd_node_id) &&
+				if ((check_ex_immd) &&
 				    (cb->node_id == node_info->immnd_key)) {
 					LOG_NO(
 					    "IMMND re-introduce to IMMD on same this node. "
@@ -897,13 +896,13 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 		LOG_NO(
 		    "IMMND coord at %x with ex-IMMD %x",
 		    node_info->immnd_key, node_info->ex_immd_node_id);
-		if (check_ex_immd_node_id && node_info->ex_immd_node_id)
+		if (check_ex_immd && node_info->ex_immd_node_id)
 			cb->ex_immd_node_id = node_info->ex_immd_node_id;
 	}
 
 	mbcp_msg.type = IMMD_A2S_MSG_INTRO_RSP; /* Mbcp intro to SBY. */
 	mbcp_msg.info.ctrl = accept_evt.info.immnd.info.ctrl;
-	if (check_ex_immd_node_id) {
+	if (check_ex_immd) {
 		mbcp_msg.type = IMMD_A2S_MSG_INTRO_RSP_2;
 		mbcp_msg.info.ctrl.ex_immd_node_id = node_info->ex_immd_node_id;
 	}
@@ -949,10 +948,19 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info,
 			    .canBeCoord = IMMSV_VETERAN_COORD;
 			/* Allow all nodes including payloads to be coord */
 
-			if (check_ex_immd_node_id &&
-			    !is_on_same_partition_with_coord(cb, node_info)) {
-				LOG_WA("Going to reboot node 0x%x", node_info->immnd_key);
-				accept_evt.info.immnd.info.ctrl.canBeCoord = IMMSV_UNKNOWN;
+			if (check_ex_immd) {
+				if (!is_on_same_partition_with_coord(cb, node_info)) {
+					LOG_WA(
+					    "Going to reboot node 0x%x", node_info->immnd_key);
+					accept_evt.info.immnd.info.ctrl
+					    .canBeCoord = IMMSV_UNKNOWN;
+				} else {
+					LOG_NO(
+					    "Accept re-intro from %x with ex-IMMD %x",
+					    node_info->immnd_key, node_info->ex_immd_node_id);
+				}
+			} else {
+				LOG_NO("Accept intro from %x", node_info->immnd_key);
 			}
 
 			accept_evt.info.immnd.info.ctrl.ndExecPid =
@@ -3253,11 +3261,16 @@ static uint32_t immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 			}
 		} else if ((mds_info->node_id != cb->immd_self_id) &&
 			    (mds_info->node_id != cb->immd_remote_id) &&
-			    (mds_info->role == V_DEST_RL_ACTIVE) &&
-			    (cb->ha_state == SA_AMF_HA_STANDBY)) {
-			LOG_ER("Standby peer see two peers: %x and %x",
-			    cb->immd_remote_id, mds_info->node_id);
-			opensaf_reboot(0, NULL, "Standby peer see two peers");
+			    (mds_info->role == V_DEST_RL_ACTIVE)) {
+			if (cb->ha_state == SA_AMF_HA_STANDBY) {
+				LOG_ER("Standby peer see two peers: %x and %x",
+					cb->immd_remote_id, mds_info->node_id);
+				opensaf_reboot(0, NULL, "Standby peer see two peers");
+			} else if (cb->ha_state == SA_AMF_HA_ACTIVE) {
+				// Node will be ordered reboot by RDE or IMMND
+				LOG_WA("Another Active IMMD %x", mds_info->node_id);
+				for (;;) pause();
+			}
 		}
 		break;
 

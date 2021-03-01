@@ -36,7 +36,7 @@ def immlist(args):
         _, obj = accessor.get(dn, attr_name_list=args.attributes)
         if obj:
             attributes = {}
-            for name, value_pair in obj.attrs.iteritems():
+            for name, value_pair in obj.attrs.items():
                 type_str = saImm.eSaImmValueTypeT.whatis(value_pair[0])
                 value = value_pair[1]
                 attributes[name] = [type_str, value]

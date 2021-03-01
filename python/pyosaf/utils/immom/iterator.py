@@ -18,9 +18,9 @@
 """ IMM Search iterators """
 from __future__ import print_function
 from collections import Iterator
-from ctypes import pointer, c_char_p, cast, c_void_p
+from ctypes import pointer, cast, c_void_p
 
-from pyosaf.saAis import eSaAisErrorT, SaNameT, unmarshalNullArray
+from pyosaf.saAis import eSaAisErrorT, SaNameT, unmarshalNullArray, SaStringT
 from pyosaf.saImm import saImm, eSaImmScopeT, eSaImmValueTypeT, \
     unmarshalSaImmValue, SaImmAttrNameT, SaImmSearchParametersT_2, \
     SaImmAttrValuesT_2
@@ -138,9 +138,9 @@ class SearchIterator(agent.OmAgentManager, Iterator):
 class InstanceIterator(SearchIterator):
     """ Iterator over instances of a class """
     def __init__(self, class_name, root_name=None):
-        name = c_char_p(class_name)
+        name = SaStringT(class_name)
         search_param = SaImmSearchParametersT_2()
-        search_param.searchOneAttr.attrName = "SaImmAttrClassName"
+        search_param.searchOneAttr.attrName = SaStringT("SaImmAttrClassName")
         search_param.searchOneAttr.attrValueType = \
             eSaImmValueTypeT.SA_IMM_ATTR_SASTRINGT
         search_param.searchOneAttr.attrValue = cast(pointer(name), c_void_p)

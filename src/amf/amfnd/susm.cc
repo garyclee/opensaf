@@ -1153,6 +1153,7 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
                                            AVND_SU_SI_ASSIGN_STATE_ASSIGNED);
         LOG_NO("Assigned '%s' %s to '%s'", curr_si->name.c_str(),
                ha_state[curr_si->curr_state], su->name.c_str());
+        if (su->is_ncs) cb->is_ncs_su_assigned = true;
       } else if (m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVING(curr_si)) {
         m_AVND_SU_SI_CURR_ASSIGN_STATE_SET(curr_si,
                                            AVND_SU_SI_ASSIGN_STATE_REMOVED);

@@ -317,6 +317,7 @@ AVND_CB *avnd_cb_create() {
   cb->oper_state = SA_AMF_OPERATIONAL_ENABLED;
   cb->term_state = AVND_TERM_STATE_UP;
   cb->led_state = AVND_LED_STATE_RED;
+  cb->is_ncs_su_assigned = false;
 
   /* assign the default timeout values (in nsec) */
   cb->msg_resp_intv = AVND_AVD_MSG_RESP_TIME * 1000000;
@@ -608,12 +609,14 @@ void avnd_main_process(void) {
     }
 
     if (fds[FD_AMFD_FIFO].revents & POLLERR) {
-      LOG_ER("AMFD has unexpectedly crashed. Rebooting node");
-      opensaf_reboot(
-          avnd_cb->node_info.nodeId,
-          osaf_extended_name_borrow(&avnd_cb->node_info.executionEnvironment),
-          "AMFD has unexpectedly crashed. Rebooting node");
-      exit(0);
+      if (!m_AVND_IS_SHUTTING_DOWN(avnd_cb)) {
+        LOG_ER("AMFD has unexpectedly crashed. Rebooting node");
+        opensaf_reboot(
+            avnd_cb->node_info.nodeId,
+            osaf_extended_name_borrow(&avnd_cb->node_info.executionEnvironment),
+            "AMFD has unexpectedly crashed. Rebooting node");
+        exit(0);
+      }
     }
 
     if (avnd_cb->clmHandle && (fds[FD_CLM].revents & POLLIN)) {

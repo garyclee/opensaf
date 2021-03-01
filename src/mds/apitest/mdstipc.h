@@ -206,6 +206,7 @@ uint32_t destroy_pwe_on_vdest(MDS_HDL);
 
 uint32_t tet_create_task(NCS_OS_CB, NCSCONTEXT*);
 uint32_t tet_release_task(void *task_handle);
+uint32_t wait_adest_sel_obj(MDS_SVC_ID, int64_t);
 int is_adest_sel_obj_found(int);
 int is_sel_obj_found(int);
 int is_vdest_sel_obj_found(int, int);

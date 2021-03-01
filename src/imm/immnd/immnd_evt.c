@@ -10321,7 +10321,7 @@ static uint32_t immnd_evt_proc_start_sync(IMMND_CB *cb, IMMND_EVT *evt,
 				   Nodes. This is mostly relevant for "standby"
 				   i.e. the non-coord immnd which is on an SC.
 				 */
-				cb->mLostNodes = 0;
+				immModel_resetDiscardNodes(cb);
 			}
 		}
 		immModel_prepareForSync(cb, cb->mSync);
@@ -10487,7 +10487,7 @@ static uint32_t immnd_evt_proc_sync_req(IMMND_CB *cb, IMMND_EVT *evt,
 		TRACE_2("Set marker for sync at coordinator");
 		cb->mSyncRequested = true;
 		if (cb->mLostNodes > 0) {
-			cb->mLostNodes--;
+			immModel_eraseDiscardNode(cb, evt->info.ctrl.nodeId);
 		}
 		/*osafassert(cb->mRulingEpoch == evt->info.ctrl.rulingEpoch); */
 		TRACE_2("At COORD: My Ruling Epoch:%u Cenral Ruling Epoch:%u",
@@ -10542,8 +10542,10 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 			       oldCanBeCoord);
 		}
 		if ((cb->mIntroduced == 2) && (!evt->info.ctrl.isCoord)) {
-			LOG_WA("Restart to sync with Coord! Exit");
-			exit(EXIT_SUCCESS);
+			if (evt->info.ctrl.fevsMsgStart != cb->highestReceived) {
+				LOG_WA("Restart to sync with Coord! Exit");
+				exit(EXIT_SUCCESS);
+			}
 		}
 		cb->mIntroduced = 1;
 		cb->mCanBeCoord = evt->info.ctrl.canBeCoord;
@@ -10987,7 +10989,6 @@ static void immnd_evt_proc_discard_node(IMMND_CB *cb, IMMND_EVT *evt,
 	/* We should remember the nodeId/pid pair to avoid a redundant message
 	   causing a newly reattached node being discarded.
 	 */
-	cb->mLostNodes++;
 	immModel_discardNode(cb, evt->info.ctrl.nodeId, &arrSize, &idArr,
 			     &globArrSize, &globIdArr);
 	if (globArrSize) {
@@ -12229,6 +12230,7 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 	/*TRACE_ENTER(); */
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	bool is_headless = false;
+	bool already_headless = false;
 	IMMSV_MDS_INFO *mdsInfo = &evt->info.mds_info;
 
 	if ((mdsInfo->change == NCSMDS_DOWN) &&
@@ -12242,11 +12244,17 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 	/* In multi partitioned clusters rejoin, IMMND may not realize
 	 * headless due to see IMMDs from different partitions */
 	if (mdsInfo->svc_id == NCSMDS_SVC_ID_IMMD) {
+		if ((cb->immd_node_id == 0) && (cb->other_immd_id == 0)) {
+			TRACE_2("Node already headless");
+			already_headless = true;
+		}
 		switch (mdsInfo->change) {
 		case NCSMDS_DOWN:
-			is_headless = true;
-			cb->immd_node_id = 0;
-			cb->other_immd_id = 0;
+			if (!already_headless) {
+				is_headless = true;
+				cb->immd_node_id = 0;
+				cb->other_immd_id = 0;
+			}
 			break;
 		case NCSMDS_RED_UP:
 			if ((mdsInfo->role == V_DEST_RL_STANDBY) &&
@@ -12285,7 +12293,8 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 			TRACE_2("IMMD RED_DOWN EVENT %x role=%d ==> ACT:%x SBY:%x",
 			    mdsInfo->node_id, mdsInfo->role,
 			    cb->immd_node_id, cb->other_immd_id);
-			if ((cb->immd_node_id == 0) && (cb->other_immd_id == 0)) {
+			if (!already_headless && (cb->immd_node_id == 0) &&
+			    (cb->other_immd_id == 0)) {
 				LOG_WA("Both Active & Standby DOWN, going to headless");
 				is_headless = true;
 			}

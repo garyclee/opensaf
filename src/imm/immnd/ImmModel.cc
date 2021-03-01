@@ -524,6 +524,7 @@ typedef std::map<std::string, ObjectSet> MissingParentsMap;
 
 // Local variables
 
+static std::set<SaUint32T> sDiscardNodeSet;
 static ClassMap sClassMap;
 static AdminOwnerVector sOwnerVector;
 static CcbVector sCcbVector;
@@ -1364,12 +1365,26 @@ void immModel_getCcbIdsForOrigCon(IMMND_CB* cb, SaUint32T deadCon,
   osafassert(ix == (*arrSize));
 }
 
+void immModel_resetDiscardNodes(IMMND_CB* cb) {
+  cb->mLostNodes = 0;
+  sDiscardNodeSet.clear();
+}
+
+void immModel_eraseDiscardNode(IMMND_CB* cb, SaUint32T nodeId) {
+  cb->mLostNodes--;
+  if (nodeId) sDiscardNodeSet.erase(nodeId);
+}
+
 void immModel_discardNode(IMMND_CB* cb, SaUint32T nodeId, SaUint32T* arrSize,
                           SaUint32T** ccbIdArr, SaUint32T* globArrSize,
                           SaUint32T** globccbIdArr) {
   ConnVector cv, gv;
   ConnVector::iterator cvi, gvi;
   unsigned int ix = 0;
+  if (sDiscardNodeSet.find(nodeId) == sDiscardNodeSet.end()) {
+    sDiscardNodeSet.insert(nodeId);
+    cb->mLostNodes++;
+  }
   ImmModel::instance(&cb->immModel)
       ->discardNode(nodeId, cv, gv, cb->mIsCoord, false);
   *arrSize = (SaUint32T)cv.size();
