@@ -1,3 +1,21 @@
+OpenSAF 5.21.03 (released 2021-03-01)
+-------------------------------------
+
+    * imm: ignore enter headless if already entered [#3250]
+    * clm: use calloc instead malloc to remove garbage value [#3251]
+    * imm: fix immnd detect headless state wrong [#3250]
+    * mds: improve mdstest to wait for subscription response [#3249]
+    * osaf: Improve etcd plugin to be tolerant of new etcd leader election [#3226]
+    * smf: avoid smf stucked during admin op in parallel [#3248]
+    * pyosaf: update pyosaf support python3 [#3247]
+    * imm: fix incorrect delay start sync [#3246]
+    * log: do not use trace in signal handler [#3245]
+    * ntf: do not use trace in signal handler [#3245]
+    * amf: fix cluster stuck unhealthy when SCs brutal reboot [#3241]
+    * imm: fix unexpected immnd restart after headless [#3244]
+    * imm: fix amfd crash when multi partitioned clusters rejoin [#3243]
+    * amf: fix node reboot when cluster stop by clm admin op [#3240]
+
 OpenSAF 5.20.11 (released 2020-11-30)
 -------------------------------------
 
