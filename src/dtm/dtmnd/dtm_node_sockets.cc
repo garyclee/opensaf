@@ -221,6 +221,91 @@ uint32_t dtm_comm_socket_send(int sock_desc, const void *buffer,
   return rc;
 }
 
+/*
+ * By default TCP timeouts can be very long. This can lead to blocking for a
+ * very long time waiting on connect(). This function sets the socket to
+ * non-blocking mode for the connect and returns the socket to blocking mode
+ * once the connect has been established.
+ *
+ * \param socket file descriptor
+ * \param socket address structure
+ * \size of address structure
+ *
+ * \return < 0 on error, 0 on success
+ */
+int non_blocking_connect(int sockd, struct sockaddr *sin, socklen_t length) {
+  struct pollfd wset;
+  socklen_t len;
+  int flags, ret, opt;
+
+  /* Set the socket fd to non-blocking mode */
+  if ((flags = fcntl(sockd, F_GETFL, NULL)) < 0) {
+    LOG_ER("Error fcntl(..., F_GETFL)");
+    exit(EXIT_FAILURE);
+  }
+  flags |= O_NONBLOCK;
+  if (fcntl(sockd, F_SETFL, flags) < 0) {
+    LOG_ER("Error fcntl(..., F_SETFL)");
+    exit(EXIT_FAILURE);
+  }
+
+  /* connect with timeout */
+  ret =
+    connect(sockd, (struct sockaddr *)sin, length);
+  if (ret < 0) {
+    if (errno == EINPROGRESS) {
+      /* poll the fd until we get a connection, timeout, or
+       * error  */
+      while (1) {
+        wset.fd = sockd;
+        wset.events = POLLOUT;
+
+        ret = poll(&wset, 1,
+             DTM_TCP_TIMEOUT_SECS * 1000);
+        if (ret < 0) {
+          if (errno == EINTR)
+            continue;
+
+          LOG_ER("Error poll - %s", strerror(errno));
+          return -1;
+        } else if (ret > 0) {
+          // Socket polled for write
+          len = sizeof(int);
+          if (getsockopt(sockd, SOL_SOCKET, SO_ERROR,
+              reinterpret_cast<void *>(&opt),
+              &len) < 0) {
+            LOG_ER("Error getsockopt(...,SOL_SOCKET,..) - %s",
+                  strerror(errno));
+            return -1;
+          }
+          // Check the value returned...
+          if (opt) {
+            LOG_ER("Error getsockopt - val: %s", strerror(opt));
+            return -1;
+          }
+          break;
+        } else { /* Timeout */
+          LOG_ER("Timeout in connect()");
+          return -2;
+        }
+      }
+    } else { /* Real error returned from connect */
+      int err = errno;
+      LOG_ER("Connect failed (connect()) err :%s", strerror(err));
+      return -1;
+    }
+  }
+
+  /* Connection has been established switch back to blocking mode */
+  flags &= (~O_NONBLOCK);
+  if (fcntl(sockd, F_SETFL, flags) < 0) {
+    LOG_ER("Error fcntl - %s", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+
+  return 0;
+}
+
 /**
  * Setup the new communication socket
  *
@@ -235,7 +320,7 @@ int comm_socket_setup_new(DTM_INTERNODE_CB *dtms_cb,
                           sa_family_t ip_addr_type) {
   int sock_desc = -1, sndbuf_size = dtms_cb->sock_sndbuf_size,
       rcvbuf_size = dtms_cb->sock_rcvbuf_size;
-  int err = 0, rv;
+  int rv;
   char local_port_str[INET6_ADDRSTRLEN];
   struct addrinfo *addr_list;
   struct addrinfo addr_criteria, *p; /* Criteria for address match */
@@ -359,9 +444,9 @@ int comm_socket_setup_new(DTM_INTERNODE_CB *dtms_cb,
   }
 
   /* Try to connect to the given port */
-  if (connect(sock_desc, addr_list->ai_addr, addr_list->ai_addrlen) < 0) {
-    err = errno;
-    LOG_ER("DTM :Connect failed (connect()) err :%s", strerror(err));
+  if (non_blocking_connect(sock_desc, addr_list->ai_addr,
+      addr_list->ai_addrlen) < 0) {
+    LOG_ER("DTM :non_blocking_connect() failed");
     close(sock_desc);
     sock_desc = -1;
     goto done;
@@ -649,12 +734,12 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
   int sock_desc = comm_socket_setup_new(dtms_cb, node.node_ip, foreign_port,
                                         node.i_addr_family);
 
-  new_node->comm_socket = sock_desc;
-  new_node->node_id = node.node_id;
-  memcpy(new_node->node_ip, node.node_ip, INET6_ADDRSTRLEN);
-  new_node->i_addr_family = node.i_addr_family;
-
   if (sock_desc != -1) {
+    new_node->comm_socket = sock_desc;
+    new_node->node_id = node.node_id;
+    memcpy(new_node->node_ip, node.node_ip, INET6_ADDRSTRLEN);
+    new_node->i_addr_family = node.i_addr_family;
+
     TRACE("DTM: dtm_node_add .node_ip: %s node_id: %x, comm_socket %d",
           new_node->node_ip, new_node->node_id, new_node->comm_socket);
     if (dtm_node_add(new_node, KeyTypes::kDtmNodeIdKeyType) !=
@@ -663,6 +748,7 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
              new_node->node_ip, new_node->node_id);
       dtm_comm_socket_close(new_node);
       sock_desc = -1;
+      new_node = nullptr;
       goto node_fail;
     }
 
@@ -672,10 +758,14 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
              new_node->node_ip, new_node->node_id);
       dtm_comm_socket_close(new_node);
       sock_desc = -1;
+      new_node = nullptr;
       goto node_fail;
     } else
       TRACE("DTM: dtm_node_add add .node_ip: %s, node_id: %x",
             new_node->node_ip, new_node->node_id);
+  } else {
+    new_node = nullptr;
+    LOG_ER("comm_socket_setup_new failed for node.node_ip: %s", node.node_ip);
   }
 
 node_fail:

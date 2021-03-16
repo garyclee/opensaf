@@ -18,6 +18,7 @@
 
 #ifndef DTM_DTMND_DTM_NODE_H_
 #define DTM_DTMND_DTM_NODE_H_
+#define DTM_TCP_TIMEOUT_SECS 10
 
 #include <sys/socket.h>
 #include <cstddef>
