@@ -26,14 +26,31 @@ void StartUnixServer() {
   server->fd();
 }
 
-bool FindPRI(const char* pri_field) {
+bool FindPRI(const char* pri_field, char* msg) {
   char buf[1024];
+  const size_t max_retry = 20;
+  size_t n_retry = 0;
+
+retry:
   memset(buf, 0, sizeof(buf));
   size_t len = 0;
   do {
     len = server->Recv(buf + len, 1024);
   } while (len < strlen(pri_field));
-  return strncmp(buf, pri_field, strlen(pri_field)) == 0;
+
+  if (strstr(buf, msg) == NULL) {
+    n_retry++;
+    if (n_retry < max_retry) goto retry;
+    fprintf(stderr, "message receive: %s\n", buf);
+    return false;
+  }
+
+  if (strncmp(buf, pri_field, strlen(pri_field)) != 0) {
+    fprintf(stderr, "message receive: %s\n", buf);
+    return false;
+  }
+
+  return true;
 }
 
 void StopUnixServer() { delete server; }

@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 void StartUnixServer();
-bool FindPRI(const char* pri_field);
+bool FindPRI(const char* pri_field, char* msg);
 void StopUnixServer();
 
 #ifdef __cplusplus
