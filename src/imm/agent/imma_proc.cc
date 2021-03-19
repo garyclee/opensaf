@@ -2056,10 +2056,10 @@ static void imma_proc_ccbaug_setup(IMMA_CLIENT_NODE *cl_node,
       IMMSV_ATTR_VALUES *q = &(p->n);
       attr[i] = (SaImmAttrValuesT_2 *)calloc(
           1, sizeof(SaImmAttrValuesT_2));                       /*alloc-2 */
-      attr[i]->attrName = (char *)malloc(q->attrName.size + 1); /*alloc-3 */
+      attr[i]->attrName = (char *)malloc(q->attrName.size); /*alloc-3 */
       strncpy(attr[i]->attrName, (const char *)q->attrName.buf,
-              q->attrName.size + 1);
-      attr[i]->attrName[q->attrName.size] = 0; /*redundant. */
+              q->attrName.size);
+      attr[i]->attrName[q->attrName.size-1] = 0; /*redundant. */
       attr[i]->attrValuesNumber = q->attrValuesNumber;
       attr[i]->attrValueType = (SaImmValueTypeT)q->attrValueType;
       if (q->attrValuesNumber) {

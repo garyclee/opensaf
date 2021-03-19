@@ -8153,7 +8153,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(
    */
   if (isObjectDnUsed) {
     attrValues->n.attrName.buf = strdup(i4->first.c_str());
-    attrValues->n.attrName.size = i4->first.size();
+    attrValues->n.attrName.size = i4->first.size() + 1;
     attrValues->n.attrValueType = i4->second->mValueType;
   }
 

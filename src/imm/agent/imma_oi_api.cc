@@ -2696,6 +2696,7 @@ static SaAisErrorT rt_object_update_common(
     p->attrValue.attrName.buf = (char *)malloc(p->attrValue.attrName.size);
     strncpy(p->attrValue.attrName.buf, attrMod->modAttr.attrName,
             p->attrValue.attrName.size);
+    p->attrValue.attrName.buf[p->attrValue.attrName.size-1] = 0;
 
     p->attrValue.attrValuesNumber = attrMod->modAttr.attrValuesNumber;
     p->attrValue.attrValueType = attrMod->modAttr.attrValueType;
@@ -3095,6 +3096,7 @@ static SaAisErrorT rt_object_create_common(
       /*alloc-4 */
       p->n.attrName.buf = (char *)malloc(p->n.attrName.size);
       strncpy(p->n.attrName.buf, attr->attrName, p->n.attrName.size);
+      p->n.attrName.buf[p->n.attrName.size-1] = 0;
 
       p->n.attrValuesNumber = attr->attrValuesNumber;
       p->n.attrValueType = attr->attrValueType;
