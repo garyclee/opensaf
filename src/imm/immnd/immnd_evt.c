@@ -944,7 +944,7 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt,
 					    getpwuid(sinfo->uid);
 					if (pwd != NULL)
 						syslog(
-						    LOG_AUTH,
+						    LOG_ALERT | LOG_AUTH,
 						    "access violation by %s(uid=%d)",
 						    pwd->pw_name, sinfo->uid);
 					TRACE_2(
@@ -957,7 +957,7 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt,
 					    getpwuid(sinfo->uid);
 					if (pwd != NULL)
 						syslog(
-						    LOG_AUTH,
+						    LOG_ALERT | LOG_AUTH,
 						    "access denied for %s(uid=%d)",
 						    pwd->pw_name, sinfo->uid);
 					TRACE_2(
@@ -3734,7 +3734,7 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 				struct passwd *pwd = getpwuid(sinfo->uid);
 				if (pwd != NULL) {
 					syslog(
-					    LOG_AUTH,
+					    LOG_ALERT | LOG_AUTH,
 					    "Modifications to imm service objects denied for %s(uid=%d)",
 					    pwd->pw_name, sinfo->uid);
 				}
@@ -3762,7 +3762,7 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 						    getpwuid(sinfo->uid);
 						if (pwd != NULL)
 							syslog(
-							    LOG_AUTH,
+							    LOG_ALERT | LOG_AUTH,
 							    "change of %s denied for %s(uid=%d)",
 							    attrMod->attrValue
 								.attrName.buf,
@@ -4149,7 +4149,7 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 				struct passwd *pwd = getpwuid(sinfo->uid);
 				if (pwd != NULL) {
 					syslog(
-					    LOG_AUTH,
+					    LOG_ALERT | LOG_AUTH,
 					    "saImmOmAdminOwnerClear denied for %s(uid=%d)",
 					    pwd->pw_name, sinfo->uid);
 				}
