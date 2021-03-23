@@ -16,7 +16,7 @@
  *
  */
 
-#include "smf/smfd/imm_modify_config/add_operation_to_ccb.h"
+#include "osaf/immtools/imm_modify_config/add_operation_to_ccb.h"
 
 #include <limits.h>
 
@@ -31,18 +31,18 @@
 #include "ais/include/saImm.h"
 #include "ais/include/saAis.h"
 
-#include "smf/smfd/imm_modify_config/immccb.h"
-#include "smf/smfd/imm_modify_config/attribute.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/attribute.h"
 
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_delete.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_modify.h"
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_create.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_delete.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_modify.h"
 
 namespace modelmodify {
 
 // Error information. See immccb.h
-static std::string api_name_;
+std::string api_name_;
 static SaAisErrorT ais_error_ = SA_AIS_OK;
 
 void GetAddToCbbErrorInfo(ErrorInformation *error_info) {
@@ -91,7 +91,7 @@ int AddCreateToCcb(const SaImmCcbHandleT& ccb_handle,
   //        attribute values. This vector  must have the same scope as the
   //        creator.
   AttributeHandler attributes(&creator);
-  if(attributes.AddAttributesForObjectCreate(create_descriptor) == false) {
+  if (attributes.AddAttributesForObjectCreate(create_descriptor) == false) {
     LOG_NO("%s: SetAttributeValues() Fail", __FUNCTION__);
     recovery_info = kFail;
     api_name_.clear();
@@ -238,7 +238,7 @@ int AddModifyToCcb(const SaImmCcbHandleT& ccb_handle,
   //        modifier. Each modify descriptor contains a value and a
   //        modification type
   AttributeHandler modifications(&modifier);
-  if(modifications.AddAttributesForModification(modify_descriptor) == false) {
+  if (modifications.AddAttributesForModification(modify_descriptor) == false) {
     LOG_NO("%s: SetAttributeValues() Fail", __FUNCTION__);
     recovery_info = kFail;
     api_name_ = "";

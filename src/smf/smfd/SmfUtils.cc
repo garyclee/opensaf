@@ -37,10 +37,10 @@
 #include "base/osaf_extended_name.h"
 #include "base/osaf_time.h"
 #include "base/time.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
 #include "osaf/immutil/immutil.h"
 
-#include "smf/smfd/imm_modify_config/immccb.h"
 #include "smf/smfd/smfd_long_dn.h"
 #include "smf/smfd/smfd_smfnd.h"
 #include "smf/smfd/SmfImmOperation.h"

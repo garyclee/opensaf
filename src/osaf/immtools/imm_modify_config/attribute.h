@@ -23,14 +23,14 @@
 #include "ais/include/saImm.h"
 #include "ais/include/saAis.h"
 
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_modify.h"
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_create.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_modify.h"
 
-#ifndef SMF_SMFD_IMM_MODIFY_CONFIG_ATTRIBUTE_H_
-#define SMF_SMFD_IMM_MODIFY_CONFIG_ATTRIBUTE_H_
+#ifndef OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_ATTRIBUTE_H_
+#define OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_ATTRIBUTE_H_
 
 // Convert std::string to SaNameT or SaAnyT.
 // Shall be used with AttributeDescriptor object where SaNametToString or
@@ -46,7 +46,8 @@ static inline void StringToSaNameT(const std::string& str_namet,
 //       the string and writes the address in the SaAnyT buffer pointer.
 //       This means that this memory must be freed after usage using:
 //       free(<my_anyt>.bufferAddr);
-static inline void StringToSaAnyT(const std::string& str_anyt, SaAnyT* anyt_value) {
+static inline void StringToSaAnyT(const std::string& str_anyt,
+                                  SaAnyT* anyt_value) {
   size_t anyt_size = str_anyt.size();
   SaUint8T* anyt_buffer = static_cast<SaUint8T*>(malloc(anyt_size));
   if (anyt_buffer == nullptr) {
@@ -267,4 +268,4 @@ class AttributeHandler {
 };
 
 }  // namespace modelmodify
-#endif /* SMF_SMFD_IMM_MODIFY_CONFIG_ATTRIBUTE_H_ */
+#endif // OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_ATTRIBUTE_H_

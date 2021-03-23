@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef SMF_SMFD_IMM_OM_CCAPI_OM_CCB_OBJECT_CREATE_H_
-#define SMF_SMFD_IMM_OM_CCAPI_OM_CCB_OBJECT_CREATE_H_
+#ifndef OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_CCB_OBJECT_CREATE_H_
+#define OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_CCB_OBJECT_CREATE_H_
 
 #include <string.h>
 #include <string>
@@ -168,4 +168,4 @@ ImmOmCcbObjectCreate::SetAttributeValue(
 
 }  // namespace immom
 
-#endif  // SMF_SMFD_IMM_OM_CCAPI_OM_CCB_OBJECT_CREATE_H_
+#endif  // OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_CCB_OBJECT_CREATE_H_

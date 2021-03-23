@@ -19,9 +19,9 @@
 // Note:
 // IMM C++ "wrappers" for CCB handling IMM AOIs are copied from
 // experimental/immcpp and used slightly modified here. The "wrapper" copies
-// can be found in the smfd/imm_om_ccapi directory.
+// can be found in the base/immtools/imm_om_ccapi directory.
 
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
 #include <string>
 #include <vector>
@@ -35,17 +35,17 @@
 #include "base/time.h"
 #include "base/saf_error.h"
 
-#include "smf/smfd/imm_modify_config/add_operation_to_ccb.h"
+#include "osaf/immtools/imm_modify_config/add_operation_to_ccb.h"
 
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_clear.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_set.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_delete.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_modify.h"
-#include "smf/smfd/imm_om_ccapi/om_handle.h"
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_clear.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_set.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_create.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_delete.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_modify.h"
+#include "osaf/immtools/imm_om_ccapi/om_handle.h"
 
 namespace modelmodify {
 
@@ -68,7 +68,7 @@ ModelModification::ModelModification()
     TRACE_ENTER();
     // Create a unique admin owner name for this ObjectModification object
     instance_number_ = next_instance_number_++;
-    admin_owner_name_ = "SmfObjectModification" +
+    admin_owner_name_ = "ObjectModification" +
         std::to_string(instance_number_);
     TRACE_LEAVE();
   }

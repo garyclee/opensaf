@@ -30,19 +30,19 @@
 #include "base/saf_error.h"
 #include "osaf/configmake.h"
 
-#include "smf/smfd/imm_modify_demo/common.h"
+#include "osaf/immtools/imm_modify_demo/common.h"
 
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_clear.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_set.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_delete.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_modify.h"
-#include "smf/smfd/imm_om_ccapi/om_handle.h"
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_clear.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_set.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_create.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_delete.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_modify.h"
+#include "osaf/immtools/imm_om_ccapi/om_handle.h"
 
 using namespace std;
 
@@ -208,7 +208,7 @@ int main() {
   cout << "test_ccbhdl" << endl;
   cout << "IMM class used for test: ImmTestValuesConfig" << endl;
 
-#if 0 //  Enable trace
+#if 0  //  Enable trace
   unsigned int category_mask = 0xffffffff;
   const char* logPath = PKGLOGDIR "/osafccbdemo1";
   if (logtrace_init("ccbdemo1", logPath, category_mask) == -1) {
@@ -230,7 +230,7 @@ int main() {
   // Prepare/enable extended name
   // ----------------------------
   setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1);
-  
+
   if (EnableImmLongDn() == false) return -1;
 
   // Note: Long DN must be configured in IMM configuration object before

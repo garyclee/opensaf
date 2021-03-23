@@ -21,12 +21,12 @@
 #include <vector>
 
 #include "base/osaf_extended_name.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 #include <saAis.h>
 #include "base/saf_error.h"
 #include "osaf/immutil/immutil.h"
 #include "smf/smfd/SmfUtils.h"
 #include "smf/smfd/SmfCampaign.h"
-#include "smf/smfd/imm_modify_config/immccb.h"
 
 // Note: Info about public methods can be found in .h file
 

@@ -15,14 +15,14 @@
  *
  */
 
-#ifndef SMF_SMFD_IMM_OM_CCAPI_COMMON_IMM_ATTRIBUTE_H_
-#define SMF_SMFD_IMM_OM_CCAPI_COMMON_IMM_ATTRIBUTE_H_
+#ifndef OSAF_IMMTOOLS_IMM_OM_CCAPI_COMMON_IMM_ATTRIBUTE_H_
+#define OSAF_IMMTOOLS_IMM_OM_CCAPI_COMMON_IMM_ATTRIBUTE_H_
 
 #include <string.h>
 #include <string>
 #include <vector>
 #include "ais/include/saImm.h"
-#include "smf/smfd/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
 
 //>
 // These below 03 classes represent C IMM data structures
@@ -231,4 +231,4 @@ using ListOfAttributePropertyPtr     = std::vector<AttributeProperty*>;
 using ListOfAttributeModificationPtr = std::vector<AttributeModification*>;
 using ListOfAttributeDefinitionPtr   = std::vector<AttributeDefinition*>;
 
-#endif  // SMF_SMFD_IMM_OM_CCAPI_COMMON_IMM_ATTRIBUTE_H_
+#endif  // OSAF_IMMTOOLS_IMM_OM_CCAPI_COMMON_IMM_ATTRIBUTE_H_

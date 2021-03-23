@@ -16,7 +16,7 @@
  *
  */
 
-#include "smf/smfd/imm_modify_demo/common.h"
+#include "osaf/immtools/imm_modify_demo/common.h"
 
 #include <stdlib.h>
 

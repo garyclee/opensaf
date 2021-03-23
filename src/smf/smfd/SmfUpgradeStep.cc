@@ -37,8 +37,7 @@
 #include "base/osaf_time.h"
 #include "base/osaf_extended_name.h"
 #include "base/saf_error.h"
-
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
 #include "smf/smfd/SmfAdminState.h"
 #include "smf/smfd/SmfUpgradeStep.h"
@@ -58,7 +57,6 @@
 #include "osaf/configmake.h"
 #include "smf/smfd/smfd_smfnd.h"
 #include "smfd.h"
-#include "base/osaf_time.h"
 #include "base/time.h"
 
 /* ========================================================================
@@ -129,7 +127,7 @@ SaAisErrorT SmfUpgradeStep::init(const SaImmAttrValuesT_2 **attrValues) {
     value = (*attribute)->attrValues[0];
 
     if (strcmp((*attribute)->attrName, "safSmfStep") == 0) {
-      char *rdn = *((char **)value);
+      char *rdn = *(reinterpret_cast<char **>(value));
       m_rdn = rdn;
       TRACE("init safSmfStep = %s", rdn);
     } else if (strcmp((*attribute)->attrName, "saSmfStepMaxRetry") == 0) {
@@ -1463,7 +1461,6 @@ SaAisErrorT SmfUpgradeStep::calculateStepType() {
 
         if (smfd_cb->smfClusterControllers[0] !=
             NULL) {  // Controller is configured
-
           // Count the number of controllers configured
           int noOfConfControllers = 0;
           for (int ix = 0; ix <= 1; ix++) {

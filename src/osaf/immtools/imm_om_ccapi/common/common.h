@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef SMF_SMFD_IMM_OM_CCAPI_COMMON_COMMON_H_
-#define SMF_SMFD_IMM_OM_CCAPI_COMMON_COMMON_H_
+#ifndef OSAF_IMMTOOLS_IMM_OM_CCAPI_COMMON_COMMON_H_
+#define OSAF_IMMTOOLS_IMM_OM_CCAPI_COMMON_COMMON_H_
 
 #include <string>
 #include "ais/include/saImm.h"
@@ -186,4 +186,4 @@ SaImmValueTypeT ImmBase::GetAttributeValueType() {
       std::is_same<T, SaAnyT>::value,           \
       "typename T is not supported");
 
-#endif  // SMF_SMFD_IMM_OM_CCAPI_COMMON_COMMON_H_
+#endif  // OSAF_IMMTOOLS_IMM_OM_CCAPI_COMMON_COMMON_H_
