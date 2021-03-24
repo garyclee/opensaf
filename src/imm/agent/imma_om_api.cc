@@ -1128,7 +1128,7 @@ mds_send_fail:
     rc = SA_AIS_ERR_LIBRARY;
     TRACE_4("ERR_LIBRARY: Lock failed");
     /* Losing track of the pending reply count, but ERR_LIBRARY dominates*/
-    goto lock_fail;
+    goto admin_owner_node_free;
   }
   locked = true;
 
