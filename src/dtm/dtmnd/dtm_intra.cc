@@ -700,7 +700,7 @@ static void dtm_intranode_processing(void *) {
                   msg_elem->info.svc_event.node_id);
               free(msg_elem->info.svc_event.buffer);
             } else if (DTM_MBX_NODE_UP_TYPE == msg_elem->type) {
-              TRACE("DTM: node_ip:%s, node_id:%u i_addr_family:%d ",
+              TRACE("DTM: node_ip:%s, node_id:%x i_addr_family:%d ",
                     msg_elem->info.node.node_ip, msg_elem->info.node.node_id,
                     msg_elem->info.node.i_addr_family);
               dtm_intranode_process_node_up(
@@ -708,7 +708,7 @@ static void dtm_intranode_processing(void *) {
                   msg_elem->info.node.node_ip,
                   msg_elem->info.node.i_addr_family, msg_elem->info.node.mbx);
             } else if (DTM_MBX_NODE_DOWN_TYPE == msg_elem->type) {
-              TRACE("DTM: node_ip:%s, node_id:%u i_addr_family:%d ",
+              TRACE("DTM: node_ip:%s, node_id:%x i_addr_family:%d ",
                     msg_elem->info.node.node_ip, msg_elem->info.node.node_id,
                     msg_elem->info.node.i_addr_family);
               dtm_intranode_process_node_down(msg_elem->info.node.node_id);

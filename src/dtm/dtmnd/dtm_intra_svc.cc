@@ -123,7 +123,7 @@ uint32_t dtm_intranode_process_pid_msg(uint8_t *buffer, int fd) {
   pid_node->node_id = m_NCS_GET_NODE_ID;
   pid_node->pid_node.key_info = reinterpret_cast<uint8_t *>(&pid_node->pid);
 
-  TRACE_1("DTM: INTRA: Processid message rcvd: pid=%d, node_id=%u", process_id,
+  TRACE_1("DTM: INTRA: Processid message rcvd: pid=%d, node_id=%x", process_id,
           node_id);
 
   ncs_patricia_tree_add(&dtm_intranode_cb->dtm_intranode_pid_list,
@@ -719,7 +719,7 @@ uint32_t dtm_intranode_process_node_subscribe_msg(uint8_t *buff, int fd) {
         strncpy(node_up_msg.node_name, node_db->node_name,
                 _POSIX_HOST_NAME_MAX);
         node_up_msg.i_addr_family = node_db->i_addr_family;
-        TRACE("DTM: node_ip:%s, node_id:%u i_addr_family:%d",
+        TRACE("DTM: node_ip:%s, node_id:%x i_addr_family:%d",
               node_up_msg.node_ip, node_up_msg.node_id,
               node_up_msg.i_addr_family);
         dtm_lib_prepare_node_up_msg(&node_up_msg, buffer);
@@ -1260,7 +1260,7 @@ static uint32_t dtm_del_from_node_subscr_list(uint32_t pid, uint64_t ref_val) {
 uint32_t dtm_add_to_node_db_list(DTM_INTRANODE_NODE_DB *add_node) {
   DTM_INTRANODE_NODE_DB *node_db = dtm_intranode_node_list_db;
   TRACE_ENTER();
-  TRACE("node_ip:%s, node_id:%u i_addr_family:%d ", add_node->node_ip,
+  TRACE("node_ip:%s, node_id:%x i_addr_family:%d ", add_node->node_ip,
         add_node->node_id, add_node->i_addr_family);
   if (nullptr == node_db) {
     add_node->next = nullptr;
@@ -1431,7 +1431,7 @@ static uint32_t dtm_lib_prepare_node_up_msg(DTM_LIB_NODE_UP_MSG *up_msg,
                                             uint8_t *buffer) {
   uint8_t *data = buffer;
   TRACE_ENTER();
-  TRACE("node_ip:%s, node_id:%u i_addr_family:%d ", up_msg->node_ip,
+  TRACE("node_ip:%s, node_id:%x i_addr_family:%d ", up_msg->node_ip,
         up_msg->node_id, up_msg->i_addr_family);
   ncs_encode_16bit(&data, DTM_LIB_NODE_UP_MSG_SIZE);
   ncs_encode_32bit(&data, DTM_INTRANODE_SND_MSG_IDENTIFIER);
@@ -1499,7 +1499,7 @@ uint32_t dtm_intranode_process_node_up(NODE_ID node_id, char *node_name,
   node_db_info->mbx = mbx;
   node_db_info->i_addr_family = i_addr_family;
   strcpy(node_db_info->node_ip, node_ip);
-  TRACE("node_name:%s, node_ip:%s, node_id:%u i_addr_family:%d ",
+  TRACE("node_name:%s, node_ip:%s, node_id:%x i_addr_family:%d ",
         node_db_info->node_name, node_db_info->node_ip, node_db_info->node_id,
         node_db_info->i_addr_family);
   /* Initialize the pat tree */
@@ -1526,7 +1526,7 @@ uint32_t dtm_intranode_process_node_up(NODE_ID node_id, char *node_name,
     strncpy(node_up_msg.node_ip, node_ip, INET6_ADDRSTRLEN - 1);
     strncpy(node_up_msg.node_name, node_db_info->node_name,
             _POSIX_HOST_NAME_MAX);
-    TRACE("DTM: node_ip:%s, node_id:%u i_addr_family:%d ", node_up_msg.node_ip,
+    TRACE("DTM: node_ip:%s, node_id:%x i_addr_family:%d ", node_up_msg.node_ip,
           node_up_msg.node_id, node_up_msg.i_addr_family);
     dtm_lib_prepare_node_up_msg(&node_up_msg, buffer);
     while (nullptr != node_subscr_info) {
@@ -1616,7 +1616,7 @@ static uint32_t dtm_deliver_svc_down(NODE_ID node_id) {
 
   if (nullptr == node_info) {
     LOG_ER(
-        "DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%u",
+        "DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%x",
         node_id);
     osafassert(0);
   } else {
@@ -1773,7 +1773,7 @@ uint32_t dtm_process_internode_service_up_msg(uint8_t *buffer, uint16_t len,
 
   if (nullptr == node_info) {
     LOG_ER(
-        "DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%u",
+        "DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%x",
         node_id);
     osafassert(0);
   } else {
@@ -1913,7 +1913,7 @@ uint32_t dtm_process_internode_service_down_msg(uint8_t *buffer, uint16_t len,
 
   if (nullptr == node_info) {
     LOG_ER(
-        "DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%u",
+        "DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%x",
         node_id);
     osafassert(0);
   } else {
@@ -1931,7 +1931,7 @@ uint32_t dtm_process_internode_service_down_msg(uint8_t *buffer, uint16_t len,
         svc_list.process_id = ncs_decode_32bit(&data);
 
         TRACE(
-            "DTM :rcvd internode down Msg type:  %d, inst : %d, node: %d , pid :%d",
+            "DTM :rcvd internode down Msg type:  %d, inst : %d, node: %x , pid :%d",
             server_type, svc_list.server_inst_lower, node_id,
             svc_list.process_id);
         dtm_internode_del_svclist_from_svc_tree(node_info, svc_info, &svc_list);
@@ -2024,7 +2024,7 @@ uint32_t dtm_intranode_add_self_node_to_node_db(NODE_ID node_id,
   node_db_info->i_addr_family = i_addr_family;
   memcpy(node_db_info->node_ip, node_ip, INET6_ADDRSTRLEN);
   memcpy(node_db_info->node_name, node_name, _POSIX_HOST_NAME_MAX);
-  TRACE("DTM: nnode_name:%s, node_ip:%s, node_id:%u i_addr_family:%d ",
+  TRACE("DTM: nnode_name:%s, node_ip:%s, node_id:%x i_addr_family:%d ",
         node_db_info->node_name, node_db_info->node_ip, node_db_info->node_id,
         node_db_info->i_addr_family);
   if (NCSCC_RC_SUCCESS != (dtm_add_to_node_db_list(node_db_info))) {

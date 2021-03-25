@@ -81,7 +81,7 @@ void dtm_print_config(DTM_INTERNODE_CB *config) {
   TRACE("  DTM_CLUSTER_ID: ");
   TRACE("  %d", config->cluster_id);
   TRACE("  NODE_ID: ");
-  TRACE("  %d", config->node_id);
+  TRACE("  %x", config->node_id);
   TRACE("  IP_ADDR: ");
   TRACE("  %s", config->ip_addr.c_str());
   TRACE("  PUBLIC_IP_ADDR: ");

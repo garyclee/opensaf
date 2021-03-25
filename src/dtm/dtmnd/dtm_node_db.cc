@@ -140,7 +140,7 @@ DTM_NODE_DB *dtm_node_get(uint8_t *key, KeyTypes type) {
 
   switch (type) {
     case KeyTypes::kDtmNodeIdKeyType:
-      TRACE("DTM: Getting node from the database by node_id : %u as key",
+      TRACE("DTM: Getting node from the database by node_id : %x as key",
             *reinterpret_cast<NODE_ID *>(key));
       node = reinterpret_cast<DTM_NODE_DB *>(ncs_patricia_tree_get(
           &dtms_cb->nodeid_tree, key));
@@ -198,7 +198,7 @@ DTM_NODE_DB *dtm_node_getnext_by_id(uint32_t node_id) {
     /* Adjust the pointer */
     node = reinterpret_cast<DTM_NODE_DB *>(reinterpret_cast<char *>(node) -
                                            offsetof(DTM_NODE_DB, pat_nodeid));
-    TRACE("DTM:Node found %d", node->node_id);
+    TRACE("DTM:Node found %x", node->node_id);
   }
 
   TRACE_LEAVE();
@@ -223,12 +223,12 @@ uint32_t dtm_node_add(DTM_NODE_DB *node, KeyTypes type) {
 
   switch (type) {
     case KeyTypes::kDtmNodeIdKeyType:
-      TRACE("DTM:Adding node_id to the database with node_id :%u as key",
+      TRACE("DTM:Adding node_id to the database with node_id :%x as key",
             node->node_id);
       node->pat_nodeid.key_info = reinterpret_cast<uint8_t *>(&(node->node_id));
       rc = ncs_patricia_tree_add(&dtms_cb->nodeid_tree, &node->pat_nodeid);
       if (rc != NCSCC_RC_SUCCESS) {
-        TRACE("DTM:ncs_patricia_tree_add for node_id  FAILED for :%d :%u",
+        TRACE("DTM:ncs_patricia_tree_add for node_id  FAILED for :%x :%u",
               node->node_id, rc);
         node->pat_nodeid.key_info = nullptr;
         goto done;
@@ -279,12 +279,12 @@ uint32_t dtm_node_delete(DTM_NODE_DB *node, KeyTypes type) {
   switch (type) {
     case KeyTypes::kDtmNodeIdKeyType:
       if (node->node_id != 0 && node->pat_nodeid.key_info) {
-        TRACE("DTM:Deleting node_id from the database with node_id :%u as key",
+        TRACE("DTM:Deleting node_id from the database with node_id :%x as key",
               node->node_id);
         if ((rc = ncs_patricia_tree_del(&dtms_cb->nodeid_tree,
                                         &node->pat_nodeid)) !=
             NCSCC_RC_SUCCESS) {
-          TRACE("DTM:ncs_patricia_tree_del FAILED for node_id :%u rc :%d",
+          TRACE("DTM:ncs_patricia_tree_del FAILED for node_id :%x rc :%d",
                 node->node_id, rc);
           goto done;
         }

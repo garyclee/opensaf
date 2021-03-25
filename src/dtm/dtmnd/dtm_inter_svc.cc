@@ -138,7 +138,7 @@ uint32_t dtm_node_up(NODE_ID node_id, char *node_name, char *node_ip,
   dtm_msg_elem->info.node.i_addr_family =
       i_addr_family; /* Indicates V4 or V6 */
   strcpy(dtm_msg_elem->info.node.node_ip, node_ip);
-  TRACE("DTM: node_ip:%s, node_id:%u i_addr_family:%d ",
+  TRACE("DTM: node_ip:%s, node_id:%x i_addr_family:%d ",
         dtm_msg_elem->info.node.node_ip, dtm_msg_elem->info.node.node_id,
         dtm_msg_elem->info.node.i_addr_family);
 

@@ -161,7 +161,7 @@ void dtm_comm_socket_close(DTM_NODE_DB *node) {
     TRACE("DTM: node deleting  enty ");
     if (node->comm_status == true) {
       TRACE(
-          "DTM: dtm_comm_socket_close node_ip:%s, node_id:%u i_addr_family:%d ",
+          "DTM: dtm_comm_socket_close node_ip:%s, node_id:%x i_addr_family:%d ",
           node->node_ip, node->node_id, node->i_addr_family);
       if (dtm_process_node_up_down(node->node_id, node->node_name,
                                    node->node_ip, node->i_addr_family,
@@ -559,11 +559,11 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
   if (dtms_cb->node_id == node.node_id) {
     if (dtms_cb->mcast_flag() != true) {
       TRACE(
-          "DTM: received the self node_id bcast message, dropping message cluster_id: %d node_id: %u",
+          "DTM: received the self node_id bcast message, dropping message cluster_id: %d node_id: %x",
           node.cluster_id, node.node_id);
     } else {
       TRACE(
-          "DTM: received the self node_id mcast message, dropping message cluster_id: %d node_id: %u",
+          "DTM: received the self node_id mcast message, dropping message cluster_id: %d node_id: %x",
           node.cluster_id, node.node_id);
     }
     TRACE_LEAVE();
@@ -573,7 +573,7 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
   /* Decode end */
   if (node.cluster_id != dtms_cb->cluster_id) {
     LOG_WA(
-        "DTM:cluster_id  mis match  dropping message cluster_id: %d, node_id: %u",
+        "DTM:cluster_id  mis match  dropping message cluster_id: %d, node_id: %x",
         node.cluster_id, node.node_id);
     TRACE_LEAVE();
     return nullptr;
@@ -590,7 +590,7 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
   if (initial_discovery_phase == true) {
     if (node.node_id < dtms_cb->node_id) {
       TRACE(
-          "DTM: received node_id is less than local node_id dropping message cluster_id: %d node_id: %u",
+          "DTM: received node_id is less than local node_id dropping message cluster_id: %d node_id: %x",
           node.cluster_id, node.node_id);
       return nullptr;
     }
@@ -608,15 +608,15 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
         if ((new_node->node_id == node.node_id) &&
             (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) == 0))
           TRACE(
-              "DTM:node already discovered dropping message cluster_id: %d,node_id :%u, node_ip: %s",
+              "DTM:node already discovered dropping message cluster_id: %d,node_id :%x, node_ip: %s",
               node.cluster_id, node.node_id, node.node_ip);
         else
           LOG_WA(
-              "DTM:node duplicate discovered dropping message  cluster_id: %d, node_id :%u, node_ip:%s",
+              "DTM:node duplicate discovered dropping message  cluster_id: %d, node_id :%x, node_ip:%s",
               node.cluster_id, node.node_id, node.node_ip);
       } else {
         TRACE(
-            "DTM: discovery in progress dropping message cluster_id: %d, node_id :%u, node_ip:%s",
+            "DTM: discovery in progress dropping message cluster_id: %d, node_id :%x, node_ip:%s",
             node.cluster_id, node.node_id, node.node_ip);
       }
       TRACE_LEAVE();
@@ -625,7 +625,7 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
                ((new_node->node_id != node.node_id) ||
                 (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) !=
                  0))) {
-      TRACE("DTM: deleting stale enty cluster_id: %d, node_id :%u, node_ip:%s",
+      TRACE("DTM: deleting stale enty cluster_id: %d, node_id :%x, node_ip:%s",
             node.cluster_id, node.node_id, node.node_ip);
       if (dtm_node_delete(new_node, KeyTypes::kDtmNodeIdKeyType) !=
           NCSCC_RC_SUCCESS) {
@@ -655,11 +655,11 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
   new_node->i_addr_family = node.i_addr_family;
 
   if (sock_desc != -1) {
-    TRACE("DTM: dtm_node_add .node_ip: %s node_id: %u, comm_socket %d",
+    TRACE("DTM: dtm_node_add .node_ip: %s node_id: %x, comm_socket %d",
           new_node->node_ip, new_node->node_id, new_node->comm_socket);
     if (dtm_node_add(new_node, KeyTypes::kDtmNodeIdKeyType) !=
         NCSCC_RC_SUCCESS) {
-      LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u",
+      LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %x",
              new_node->node_ip, new_node->node_id);
       dtm_comm_socket_close(new_node);
       sock_desc = -1;
@@ -668,13 +668,13 @@ DTM_NODE_DB *dtm_process_connect(DTM_INTERNODE_CB *dtms_cb, uint8_t *data,
 
     if (dtm_node_add(new_node, KeyTypes::kDtmNodeIpKeyType) !=
         NCSCC_RC_SUCCESS) {
-      LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u",
+      LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %x",
              new_node->node_ip, new_node->node_id);
       dtm_comm_socket_close(new_node);
       sock_desc = -1;
       goto node_fail;
     } else
-      TRACE("DTM: dtm_node_add add .node_ip: %s, node_id: %u",
+      TRACE("DTM: dtm_node_add add .node_ip: %s, node_id: %x",
             new_node->node_ip, new_node->node_id);
   }
 
@@ -780,7 +780,7 @@ DTM_NODE_DB *dtm_process_accept(DTM_INTERNODE_CB *dtms_cb, int stream_sock) {
     new_node = dtm_node_new(&node);
 
     if (new_node == nullptr) {
-      LOG_ER("DTM: dtm_node_new failed. node_ip: %s, node_id: %u", node.node_ip,
+      LOG_ER("DTM: dtm_node_new failed. node_ip: %s, node_id: %x", node.node_ip,
              node.node_id);
       close(new_conn_sd);
       continue;
@@ -788,7 +788,7 @@ DTM_NODE_DB *dtm_process_accept(DTM_INTERNODE_CB *dtms_cb, int stream_sock) {
 
     if (dtm_node_add(new_node, KeyTypes::kDtmNodeIpKeyType) !=
         NCSCC_RC_SUCCESS) {
-      LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u",
+      LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %x",
              new_node->node_ip, new_node->node_id);
       dtm_comm_socket_close(new_node);
       continue;
