@@ -1005,7 +1005,7 @@ static uint32_t clms_mds_node_event(struct ncsmds_callback_info *mds_info) {
   IPLIST *ip = nullptr;
   TRACE_ENTER();
 
-  TRACE("node_id %d,nodeup %d", mds_info->info.node_evt.node_id,
+  TRACE("node_id %x,nodeup %d", mds_info->info.node_evt.node_id,
         mds_info->info.node_evt.node_chg);
 
   /* Send the message to clms */
@@ -1030,7 +1030,7 @@ static uint32_t clms_mds_node_event(struct ncsmds_callback_info *mds_info) {
     if ((ip = (IPLIST *)ncs_patricia_tree_get(
              &clms_cb->iplist, (uint8_t *)&node_id)) == nullptr) {
       IPLIST *ip = (IPLIST *)calloc(1, sizeof(IPLIST));
-      TRACE("node_id: %u not found, adding as a new node", ip->node_id);
+      TRACE("node_id: %x not found, adding as a new node", ip->node_id);
       ip->node_id = mds_info->info.node_evt.node_id;
       ip->pat_node_id.key_info = (uint8_t *)&(ip->node_id);
       if (mds_info->info.node_evt.addr_family == OSAF_AF_TIPC) {
@@ -1057,7 +1057,7 @@ static uint32_t clms_mds_node_event(struct ncsmds_callback_info *mds_info) {
       }
       if (ncs_patricia_tree_add(&clms_cb->iplist, &ip->pat_node_id) !=
           NCSCC_RC_SUCCESS)
-        TRACE("node add failed for node_id: %u", ip->node_id);
+        TRACE("node add failed for node_id: %x", ip->node_id);
     } else {
       ip->node_id = mds_info->info.node_evt.node_id;
       if (mds_info->info.node_evt.addr_family == OSAF_AF_TIPC) {

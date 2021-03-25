@@ -135,7 +135,7 @@ static uint32_t clmna_mds_dec(struct ncsmds_callback_info *info) {
         LOG_IN("Node will be rebooted");
         osaf_safe_reboot();
       } else {
-        LOG_IN("Node %u is going to be rebooted",
+        LOG_IN("Node %x is going to be rebooted",
                msg->info.reboot_info.node_id);
       }
       break;

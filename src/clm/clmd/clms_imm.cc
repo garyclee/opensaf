@@ -1389,7 +1389,7 @@ void clms_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
            */
           if ((node_id == node->node_id) && (node_reboot)) {
             LOG_NO(
-                "Node %u went down. Not sending track callback for agents on that node",
+                "Node %x went down. Not sending track callback for agents on that node",
                 node_id);
           } else {
             rc = clms_prep_and_send_track(

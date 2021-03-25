@@ -489,7 +489,7 @@ static uint32_t ckpt_proc_node_rec(CLMS_CB *cb, CLMS_CKPT_REC *data) {
   CLMS_CLUSTER_NODE *node = nullptr;
   IPLIST *ip = nullptr;
 
-  TRACE_ENTER2("node_id %u", param->node_id);
+  TRACE_ENTER2("node_id %x", param->node_id);
 
   node = clms_node_get_by_name(&param->node_name);
 
@@ -524,7 +524,7 @@ static uint32_t ckpt_proc_node_rec(CLMS_CB *cb, CLMS_CKPT_REC *data) {
   /* Update the node with ipaddress information */
   if ((ip = (IPLIST *)ncs_patricia_tree_get(
            &clms_cb->iplist, (uint8_t *)&node->node_id)) == nullptr) {
-    LOG_NO("IP information not found for: %u", node->node_id);
+    LOG_NO("IP information not found for: %x", node->node_id);
   } else {
     if (ip->addr.length) {
       node->node_addr.family = ip->addr.family;

@@ -588,7 +588,7 @@ uint32_t proc_node_up_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
     /* Retrieve IP information */
     if (ip == nullptr) {
       clm_msg.info.api_resp_info.rc = SA_AIS_ERR_NOT_EXIST;
-      LOG_ER("IP information not found for: %s with node_id: %u",
+      LOG_ER("IP information not found for: %s with node_id: %x",
              nodeup_info->node_name.value, nodeid);
     } else {
       if (ip->addr.length) { /* If length = 0, it is AF_TIPC. So
@@ -668,7 +668,7 @@ uint32_t proc_node_up_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
   if (nullptr == clms_node_get_by_id(nodeid)) {
     node->node_id = nodeup_info->node_id;
 
-    TRACE("node->node_id %u node->nodeup %d", node->node_id, node->nodeup);
+    TRACE("node->node_id %x node->nodeup %d", node->node_id, node->nodeup);
 
     if (clms_node_add(node, 0) != NCSCC_RC_SUCCESS) {
       LOG_ER("Patricia tree add failed:crosscheck " PKGSYSCONFDIR
@@ -953,7 +953,7 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT *evt) {
   node = clms_node_get_by_id(node_id);
 
   if (node == nullptr) {
-    LOG_IN("Node %d doesn't exist", node_id);
+    LOG_IN("Node %x doesn't exist", node_id);
     rc = NCSCC_RC_FAILURE;
     goto done;
   }
@@ -980,7 +980,7 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT *evt) {
       TRACE_LEAVE();
       return rc;
     } else {
-      TRACE("Adding the node_down record for node: %u to the list", node_id);
+      TRACE("Adding the node_down record for node: %x to the list", node_id);
       NODE_DOWN_LIST *node_down_rec = nullptr;
       if (nullptr ==
           (node_down_rec = (NODE_DOWN_LIST *)malloc(sizeof(NODE_DOWN_LIST)))) {
@@ -1221,7 +1221,7 @@ static uint32_t proc_track_start_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
   TRACE_ENTER();
 
   node = clms_node_get_by_id(node_id);
-  TRACE("Node id = %d", node_id);
+  TRACE("Node id = %x", node_id);
   if (node == nullptr) {
     TRACE("Client is tracking on an unconfigured node");
     ais_rc = SA_AIS_ERR_UNAVAILABLE;
@@ -1324,9 +1324,9 @@ static uint32_t proc_track_stop_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
   TRACE_ENTER();
 
   node = clms_node_get_by_id(node_id);
-  TRACE("Node id = %d", node_id);
+  TRACE("Node id = %x", node_id);
   if (node == nullptr) {
-    LOG_IN("Client tracking on an unconfigured node:nodeid = %d", node_id);
+    LOG_IN("Client tracking on an unconfigured node:nodeid = %x", node_id);
     ais_rc = SA_AIS_ERR_UNAVAILABLE;
     goto snd_rsp;
   }
@@ -1549,7 +1549,7 @@ static uint32_t proc_initialize_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
   TRACE_ENTER2("dest %" PRIx64, evt->fr_dest);
 
   node = clms_node_get_by_id(node_id);
-  TRACE("Node id = %d", node_id);
+  TRACE("Node id = %x", node_id);
   if (node == nullptr) {
     ais_rc = SA_AIS_ERR_UNAVAILABLE;
     std::set<SaUint32T>::iterator it =
@@ -1557,7 +1557,7 @@ static uint32_t proc_initialize_msg(CLMS_CB *cb, CLMSV_CLMS_EVT *evt) {
     if (it != clms_cb->mds_node_down_list.end()) {
       return (uint32_t)ais_rc;
     }
-    LOG_IN("Initialize request of client on an unconfigured node: node_id = %d",
+    LOG_IN("Initialize request of client on an unconfigured node: node_id = %x",
            node_id);
   }
 
@@ -2100,7 +2100,7 @@ void clms_remove_node_down_rec(SaClmNodeIdT node_id) {
   }
 
   if (!record_found) {
-    TRACE("MDS node down for: %u not yet reached. Adding to the list", node_id);
+    TRACE("MDS node down for: %x not yet reached. Adding to the list", node_id);
     /* MDS node_down has not yet reached the STANDBY,
      * Just add this checkupdate record to the list. MDS_DOWN
      * processing will delete it. If role change happens before
