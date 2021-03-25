@@ -879,6 +879,7 @@ uint32_t clma_clms_msg_proc(clma_cb_t *cb, CLMSV_MSG *clmsv_msg,
       clma_hdl_rec->is_member = clmsv_msg->info.is_member_info.is_member;
       clma_hdl_rec->is_configured =
           clmsv_msg->info.is_member_info.is_configured;
+      clma_msg_destroy(clmsv_msg);
     } break;
     default:
       /** Unexpected message **/
