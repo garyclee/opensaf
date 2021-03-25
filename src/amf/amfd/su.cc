@@ -645,7 +645,7 @@ static void su_add_to_model(AVD_SU *su) {
         LOG_ER("%s: avd_node_find_nodeid failed %x", __FUNCTION__,
                avd_cb->node_id_avd);
         avd_sg_remove_su(su);
-        LOG_ER("Avnd Lookup failure, node id %u", avd_cb->node_id_avd);
+        LOG_ER("Avnd Lookup failure, node id %x", avd_cb->node_id_avd);
       }
     }
 

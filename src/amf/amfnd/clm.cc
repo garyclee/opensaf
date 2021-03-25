@@ -48,7 +48,7 @@ static void clm_node_left(SaClmNodeIdT node_id) {
   AVND_COMP_PXIED_REC *pxd_rec = 0, *curr_rec = 0;
   std::string name = "";
 
-  TRACE_ENTER2("%u", node_id);
+  TRACE_ENTER2("%x", node_id);
 
   if ((node_id == avnd_cb->node_info.nodeId) &&
       (avnd_cb->node_info.member == SA_TRUE)) {
@@ -68,7 +68,7 @@ static void clm_node_left(SaClmNodeIdT node_id) {
     AVND_COMP *comp = nullptr;
     uint32_t rc;
     std::string name = "";
-    LOG_NO("Node Id:'%d'", node_id);
+    LOG_NO("Node Id:'%x'", node_id);
     // Delete the responses, which was expected to come from this node.
     while (nullptr != (comp =
       avnd_compdb_rec_get_next(avnd_cb->compdb_internode, name))) {
@@ -248,7 +248,7 @@ static void clm_track_cb(
         (notifItem->clusterChange == SA_CLM_NODE_SHUTDOWN)) {
       TRACE(
           "Node has left the cluster '%s', avnd_cb->first_time_up %u,"
-          "notifItem->clusterNode.nodeId %u, avnd_cb->node_info.nodeId %u",
+          "notifItem->clusterNode.nodeId %x, avnd_cb->node_info.nodeId %x",
           osaf_extended_name_borrow(&notifItem->clusterNode.nodeName),
           avnd_cb->first_time_up, notifItem->clusterNode.nodeId,
           avnd_cb->node_info.nodeId);

@@ -276,7 +276,7 @@ void ImmReader::ir_process_event(AVND_EVT *evt) {
     // Find the configured value of saClmNodeID from Clm node attributes.
     (void)immutil_getAttr(const_cast<SaImmAttrNameT>("saClmNodeID"),
                            attributes, 0, &node_id);
-    TRACE("Node id '%u'", node_id);
+    TRACE("Node id '%x'", node_id);
 
     // We have all the information, send the event to the destined node.
     res = avnd_avnd_msg_send(avnd_cb, reinterpret_cast<uint8_t *>(api_info),

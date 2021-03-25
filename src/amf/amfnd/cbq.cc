@@ -859,7 +859,7 @@ uint32_t avnd_comp_cbq_rec_send(AVND_CB *cb, AVND_COMP *comp,
     i_to_dest = avnd_get_mds_dest_from_nodeid(cb, node_id);
     rc = avnd_avnd_mds_send(cb, i_to_dest, &msg);
     if (NCSCC_RC_SUCCESS != rc) {
-      LOG_ER("avnd_comp_cbq_rec_send:Msg Send to AvND Failed:%s, %u",
+      LOG_ER("avnd_comp_cbq_rec_send:Msg Send to AvND Failed:%s, %x",
              comp->name.c_str(), node_id);
     }
   } else {

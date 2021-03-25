@@ -419,7 +419,7 @@ uint32_t avnd_evt_avd_reboot_evh(AVND_CB *cb, AVND_EVT *evt) {
   AVSV_D2N_REBOOT_MSG_INFO *info;
 
   info = &evt->info.avd->msg_info.d2n_reboot_info;
-  TRACE_ENTER2("%u, %u", info->node_id, info->msg_id);
+  TRACE_ENTER2("%x, %u", info->node_id, info->msg_id);
 
   osafassert(AVSV_D2N_REBOOT_MSG == evt->info.avd->msg_type);
 

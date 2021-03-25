@@ -192,7 +192,7 @@ uint32_t avnd_evt_avd_comp_validation_resp_evh(AVND_CB *cb, AVND_EVT *evt) {
   info = &evt->info.avd->msg_info.d2n_comp_valid_resp_info;
   info_comp_name = Amf::to_string(&info->comp_name);
 
-  TRACE("%s:MsgId=%u,NodeId=%u,result:%u", info_comp_name.c_str(), info->msg_id,
+  TRACE("%s:MsgId=%u,NodeId=%x,result:%u", info_comp_name.c_str(), info->msg_id,
         info->node_id, info->result);
 
   for (auto temp_rec : cb->dnd_list) {
@@ -210,7 +210,7 @@ uint32_t avnd_evt_avd_comp_validation_resp_evh(AVND_CB *cb, AVND_EVT *evt) {
               osaf_extended_name_length(&info->comp_name)) != 0)) {
     /* Seems the rec was deleted, some problem. */
     LOG_ER(
-        "Valid Rep:Rec is NULL or Name Mismatch:%s:MsgId:%u,NodeId:%u,result:%u",
+        "Valid Rep:Rec is NULL or Name Mismatch:%s:MsgId:%u,NodeId:%x,result:%u",
         info_comp_name.c_str(), info->msg_id, info->node_id, info->result);
     rc = NCSCC_RC_FAILURE;
     goto done;
@@ -270,7 +270,7 @@ uint32_t avnd_evt_avd_comp_validation_resp_evh(AVND_CB *cb, AVND_EVT *evt) {
                               &comp->mds_ctxt, comp->node_id);
 
       if (rc != NCSCC_RC_SUCCESS) {
-        LOG_ER("avnd_avnd_msg_send failed:%s:MsgId:%u,NodeId:%u,result:%u",
+        LOG_ER("avnd_avnd_msg_send failed:%s:MsgId:%u,NodeId:%x,result:%u",
                info_comp_name.c_str(), info->msg_id, info->node_id, rc);
 
         amf_rc = SA_AIS_ERR_TRY_AGAIN;
@@ -318,7 +318,7 @@ done:
 
   if (NCSCC_RC_SUCCESS != rc) {
     LOG_ER(
-        "avnd_evt_avd_comp_validation_resp_msg failed:%s:MsgId:%u,NodeId:%u,result:%u",
+        "avnd_evt_avd_comp_validation_resp_msg failed:%s:MsgId:%u,NodeId:%x,result:%u",
         info_comp_name.c_str(), info->msg_id, info->node_id, info->result);
   }
   TRACE_LEAVE();
@@ -349,7 +349,7 @@ uint32_t avnd_avnd_msg_send(AVND_CB *cb, uint8_t *msg_info,
   MDS_DEST i_to_dest = 0;
   AVSV_AMF_API_INFO *info = (AVSV_AMF_API_INFO *)msg_info;
 
-  TRACE_ENTER2("Type%u,NodeID=%u", type, node_id);
+  TRACE_ENTER2("Type%u,NodeID=%x", type, node_id);
 
   /* Create a Registration message and send to AvND */
   memset(&msg, 0, sizeof(AVND_MSG));
@@ -408,7 +408,7 @@ uint32_t avnd_avnd_msg_send(AVND_CB *cb, uint8_t *msg_info,
 
 done:
   if (NCSCC_RC_SUCCESS != rc) {
-    LOG_ER("%s,AvND Send Failure:Type:%u,NodeID:%u, Mds:%" PRId64 ", rc:%u",
+    LOG_ER("%s,AvND Send Failure:Type:%u,NodeID:%x, Mds:%" PRId64 ", rc:%u",
            __FUNCTION__, type, node_id, i_to_dest, rc);
   }
 
@@ -657,7 +657,7 @@ uint32_t avnd_avnd_cbk_del_send(AVND_CB *cb, const std::string &comp_name,
   AVND_MSG msg;
   SaNameT name;
 
-  TRACE_ENTER2("%s,NodeID=%u,opq_hdl=%u", comp_name.c_str(), *node_id,
+  TRACE_ENTER2("%s,NodeID=%x,opq_hdl=%u", comp_name.c_str(), *node_id,
                *opq_hdl);
   osaf_extended_name_alloc(comp_name.c_str(), &name);
 
@@ -677,7 +677,7 @@ uint32_t avnd_avnd_cbk_del_send(AVND_CB *cb, const std::string &comp_name,
   uint32_t rc = avnd_avnd_mds_send(cb, i_to_dest, &msg);
 
   if (NCSCC_RC_SUCCESS != rc) {
-    LOG_ER("AvND Send Failure:%s:NodeID:%u,opq_hdl:%u,MdsDest:%" PRId64,
+    LOG_ER("AvND Send Failure:%s:NodeID:%x,opq_hdl:%u,MdsDest:%" PRId64,
            comp_name.c_str(), *node_id, *opq_hdl, i_to_dest);
   }
 

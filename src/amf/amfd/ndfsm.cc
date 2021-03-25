@@ -505,7 +505,7 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
   }
 
   if (avd_snd_su_reg_msg(cb, avnd, false) != NCSCC_RC_SUCCESS) {
-    LOG_ER("%s:%u: %u", __FILE__, __LINE__, avnd->node_info.nodeId);
+    LOG_ER("%s:%u: %x", __FILE__, __LINE__, avnd->node_info.nodeId);
     /* we are in a bad shape. Restart the node for recovery */
 
     /* call the routine to failover all the effected nodes
@@ -582,7 +582,7 @@ void avd_node_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
     if (avd_snd_node_ack_msg(cb, node,
         n2d_msg->msg_info.n2d_node_down_info.msg_id) != NCSCC_RC_SUCCESS) {
       /* log error that the director is not able to send the message */
-      LOG_ER("%s:%u: %u", __FILE__, __LINE__, node->node_info.nodeId);
+      LOG_ER("%s:%u: %x", __FILE__, __LINE__, node->node_info.nodeId);
       goto done;
     }
     cb->avd_imm_status = AVD_IMM_TERMINATING;
@@ -1144,7 +1144,7 @@ uint32_t avd_node_down(AVD_CL_CB *cb, SaClmNodeIdT node_id) {
 
   if ((avnd = avd_node_find_nodeid(node_id)) == nullptr) {
     /* log error that the node id is invalid */
-    LOG_ER("%s:%u: %u", __FILE__, __LINE__, node_id);
+    LOG_ER("%s:%u: %x", __FILE__, __LINE__, node_id);
     return NCSCC_RC_FAILURE;
   }
 

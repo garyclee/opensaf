@@ -2410,9 +2410,9 @@ uint32_t avnd_comp_proxied_del(AVND_CB *cb, AVND_COMP *comp,
   AVND_COMP_PXIED_REC *rec;
   AVSV_PARAM_INFO param;
 
-  TRACE_ENTER2("'%s': nodeid: %u comp_type: %u", comp->name.c_str(),
+  TRACE_ENTER2("'%s': nodeid: %x comp_type: %u", comp->name.c_str(),
                comp->node_id, comp->comp_type);
-  TRACE("pxy_comp:'%s': nodeid:%u comp_type: %u", pxy_comp->name.c_str(),
+  TRACE("pxy_comp:'%s': nodeid:%x comp_type: %u", pxy_comp->name.c_str(),
         pxy_comp->node_id, pxy_comp->comp_type);
 
   if (nullptr == rec_to_be_deleted) {
