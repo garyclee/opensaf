@@ -19,6 +19,7 @@
 
 #include "smfnd.h"
 #include "smf/common/smfsv_evt.h"
+#include "base/osaf_utility.h"
 
 uint32_t mds_register(smfnd_cb_t *cb);
 void mds_unregister(smfnd_cb_t *cb);
@@ -240,16 +241,19 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info)
 	case NCSMDS_NEW_ACTIVE:
 		LOG_NO("MDS %s: NCSMDS_NEW_ACTIVE", __FUNCTION__);
 	case NCSMDS_UP:
-		/* TODO: No lock is taken. This might be dangerous.*/
 		if (NCSMDS_SVC_ID_SMFA == svc_evt->i_svc_id) {
+			osaf_mutex_lock_ordie(&cb->cb_lock);
 			cb->agent_cnt++;
+			osaf_mutex_unlock_ordie(&cb->cb_lock);
 			TRACE("Count of agents incremeted to : %d",
 			      cb->agent_cnt);
 		} else if (NCSMDS_SVC_ID_SMFD == svc_evt->i_svc_id) {
 			/* Catch the vdest of SMFD*/
 			if (m_MDS_DEST_IS_AN_ADEST(svc_evt->i_dest))
 				return NCSCC_RC_SUCCESS;
+			osaf_mutex_lock_ordie(&cb->cb_lock);
 			cb->smfd_dest = svc_evt->i_dest;
+			osaf_mutex_unlock_ordie(&cb->cb_lock);
 			LOG_NO("MDS %s: NCSMDS_SVC_ID_SMFD "
 				"dest = 0x%" PRIx64,
 				__FUNCTION__, svc_evt->i_dest);
@@ -257,19 +261,22 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info)
 		break;
 
 	case NCSMDS_DOWN:
-		/* TODO: No lock is taken. This might be dangerous.*/
 		/* TODO: Need to clean up the cb->cbk_list, otherwise there will
 		 be memory leak. For the time being we are storing only count of
 		 agents, not the adest of agents and hence it is not possible to
 		 clean up cbk_list.*/
 		if (NCSMDS_SVC_ID_SMFA == svc_evt->i_svc_id) {
+			osaf_mutex_lock_ordie(&cb->cb_lock);
 			cb->agent_cnt--;
+			osaf_mutex_unlock_ordie(&cb->cb_lock);
 			TRACE("Count of agents decremeted to : %d",
 			      cb->agent_cnt);
 		} else if (NCSMDS_SVC_ID_SMFD == svc_evt->i_svc_id) {
 			if (m_MDS_DEST_IS_AN_ADEST(svc_evt->i_dest))
 				return NCSCC_RC_SUCCESS;
+			osaf_mutex_lock_ordie(&cb->cb_lock);
 			cb->smfd_dest = 0;
+			osaf_mutex_unlock_ordie(&cb->cb_lock);
 			LOG_NO("MDS %s: NCSMDS_DOWN smfd_dest = 0",
 				__FUNCTION__);
 		}
