@@ -392,7 +392,12 @@ SaAmfContainedComponentInstantiateCallbackT = CFUNCTYPE(None,
 SaAmfContainedComponentCleanupCallbackT = CFUNCTYPE(None,
 	SaInvocationT, POINTER(SaNameT))
 
-#if defined(SA_AMF_B01) || defined(SA_AMF_B02)
+SaAmfCsiAttributeChangeCallbackT = CFUNCTYPE(None, SaInvocationT,
+                                             POINTER(SaNameT),
+                                             SaAmfCSIAttributeListT)
+
+
+# if defined(SA_AMF_B01) || defined(SA_AMF_B02)
 class SaAmfCallbacksT(Structure):
 	"""Contain various callbacks AMF may invoke on a component.
 	"""
@@ -690,6 +695,57 @@ def saAmfInitialize_4(amfHandle, amfCallbacks, version):
 
 	return amfdll.saAmfInitialize_4(BYREF(amfHandle),
 			BYREF(amfCallbacks), BYREF(version))
+
+
+# pylint: disable-msg=R0903, C0103
+class SaAmfCallbacksT_o4(Structure):
+    """Contain various callbacks AMF may invoke on a component.
+    """
+    _fields_ = [('saAmfHealthcheckCallback',
+                 SaAmfHealthcheckCallbackT),
+                ('saAmfComponentTerminateCallback',
+                 SaAmfComponentTerminateCallbackT),
+                ('saAmfCSISetCallback',
+                 SaAmfCSISetCallbackT),
+                ('saAmfCSIRemoveCallback',
+                 SaAmfCSIRemoveCallbackT),
+                ('saAmfProtectionGroupTrackCallback',
+                 SaAmfProtectionGroupTrackCallbackT_4),
+                ('saAmfProxiedComponentInstantiateCallback',
+                 SaAmfProxiedComponentInstantiateCallbackT),
+                ('saAmfProxiedComponentCleanupCallback',
+                 SaAmfProxiedComponentCleanupCallbackT),
+                ('saAmfContainedComponentInstantiateCallback',
+                 SaAmfContainedComponentInstantiateCallbackT),
+                ('saAmfContainedComponentCleanupCallback',
+                 SaAmfContainedComponentCleanupCallbackT),
+                ('osafCsiAttributeChangeCallback',
+                 SaAmfCsiAttributeChangeCallbackT)]
+# pylint: enable-msg=R0903, C0103
+
+
+def saAmfInitialize_o4(amfHandle, amfCallbacks, version):
+    """Register invoking process with AMF.
+
+    type arguments:
+        SaAmfHandleT amfHandle
+        SaAmfCallbacksT_o4 amfCallbacks
+        SaVersionT version
+
+    returns:
+        SaAisErrorT
+
+    """
+
+    amfdll.saAmfInitialize_o4.argtypes = [POINTER(SaAmfHandleT),
+                                          POINTER(SaAmfCallbacksT_o4),
+                                          POINTER(SaVersionT)]
+
+    amfdll.saAmfInitialize_o4.restype = SaAisErrorT
+
+    return amfdll.saAmfInitialize_o4(BYREF(amfHandle),
+                                     BYREF(amfCallbacks), BYREF(version))
+
 
 def saAmfSelectionObjectGet(amfHandle, selectionObject):
 	"""Return operating system handle associated with AMF handle to detect

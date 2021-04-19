@@ -26,6 +26,7 @@ import sys
 import errno
 import signal
 import socket
+import ctypes
 import hashlib
 from select import select, error
 
@@ -47,8 +48,8 @@ class AmfDemo(object):
 
     def __init__(self, health_check_key, signal_handler):
         self.handle = saAmf.SaAmfHandleT()
-        self.version = SaVersionT('B', 4, 1)
-        self.callbacks = saAmf.SaAmfCallbacksT_4()
+        self.version = SaVersionT('B', 4, 2)
+        self.callbacks = saAmf.SaAmfCallbacksT_o4()
         self.sel_obj = saAmf.SaSelectionObjectT()
         self.comp_name = SaNameT()
         self.health_check_key = saAmf.SaAmfHealthcheckKeyT(health_check_key)
@@ -66,10 +67,13 @@ class AmfDemo(object):
             saAmf.SaAmfCSISetCallbackT(self.csi_set_callback)
         self.callbacks.saAmfCSIRemoveCallback = \
             saAmf.SaAmfCSIRemoveCallbackT(self.csi_remove_callback)
+        self.callbacks.osafCsiAttributeChangeCallback = \
+            saAmf.SaAmfCsiAttributeChangeCallbackT(self.csi_attr_chg_callback)
 
         log_info("Start initialization.")
 
-        rc = saAmf.saAmfInitialize_4(self.handle, self.callbacks, self.version)
+        rc = saAmf.saAmfInitialize_o4(self.handle,
+                                      self.callbacks, self.version)
         if not self.check_rc("saAmfInitialize", rc):
             return False
 
@@ -200,6 +204,31 @@ class AmfDemo(object):
                                    eSaAisErrorT.SA_AIS_OK)
         self.check_rc("saAmfResponse_4", rc)
         self.term_handler.send_terminate_msg()
+
+    def csi_attr_chg_callback(self, invocation, csi_name, csi_attr_list):
+        """ callback to handle CST attribute change callback event.
+
+        Args:
+            invocation (SaInvocationT): Invocation of the callback
+            csiname POINTER(SaNameT): Name of the csi being changed
+            csi_attr_list (SaAmfCSIAttributeListT): List of csi attributes
+            being changed
+        """
+        log_info("CSI attribute change callback invoked")
+        rc = saAmf.saAmfResponse_4(self.handle, invocation, None,
+                                   eSaAisErrorT.SA_AIS_OK)
+        self.check_rc("saAmfResponse_4", rc)
+        attr_name = ""
+        attr_value = ""
+        log_info("CSI Name:'%s'" % str(csi_name[0]))
+        for i in range(csi_attr_list.number):
+            attr = csi_attr_list.attr[i]
+            attr_name = ctypes.cast(attr.attrName,
+                                    ctypes.c_char_p).value.decode('utf-8')
+            attr_value = ctypes.cast(attr.attrValue,
+                                     ctypes.c_char_p).value.decode('utf-8')
+            log_info("CSI attribute name: %s" % attr_name)
+            log_info("CSI attribute value: %s" % attr_value)
 
     @staticmethod
     def check_rc(function_name, rc):
