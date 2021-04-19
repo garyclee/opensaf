@@ -325,6 +325,9 @@ static void clm_track_cb(
             if (avd_cb->failover_list.count(node->node_info.nodeId) == 0 &&
               delay_failover(avd_cb, node->node_info.nodeId) == false) {
               avd_node_delete_nodeid(node);
+              node->node_info.member = SA_FALSE;
+              m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node,
+                                              AVSV_CKPT_AVD_NODE_CONFIG);
             }
             goto done;
           }
