@@ -28,7 +28,8 @@ noinst_HEADERS += \
 	src/osaf/immutil/immutil.h \
 	src/osaf/saflog/saflog.h \
 	src/osaf/consensus/key_value.h \
-	src/osaf/consensus/consensus.h
+	src/osaf/consensus/consensus.h \
+	src/osaf/consensus/consensus_env.h
 
 # immtools headers
 # IMM configuration modifier
@@ -67,7 +68,8 @@ lib_libosaf_common_la_SOURCES = \
 	src/osaf/immutil/immutil.c \
 	src/osaf/saflog/saflog.c \
 	src/osaf/consensus/key_value.cc \
-	src/osaf/consensus/consensus.cc
+	src/osaf/consensus/consensus.cc \
+	src/osaf/consensus/consensus_env.cc
 
 # immtools code
 # IMM configuration modifier

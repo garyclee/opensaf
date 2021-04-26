@@ -20,6 +20,7 @@
 #include <vector>
 #include "base/macros.h"
 #include "osaf/consensus/key_value.h"
+#include "osaf/consensus/consensus_env.h"
 #include "saAis.h"
 
 class Consensus {
@@ -98,18 +99,9 @@ class Consensus {
                                       const std::string& request);
 
  private:
-  bool use_consensus_{false};
-  bool use_remote_fencing_{false};
-  bool prioritise_partition_size_{true};
-  uint32_t prioritise_partition_size_mds_wait_time_{4};
-  bool relaxed_node_promotion_{false};
-  uint32_t takeover_valid_time_{20};
-  uint32_t max_takeover_retry_{0};
-  std::string config_file_{};
-  std::string plugin_path_{};
+  ConsensusCfg cfg_;
 
   const std::string kTestKeyname = "opensaf_write_test";
-  const std::string kFmsEnvPrefix = "FMS";
   const std::chrono::milliseconds kSleepInterval =
       std::chrono::milliseconds(1000);  // in ms
   static constexpr uint32_t kLockTimeout = 0;  // lock is persistent by default
