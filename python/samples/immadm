@@ -62,19 +62,19 @@ def immadm(args):
     _params = []
 
     if params is not None:
-        try:
-            for param in params:
-                (name, val_type, val) = param.split(':', 2)
-                ptype = saImm.eSaImmValueTypeT.lookup[val_type]
-                val = cast(ptype, val)
-                _params.append(saImm.SaImmAdminOperationParamsT_2(
-                    name, ptype, val))
-            om_agent = ImmOmAgent()
-            om_agent.init()
-            rc = om_agent.invoke_admin_operation(dn, op_id, params=_params)
-        except SafException as err:
-            if err.value != eSaAisErrorT.SA_AIS_ERR_NOT_EXIST:
-                raise err
+        for param in params:
+            (name, val_type, val) = param.split(':', 2)
+            ptype = saImm.eSaImmValueTypeT.lookup[val_type]
+            val = cast(ptype, val)
+            _params.append(saImm.SaImmAdminOperationParamsT_2(
+                name, ptype, val))
+    try:
+        om_agent = ImmOmAgent()
+        om_agent.init()
+        rc = om_agent.invoke_admin_operation(dn, op_id, params=_params)
+    except SafException as err:
+        if err.value != eSaAisErrorT.SA_AIS_ERR_NOT_EXIST:
+            raise err
 
     return {'dn': dn,
             'opId': op_id,
