@@ -930,6 +930,17 @@ bool SmfAdminStateHandler::nodeGroupAdminOperation(
           (imm_rc == SA_AIS_OK && oi_rc == SA_AIS_ERR_TRY_AGAIN)) {
         base::Sleep(base::MillisToTimespec(2000));
         continue;
+      } else if (imm_rc == SA_AIS_ERR_TIMEOUT) {
+        // Retry
+        continue;
+      } else if (imm_rc == SA_AIS_ERR_NO_OP) {
+        // If an admin operation is already performed SA_AIS_ERR_NO_OP
+        // is returned. Treat this as OK, just log it and return
+        // operation success
+        LOG_NO("Admin op [%d] on [%s], return SA_AIS_ERR_NO_OP,"
+              "treated as OK", adminOp, nodeGroupName_s.c_str());
+        method_rc = true;
+        goto no_op_admin;
       } else if (imm_rc != SA_AIS_OK) {
         LOG_NO(
             "%s: saImmOmAdminOperationInvoke_2 Fail %s",
@@ -964,6 +975,7 @@ bool SmfAdminStateHandler::nodeGroupAdminOperation(
            nodeGroupName_s.c_str());
   }
 
+no_op_admin:
   if (admset_rc == true) {
     TRACE("%s Admin operation is done. Release ownership if nodegroup",
           __FUNCTION__);
