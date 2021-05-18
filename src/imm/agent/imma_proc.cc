@@ -1570,6 +1570,7 @@ uint32_t imma_proc_resurrect_client(IMMA_CB *cb, SaImmHandleT immHandle,
   unsigned int sleep_delay_ms = 500;
   unsigned int max_waiting_time_ms = 2 * 1000; /* 2 secs */
   unsigned int msecs_waited = 0;
+  SaTimeT timeout = IMMSV_WAIT_TIME;
 
   if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
     TRACE_3("Lock failure");
@@ -1583,7 +1584,7 @@ uint32_t imma_proc_resurrect_client(IMMA_CB *cb, SaImmHandleT immHandle,
             cl_node, cl_node ? cl_node->exposed : 0);
     goto failure;
   }
-
+  timeout = cl_node->syncr_timeout;
   if (!cl_node->stale) {
     TRACE_3(
         "imma_proc_resurrect_client: Handle %llx was not stale, "
@@ -1623,7 +1624,7 @@ uint32_t imma_proc_resurrect_client(IMMA_CB *cb, SaImmHandleT immHandle,
     /* send the request to the IMMND */
     if (imma_mds_msg_sync_send(cb->imma_mds_hdl, &(cb->immnd_mds_dest),
                                &resurrect_evt, &out_evt,
-                               IMMSV_WAIT_TIME) != NCSCC_RC_SUCCESS) {
+                               timeout) != NCSCC_RC_SUCCESS) {
       TRACE_3("Failure in MDS send");
       goto exposed;
     }

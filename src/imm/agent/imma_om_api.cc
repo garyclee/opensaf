@@ -9761,7 +9761,7 @@ int imma_om_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, bool *locked) {
   osafassert(locked && *locked);
   osafassert(cl_node && cl_node->stale);
   SaImmHandleT immHandle = cl_node->handle;
-  SaTimeT timeout = 0;
+  SaTimeT timeout = IMMSV_WAIT_TIME;
   SaAisErrorT err_resurrect = SA_AIS_OK;
 
   m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
