@@ -337,6 +337,21 @@ static uint32_t immnd_initialize(char *progname)
 		    "Persistent Back-End capability configured, Pbe file:%s (suffix may get added)",
 		    immnd_cb->mPbeFile);
 	}
+	immnd_cb->mFevsMaxPending = 16;
+	if ((envVar = getenv("IMMSV_FEVS_MAX_PENDING"))) {
+		int maxFevsPending = atoi(envVar);
+		if (maxFevsPending > UINT8_MAX) {
+			LOG_WA("IMMSV_FEVS_MAX_PENDING set too large(%u)",
+				maxFevsPending);
+			maxFevsPending = UINT8_MAX;
+		} else if (maxFevsPending <= 0) {
+			LOG_WA("Invalid IMMSV_FEVS_MAX_PENDING environment"
+				" variable");
+			maxFevsPending = 16;
+		}
+		immnd_cb->mFevsMaxPending = maxFevsPending;
+		LOG_NO("Use IMMSV_FEVS_MAX_PENDING (%u)", maxFevsPending);
+	}
 
 	FILE *fp;
 	char node_type[20];

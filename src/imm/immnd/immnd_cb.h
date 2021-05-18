@@ -209,6 +209,7 @@ typedef struct immnd_cb_tag {
   NCS_PATRICIA_TREE immnd_clm_list; /* IMMND_IMM_CLIENT_NODE - node */
   tmr_t splitbrain_tmr;
   bool splitbrain_tmr_run;
+  uint8_t mFevsMaxPending; /* Max pending fevs messages towards director */
 } IMMND_CB;
 
 /* CB prototypes */

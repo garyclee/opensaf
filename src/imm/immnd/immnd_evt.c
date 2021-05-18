@@ -1787,7 +1787,7 @@ static uint32_t immnd_evt_proc_search_next(IMMND_CB *cb, IMMND_EVT *evt,
 	IMMSV_OM_RSP_SEARCH_NEXT **rspList = NULL;
 	MDS_DEST implDest = 0LL;
 	bool retardSync =
-	    ((cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) &&
+	    ((cb->fevs_replies_pending >= cb->mFevsMaxPending) &&
 	     cb->mIsCoord && (cb->syncPid > 0));
 	SaUint32T resultSize = 0;
 	IMMSV_OM_RSP_SEARCH_BUNDLE_NEXT bundleSearch = {0, NULL};
@@ -2767,10 +2767,10 @@ static uint32_t immnd_evt_proc_admowner_init(IMMND_CB *cb, IMMND_EVT *evt,
 		goto agent_rsp;
 	}
 
-	if (cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) {
+	if (cb->fevs_replies_pending >= cb->mFevsMaxPending) {
 		TRACE_2(
 		    "ERR_TRY_AGAIN: Too many pending incoming fevs messages (> %u) rejecting admo_init request",
-		    IMMSV_DEFAULT_FEVS_MAX_PENDING);
+		    cb->mFevsMaxPending);
 		send_evt.info.imma.info.admInitRsp.error = SA_AIS_ERR_TRY_AGAIN;
 		goto agent_rsp;
 	}
@@ -2895,10 +2895,10 @@ static uint32_t immnd_evt_proc_impl_set(IMMND_CB *cb, IMMND_EVT *evt,
 		goto agent_rsp;
 	}
 
-	if (cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) {
+	if (cb->fevs_replies_pending >= cb->mFevsMaxPending) {
 		TRACE_2(
 		    "ERR_TRY_AGAIN: Too many pending incoming fevs messages (> %u) rejecting impl_set request",
-		    IMMSV_DEFAULT_FEVS_MAX_PENDING);
+		    cb->mFevsMaxPending);
 		send_evt.info.imma.info.implSetRsp.error = SA_AIS_ERR_TRY_AGAIN;
 		goto agent_rsp;
 	}
@@ -3061,10 +3061,10 @@ static uint32_t immnd_evt_proc_ccb_init(IMMND_CB *cb, IMMND_EVT *evt,
 		goto agent_rsp;
 	}
 
-	if (cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) {
+	if (cb->fevs_replies_pending >= cb->mFevsMaxPending) {
 		TRACE_2(
 		    "ERR_TRY_AGAIN: Too many pending incoming fevs messages (> %u) rejecting ccb_init request",
-		    IMMSV_DEFAULT_FEVS_MAX_PENDING);
+		    cb->mFevsMaxPending);
 		send_evt.info.imma.info.ccbInitRsp.error = SA_AIS_ERR_TRY_AGAIN;
 		goto agent_rsp;
 	}
@@ -3220,11 +3220,10 @@ static uint32_t immnd_evt_proc_rt_update(IMMND_CB *cb, IMMND_EVT *evt,
 		   writbale.
 		 */
 
-		if (cb->fevs_replies_pending >=
-		    IMMSV_DEFAULT_FEVS_MAX_PENDING) {
+		if (cb->fevs_replies_pending >= cb->mFevsMaxPending) {
 			TRACE_2(
 			    "ERR_TRY_AGAIN: Too many pending incoming fevs messages (> %u) rejecting rt_update request",
-			    IMMSV_DEFAULT_FEVS_MAX_PENDING);
+			    cb->mFevsMaxPending);
 			err = SA_AIS_ERR_TRY_AGAIN;
 			goto agent_rsp;
 		}
@@ -3497,7 +3496,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt,
 	/* If overflow .....OR IMMD is down.....OR sync is on-going AND
 	   out-queue is not empty => go via out-queue. The sync should be
 	   throttled by immnd_evt_proc_search_next. */
-	if ((cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) ||
+	if ((cb->fevs_replies_pending >= cb->mFevsMaxPending) ||
 	    !immnd_is_immd_up(cb) ||
 	    ((cb->mState == IMM_SERVER_SYNC_SERVER) && cb->fevs_out_count &&
 	     asyncReq && newMsg)) {
@@ -3518,12 +3517,12 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt,
 				TRACE_2(
 				    "Too many pending incoming FEVS messages (> %u) "
 				    "enqueueing async message. Backlog:%u",
-				    IMMSV_DEFAULT_FEVS_MAX_PENDING, backlog);
+				    cb->mFevsMaxPending, backlog);
 			} else {
 				LOG_IN(
 				    "Too many pending incoming FEVS messages (> %u) "
 				    "enqueueing async message. Backlog:%u",
-				    IMMSV_DEFAULT_FEVS_MAX_PENDING, backlog);
+				    cb->mFevsMaxPending, backlog);
 			}
 
 			return NCSCC_RC_SUCCESS;
@@ -3533,7 +3532,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt,
 			   case. */
 			TRACE_2(
 			    "ERR_TRY_AGAIN: Too many pending FEVS message replies (> %u) rejecting request",
-			    IMMSV_DEFAULT_FEVS_MAX_PENDING);
+			    cb->mFevsMaxPending);
 			error = SA_AIS_ERR_TRY_AGAIN;
 			goto agent_rsp;
 		}
@@ -3824,8 +3823,7 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 			break;
 		}
 		if (immModel_pbeNotWritable(cb) ||
-		    (cb->fevs_replies_pending >=
-		     IMMSV_DEFAULT_FEVS_MAX_PENDING) ||
+		    (cb->fevs_replies_pending >= cb->mFevsMaxPending) ||
 		    !immnd_is_immd_up(cb)) {
 			/* NO_RESOURCES is here imm internal proxy for
 			   TRY_AGAIN. The library code for saImmOmCcbApply will
@@ -3836,12 +3834,11 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 			   TRY_AGAIN towards that particular library code.
 			 */
 			error = SA_AIS_ERR_NO_RESOURCES;
-			if (cb->fevs_replies_pending >=
-			    IMMSV_DEFAULT_FEVS_MAX_PENDING) {
+			if (cb->fevs_replies_pending >= cb->mFevsMaxPending) {
 				TRACE_2(
 				    "ERR_TRY_AGAIN: Too many pending FEVS message replies (> %u) rejecting request"
 				    "for CcbApply",
-				    IMMSV_DEFAULT_FEVS_MAX_PENDING);
+				    cb->mFevsMaxPending);
 			}
 		}
 		break;
@@ -10731,15 +10728,15 @@ void dequeue_outgoing(IMMND_CB *cb)
 	IMMND_EVT dummy_evt;
 
 	unsigned int space =
-	    (cb->fevs_replies_pending < IMMSV_DEFAULT_FEVS_MAX_PENDING)
-		? (IMMSV_DEFAULT_FEVS_MAX_PENDING - cb->fevs_replies_pending)
+	    (cb->fevs_replies_pending < cb->mFevsMaxPending)
+		? (cb->mFevsMaxPending - cb->fevs_replies_pending)
 		: 0;
 
 	TRACE("Pending replies:%u space:%u out list?:%p",
 	      cb->fevs_replies_pending, space, cb->fevs_out_list);
 
 	while (cb->fevs_out_list && space &&
-	       (cb->fevs_replies_pending < IMMSV_DEFAULT_FEVS_MAX_PENDING) &&
+	       (cb->fevs_replies_pending < cb->mFevsMaxPending) &&
 	       immnd_is_immd_up(cb)) {
 		memset(&dummy_evt, '\0', sizeof(IMMND_EVT));
 		unsigned int backlog = immnd_dequeue_outgoing_fevs_msg(

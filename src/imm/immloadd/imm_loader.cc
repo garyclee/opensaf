@@ -2318,7 +2318,7 @@ int syncObjectsOfClass(std::string className, SaImmHandleT &immHandle,
     do {
       if (retries) {
         /* TRY_AGAIN while sync is in progress means *this* IMMND most likely
-           has reached IMMSV_DEFAULT_FEVS_MAX_PENDING. This means that *this*
+           has reached max pending fevs messages. This means that *this*
            IMMND has sent its quota of fevs messages to IMMD without having
            received them back via broadcast from IMMD.
 

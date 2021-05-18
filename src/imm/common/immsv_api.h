@@ -77,10 +77,6 @@ typedef enum {
   ACCESS_CONTROL_ENFORCING = 2
 } OsafImmAccessControlModeT;
 
-/*Max # of outstanding fevs messages towards director.*/
-/*Note max-max is 255. cb->fevs_replies_pending is an uint8_t*/
-#define IMMSV_DEFAULT_FEVS_MAX_PENDING 16
-
 #define IMMSV_MAX_OBJECTS 10000
 #define IMMSV_MAX_ATTRIBUTES 128
 #define IMMSV_MAX_ADMO_NAME_LENGTH 256

@@ -1614,7 +1614,7 @@ SaAisErrorT immModel_nextResult(IMMND_CB* cb, void* searchOp,
       TRACE_2(
           "ERR_TRY_AGAIN: Too many pending incoming fevs "
           "messages (> %u) rejecting sync iteration next request",
-          IMMSV_DEFAULT_FEVS_MAX_PENDING);
+          cb->mFevsMaxPending);
       return SA_AIS_ERR_TRY_AGAIN;
     }
     err = ImmModel::instance(&cb->immModel)->nextSyncResult(rsp, *op);
