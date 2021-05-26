@@ -46,7 +46,7 @@
 enum { FD_TERM = 0, FD_AMF = 1, FD_MBX, FD_RDA_SERVER,
        FD_SIGHUP, FD_CLIENT_START };
 
-static void SendPeerInfoResp(MDS_DEST mds_dest);
+static void BroadcastPeerInfoResp();
 static void CheckForSplitBrain(const rde_msg *msg);
 
 const char *rde_msg_name[] = {"-",
@@ -105,18 +105,20 @@ static void handle_mbx_event() {
   switch (msg->type) {
     case RDE_MSG_PEER_INFO_REQ:
     case RDE_MSG_PEER_INFO_RESP: {
-      LOG_NO("Got peer info %s from node 0x%x with role %s",
-             msg->type == RDE_MSG_PEER_INFO_RESP ? "response" : "request",
-             msg->fr_node_id, Role::to_string(msg->info.peer_info.ha_role));
-      CheckForSplitBrain(msg);
-      role->SetPeerState(msg->info.peer_info.ha_role, msg->fr_node_id,
-                         msg->info.peer_info.promote_pending);
+      if (msg->fr_node_id != own_node_id) {
+        LOG_NO("Got peer info %s from node 0x%x with role %s",
+            msg->type == RDE_MSG_PEER_INFO_RESP ? "response" : "request",
+                msg->fr_node_id, Role::to_string(msg->info.peer_info.ha_role));
+        CheckForSplitBrain(msg);
+        role->SetPeerState(msg->info.peer_info.ha_role, msg->fr_node_id,
+            msg->info.peer_info.promote_pending);
+      }
       break;
     }
     case RDE_MSG_PEER_UP: {
       if (msg->fr_node_id != own_node_id) {
         LOG_NO("Peer up on node 0x%x", msg->fr_node_id);
-        SendPeerInfoResp(msg->fr_dest);
+        BroadcastPeerInfoResp();
         role->AddPeer(msg->fr_node_id);
       }
       break;
@@ -284,7 +286,7 @@ static void CheckForSplitBrain(const rde_msg *msg) {
   }
 }
 
-static void SendPeerInfoResp(MDS_DEST mds_dest) {
+static void BroadcastPeerInfoResp() {
   RDE_CONTROL_BLOCK *cb = rde_get_control_block();
   rde_msg peer_info_req;
   peer_info_req.type = RDE_MSG_PEER_INFO_RESP;
@@ -294,7 +296,7 @@ static void SendPeerInfoResp(MDS_DEST mds_dest) {
     cb->promote_pending = base::TimespecToMillis(now - cb->promote_start);
   }
   peer_info_req.info.peer_info.promote_pending = cb->promote_pending;
-  rde_mds_send(&peer_info_req, mds_dest);
+  rde_mds_broadcast(&peer_info_req);
 }
 
 /**

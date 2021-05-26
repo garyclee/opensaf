@@ -101,7 +101,7 @@ extern uint32_t rde_mds_register();
 extern uint32_t rde_discovery_mds_register();
 extern uint32_t rde_mds_unregister();
 extern uint32_t rde_discovery_mds_unregister();
-extern uint32_t rde_mds_send(rde_msg *msg, MDS_DEST to_dest);
+extern uint32_t rde_mds_broadcast(rde_msg *msg);
 extern uint32_t rde_set_role(PCS_RDA_ROLE role);
 
 #endif  // RDE_RDED_RDE_CB_H_
