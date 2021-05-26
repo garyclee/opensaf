@@ -108,33 +108,17 @@ void saLogStreamOpenCallback(SaInvocationT invocation,
 
 void saLogWriteLogCallback(SaInvocationT invocation, SaAisErrorT error) {
   TRACE_ENTER2("Callback for notificationId %llu", invocation);
-
   if (SA_AIS_OK != error) {
-    NtfSmartPtr notification;
-
-    TRACE_1("Error when logging (%d), queue for relogging", error);
-
-    notification = NtfAdmin::theNtfAdmin->getNotificationById(
-        (SaNtfIdentifierT)invocation);
-
-    osafassert(notification != NULL);
-
-    if (!notification->loggedOk()) {
-      NtfAdmin::theNtfAdmin->logger.queueNotifcation(notification);
-      TRACE_LEAVE();
-      return;
-    } else {
-      LOG_ER("Already marked as logged notificationId: %d", (int)invocation);
-      /* this should not happen */
-      osafassert(0);
-    }
+    TRACE_1("Error when logging (%d)", error);
+    NtfAdmin::theNtfAdmin->logger.disableAckWaiting();
+  } else {
+    // Reset logger buffer full flag. If the flag is set true before, it should
+    // be reset because one notification is logged successfully
+    NtfAdmin::theNtfAdmin->logger.dequeueNotification();
+    NtfAdmin::theNtfAdmin->logger.resetLoggerBufferFullFlag();
+    sendLoggedConfirm((SaNtfIdentifierT)invocation);
+    NtfAdmin::theNtfAdmin->logger.logQueuedNotification();
   }
-
-  // Reset logger buffer full flag. If the flag is set true before, it should
-  // be reset because one notification is logged successfully
-  NtfAdmin::theNtfAdmin->logger.resetLoggerBufferFullFlag();
-
-  sendLoggedConfirm((SaNtfIdentifierT)invocation);
   TRACE_LEAVE();
 }
 
@@ -142,30 +126,9 @@ void NtfLogger::log(NtfSmartPtr& newNotification) {
   TRACE_ENTER2("Notification Id=%llu received in logger. Logger buffer size %d",
                newNotification->getNotificationId(),
                static_cast<int>(queuedNotificationList.size()));
-  uint32_t is_buffer_full = isLoggerBufferFull();
-
-  // Check if there are not logged notifications in logger buffer
-  while (queuedNotificationList.empty() == false) {
-    NtfSmartPtr notification = queuedNotificationList.front();
-    queuedNotificationList.pop_front();
-    TRACE_2("Log queued notification: %llu", notification->getNotificationId());
-    if (SA_AIS_OK != this->logNotification(notification)) {
-      TRACE_2("Push back queued notification: %llu",
-              notification->getNotificationId());
-      queuedNotificationList.push_front(notification);  // Keep order
-      queueNotifcation(newNotification);
-      TRACE_LEAVE();
-      return;
-    }
-  }
-
-  // The new notification should be only logged if the buffer is not full
-  // and the type of notification is alarm.
-  if ((is_buffer_full == false) &&
-      (isAlarmNotification(newNotification) == true)) {
-    if (logNotification(newNotification) != SA_AIS_OK)
-      queueNotifcation(newNotification);
-  }
+  if (!isLoggerBufferFull() && isAlarmNotification(newNotification))
+    queueNotifcation(newNotification);
+  logQueuedNotification();
 
   TRACE_LEAVE();
 }
@@ -173,6 +136,13 @@ void NtfLogger::log(NtfSmartPtr& newNotification) {
 void NtfLogger::queueNotifcation(NtfSmartPtr& notif) {
   TRACE_2("Queue notification: %llu", notif->getNotificationId());
   queuedNotificationList.push_back(notif);
+}
+
+void NtfLogger::dequeueNotification() {
+  NtfSmartPtr notification = queuedNotificationList.front();
+  TRACE_2("Dequeue notification: %llu", notification->getNotificationId());
+  osafassert(notification->isWaitingAck());
+  queuedNotificationList.pop_front();
 }
 
 SaAisErrorT NtfLogger::logNotification(NtfSmartPtr& notif) {
@@ -401,4 +371,24 @@ bool NtfLogger::isAlarmNotification(NtfSmartPtr& notif) {
     return true;
   else
     return false;
+}
+
+void NtfLogger::disableAckWaiting() {
+  NtfSmartPtr notification = queuedNotificationList.front();
+  notification->setWaitingAck(false);
+}
+
+void NtfLogger::logQueuedNotification() {
+  if (!isLoggerBufferEmpty()) {
+    NtfSmartPtr notification = queuedNotificationList.front();
+    if (notification->isWaitingAck()) return;
+    TRACE_2("Log queued notification: %llu",
+            notification->getNotificationId());
+    if (this->logNotification(notification) != SA_AIS_OK) {
+      TRACE_2("Fail to log notification: %llu",
+              notification->getNotificationId());
+      return;
+    }
+    notification->setWaitingAck(true);
+  }
 }

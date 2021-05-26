@@ -52,6 +52,8 @@ class NtfNotification {
                                  SaNtfSubscriptionIdT subscriptionId);
   void notificationLoggedConfirmed();
   bool loggedOk() const;
+  void setWaitingAck(bool wait) { waitAck_ = wait; }
+  bool isWaitingAck() { return waitAck_; }
   bool isSubscriptionListEmpty() const;
   void removeSubscription(unsigned int clientId);
   void removeSubscription(unsigned int clientId,
@@ -72,6 +74,7 @@ class NtfNotification {
   NtfNotification& operator=(const NtfNotification&);
 
   bool logged;
+  bool waitAck_;
   SaNtfIdentifierT notificationId_;
   SaNtfNotificationTypeT notificationType_;
   typedef std::list<UniqueSubscriptionId> SubscriptionList;
