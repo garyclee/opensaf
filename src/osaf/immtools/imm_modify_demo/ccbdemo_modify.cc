@@ -29,73 +29,23 @@
 #include "base/osaf_extended_name.h"
 #include "osaf/configmake.h"
 
-#include "smf/smfd/imm_modify_demo/common.h"
+#include "osaf/immtools/imm_modify_demo/common.h"
 
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
 #if 1  // Low level OM interface
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_clear.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_set.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_delete.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_modify.h"
-#include "smf/smfd/imm_om_ccapi/om_handle.h"
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_clear.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_set.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_create.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_delete.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_modify.h"
+#include "osaf/immtools/imm_om_ccapi/om_handle.h"
 #endif
 
 using namespace std;
-
-/*      -*- OpenSAF  -*-
- *
- * (C) Copyright 2008 The OpenSAF Foundation
- * Copyright Ericsson AB 2018 - All Rights Reserved.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
- * under the GNU Lesser General Public License Version 2.1, February 1999.
- * The complete license can be accessed from the following location:
- * http://opensource.org/licenses/lgpl-license.php
- * See the Copying file included with the OpenSAF distribution for full
- * licensing terms.
- *
- * Author(s): Ericsson AB
- *
- */
-
-#if 0
-#include <limits.h>
-
-#include <string>
-#include <vector>
-#include <memory>
-#include <utility>
-#include <iostream>
-
-#include "ais/include/saImm.h"
-#include "ais/include/saAis.h"
-#include "base/osaf_extended_name.h"
-#include "osaf/configmake.h"
-
-#include "smf/smfd/imm_modify_config/immccb.h"
-
-#if 1 // Low level OM interface
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_clear.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_set.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_delete.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_modify.h"
-#include "smf/smfd/imm_om_ccapi/om_handle.h"
-#endif
-#endif
-
-using namespace std;
-
 #if 0  // Working code using om API directly
 // Note: Before running this code an object to modify must have been created
 //       This can be done by running ccbdemo_create

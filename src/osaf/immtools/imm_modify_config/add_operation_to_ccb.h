@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
 #include "ais/include/saImm.h"
 #include "ais/include/saAis.h"
@@ -28,8 +28,8 @@
 // in imm_om_ccapi directory adapting them to how the input data for CCBs are
 // handled in the ObjectModification class
 
-#ifndef SMF_SMFD_IMM_MODIFY_CONFIG_ADD_OPERATION_TO_CCB_H_
-#define SMF_SMFD_IMM_MODIFY_CONFIG_ADD_OPERATION_TO_CCB_H_
+#ifndef OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_ADD_OPERATION_TO_CCB_H_
+#define OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_ADD_OPERATION_TO_CCB_H_
 
 namespace modelmodify {
 
@@ -78,4 +78,4 @@ int AddModifyToCcb(const SaImmCcbHandleT& ccb_handle,
 
 }  // namespace modelmodify
 
-#endif /* SMF_SMFD_IMM_MODIFY_CONFIG_ADD_OPERATION_TO_CCB_H_ */
+#endif // OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_ADD_OPERATION_TO_CCB_H_

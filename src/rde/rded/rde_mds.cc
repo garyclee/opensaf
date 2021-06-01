@@ -209,6 +209,8 @@ static uint32_t mds_callback(struct ncsmds_callback_info *info) {
       msg = (struct rde_msg *)info->info.receive.i_msg;
       msg->fr_dest = info->info.receive.i_fr_dest;
       msg->fr_node_id = info->info.receive.i_node_id;
+      TRACE("MDS RECEIVE dest: %" PRIx64 ", node ID: %x, msg_type: %d",
+          msg->fr_dest, msg->fr_node_id, msg->type);
       if (ncs_ipc_send(&cb->mbx, reinterpret_cast<NCS_IPC_MSG *>(
                                      info->info.receive.i_msg),
                        NCS_IPC_PRIORITY_NORMAL) != NCSCC_RC_SUCCESS) {
@@ -385,11 +387,11 @@ uint32_t rde_discovery_mds_unregister() {
   return rc;
 }
 
-uint32_t rde_mds_send(struct rde_msg *msg, MDS_DEST to_dest) {
+uint32_t rde_mds_broadcast(struct rde_msg *msg) {
   NCSMDS_INFO info;
   uint32_t rc;
 
-  TRACE("Sending %s to %" PRIx64, rde_msg_name[msg->type], to_dest);
+  TRACE("Sending %s to all rded instances", rde_msg_name[msg->type]);
   memset(&info, 0, sizeof(info));
 
   info.i_mds_hdl = mds_hdl;
@@ -397,21 +399,21 @@ uint32_t rde_mds_send(struct rde_msg *msg, MDS_DEST to_dest) {
   info.i_svc_id = NCSMDS_SVC_ID_RDE;
 
   info.info.svc_send.i_msg = msg;
-  info.info.svc_send.i_priority = MDS_SEND_PRIORITY_MEDIUM;
-  info.info.svc_send.i_sendtype = MDS_SENDTYPE_SND;
+  info.info.svc_send.i_priority = MDS_SEND_PRIORITY_HIGH;
+  info.info.svc_send.i_sendtype = MDS_SENDTYPE_BCAST;
   info.info.svc_send.i_to_svc = NCSMDS_SVC_ID_RDE;
-  info.info.svc_send.info.snd.i_to_dest = to_dest;
+  info.info.svc_send.info.bcast.i_bcast_scope = NCSMDS_SCOPE_NONE;
 
   struct timespec start_time = base::ReadMonotonicClock();
   rc = ncsmds_api(&info);
   struct timespec end_time = base::ReadMonotonicClock();
   uint64_t duration = base::TimespecToMicros(end_time - start_time);
   if (NCSCC_RC_FAILURE == rc) {
-    LOG_WA("Failed to send %s to %" PRIx64 ", and blocked for %" PRIu64 " us",
-           rde_msg_name[msg->type], to_dest, duration);
+    LOG_WA("Failed to send %s to all rded instances, and blocked for "
+        "%" PRIu64 " us", rde_msg_name[msg->type], duration);
   } else if (duration > 5000) {
-    LOG_WA("Sending %s to %" PRIx64 " blocked for %" PRIu64 " us",
-           rde_msg_name[msg->type], to_dest, duration);
+    LOG_WA("Sending %s to all rded instances blocked for "
+        "%" PRIu64 " us", rde_msg_name[msg->type], duration);
   }
 
   return rc;

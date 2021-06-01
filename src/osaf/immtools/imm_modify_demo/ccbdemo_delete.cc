@@ -29,20 +29,20 @@
 #include "base/osaf_extended_name.h"
 #include "osaf/configmake.h"
 
-#include "smf/smfd/imm_modify_demo/common.h"
+#include "osaf/immtools/imm_modify_demo/common.h"
 
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
-#if 1  // Low level OM interface
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_clear.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_set.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_delete.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_modify.h"
-#include "smf/smfd/imm_om_ccapi/om_handle.h"
+#if 0  // Low level OM interface
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_clear.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_set.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_create.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_delete.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_modify.h"
+#include "osaf/immtools/imm_om_ccapi/om_handle.h"
 #endif
 
 using namespace std;

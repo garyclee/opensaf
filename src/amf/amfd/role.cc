@@ -702,7 +702,7 @@ void avd_role_switch_ncs_su_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 
   /* get the avnd from node_id */
   if (nullptr == (avnd = avd_node_find_nodeid(cb->node_id_avd))) {
-    LOG_ER("%s:%u: %u", __FILE__, __LINE__, cb->node_id_avd);
+    LOG_ER("%s:%u: %x", __FILE__, __LINE__, cb->node_id_avd);
     return;
   }
   other_avnd = avd_node_find_nodeid(cb->node_id_avd_other);
@@ -858,7 +858,7 @@ try_again:
 
   /* Now Dispatch all the messages from the MBCSv mail-box */
   if (NCSCC_RC_SUCCESS != (rc = avsv_mbcsv_dispatch(cb, SA_DISPATCH_ALL))) {
-    LOG_ER("%s:%u: %u", __FILE__, __LINE__, cb->node_id_avd_other);
+    LOG_ER("%s:%u: %x", __FILE__, __LINE__, cb->node_id_avd_other);
     cb->swap_switch = false;
     return;
   }

@@ -66,6 +66,7 @@ typedef struct {
       *cbk_list;      /* Mapping between inv_id and all the agents */
   uint32_t agent_cnt; /* Count of SMF Agents */
   MDS_DEST smfd_dest; /* MDS DEST of SMFD */
+  pthread_mutex_t cb_lock; /* Used by smfnd_cb_t lock/unlock functions */
 } smfnd_cb_t;
 
 extern smfnd_cb_t *smfnd_cb;

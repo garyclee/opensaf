@@ -294,7 +294,8 @@ class ImmOmAgent(OmAgentManager):
                         eSaAisErrorT.whatis(rc))
             elif operation_rc.value != eSaAisErrorT.SA_AIS_OK:
                 log_err("Administrative operation(%s) on %s FAILED - %s" %
-                        (op_id, object_dn, eSaAisErrorT.whatis(operation_rc)))
+                        (op_id, object_dn,
+                         eSaAisErrorT.whatis(operation_rc.value)))
 
         return rc
 

@@ -42,6 +42,7 @@ NtfNotification::NtfNotification(SaNtfIdentifierT notificationId,
     : notificationId_(notificationId) {
   logged = false;
   loggFromCallback_ = false;
+  waitAck_ = false;
   TRACE_3("constructor %p, notId: %llu", this, notificationId);
   sendNotInfo_ = sendNotInfo;
   SaNtfNotificationHeaderT* header;

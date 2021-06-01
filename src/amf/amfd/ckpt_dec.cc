@@ -194,7 +194,7 @@ void set_node_failover_state(AVD_CL_CB *cb, const SaClmNodeIdT node_id,
   if (failed_node != cb->failover_list.end()) {
     failed_node->second->SetState(state);
   } else {
-    LOG_NO("Node '%u' not found in failover_list. Create new entry",
+    LOG_NO("Node '%x' not found in failover_list. Create new entry",
             node_id);
     auto new_node = std::make_shared<NodeStateMachine>(cb, node_id);
     // node must be added to failover_list before SetState() is called.

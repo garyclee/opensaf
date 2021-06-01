@@ -3192,7 +3192,7 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp,
   /* node id env */
   env_set[env_counter].overwrite = 1;
   env_set[env_counter].name = strdup(env_var_nodeid);
-  sprintf(env_val_nodeid, "%u", (uint32_t)(cb->node_info.nodeId));
+  sprintf(env_val_nodeid, "%x", (uint32_t)(cb->node_info.nodeId));
   env_set[env_counter].value = strdup(env_val_nodeid);
   arg.num_args++;
   env_counter++;

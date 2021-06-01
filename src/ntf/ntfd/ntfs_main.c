@@ -35,6 +35,8 @@
 #include "base/daemon.h"
 #include "nid/agent/nid_api.h"
 #include "base/ncs_main_papi.h"
+#include "base/osaf_time.h"
+#include "ntf/ntfd/ntfs_com.h"
 
 #include "ntfs.h"
 #include "ntfs_imcnutil.h"
@@ -305,6 +307,11 @@ int main(int argc, char *argv[])
 
 	TRACE_ENTER();
 
+	const int kMaxEvent = NTFSV_LOGGER_PERODIC_MAX_EVENT;
+	struct timespec last;
+	osaf_clock_gettime(CLOCK_MONOTONIC, &last);
+	int num_events = 0;
+
 	daemonize(argc, argv);
 
 	if (initialize() != NCSCC_RC_SUCCESS) {
@@ -334,13 +341,21 @@ int main(int argc, char *argv[])
 		fds[FD_CLM].fd = ntfs_cb->clmSelectionObject;
 		fds[FD_CLM].events = POLLIN;
 
-		int ret = poll(fds, SIZE_FDS, -1);
+		int timeout = GeneratePollTimeout(last);
+		int ret = poll(fds, SIZE_FDS, timeout);
 		if (ret == -1) {
 			if (errno == EINTR)
 				continue;
 
 			LOG_ER("poll failed - %s", strerror(errno));
 			break;
+		}
+
+		if (ret == 0) {
+			PeriodicCheck();
+			osaf_clock_gettime(CLOCK_MONOTONIC, &last);
+			num_events = 0;
+			continue;
 		}
 
 		if (fds[FD_TERM].revents & POLLIN) {
@@ -406,6 +421,13 @@ int main(int argc, char *argv[])
 		/* process all the log callbacks */
 		if (fds[FD_LOG].revents & POLLIN)
 			logEvent();
+
+		num_events++;
+		if (num_events >= kMaxEvent) {
+			PeriodicCheck();
+			num_events = 0;
+			osaf_clock_gettime(CLOCK_MONOTONIC, &last);
+		}
 	}
 
 done:

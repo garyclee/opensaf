@@ -93,7 +93,7 @@ static void clm_node_exit_validate(AVD_AVND *node) {
    */
   if (node->node_info.nodeId == avd_cb->node_id_avd) {
     reject = true;
-    LOG_NO("Validate Step on Active Controller %d", avd_cb->node_id_avd);
+    LOG_NO("Validate Step on Active Controller %x", avd_cb->node_id_avd);
     goto done;
   }
 
@@ -286,7 +286,7 @@ static void clm_track_cb(
                       "safHE=",
                       sizeof("safHE=") - 1) == 0) {
             // PLM will take care of calling opensafd stop
-            TRACE("rootCause: %s from PLM operation so skipping %u",
+            TRACE("rootCause: %s from PLM operation so skipping %x",
                   osaf_extended_name_borrow(rootCauseEntity),
                   notifItem->clusterNode.nodeId);
 
@@ -325,10 +325,13 @@ static void clm_track_cb(
             if (avd_cb->failover_list.count(node->node_info.nodeId) == 0 &&
               delay_failover(avd_cb, node->node_info.nodeId) == false) {
               avd_node_delete_nodeid(node);
+              node->node_info.member = SA_FALSE;
+              m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node,
+                                              AVSV_CKPT_AVD_NODE_CONFIG);
             }
             goto done;
           }
-          TRACE(" Node Left: rootCauseEntity %s for node %u",
+          TRACE(" Node Left: rootCauseEntity %s for node %x",
                 osaf_extended_name_borrow(rootCauseEntity),
                 notifItem->clusterNode.nodeId);
           if (strncmp(osaf_extended_name_borrow(rootCauseEntity),

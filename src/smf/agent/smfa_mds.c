@@ -185,6 +185,7 @@ uint32_t smfa_mds_callback(struct ncsmds_callback_info *info)
 uint32_t smfa_mds_svc_evt_cbk(MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 {
 	SMFA_CB *cb = &_smfa_cb;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	/* Agent subscribes for only local ND UP/DOWN.*/
 	if (NCSMDS_SVC_ID_SMFND != svc_evt->i_svc_id) {
@@ -197,25 +198,36 @@ uint32_t smfa_mds_svc_evt_cbk(MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 		/* Catch the adest of SMFND*/
 		if (!m_MDS_DEST_IS_AN_ADEST(svc_evt->i_dest))
 			return NCSCC_RC_SUCCESS;
-		/* TODO: No lock is taken. This might be dangerous.*/
+		if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) !=
+				NCSCC_RC_SUCCESS) {
+			rc = NCSCC_RC_FAILURE;
+			goto lock_fail;
+		}
+
 		cb->is_smfnd_up = true;
 		cb->smfnd_adest = svc_evt->i_dest;
+		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		break;
 
 	case NCSMDS_DOWN:
 		if (!m_MDS_DEST_IS_AN_ADEST(svc_evt->i_dest))
 			return NCSCC_RC_SUCCESS;
 
-		/* TODO: No lock is taken. This might be dangerous.*/
+		if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) !=
+				NCSCC_RC_SUCCESS) {
+			rc = NCSCC_RC_FAILURE;
+			goto lock_fail;
+		}
 		cb->is_smfnd_up = false;
 		cb->smfnd_adest = 0;
+		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		break;
 	default:
 		LOG_NO("SMFA: Got the svc evt: %d for SMFND",
 		       svc_evt->i_change);
 	}
-
-	return NCSCC_RC_SUCCESS;
+lock_fail:
+	return rc;
 }
 
 /***************************************************************************

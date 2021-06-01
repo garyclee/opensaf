@@ -19,8 +19,8 @@
 // This file is a place to put functions etc. used in more than one program in
 // this directory
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef OSAF_IMMTOOLS_IMM_MODIFY_DEMO_COMMON_H_
+#define OSAF_IMMTOOLS_IMM_MODIFY_DEMO_COMMON_H_
 
 // Execute a shell command using system
 bool ExecuteCommand(const char* command);
@@ -36,5 +36,5 @@ bool EnableImmLongDn(void);
 bool InstallDemoClass(void);
 
 
-#endif /* COMMON_H */
+#endif  // OSAF_IMMTOOLS_IMM_MODIFY_DEMO_COMMON_H_
 

@@ -93,14 +93,14 @@ Obsoletes: %{name}-amf-libs < %{version}-%{release}
 
 %description amf-libs
 The Availability Management Framework provides a set of APIs to enable highly
-available applications. In addition to component registration and life cycle 
-management, it includes functions for error reporting and health monitoring. 
-The Availability Management Framework also assigns active or standby workloads 
-to the components of an application as a function of component state and system 
-configuration. The Availability Management Framework configuration allows 
-prioritization of resources and provides for a variety of redundancy models. 
-The Availability Management Framework also provides APIs for components to 
-track the assignment of work or so-called component service instances among the 
+available applications. In addition to component registration and life cycle
+management, it includes functions for error reporting and health monitoring.
+The Availability Management Framework also assigns active or standby workloads
+to the components of an application as a function of component state and system
+configuration. The Availability Management Framework configuration allows
+prioritization of resources and provides for a variety of redundancy models.
+The Availability Management Framework also provides APIs for components to
+track the assignment of work or so-called component service instances among the
 set of components protecting the same component service instance.
 
 %package amf-director
@@ -152,10 +152,10 @@ Requires: %{name}-libs = %{version}-%{release}
 Obsoletes: %{name}-ckpt-libs < %{version}-%{release}
 
 %description ckpt-libs
-The Checkpoint Service provides a facility for processes to record checkpoint 
-data incrementally, which can be used to protect an application against 
-failures. When recovering from fail-over or switch-over situations, the 
-checkpoint data can be retrieved, and execution can be resumed from the state 
+The Checkpoint Service provides a facility for processes to record checkpoint
+data incrementally, which can be used to protect an application against
+failures. When recovering from fail-over or switch-over situations, the
+checkpoint data can be retrieved, and execution can be resumed from the state
 recorded before the failure.
 
 %package ckpt-director
@@ -197,9 +197,9 @@ Obsoletes: %{name}-clm-libs < %{version}-%{release}
 
 %description clm-libs
 The Cluster Membership Service provides applications with membership information
-about the nodes that have been administratively configured in the cluster 
-configuration (these nodes are also called cluster nodes or configured nodes), 
-and it is core to any clustered system. A cluster consists of this set of 
+about the nodes that have been administratively configured in the cluster
+configuration (these nodes are also called cluster nodes or configured nodes),
+and it is core to any clustered system. A cluster consists of this set of
 configured nodes, each with a unique node name.
 
 %package clm-server
@@ -272,9 +272,9 @@ Requires: %{name}-libs = %{version}-%{release}
 Obsoletes: %{name}-imm-libs < %{version}-%{release}
 
 %description imm-libs
-The different entities of an SA Forum cluster, such as components provided by 
-the Availability Management Framework, checkpoints provided by the Checkpoint 
-Service, or message queues provided by the Message Service are represented by 
+The different entities of an SA Forum cluster, such as components provided by
+the Availability Management Framework, checkpoints provided by the Checkpoint
+Service, or message queues provided by the Message Service are represented by
 various objects of the SA Forum Information Model.
 
 %package imm-director
@@ -314,8 +314,8 @@ Requires: %{name}-libs = %{version}-%{release}
 Obsoletes: %{name}-lck-libs < %{version}-%{release}
 
 %description lck-libs
-The Lock Service is a distributed lock service, which is intended for use in a 
-cluster where processes in different nodes might compete with each other for 
+The Lock Service is a distributed lock service, which is intended for use in a
+cluster where processes in different nodes might compete with each other for
 access to a shared resource.
 
 %package lck-director
@@ -354,10 +354,10 @@ Requires: %{name}-libs = %{version}-%{release}
 Obsoletes: %{name}-log-libs < %{version}-%{release}
 
 %description log-libs
-Logging information is a high-level cluster-significant, function-based (as 
-opposed to implementation-particular) information suited primarily for network 
-or system administrators, or automated tools to review current and historical 
-logged information to trouble shoot issues such as misconfigurations, network 
+Logging information is a high-level cluster-significant, function-based (as
+opposed to implementation-particular) information suited primarily for network
+or system administrators, or automated tools to review current and historical
+logged information to trouble shoot issues such as misconfigurations, network
 disconnects and unavailable resources.
 
 %package log-server
@@ -451,10 +451,10 @@ Obsoletes: %{name}-msg-libs < %{version}-%{release}
 
 %description msg-libs
 The Message Service specifies a buffered message-passing system based on the
-concept of a message queue for processes on the same or on different nodes. 
-Messages are written to message queues and read from them. A single message 
-queue permits a multipoint-to-point communication. Message queues are 
-persistent or non-persistent. The Message Service must preserve messages that 
+concept of a message queue for processes on the same or on different nodes.
+Messages are written to message queues and read from them. A single message
+queue permits a multipoint-to-point communication. Message queues are
+persistent or non-persistent. The Message Service must preserve messages that
 have not yet been consumed when the message queue is closed.
 
 %package msg-director
@@ -496,13 +496,13 @@ Obsoletes: %{name}-ntf-libs < %{version}-%{release}
 
 %description ntf-libs
 ITU-T recommendations X.700 - X.799 deal with the area of system management,
-and how it may be applied to a communications system. ITU-T broadly classifies 
-the management domain into the famous FCAPS model that segregates the overall 
-management into five areas, with the "F" standing for Fault Management. The 
-Notification Service is based on these fault management recommendations to a 
-great degree, but also needs many other supportive recommendations that include, 
-for example, the concepts of managed objects, which are covered in Structure 
-of Management Information. Normative references to ITU-T-defined agents and 
+and how it may be applied to a communications system. ITU-T broadly classifies
+the management domain into the famous FCAPS model that segregates the overall
+management into five areas, with the "F" standing for Fault Management. The
+Notification Service is based on these fault management recommendations to a
+great degree, but also needs many other supportive recommendations that include,
+for example, the concepts of managed objects, which are covered in Structure
+of Management Information. Normative references to ITU-T-defined agents and
 managers are used in the definition of the current notification standard.
 
 %package ntf-server
@@ -528,11 +528,11 @@ Requires(postun): /sbin/ldconfig
 Obsoletes: %{name}-smf-libs < %{version}-%{release}
 
 %description smf-libs
-SA Forum systems are required to provide highly available services to their 
-users over a long period of time during which the systems may undergo changes 
-due to growth and evolution, bug fixes, or enhancement of services. These 
-changes may require addition, removal, replacement, or reconfiguration of 
-hardware or software elements. High service availability requires that such 
+SA Forum systems are required to provide highly available services to their
+users over a long period of time during which the systems may undergo changes
+due to growth and evolution, bug fixes, or enhancement of services. These
+changes may require addition, removal, replacement, or reconfiguration of
+hardware or software elements. High service availability requires that such
 changes cause no (or only minimal) loss of service.
 
 %package smf-director
@@ -1153,8 +1153,8 @@ fi
 %{_pkglibdir}/osafimmloadd
 %{_pkglibdir}/osafimmpbed
 %{_pkgclcclidir}/osaf-immnd
- 
- 
+
+
 %if %is_ais_plm
 
 %files plm-libs
@@ -1534,12 +1534,11 @@ fi
 %{_bindir}/amftest
 %{_bindir}/evttest
 %if %is_ais_smf
-#SMF: Demo and test of CCB handling
+#Demo and test of IMM CCB handling
 %{_bindir}/ccbdemo_create
 %{_bindir}/ccbdemo_delete
 %{_bindir}/ccbdemo_modify
 %{_bindir}/test_ccbhdl
-%{_bindir}/test_objexist
 %endif
 %if %is_ais_ckpt
 %{_bindir}/ckpttest

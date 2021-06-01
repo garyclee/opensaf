@@ -30,7 +30,11 @@ static bool set_facility_id(uint32_t value)
 	snprintf(command, sizeof(command),
 		 "immcfg -a saLogStreamFacilityId=%d %s 2>/dev/null", value,
 		 SA_LOG_STREAM_SYSTEM);
-	return systemCall(command) == EXIT_SUCCESS;
+	if (systemCall(command) != EXIT_SUCCESS) {
+		fprintf(stderr, "set facilityId=%d failed\n", value);
+		return false;
+	}
+	return true;
 }
 
 static void restore_facility_id()
@@ -77,11 +81,15 @@ static void disable_streaming()
 	restore_facility_id();
 }
 
-static void switch_over()
+static bool switch_over()
 {
 	const char *command =
 	    "amf-adm si-swap safSi=SC-2N,safApp=OpenSAF 2>/dev/null";
-	(void)systemCall(command);
+	if (systemCall(command) != EXIT_SUCCESS) {
+		fprintf(stderr, "switch_over failed\n");
+		return false;
+	}
+	return true;
 }
 
 static uint8_t get_role()
@@ -94,6 +102,23 @@ static uint8_t get_role()
 	if (strcmp(node, hostname()) == 0)
 		return ACTIVE_NODE;
 	return STANDBY_NODE;
+}
+
+static bool can_run_test(uint8_t expected_role)
+{
+	uint8_t role = get_role();
+	if (role == PAYLOAD_NODE) {
+		fprintf(stdout, "ignore this test due to run on PAYLOAD\n");
+		test_validate(true, true);
+		return false;
+	}
+	if (role != expected_role) {
+		if (!switch_over()) {
+			test_validate(false, true);
+			return false;
+		}
+	}
+	return true;
 }
 
 //>
@@ -130,10 +155,7 @@ void config_saLogStreamFacilityId_2()
 //<
 void streaming_log_record_then_verify_PRI_1()
 {
-	if (get_role() != ACTIVE_NODE) {
-		test_validate(true, true);
-		return;
-	}
+	if(!can_run_test(ACTIVE_NODE)) return;
 
 	enable_streaming();
 	set_facility_id(4);
@@ -162,7 +184,7 @@ void streaming_log_record_then_verify_PRI_1()
 		goto done;
 	}
 
-	test_validate(FindPRI("<38>"), true);
+	test_validate(FindPRI("<38>", (char *)__FUNCTION__), true);
 
 done:
 	StopUnixServer();
@@ -180,10 +202,7 @@ done:
 //<
 void streaming_log_record_then_verify_PRI_2()
 {
-	if (get_role() != ACTIVE_NODE) {
-		test_validate(true, true);
-		return;
-	}
+	if(!can_run_test(ACTIVE_NODE)) return;
 
 	enable_streaming();
 	restore_facility_id();
@@ -212,7 +231,7 @@ void streaming_log_record_then_verify_PRI_2()
 		goto done;
 	}
 
-	test_validate(FindPRI("<134>"), true);
+	test_validate(FindPRI("<134>", (char *)__FUNCTION__), true);
 
 done:
 	StopUnixServer();
@@ -227,14 +246,15 @@ done:
 //<
 void streaming_log_record_then_verify_PRI_3()
 {
-	if (get_role() != STANDBY_NODE) {
-		test_validate(true, true);
-		return;
-	}
+	if(!can_run_test(STANDBY_NODE)) return;
 
 	enable_streaming();
 	set_facility_id(4);
-	switch_over();
+
+	if (!switch_over()) {
+		test_validate(false, true);
+		goto done;
+	}
 
 	strcpy((char *)genLogRecord.logBuffer->logBuf, __FUNCTION__);
 	genLogRecord.logBuffer->logBufSize = strlen(__FUNCTION__);
@@ -260,7 +280,7 @@ void streaming_log_record_then_verify_PRI_3()
 		goto done;
 	}
 
-	test_validate(FindPRI("<38>"), true);
+	test_validate(FindPRI("<38>", (char *)__FUNCTION__), true);
 
 done:
 	StopUnixServer();

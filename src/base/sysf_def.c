@@ -250,8 +250,8 @@ void opensaf_reboot(unsigned node_id, const char *ee_name, const char *reason)
 	}
 
 	syslog(LOG_CRIT,
-	       "Rebooting OpenSAF NodeId = %u EE Name = %s, Reason: %s, "
-	       "OwnNodeId = %u, SupervisionTime = %lu",
+	       "Rebooting OpenSAF NodeId = %x EE Name = %s, Reason: %s, "
+	       "OwnNodeId = %x, SupervisionTime = %lu",
 	       node_id, ee_name == NULL ? "No EE Mapped" : ee_name, reason,
 	       own_node_id, supervision_time);
 

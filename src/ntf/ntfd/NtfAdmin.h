@@ -109,6 +109,8 @@ class NtfAdmin {
   uint32_t send_cluster_membership_msg_to_clients(
       SaClmClusterChangesT cluster_change, NODE_ID node_id);
   bool is_stale_client(unsigned int clientId);
+  void PeriodicCheck();
+  int GeneratePollTimeout(struct timespec last);
 
  private:
   void processNotification(unsigned int clientId,

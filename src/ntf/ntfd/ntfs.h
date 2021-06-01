@@ -53,6 +53,11 @@
 #define NTFSV_LOGGER_BUFFER_CAPACITY_DEFAULT 10
 #define NTFSV_LOGGER_BUFFER_CAPACITY_MAX 5000
 
+// Max event number for periodic checking
+#define NTFSV_LOGGER_PERODIC_MAX_EVENT 50
+// Periodic timer. Using in the main poll when queue available
+#define NTFSV_LOGGER_PERODIC_POLL_TIMEOUT_MS 5000
+
 /* ========================================================================
  *   TYPE DEFINITIONS
  * ========================================================================

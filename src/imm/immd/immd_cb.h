@@ -23,7 +23,6 @@
 #include <saClm.h>
 
 #define IMMD_EVT_TIME_OUT 100
-#define IMMSV_WAIT_TIME 100
 
 #define m_IMMND_IS_ON_SCXB(m, n) ((m == n) ? 1 : 0)
 #define m_IMMD_IS_LOCAL_NODE(m, n) (m == n) ? 1 : 0

@@ -22,6 +22,7 @@
 #include "smfnd.h"
 #include "smf/common/smfsv_defs.h"
 #include "smf/common/smfsv_evt.h"
+#include "base/osaf_utility.h"
 
 /* This function is called in another threads context so be
    careful with what you do here */
@@ -417,10 +418,12 @@ uint32_t smfnd_cbk_resp_err_proc(smfnd_cb_t *cb, SaInvocationT inv_id)
 				resp_evt.info.smfd.event.cbk_rsp.evt.resp_evt
 				    .err = SA_AIS_ERR_FAILED_OPERATION;
 
+				osaf_mutex_lock_ordie(&cb->cb_lock);
 				rc = smfsv_mds_msg_send(
 				    cb->mds_handle, NCSMDS_SVC_ID_SMFD,
 				    cb->smfd_dest, NCSMDS_SVC_ID_SMFND,
 				    &resp_evt);
+				osaf_mutex_unlock_ordie(&cb->cb_lock);
 			}
 			break;
 		}
@@ -474,10 +477,12 @@ uint32_t smfnd_cbk_resp_ok_proc(smfnd_cb_t *cb, SaInvocationT inv_id,
 					resp_evt.info.smfd.event.cbk_rsp.evt
 					    .resp_evt.err = resp;
 
+					osaf_mutex_lock_ordie(&cb->cb_lock);
 					rc = smfsv_mds_msg_send(
 					    cb->mds_handle, NCSMDS_SVC_ID_SMFD,
 					    cb->smfd_dest, NCSMDS_SVC_ID_SMFND,
 					    &resp_evt);
+					osaf_mutex_unlock_ordie(&cb->cb_lock);
 				}
 				/* Send resp to SMFD and break.*/
 				break;
@@ -536,7 +541,9 @@ static void proc_cbk_req_rsp(smfnd_cb_t *cb, SMFSV_EVT *evt)
 	TRACE_ENTER();
 	switch (evt->info.smfnd.event.cbk_req_rsp.evt_type) {
 	case SMF_CLBK_EVT: {
+		osaf_mutex_lock_ordie(&cb->cb_lock);
 		smfnd_cbk_req_proc(cb, evt);
+		osaf_mutex_unlock_ordie(&cb->cb_lock);
 		break;
 	}
 	case SMF_RSP_EVT: {

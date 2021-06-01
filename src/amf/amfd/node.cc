@@ -50,7 +50,7 @@ bool NodeNameCompare::operator()(const AVD_AVND *lhs, const AVD_AVND *rhs) {
 uint32_t avd_node_add_nodeid(AVD_AVND *node) {
   if ((node_id_db->find(node->node_info.nodeId) == nullptr) &&
       (node->node_info.nodeId != 0)) {
-    TRACE("added node %d", node->node_info.nodeId);
+    TRACE("added node %x", node->node_info.nodeId);
     unsigned int rc = node_id_db->insert(node->node_info.nodeId, node);
     osafassert(rc == NCSCC_RC_SUCCESS);
   }

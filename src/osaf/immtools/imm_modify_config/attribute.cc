@@ -15,7 +15,7 @@
  * Author(s): Ericsson AB
  *
  */
-#include "smf/smfd/imm_modify_config/attribute.h"
+#include "osaf/immtools/imm_modify_config/attribute.h"
 
 #include <limits.h>
 
@@ -30,11 +30,11 @@
 #include "ais/include/saImm.h"
 #include "ais/include/saAis.h"
 
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_modify.h"
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_create.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_modify.h"
 
 namespace modelmodify {
 
@@ -47,7 +47,7 @@ namespace modelmodify {
 // return false on error. Type of error is logged in syslog
 template<typename T>
 static bool StringToNumericValue(const std::string& str_value,
-                          T& num_value, const SaImmValueTypeT imm_type) {
+                          T& num_value, SaImmValueTypeT imm_type) {
   bool rc = true;
 
   try {

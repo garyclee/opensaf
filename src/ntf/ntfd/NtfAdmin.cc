@@ -31,8 +31,11 @@
 #include "base/logtrace.h"
 #include "base/osaf_utility.h"
 #include "ntf/common/ntfsv_mem.h"
+#include "base/time.h"
 
 NtfAdmin *NtfAdmin::theNtfAdmin = NULL;
+
+static const unsigned kTimeoutMs = NTFSV_LOGGER_PERODIC_POLL_TIMEOUT_MS;
 
 /**
  * This is the constructor. The cluster-wide unique counter for
@@ -744,6 +747,26 @@ void NtfAdmin::checkNotificationList() {
 }
 
 /**
+ * Calculate timeout periodic checking
+ */
+int NtfAdmin::GeneratePollTimeout(struct timespec last) {
+  if (logger.isLoggerBufferEmpty() || !activeController()) return -1;
+  struct timespec passed_time;
+  struct timespec current = base::ReadMonotonicClock();
+  osaf_timespec_subtract(&current, &last, &passed_time);
+  auto passed_time_ms = osaf_timespec_to_millis(&passed_time);
+  return (passed_time_ms < kTimeoutMs) ? (kTimeoutMs - passed_time_ms) : 0;
+}
+
+/**
+ * Periodic logging alarm notification when queue available
+ */
+void NtfAdmin::PeriodicCheck() {
+  if (logger.isLoggerBufferEmpty() || !activeController()) return;
+  logger.logQueuedNotification();
+}
+
+/**
  * Check if a certain client exists.
  *
  * @param clientId Node-wide unique id of the client whose existence is to be
@@ -1263,6 +1286,17 @@ void discardedClear(unsigned int clientId,
                     SaNtfSubscriptionIdT subscriptionId) {
   osafassert(NtfAdmin::theNtfAdmin != NULL);
   return NtfAdmin::theNtfAdmin->discardedClear(clientId, subscriptionId);
+}
+
+void PeriodicCheck() {
+  osafassert(NtfAdmin::theNtfAdmin != NULL);
+  return NtfAdmin::theNtfAdmin->PeriodicCheck();
+}
+
+int GeneratePollTimeout(struct timespec last) {
+  if (!activeController()) return -1;
+  osafassert(NtfAdmin::theNtfAdmin != NULL);
+  return NtfAdmin::theNtfAdmin->GeneratePollTimeout(last);
 }
 
 /************************C Wrappers related to CLM Integration

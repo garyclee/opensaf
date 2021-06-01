@@ -51,7 +51,7 @@ uint32_t avnd_nodeid_mdsdest_rec_add(AVND_CB *cb, MDS_DEST mds_dest) {
       (AVND_NODEID_TO_MDSDEST_MAP *)cb->nodeid_mdsdest_db.find(node_id);
   if (rec != nullptr) {
     LOG_ER("nodeid_mdsdest rec already exists, Rec Add Failed: MdsDest:%" PRId64
-           ", NodeId:%u",
+           ", NodeId:%x",
            mds_dest, node_id);
     return NCSCC_RC_FAILURE;
   } else {
@@ -65,7 +65,7 @@ uint32_t avnd_nodeid_mdsdest_rec_add(AVND_CB *cb, MDS_DEST mds_dest) {
     if (NCSCC_RC_SUCCESS != res) {
       LOG_ER(
           "Couldn't add nodeid_mdsdest rec, patricia add failed:MdsDest:%" PRId64
-          ", NodeId:%u",
+          ", NodeId:%x",
           mds_dest, node_id);
       delete rec;
       return res;
@@ -97,7 +97,7 @@ uint32_t avnd_nodeid_mdsdest_rec_del(AVND_CB *cb, MDS_DEST mds_dest) {
 
   if (rec == nullptr) {
     LOG_ER("nodeid_mdsdest rec doesn't exist, Rec del failed: MdsDest:%" PRId64
-           " NodeId:%u",
+           " NodeId:%x",
            mds_dest, node_id);
     return NCSCC_RC_FAILURE;
   } else {
@@ -125,7 +125,7 @@ MDS_DEST avnd_get_mds_dest_from_nodeid(AVND_CB *cb, NODE_ID node_id) {
   AVND_NODEID_TO_MDSDEST_MAP *rec =
       (AVND_NODEID_TO_MDSDEST_MAP *)cb->nodeid_mdsdest_db.find(node_id);
   if (rec == nullptr) {
-    LOG_ER("nodeid_mdsdest rec doesn't exist, Rec get failed: NodeId:%u",
+    LOG_ER("nodeid_mdsdest rec doesn't exist, Rec get failed: NodeId:%x",
            node_id);
     return 0;
   }
@@ -165,7 +165,7 @@ AVND_COMP *avnd_internode_comp_add(AVND_CB *cb, const std::string &name,
     /* This is a proxy and already proxying at least one component.
        So, no problem. */
     *rc = SA_AIS_ERR_EXIST;
-    TRACE_1("avnd_internode_comp_add already exists. %s and NodeId:%u",
+    TRACE_1("avnd_internode_comp_add already exists. %s and NodeId:%x",
             name.c_str(), node_id);
     return comp;
   }
@@ -209,7 +209,7 @@ AVND_COMP *avnd_internode_comp_add(AVND_CB *cb, const std::string &name,
   }
 
   TRACE_1(
-      "avnd_internode_comp_add:%s nodeid:%u, pxy_for_ext_comp:%u,comp_is_proxy:%u",
+      "avnd_internode_comp_add:%s nodeid:%x, pxy_for_ext_comp:%u,comp_is_proxy:%u",
       comp->name.c_str(), node_id, pxy_for_ext_comp, comp_is_proxy);
   return comp;
 
@@ -219,7 +219,7 @@ err:
     avnd_comp_delete(comp);
   }
 
-  LOG_ER("avnd_internode_comp_add failed.%s: NodeId:%u", name.c_str(), node_id);
+  LOG_ER("avnd_internode_comp_add failed.%s: NodeId:%x", name.c_str(), node_id);
   return 0;
 }
 
@@ -249,7 +249,7 @@ uint32_t avnd_internode_comp_del(AVND_CB *cb, const std::string &name) {
     LOG_ER("internode_comp_del failed. Rec doesn't exist :%s", name.c_str());
     goto err;
   }
-  TRACE("avnd_internode_comp_del:%s: nodeid:%u, comp_type:%u",
+  TRACE("avnd_internode_comp_del:%s: nodeid:%x, comp_type:%u",
         comp->name.c_str(), comp->node_id, comp->comp_type);
 
   /*  Delete the callbacks if any. */

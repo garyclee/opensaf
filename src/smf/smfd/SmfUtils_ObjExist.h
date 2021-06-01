@@ -23,7 +23,7 @@
 #include "ais/include/saAis.h"
 #include "ais/include/saImmOm.h"
 
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
 // Check if an IMM object exists.
 // Return: kOk if object exist, kNotExist if not exist and kFail if failing to

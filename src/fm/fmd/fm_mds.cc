@@ -650,7 +650,7 @@ static uint32_t fm_mds_rcv_evt(FM_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info) {
           cb->mutex_.Lock();
           cb->peer_node_name = peer_node_name;
           cb->mutex_.Unlock();
-          LOG_IN("Peer Node_id  %u : EE_ID %s", unsigned(cb->peer_node_id),
+          LOG_IN("Peer Node_id  %x : EE_ID %s", unsigned(cb->peer_node_id),
                  peer_node_name.c_str());
         }
         break;

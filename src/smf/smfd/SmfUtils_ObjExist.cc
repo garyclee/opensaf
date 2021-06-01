@@ -25,8 +25,7 @@
 #include "base/saf_error.h"
 #include "base/osaf_extended_name.h"
 #include "base/time.h"
-
-#include "smf/smfd/imm_modify_config/immccb.h"
+#include "osaf/immtools/imm_modify_config/immccb.h"
 
   // Check if the object exist. If fail use recovery possibilities
   // The Object DN is created from class and parent name

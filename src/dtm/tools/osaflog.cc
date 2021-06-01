@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <time.h>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
@@ -62,7 +63,13 @@ uint64_t GetInode(int fd);
 bool PrettyPrint(FILE* stream);
 bool PrettyPrint(const char* line, size_t size);
 int ExtractTrace(const std::string& core_file, const std::string& trace_file);
+time_t ConvertToDateTime(const char* date_time, const char* format);
+bool IsValidRange(time_t from, time_t to, time_t current);
+bool IsValidDateTime(const char* input);
 char buf[65 * 1024];
+time_t from_date;
+time_t to_date;
+size_t date_time_len;
 
 }  // namespace
 
@@ -76,6 +83,8 @@ int main(int argc, char** argv) {
                                   {"all", no_argument, nullptr, 'a'},
                                   {"extract-trace", required_argument, 0, 'e'},
                                   {"max-idle", required_argument, 0, 'i'},
+                                  {"from", required_argument, 0, 'F'},
+                                  {"to", required_argument, 0, 'T'},
                                   {0, 0, 0, 0}};
 
   uint64_t max_file_size = 0;
@@ -108,7 +117,7 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
 
-  while ((option = getopt_long(argc, argv, "m:b:p:f:e:i:ra",
+  while ((option = getopt_long(argc, argv, "m:b:p:f:e:i:ra:F:T:",
                                long_options, &long_index)) != -1) {
     switch (option) {
       case 'p':
@@ -170,6 +179,74 @@ int main(int argc, char** argv) {
         }
         thread_trace = true;
         break;
+      case 'F':
+        if (optarg == nullptr) {
+          fprintf(stderr, "DATE_TIME is not specified in arguments\n");
+          exit(EXIT_FAILURE);
+        }
+        if (argv[optind]) {
+          char* time = argv[optind];
+          if (ConvertToDateTime(time, "%H:%M:%S")) {
+            fprintf(stderr,
+                    "invalid format.\nShould be put DATE_TIME into double "
+                    "quotes like as \"yyyy-mm-dd hh:mm:ss\"\n");
+            exit(EXIT_FAILURE);
+          }
+        }
+        if (!IsValidDateTime(optarg)) {
+          fprintf(stderr, "invalid format. Should be "
+                  "\"yyyy-mm-dd hh:mm:ss\" or \"yyyy-mm-dd\"\n");
+          exit(EXIT_FAILURE);
+        }
+        if (date_time_len && date_time_len != strlen(optarg)) {
+          fprintf(stderr, "--from and --to is not same format\n");
+          exit(EXIT_FAILURE);
+        }
+        from_date =
+            ConvertToDateTime(optarg, strlen(optarg) == strlen("yyyy-mm-dd")
+                                          ? "%Y-%m-%d"
+                                          : "%Y-%m-%d %H:%M:%S");
+        if (date_time_len && !IsValidRange(from_date, 0, to_date)) {
+          fprintf(stderr, "DATE_TIME in arguments --from must be "
+                          "less than or equal to --to\n");
+          exit(EXIT_FAILURE);
+        }
+        date_time_len = strlen(optarg);
+        break;
+      case 'T':
+        if (optarg == nullptr) {
+          fprintf(stderr, "DATE_TIME is not specified in arguments\n");
+          exit(EXIT_FAILURE);
+        }
+        if (argv[optind]) {
+          char* time = argv[optind];
+          if (ConvertToDateTime(time, "%H:%M:%S")) {
+            fprintf(stderr,
+                    "invalid format.\nShould be put DATE_TIME into double "
+                    "quotes like as \"yyyy-mm-dd hh:mm:ss\"\n");
+            exit(EXIT_FAILURE);
+          }
+        }
+        if (!IsValidDateTime(optarg)) {
+          fprintf(stderr, "invalid format. Should be "
+                  "\"yyyy-mm-dd hh:mm:ss\" or \"yyyy-mm-dd\"\n");
+          exit(EXIT_FAILURE);
+        }
+        if (date_time_len && date_time_len != strlen(optarg)) {
+          fprintf(stderr, "--from and --to is not same format\n");
+          exit(EXIT_FAILURE);
+        }
+        to_date =
+            ConvertToDateTime(optarg, strlen(optarg) == strlen("yyyy-mm-dd")
+                                          ? "%Y-%m-%d"
+                                          : "%Y-%m-%d %H:%M:%S");
+        if (date_time_len && !IsValidRange(from_date, 0, to_date)) {
+          fprintf(stderr, "DATE_TIME in arguments --from must be "
+                          "less than or equal to --to\n");
+          exit(EXIT_FAILURE);
+        }
+        date_time_len = strlen(optarg);
+        break;
       default: PrintUsage(argv[0]);
         exit(EXIT_FAILURE);
     }
@@ -187,7 +264,11 @@ int main(int argc, char** argv) {
       (argc == optind && rotate_set && !rotate_all)) {
     PrintUsage(argv[0]);
     exit(EXIT_FAILURE);
-   }
+  }
+  if (argc == optind && date_time_len) {
+    fprintf(stderr, "LOGSTREAM is not specified\n");
+    exit(EXIT_FAILURE);
+  }
   if (flush_set == true) {
     flush_result = Flush();
   }
@@ -235,36 +316,50 @@ void PrintUsage(const char* program_name) {
           "\n"
           "Options:\n"
           "\n"
-          "--flush               Flush all buffered messages in the log\n"
+          "-f or --flush         Flush all buffered messages in the log\n"
           "                      server to disk even when no LOGSTREAM\n"
           "                      is specified.\n"
-          "--print               print the messages stored on disk for the\n"
+          "-p or --print         print the messages stored on disk for the\n"
           "                      specified LOGSTREAM(s). This option is the\n"
           "                      default when no option is specified.\n"
-          "--delete              Delete the specified LOGSTREAM(s) by\n"
+          "-d or --delete        Delete the specified LOGSTREAM(s) by\n"
           "                      removing allocated resources in the log\n"
           "                      server. Does not delete log files from disk.\n"
-          "--rotate              Rotate the specified LOGSTREAM(s).\n"
-          "--all                 Rotate all LOGSTREAM(s).\n"
+          "-r or --rotate        Rotate the specified LOGSTREAM(s).\n"
+          "-a or --all           Rotate all LOGSTREAM(s).\n"
           "                      This option only works with '--rotate'.\n"
-          "--max-file-size=SIZE  Set the maximum size of the log file to\n"
+          "-m SIZE or --max-file-size=SIZE\n"
+          "                      Set the maximum size of the log file to\n"
           "                      SIZE bytes. The log file will be rotated\n"
           "                      when it exceeds this size. Suffixes k, M and\n"
           "                      G can be used for kilo-, mega- and\n"
           "                      gigabytes.\n"
-          "--max-backups=NUM     Set the maximum number of backup files to\n"
+          "-b NUM or --max-backups=NUM\n"
+          "                      Set the maximum number of backup files to\n"
           "                      retain during log rotation to NUM.\n"
+          "-e <corefile> <tracefile> or\n"
           "--extract-trace <corefile> <tracefile>\n"
           "                      If a process produces a core dump file has\n"
           "                      THREAD_TRACE_BUFFER enabled, this option\n"
           "                      reads the <corefile> to extract the trace\n"
           "                      strings in all threads and writes them to\n"
           "                      the <tracefile> file.\n"
-          "--max-idle=NUM        Set the maximum number of idle time to NUM\n"
+          "-i NUM or --max-idle=NUM\n"
+          "                      Set the maximum number of idle time to NUM\n"
           "                      minutes. If a stream has not been used for\n"
           "                      the given time, the stream will be closed.\n"
           "                      Given zero (default) to max-idle to disable\n"
-          "                      this functionality.\n",
+          "                      this functionality.\n"
+          "-F DATE_TIME or --from=DATE_TIME\n"
+          "                      Specify log message is printed greater\n"
+          "                      than or equal to DATE_TIME\n"
+          "-T DATE_TIME or --to=DATE_TIME\n"
+          "                      Specify log message is printed less than\n"
+          "                      or equal to DATE_TIME\n"
+          "                      unique format when using '--from' '--to'\n"
+          "                      DATE_TIME = \"yyyy-mm-dd hh:mm:ss\" or\n"
+          "                                  \"yyyy-mm-dd\"\n"
+          "                      Range of dates only works with '--print'\n",
           program_name);
 }
 
@@ -431,6 +526,9 @@ std::list<int> OpenLogFiles(const std::string& log_stream) {
       last_open_failed = true;
     }
   }
+  if (result.empty()) {
+    fprintf(stderr, "Not exist logstream: %s\n", log_stream.c_str());
+  }
   return result;
 }
 
@@ -476,6 +574,15 @@ bool PrettyPrint(const char* line, size_t size) {
   pretty_date[10] = ' ';
   pretty_date[19] = '.';
   pretty_date[23] = '\0';
+  const char* format =
+      date_time_len == strlen("yyyy-mm-dd") ? "%Y-%m-%d" : "%Y-%m-%d %H:%M:%S";
+  char pretty_date_cpy[33];
+  memcpy(pretty_date_cpy, pretty_date, date_time_len);
+  pretty_date_cpy[date_time_len] = '\0';
+  time_t current = ConvertToDateTime(pretty_date_cpy, format);
+  if ((from_date || to_date) && !IsValidRange(from_date, to_date, current)) {
+    return true;
+  }
   printf("%s %s", pretty_date, msg_field);
   return true;
 }
@@ -535,5 +642,56 @@ int ExtractTrace(const std::string& core_file,
   for (auto str : v_str) log_writer.Write(str.c_str(), str.length());
   log_writer.Flush();
   return EXIT_SUCCESS;
+}
+
+time_t ConvertToDateTime(const char* date_time, const char* format) {
+  struct tm timeDate;
+  if (strptime(date_time, format, &timeDate) == NULL) {
+    return 0;
+  }
+  if (strlen(date_time) == strlen("yyyy-mm-dd")) {
+    timeDate.tm_hour = 0;
+    timeDate.tm_min = 0;
+    timeDate.tm_sec = 0;
+  } else if (strlen(date_time) == strlen("hh:mm:ss")) {
+    timeDate.tm_mday = 1;
+    timeDate.tm_mon = 1;
+    timeDate.tm_year = 2000;
+  }
+  timeDate.tm_isdst = -1;
+  time_t time_p = mktime(&timeDate);
+  if (time_p == -1) {
+    return 0;
+  }
+  return time_p;
+}
+
+bool IsValidRange(time_t from, time_t to, time_t current) {
+  // return true when all unavailable
+  if ((from == 0 && to == 0) || current == 0) return true;
+  // validate when having input `to` and `current`
+  if (from == 0 && to != 0) return difftime(to, current) >= 0;
+  // validate when having input `from` and `current`
+  if (from != 0 && to == 0) return difftime(current, from) >= 0;
+  // validate when all args available
+  return difftime(current, from) >= 0 && difftime(to, current) >= 0;
+}
+
+bool IsValidDateTime(const char* input) {
+  bool ret = false;
+  const char* valid_format[] = {"%Y-%m-%d %H:%M:%S", "%Y-%m-%d"};
+  size_t date_length = strlen("yyyy-mm-dd");
+  size_t date_time_length = date_length + strlen("hh:mm:ss") + 1;
+  size_t input_length = strlen(input);
+  if (input_length == date_time_length) {
+    if (ConvertToDateTime(input, valid_format[0]) != 0) {
+      ret = true;
+    }
+  } else if (input_length == date_length) {
+    if (ConvertToDateTime(input, valid_format[1]) != 0) {
+      ret = true;
+    }
+  }
+  return ret;
 }
 }  // namespace

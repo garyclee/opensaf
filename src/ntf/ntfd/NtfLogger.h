@@ -58,6 +58,7 @@ class NtfLogger {
   void log(NtfSmartPtr& newNotification);
   SaAisErrorT logNotification(NtfSmartPtr& notif);
   void queueNotifcation(NtfSmartPtr& notif);
+  void dequeueNotification();
   void printInfo();
   void syncRequest(NCS_UBAID *uba);
 
@@ -69,6 +70,9 @@ class NtfLogger {
   bool isAlarmNotification(NtfSmartPtr& notif);
 
   void resetLoggerBufferFullFlag();
+  void logQueuedNotification();
+  bool isLoggerBufferEmpty() { return queuedNotificationList.empty(); }
+  void disableAckWaiting();
 
  private:
   SaAisErrorT initLog();

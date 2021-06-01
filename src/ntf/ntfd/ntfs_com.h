@@ -204,6 +204,8 @@ uint32_t count_member_nodes();
 bool is_client_clm_member(NODE_ID node_id, SaVersionT *client_ver);
 bool is_clm_init();
 bool is_stale_client(unsigned int clientId);
+void PeriodicCheck();
+int GeneratePollTimeout(struct timespec last);
 
 #ifdef __cplusplus
 }

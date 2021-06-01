@@ -553,7 +553,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
 	     (long)&((AVSV_DND_MSG *)0)
 		 ->msg_info.d2n_compcsi_assign_msg_info.csi_name,
 	     0, NULL},
-	    {EDU_EXEC, avsv_edp_csi_attr_info, 0, 0, 0,
+	    {EDU_EXEC, avsv_edp_csi_attr_info, 0, 0, EDU_EXIT,
 	     (long)&((AVSV_DND_MSG *)0)
 		 ->msg_info.d2n_compcsi_assign_msg_info.info.attrs,
 	     0, NULL},

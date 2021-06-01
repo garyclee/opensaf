@@ -24,15 +24,16 @@
 #include "ais/include/saImmOm.h"
 #include "ais/include/saImmOi.h"
 
+#include "osaf/immtools/imm_modify_config/immccb.h"
+
 #include "smf/smfd/SmfRollback.h"
-#include "smf/smfd/imm_modify_config/immccb.h"
 
 // =========================================
 // Holds information about one IMM attribute
 class SmfImmAttribute {
  public:
-  SmfImmAttribute() {};
-  ~SmfImmAttribute() {};
+  SmfImmAttribute() {}
+  ~SmfImmAttribute() {}
 
   void SetAttributeName(const std::string& i_name) {
     m_name = i_name;
@@ -66,12 +67,12 @@ class SmfImmAttribute {
   // Note: Should be refactored. Use GetAttributeDescriptor instead.
   // Must be kept until further refactoring is done
   friend class SmfImmOperation;
-  friend class SmfImmCreateOperation; // Using m_values, m_name, m_type
-  friend class SmfImmModifyOperation; // Using m_values, m_name, m_type
+  friend class SmfImmCreateOperation;  // Using m_values, m_name, m_type
+  friend class SmfImmModifyOperation;  // Using m_values, m_name, m_type
   friend class SmfImmDeleteOperation;
 #endif
-  friend class SmfImmRTCreateOperation; // Using m_values, m_name, m_type
-  friend class SmfImmRTUpdateOperation; // Using m_values, m_name, m_type
+  friend class SmfImmRTCreateOperation;  // Using m_values, m_name, m_type
+  friend class SmfImmRTUpdateOperation;  // Using m_values, m_name, m_type
 
  private:
   // Note: Used directly by (friend) SmfImmRT operations
@@ -150,7 +151,6 @@ class SmfImmOperation {
   modelmodify::CreateDescriptor object_create_;
   modelmodify::DeleteDescriptor object_delete_;
   modelmodify::ModifyDescriptor object_modify_;
-
 };
 
 // Create an IMM object.
@@ -163,9 +163,9 @@ class SmfImmCreateOperation : public SmfImmOperation {
       class_name_(""),
       parent_dn_(""),
       attributes_(0) { imm_operation_ = Create; }
-      //m_immAttrValues(0) { imm_operation_ = Create; }
+      // m_immAttrValues(0) { imm_operation_ = Create; }
 
-  ~SmfImmCreateOperation() {};
+  ~SmfImmCreateOperation() {}
 
   // Verifies parameters in a create descriptor and adds the attributes to
   // the create descriptor
@@ -302,7 +302,7 @@ class SmfImmModifyOperation : public SmfImmOperation {
     object_name_(""),
     modification_type_(""),
     attributes_(0),
-    //m_immAttrMods(0)
+    // m_immAttrMods(0)
     m_rdn("")  { imm_operation_ = Modify; }
 
   ~SmfImmModifyOperation() {}
@@ -341,8 +341,9 @@ class SmfImmModifyOperation : public SmfImmOperation {
     attributes_.push_back(i_value);
   }
 
-  void AddOrUpdateAttribute(const std::string& i_name, const std::string& i_type,
-                    const std::string& i_value);
+  void AddOrUpdateAttribute(const std::string& i_name,
+                            const std::string& i_type,
+                            const std::string& i_value);
 
  private:
   ///
@@ -489,7 +490,9 @@ class SmfImmRTUpdateOperation {
   ///
   /// Purpose: Set the type of modification operation.
   /// @param   i_op The name of the operation
-  /// (SA_IMM_ATTR_VALUES_ADD/SA_IMM_ATTR_VALUES_DELETE/SA_IMM_ATTR_VALUES_REPLACE).
+  /// (SA_IMM_ATTR_VALUES_ADD/
+  ///  SA_IMM_ATTR_VALUES_DELETE/
+  ///  SA_IMM_ATTR_VALUES_REPLACE).
   /// @return  None.
   ///
   void SetOp(const std::string& i_op);

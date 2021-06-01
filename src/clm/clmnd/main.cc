@@ -135,7 +135,7 @@ static uint32_t clmna_mds_dec(struct ncsmds_callback_info *info) {
         LOG_IN("Node will be rebooted");
         osaf_safe_reboot();
       } else {
-        LOG_IN("Node %u is going to be rebooted",
+        LOG_IN("Node %x is going to be rebooted",
                msg->info.reboot_info.node_id);
       }
       break;
@@ -289,7 +289,7 @@ static void clmna_handle_join_response(SaAisErrorT error,
 
 static uint32_t clmna_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info) {
   TRACE_ENTER2("%d", mds_cb_info->info.svc_evt.i_change);
-
+  TRACE("svc_id %d", mds_cb_info->info.svc_evt.i_svc_id);
   switch (mds_cb_info->info.svc_evt.i_change) {
     case NCSMDS_NEW_ACTIVE:
     case NCSMDS_UP:
@@ -298,7 +298,6 @@ static uint32_t clmna_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info) {
           clmna_cb->clms_mds_dest = mds_cb_info->info.svc_evt.i_dest;
           TRACE("subpart version: %u",
                 mds_cb_info->info.svc_evt.i_rem_svc_pvt_ver);
-          TRACE("svc_id %d", mds_cb_info->info.svc_evt.i_svc_id);
           break;
         default:
           break;

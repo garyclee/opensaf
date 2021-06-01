@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef SMF_SMFD_IMM_OM_CCAPI_OM_ADMIN_OWNER_CLEAR_H_
-#define SMF_SMFD_IMM_OM_CCAPI_OM_ADMIN_OWNER_CLEAR_H_
+#ifndef OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_ADMIN_OWNER_CLEAR_H_
+#define OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_ADMIN_OWNER_CLEAR_H_
 
 #include <vector>
 #include <string>
@@ -79,4 +79,4 @@ class ImmOmAdminOwnerClear : public ImmBase {
 
 }  // namespace immom
 
-#endif  // SMF_SMFD_IMM_OM_CCAPI_OM_ADMIN_OWNER_CLEAR_H_
+#endif  // OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_ADMIN_OWNER_CLEAR_H_

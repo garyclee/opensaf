@@ -1128,7 +1128,7 @@ mds_send_fail:
     rc = SA_AIS_ERR_LIBRARY;
     TRACE_4("ERR_LIBRARY: Lock failed");
     /* Losing track of the pending reply count, but ERR_LIBRARY dominates*/
-    goto lock_fail;
+    goto admin_owner_node_free;
   }
   locked = true;
 
@@ -2056,8 +2056,8 @@ static SaAisErrorT ccb_object_create_common(
 
       /*alloc-4 */
       p->n.attrName.buf = (char *)malloc(p->n.attrName.size);
-
       strncpy(p->n.attrName.buf, attr->attrName, p->n.attrName.size);
+      p->n.attrName.buf[p->n.attrName.size-1] = 0;
 
       p->n.attrValuesNumber = attr->attrValuesNumber;
       p->n.attrValueType = attr->attrValueType;
@@ -2589,6 +2589,7 @@ static SaAisErrorT ccb_object_modify_common(
     p->attrValue.attrName.buf = (char *)malloc(p->attrValue.attrName.size);
     strncpy(p->attrValue.attrName.buf, attrMod->modAttr.attrName,
             p->attrValue.attrName.size);
+    p->attrValue.attrName.buf[p->attrValue.attrName.size-1] = 0;
 
     p->attrValue.attrValuesNumber = attrMod->modAttr.attrValuesNumber;
     p->attrValue.attrValueType = attrMod->modAttr.attrValueType;
@@ -4050,6 +4051,7 @@ static SaAisErrorT admin_op_invoke_common(
     /*alloc-3 */
     p->paramName.buf = (char *)malloc(p->paramName.size);
     strncpy(p->paramName.buf, param->paramName, p->paramName.size);
+    p->paramName.buf[p->paramName.size-1] = 0;
 
     p->paramType = param->paramType;
     /*alloc-4 */
@@ -5048,6 +5050,7 @@ SaAisErrorT saImmOmClassCreate_2(
     }
     p->d.attrName.buf = (char *)malloc(p->d.attrName.size); /* alloc-3 */
     strncpy(p->d.attrName.buf, attr->attrName, p->d.attrName.size);
+    p->d.attrName.buf[p->d.attrName.size-1] = 0;
 
     p->d.attrValueType = attr->attrValueType;
     if (!imma_proc_is_valid_type((SaImmValueTypeT)p->d.attrValueType)) {
@@ -5087,6 +5090,7 @@ SaAisErrorT saImmOmClassCreate_2(
   sysattr->d.attrName.buf =
       (char *)malloc(sysattr->d.attrName.size); /*alloc-3 */
   strncpy(sysattr->d.attrName.buf, sysaClName, sysattr->d.attrName.size);
+  sysattr->d.attrName.buf[sysattr->d.attrName.size-1] = 0;
   sysattr->d.attrValueType = SA_IMM_ATTR_SASTRINGT;
   if (classCategory == SA_IMM_CLASS_CONFIG) {
     sysattr->d.attrFlags |= SA_IMM_ATTR_CONFIG;
@@ -5116,6 +5120,7 @@ SaAisErrorT saImmOmClassCreate_2(
   sysattr->d.attrName.buf =
       (char *)malloc(sysattr->d.attrName.size); /*alloc-3 */
   strncpy(sysattr->d.attrName.buf, sysaAdmName, sysattr->d.attrName.size);
+  sysattr->d.attrName.buf[sysattr->d.attrName.size-1] = 0;
   sysattr->d.attrValueType = SA_IMM_ATTR_SASTRINGT;
   /* Should this attribute really be a config attribute ?
      Should it really be allowed to be persistent ? */
@@ -5142,6 +5147,7 @@ SaAisErrorT saImmOmClassCreate_2(
   sysattr->d.attrName.buf =
       (char *)malloc(sysattr->d.attrName.size); /*alloc-3 */
   strncpy(sysattr->d.attrName.buf, sysaImplName, sysattr->d.attrName.size);
+  sysattr->d.attrName.buf[sysattr->d.attrName.size-1] = 0;
   sysattr->d.attrValueType = SA_IMM_ATTR_SASTRINGT;
   /* Should this attribute really be a config attribute ?
      Should it really be allowed to be persistent ?
@@ -5380,10 +5386,10 @@ SaAisErrorT saImmOmClassDescriptionGet_2(
         IMMSV_ATTR_DEFINITION *q = &(p->d);
         attr[i] = (SaImmAttrDefinitionT_2 *)malloc(
             sizeof(SaImmAttrDefinitionT_2));                      /*alloc-2 */
-        attr[i]->attrName = (char *)malloc(q->attrName.size + 1); /*alloc-3 */
+        attr[i]->attrName = (char *)malloc(q->attrName.size); /*alloc-3 */
         strncpy(attr[i]->attrName, (const char *)q->attrName.buf,
-                q->attrName.size + 1);
-        attr[i]->attrName[q->attrName.size] = 0;
+                q->attrName.size);
+        attr[i]->attrName[q->attrName.size-1] = 0;
         attr[i]->attrValueType = (SaImmValueTypeT)q->attrValueType;
         attr[i]->attrFlags = q->attrFlags;
         /* attr[i]->attrNtfId = q->attrNtfId; */
@@ -6337,10 +6343,10 @@ static SaAisErrorT accessor_get_common(SaImmAccessorHandleT accessorHandle,
         IMMSV_ATTR_VALUES *q = &(p->n);
         attr[i] = (SaImmAttrValuesT_2 *)calloc(
             1, sizeof(SaImmAttrValuesT_2));                       /* alloc-2 */
-        attr[i]->attrName = (char *)malloc(q->attrName.size + 1); /* alloc-3 */
+        attr[i]->attrName = (char *)malloc(q->attrName.size); /* alloc-3 */
         strncpy(attr[i]->attrName, (const char *)q->attrName.buf,
-                q->attrName.size + 1);
-        attr[i]->attrName[q->attrName.size] = 0; /*redundant. */
+                q->attrName.size);
+        attr[i]->attrName[q->attrName.size-1] = 0; /*redundant. */
         attr[i]->attrValuesNumber = q->attrValuesNumber;
         attr[i]->attrValueType = (SaImmValueTypeT)q->attrValueType;
 
@@ -7042,6 +7048,7 @@ SaAisErrorT immsv_sync(SaImmHandleT immHandle, const SaImmClassNameT className,
     /*alloc-4 */
     p->n.attrName.buf = (char *)malloc(p->n.attrName.size);
     strncpy(p->n.attrName.buf, attr->attrName, p->n.attrName.size);
+    p->n.attrName.buf[p->n.attrName.size-1] = 0;
 
     p->n.attrValuesNumber = attr->attrValuesNumber;
     p->n.attrValueType = attr->attrValueType;
@@ -8113,10 +8120,10 @@ searchresult:
       IMMSV_ATTR_VALUES *q = &(p->n);
       attr[i] = (SaImmAttrValuesT_2 *)calloc(
           1, sizeof(SaImmAttrValuesT_2));                       /*alloc-2 */
-      attr[i]->attrName = (char *)malloc(q->attrName.size + 1); /*alloc-3 */
+      attr[i]->attrName = (char *)malloc(q->attrName.size); /*alloc-3 */
       strncpy(attr[i]->attrName, (const char *)q->attrName.buf,
-              q->attrName.size + 1);
-      attr[i]->attrName[q->attrName.size] = 0; /*redundant. */
+              q->attrName.size);
+      attr[i]->attrName[q->attrName.size-1] = 0; /*redundant. */
       attr[i]->attrValuesNumber = q->attrValuesNumber;
       attr[i]->attrValueType = (SaImmValueTypeT)q->attrValueType;
 
@@ -9754,7 +9761,7 @@ int imma_om_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, bool *locked) {
   osafassert(locked && *locked);
   osafassert(cl_node && cl_node->stale);
   SaImmHandleT immHandle = cl_node->handle;
-  SaTimeT timeout = 0;
+  SaTimeT timeout = IMMSV_WAIT_TIME;
   SaAisErrorT err_resurrect = SA_AIS_OK;
 
   m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);

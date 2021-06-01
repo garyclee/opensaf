@@ -154,7 +154,7 @@ uint32_t dtm_process_node_info(DTM_INTERNODE_CB *dtms_cb, DTM_NODE_DB *node,
 
     TRACE(
         "DTM: dtm_process_node_info node_name: '%s' node_ip:%s, "
-        "node_id:%u i_addr_family:%d ",
+        "node_id:%x i_addr_family:%d ",
         node->node_name, node->node_ip, node->node_id, node->i_addr_family);
     rc = dtm_process_node_up_down(node->node_id, node->node_name, node->node_ip,
                                   node->i_addr_family, node->comm_status);
@@ -187,7 +187,7 @@ uint32_t dtm_process_node_up_down(NODE_ID node_id, char *node_name,
                                   bool comm_status) {
   if (comm_status == true) {
     TRACE(
-        "DTM: dtm_process_node_up_down node_ip:%s, node_id:%u i_addr_family:%d ",
+        "DTM: dtm_process_node_up_down node_ip:%s, node_id:%x i_addr_family:%d ",
         node_ip, node_id, i_addr_family);
     dtm_node_up(node_id, node_name, node_ip, i_addr_family, 0);
   } else {
@@ -268,7 +268,7 @@ void dtm_internode_process_poll_rcv_msg_common(
     memcpy(alloc_buffer + 8, buffer + 6, local_len_buf - 6);
     NODE_ID dst_nodeid = ncs_decode_32bit(&data);
     if (dtms_cb->node_id != dst_nodeid)
-      LOG_ER("Invalid dest_nodeid: %u received in dtm_internode_processing",
+      LOG_ER("Invalid dest_nodeid: %x received in dtm_internode_processing",
              dst_nodeid);
     uint32_t dst_processid = ncs_decode_32bit(&data);
     dtm_internode_process_rcv_data_msg(alloc_buffer, dst_processid,

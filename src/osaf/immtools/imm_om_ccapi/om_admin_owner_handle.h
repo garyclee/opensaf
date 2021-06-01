@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef SMF_SMFD_IMM_OM_CCAPI_OM_ADMIN_OWNER_HANDLE_H_
-#define SMF_SMFD_IMM_OM_CCAPI_OM_ADMIN_OWNER_HANDLE_H_
+#ifndef OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_ADMIN_OWNER_HANDLE_H_
+#define OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_ADMIN_OWNER_HANDLE_H_
 
 #include <string>
 #include "ais/include/saImmOm.h"
@@ -99,4 +99,4 @@ class ImmOmAdminOwnerHandle : public ImmBase {
 
 }  // namespace immom
 
-#endif  // SMF_SMFD_IMM_OM_CCAPI_OM_ADMIN_OWNER_HANDLE_H_
+#endif  // OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_ADMIN_OWNER_HANDLE_H_

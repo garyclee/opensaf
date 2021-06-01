@@ -1,3 +1,34 @@
+OpenSAF 5.21.06 (released 2021-06-01)
+-------------------------------------
+
+    * rde: Revert timeout of waiting for peer info [#3263]
+    * imm: not assert when checking initial value in IMMA [#3265]
+    * clm: Active CLMS not sending checkpoint data to standby CLMS when IMMD is paused [#3264]
+    * rde: Use broadcast for peer info message [#3263]
+    * rde: Add timeout waiting for peer info [#3263]
+    * ntf: Enhance periodic logging alarm notification when queue available [#2911]
+    * pyosaf: Correct input for eSaAisErrorT.whatis() [#2767]
+    * imma: Correctly use IMMA_SYNCR_TIMEOUT [#3260]
+    * immnd: Make IMMSV_FEVS_MAX_PENDING environment variable [#3260]
+    * smf: enhance smf to handle timeout in one step upgrade [#3262]
+    * dtm: Add osaflog options for print log entries between a range of dates [#2714]
+    * rde: Improve initialization of Consensus() [#3126]
+    * pyosaf: support for amf api version b4.02 [#3256]
+    * dtm: correct handling connection failure [#2777]
+    * amf: update node member in clm_track_cb [#3257]
+    * imm: valgrind reports invalid read in imm agent [#2656]
+    * smf: Enhance handling of global variables [#2726]
+    * amf: Fix invoking the csi attribute change callback [#3255]
+    * imm: Fix log level in syslogs security violation message [#2970]
+    * osaf: Move the immtool for modifying the IMM model to osaf [#3068]
+    * dtm: Using log Hexadecimal number for node id instead of Decimal [#2725]
+    * amf: Using log Hexadecimal number for node id instead of Decimal [#2725]
+    * clm: Using log Hexadecimal number for node id instead of Decimal [#2725]
+    * fm: Using log Hexadecimal number for node id instead of Decimal [#2725]
+    * clm: memleak detected by valgrind [#3252]
+    * log: improve logtest testsuite 22 [#3253]
+    * imm: potential leak of memory pointed to by ao_node in OM API [#2826]
+
 OpenSAF 5.21.03 (released 2021-03-01)
 -------------------------------------
 

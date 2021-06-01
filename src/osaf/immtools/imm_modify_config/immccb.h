@@ -26,15 +26,15 @@
 #include "ais/include/saAis.h"
 #include "base/osaf_extended_name.h"
 
-#include "smf/smfd/imm_om_ccapi/common/common.h"
-#include "smf/smfd/imm_om_ccapi/om_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_handle.h"
-#include "smf/smfd/imm_om_ccapi/om_ccb_object_create.h"
-#include "smf/smfd/imm_om_ccapi/om_admin_owner_set.h"
+#include "osaf/immtools/imm_om_ccapi/common/common.h"
+#include "osaf/immtools/imm_om_ccapi/om_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_handle.h"
+#include "osaf/immtools/imm_om_ccapi/om_ccb_object_create.h"
+#include "osaf/immtools/imm_om_ccapi/om_admin_owner_set.h"
 
-#ifndef SMF_SMFD_IMM_MODIFY_CONFIG_IMMCCB_H_
-#define SMF_SMFD_IMM_MODIFY_CONFIG_IMMCCB_H_
+#ifndef OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_IMMCCB_H_
+#define OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_IMMCCB_H_
 
 /* Handle modifications in the IMM model
  *
@@ -114,7 +114,7 @@ static inline SaImmValueTypeT StringToSaImmValueType(const std::string&
 // enum name.
 // Example: SA_IMM_ATTR_VALUES_ADD corresponds with "SA_IMM_ATTR_VALUES_ADD"
 
-static inline SaImmAttrModificationTypeT StringToImmAttrModType(const
+static inline SaImmAttrModificationTypeT StringToImmAttrModType(
                                           std::string& modification_type);
 
 // AttributeDescriptor: Describes one attribute
@@ -375,7 +375,7 @@ inline static const char* RecoveryTxt(int recovery_info) {
 //
 // Example: Create an IMM object Obj1 based on IMM class Class1. The rdn
 //          attribute name is obj1Name and the object name (rdn) shall be
-//          obj1=1. Parent is safApp=safSmfService. No other attributes will be
+//          obj1=1. Parent is safApp=safXxxService. No other attributes will be
 //          set at creation time
 //
 //  // 1. Fill in an attribute descriptor for the object name:
@@ -385,7 +385,7 @@ inline static const char* RecoveryTxt(int recovery_info) {
 //  // 2. Fill in a create descriptor:
 //  modelmodify::CreateDescriptor create_obj1;
 //  create_obj1.class_name = "Class1";
-//  create_obj1.parent_name = "safApp=safSmfService";
+//  create_obj1.parent_name = "safApp=safXxxService";
 //  create_obj1.AddAttribute(object_name);
 //
 //  // 3. Fill in a CCB descriptor:
@@ -407,8 +407,7 @@ class ModelModification {
   // Set CCB Flags
   // If flag SA_IMM_CCB_REGISTERED_OI is set then an Object Implementer must
   // validate the requested modifications, for more info see IMM AIS.
-  // For SMF this is normally not the case so the default setting is to not
-  // set this flag.
+  // The default setting is to not set this flag.
   void SetCcbFlags(SaImmCcbFlagsT ccb_flags) { ccb_flags_ = ccb_flags; }
 
   // Returns False if an unrecoverable problem occurs. This may for example be
@@ -426,7 +425,7 @@ class ModelModification {
   void FinalizeHandles(void);
   int CreateHandles(void);
   int CreateObjectManager(void);
-  int CreateAdminOwner(void); // Create a handle
+  int CreateAdminOwner(void);  // Create a handle
   int CreateCcb(void);
 
   int AdminOwnerSet(const std::vector<std::string>& objects,
@@ -542,7 +541,7 @@ static inline SaImmValueTypeT StringToSaImmValueType(const std::string&
   }
 }
 
-static inline SaImmAttrModificationTypeT StringToImmAttrModType(const
+static inline SaImmAttrModificationTypeT StringToImmAttrModType(
                                           std::string& modification_type) {
   if (modification_type.compare("SA_IMM_ATTR_VALUES_ADD") == 0)
     return SA_IMM_ATTR_VALUES_ADD;
@@ -559,4 +558,4 @@ static inline SaImmAttrModificationTypeT StringToImmAttrModType(const
 
 }  // namespace modelmodify
 
-#endif  // SMF_SMFD_IMM_MODIFY_CONFIG_IMMCCB_H_
+#endif  // OSAF_IMMTOOLS_IMM_MODIFY_CONFIG_IMMCCB_H_

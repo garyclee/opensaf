@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef SMF_SMFD_IMM_OM_CCAPI_OM_CCB_OBJECT_DELETE_H_
-#define SMF_SMFD_IMM_OM_CCAPI_OM_CCB_OBJECT_DELETE_H_
+#ifndef OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_CCB_OBJECT_DELETE_H_
+#define OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_CCB_OBJECT_DELETE_H_
 
 
 #include <string>
@@ -76,4 +76,4 @@ class ImmOmCcbObjectDelete : public ImmBase {
 
 }  // namespace immom
 
-#endif  // SMF_SMFD_IMM_OM_CCAPI_OM_CCB_OBJECT_DELETE_H_
+#endif  // OSAF_IMMTOOLS_IMM_OM_CCAPI_OM_CCB_OBJECT_DELETE_H_

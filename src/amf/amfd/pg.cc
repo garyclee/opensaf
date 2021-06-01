@@ -78,7 +78,7 @@ void avd_pg_trk_act_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 
   if ((node->node_state == AVD_AVND_STATE_ABSENT) ||
       (node->node_state == AVD_AVND_STATE_GO_DOWN)) {
-    LOG_ER("%s: invalid node state %u for node id '%u'", __FUNCTION__,
+    LOG_ER("%s: invalid node state %u for node id '%x'", __FUNCTION__,
            node->node_state, info->node_id);
     goto done;
   }
@@ -106,7 +106,7 @@ void avd_pg_trk_act_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 
   /* send back the response */
   if (NCSCC_RC_SUCCESS != avd_snd_pg_resp_msg(cb, node, csi, info))
-    LOG_ER("%s:%u: %u", __FILE__, __LINE__, node->node_info.nodeId);
+    LOG_ER("%s:%u: %x", __FILE__, __LINE__, node->node_info.nodeId);
 
 done:
   avsv_dnd_msg_free(evt->info.avnd_msg);

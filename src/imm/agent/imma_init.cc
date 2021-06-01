@@ -146,10 +146,8 @@ static uint32_t imma_create(NCSMDS_SVC_ID sv_id) {
 
   if (cb->sv_id != 0) {
     /*The osafassert below seems to occurr sometimes on some systems. */
-    TRACE_4("cb->sv_id is NOT ZERO (%x) on first time entry IMMA svid:%x",
+    LOG_WA("cb->sv_id is NOT ZERO (%x) on first time entry IMMA svid:%x",
             cb->sv_id, sv_id);
-
-    osafassert(cb->sv_id == 0);
   }
 
   cb->sv_id = sv_id;

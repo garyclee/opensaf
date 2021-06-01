@@ -30,7 +30,7 @@ SaAisErrorT Consensus::PromoteThisNode(const bool graceful_takeover,
   TRACE_ENTER();
   SaAisErrorT rc;
 
-  if (use_consensus_ == false) {
+  if (cfg_.use_consensus == false) {
     return SA_AIS_OK;
   }
 
@@ -126,7 +126,7 @@ SaAisErrorT Consensus::RemoveTakeoverRequest() {
 
 SaAisErrorT Consensus::Demote(const std::string& node) {
   TRACE_ENTER();
-  if (use_consensus_ == false) {
+  if (cfg_.use_consensus == false) {
     return SA_AIS_OK;
   }
 
@@ -172,11 +172,11 @@ SaAisErrorT Consensus::DemoteThisNode() {
   return Demote(base::Conf::NodeName());
 }
 
-bool Consensus::IsEnabled() const { return use_consensus_; }
+bool Consensus::IsEnabled() const { return cfg_.use_consensus; }
 
 bool Consensus::IsWritable() const {
   TRACE_ENTER();
-  if (use_consensus_ == false) {
+  if (cfg_.use_consensus == false) {
     return true;
   }
 
@@ -197,27 +197,29 @@ bool Consensus::IsWritable() const {
   }
 }
 
-bool Consensus::IsRemoteFencingEnabled() const { return use_remote_fencing_; }
+bool Consensus::IsRemoteFencingEnabled() const {
+  return cfg_.use_remote_fencing;
+}
 
 bool Consensus::IsRelaxedNodePromotionEnabled() const {
-  return relaxed_node_promotion_;
+  return cfg_.relaxed_node_promotion;
 }
 
 bool Consensus::PrioritisePartitionSize() const {
-  return prioritise_partition_size_;
+  return cfg_.prioritise_partition_size;
 }
 
 uint32_t Consensus::PrioritisePartitionSizeWaitTime() const {
-  return prioritise_partition_size_mds_wait_time_;
+  return cfg_.prioritise_partition_size_mds_wait_time;
 }
 
 uint32_t Consensus::TakeoverValidTime() const {
-  return takeover_valid_time_;
+  return cfg_.takeover_valid_time;
 }
 
 std::string Consensus::CurrentActive() const {
   TRACE_ENTER();
-  if (use_consensus_ == false) {
+  if (cfg_.use_consensus == false) {
     return "";
   }
 
@@ -252,78 +254,28 @@ Consensus::Consensus() {
 Consensus::~Consensus() {}
 
 void Consensus::ProcessEnvironmentSettings() {
-  uint32_t split_brain_enable = base::GetEnv("FMS_SPLIT_BRAIN_PREVENTION", 0);
-  plugin_path_ = base::GetEnv("FMS_KEYVALUE_STORE_PLUGIN_CMD", "");
-  uint32_t use_remote_fencing = base::GetEnv("FMS_USE_REMOTE_FENCING", 0);
-  uint32_t prioritise_partition_size =
-    base::GetEnv("FMS_TAKEOVER_PRIORITISE_PARTITION_SIZE", 1);
-  uint32_t prioritise_partition_size_mds_wait_time =
-    base::GetEnv("FMS_TAKEOVER_PRIORITISE_PARTITION_SIZE_MDS_WAIT_TIME", 4);
-  uint32_t relaxed_node_promotion =
-    base::GetEnv("FMS_RELAXED_NODE_PROMOTION", 0);
-  config_file_ = base::GetEnv("FMS_CONF_FILE", "");
+  ConsensusEnv& env = ConsensusEnv::GetInstance();
 
-  // if not specified in fmd.conf,
-  // takeover requests are valid for 20 seconds
-  takeover_valid_time_ =
-    base::GetEnv("FMS_TAKEOVER_REQUEST_VALID_TIME", 20);
-  // expiration time of takeover request is twice the max wait time
-  max_takeover_retry_ = takeover_valid_time_ / 2;
-
-  if (split_brain_enable == 1 && plugin_path_.empty() == false) {
-    use_consensus_ = true;
-  } else {
-    use_consensus_ = false;
-  }
-
-  if (use_remote_fencing == 1) {
-    use_remote_fencing_ = true;
-  }
-
-  if (prioritise_partition_size == 0) {
-    prioritise_partition_size_ = false;
-  }
-
-  if (use_consensus_ == true && relaxed_node_promotion == 1) {
-    relaxed_node_promotion_ = true;
-  }
-
-  prioritise_partition_size_mds_wait_time_ =
-    prioritise_partition_size_mds_wait_time;
+  cfg_ = env.GetConfiguration();
 }
 
 bool Consensus::ReloadConfiguration() {
-  ConfigFileReader reader;
-  ConfigFileReader::SettingsMap map;
+  ConsensusEnv& env = ConsensusEnv::GetInstance();
 
-  if (config_file_.empty() == true) {
-    LOG_ER("config file not defined");
+  if (!env.ReloadConfiguration()) {
     return false;
   }
-
-  map = reader.ParseFile(config_file_);
-  for (const auto& kv : map) {
-    if (kv.first.compare(0, kFmsEnvPrefix.size(), kFmsEnvPrefix) != 0) {
-      // we only care about environment variables beginning with 'FMS'
-      continue;
-    }
-    int rc;
-    TRACE("Setting '%s' to '%s'", kv.first.c_str(), kv.second.c_str());
-    rc = setenv(kv.first.c_str(), kv.second.c_str(), 1);
-    osafassert(rc == 0);
-  }
-
   ProcessEnvironmentSettings();
 
   return true;
 }
 
 std::string Consensus::PluginPath() const {
-  return plugin_path_;
+  return cfg_.plugin_path;
 }
 
 bool Consensus::FenceNode(const std::string& node) {
-  if (use_remote_fencing_ == true) {
+  if (cfg_.use_remote_fencing == true) {
     LOG_WA("Fencing remote node %s", node.c_str());
     // @todo currently passing UINT_MAX as node ID, since
     // we can't always obtain a valid node ID?
@@ -339,7 +291,7 @@ bool Consensus::FenceNode(const std::string& node) {
 void Consensus::MonitorLock(ConsensusCallback callback,
                             const uint32_t user_defined) {
   TRACE_ENTER();
-  if (use_consensus_ == false) {
+  if (cfg_.use_consensus == false) {
     return;
   }
 
@@ -349,7 +301,7 @@ void Consensus::MonitorLock(ConsensusCallback callback,
 void Consensus::MonitorTakeoverRequest(ConsensusCallback callback,
                                        const uint32_t user_defined) {
   TRACE_ENTER();
-  if (use_consensus_ == false) {
+  if (cfg_.use_consensus == false) {
     return;
   }
 
@@ -374,7 +326,7 @@ void Consensus::CheckForExistingTakeoverRequest() {
   // or until the takeover request is gone
   rc = ReadTakeoverRequest(tokens);
   while (rc == SA_AIS_OK &&
-         retries < max_takeover_retry_) {
+         retries < cfg_.max_takeover_retry) {
     ++retries;
     TRACE("Takeover request still present");
     std::this_thread::sleep_for(kSleepInterval);
@@ -404,12 +356,12 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
   SaAisErrorT rc;
   uint32_t retries = 0;
   rc = KeyValue::Create(kTakeoverRequestKeyname, takeover_request,
-                        takeover_valid_time_);
+                        cfg_.takeover_valid_time);
   while (rc == SA_AIS_ERR_FAILED_OPERATION && retries < kMaxRetry) {
     ++retries;
     std::this_thread::sleep_for(kSleepInterval);
     rc = KeyValue::Create(kTakeoverRequestKeyname, takeover_request,
-                          takeover_valid_time_);
+                          cfg_.takeover_valid_time);
   }
 
   if (rc == SA_AIS_ERR_EXIST) {
@@ -422,7 +374,7 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
     // or until the takeover request is gone
     rc = ReadTakeoverRequest(tokens);
     while (rc == SA_AIS_OK &&
-           retries < max_takeover_retry_) {
+           retries < cfg_.max_takeover_retry) {
       ++retries;
       TRACE("Takeover request still present");
       std::this_thread::sleep_for(kSleepInterval);
@@ -451,7 +403,7 @@ SaAisErrorT Consensus::CreateTakeoverRequest(const std::string& current_owner,
   rc = SA_AIS_ERR_FAILED_OPERATION;
   // wait up to max_takeover_retry seconds for request to be answered
   retries = 0;
-  while (retries < max_takeover_retry_) {
+  while (retries < cfg_.max_takeover_retry) {
     std::vector<std::string> tokens;
     if (ReadTakeoverRequest(tokens) == SA_AIS_OK) {
       const std::string state =
@@ -513,7 +465,7 @@ SaAisErrorT Consensus::WriteTakeoverResult(
   // previous value must match
   rc =
       KeyValue::Set(kTakeoverRequestKeyname, takeover_result,
-                    takeover_request, takeover_valid_time_);
+                    takeover_request, cfg_.takeover_valid_time);
 
   return rc;
 }
@@ -578,7 +530,7 @@ Consensus::TakeoverState Consensus::HandleTakeoverRequest(
     const std::string& request) {
   TRACE_ENTER();
 
-  if (use_consensus_ == false) {
+  if (cfg_.use_consensus == false) {
     return TakeoverState::UNDEFINED;
   }
 
@@ -632,7 +584,7 @@ Consensus::TakeoverState Consensus::HandleTakeoverRequest(
     return TakeoverState::UNDEFINED;
   }
 
-  if (prioritise_partition_size_ == true) {
+  if (cfg_.prioritise_partition_size == true) {
     if (proposed_cluster_size > cluster_size) {
       result = TakeoverState::ACCEPTED;
     } else {

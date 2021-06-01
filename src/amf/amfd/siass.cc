@@ -1214,7 +1214,7 @@ done:
  * @return SA_AIS_OK when OK
  */
 SaAisErrorT avd_susi_recreate(AVSV_N2D_ND_SISU_STATE_MSG_INFO *info) {
-  TRACE_ENTER2("msg_id: %u node_id: %u num_sisu: %u", info->msg_id,
+  TRACE_ENTER2("msg_id: %u node_id: %x num_sisu: %u", info->msg_id,
                info->node_id, info->num_sisu);
   AVD_SU_SI_REL *susi = nullptr;
 

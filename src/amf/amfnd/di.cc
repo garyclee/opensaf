@@ -997,7 +997,7 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si) {
 
   /* send the msg to AvD */
   TRACE(
-      "Sending. msg_id'%u', node_id'%u', msg_act'%u', su'%s', si'%s', ha_state'%u', error'%u', single_csi'%u'",
+      "Sending. msg_id'%u', node_id'%x', msg_act'%u', su'%s', si'%s', ha_state'%u', error'%u', single_csi'%u'",
       msg.info.avd->msg_info.n2d_su_si_assign.msg_id,
       msg.info.avd->msg_info.n2d_su_si_assign.node_id,
       msg.info.avd->msg_info.n2d_su_si_assign.msg_act,
@@ -1794,7 +1794,7 @@ uint32_t avnd_evt_avd_role_change_evh(AVND_CB *cb, AVND_EVT *evt) {
   AVSV_D2N_ROLE_CHANGE_INFO *info =
       &evt->info.avd->msg_info.d2n_role_change_info;
 
-  TRACE("MsgId: %u,NodeId:%u, role rcvd:%u role present:%u", info->msg_id,
+  TRACE("MsgId: %u,NodeId:%x, role rcvd:%u role present:%u", info->msg_id,
         info->node_id, info->role, cb->avail_state_avnd);
 
   avnd_msgid_assert(info->msg_id);

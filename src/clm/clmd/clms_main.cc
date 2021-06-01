@@ -636,7 +636,7 @@ void clms_cb_dump() {
     memcpy(&nodename, &node->node_name, sizeof(SaNameT));
     TRACE("Dump Runtime data of the node: %s", node->node_name.value);
     TRACE("Membership status %d", node->member);
-    TRACE("Node Id %u", node->node_id);
+    TRACE("Node Id %x", node->node_id);
     TRACE("Init_view %llu", node->init_view);
     TRACE("Admin_state %d", node->admin_state);
     TRACE("Change %d", node->change);

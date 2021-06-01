@@ -125,7 +125,7 @@ CLMS_CLUSTER_NODE *clms_node_get_by_id(SaUint32T nodeid) {
                                  (((char *)&(
                                       ((CLMS_CLUSTER_NODE *)0)->pat_node_id)) -
                                   ((char *)((CLMS_CLUSTER_NODE *)0))));
-    TRACE("Node found %d", node->node_id);
+    TRACE("Node found %x", node->node_id);
   }
 
   TRACE_LEAVE();
@@ -153,7 +153,7 @@ CLMS_CLUSTER_NODE *clms_node_getnext_by_id(SaUint32T node_id) {
                                  (((char *)&(
                                       ((CLMS_CLUSTER_NODE *)0)->pat_node_id)) -
                                   ((char *)((CLMS_CLUSTER_NODE *)0))));
-    TRACE("Node found %d", node->node_id);
+    TRACE("Node found %x", node->node_id);
   }
 
   return node;
@@ -171,12 +171,12 @@ uint32_t clms_node_add(CLMS_CLUSTER_NODE *node, int i) {
   TRACE("value of i %d", i);
   switch (i) {
     case 0:
-      TRACE("Adding node_id to the patricia tree with node_id %u as key",
+      TRACE("Adding node_id to the patricia tree with node_id %x as key",
             node->node_id);
       node->pat_node_id.key_info = (uint8_t *)&(node->node_id);
       rc = ncs_patricia_tree_add(&clms_cb->id_lookup, &node->pat_node_id);
       if (rc != NCSCC_RC_SUCCESS) {
-        LOG_WA("ncs_patricia_tree_add for node_id  FAILED for '%d' %u",
+        LOG_WA("ncs_patricia_tree_add for node_id  FAILED for '%x' %u",
                node->node_id, rc);
         node->pat_node_id.key_info = nullptr;
         goto done;

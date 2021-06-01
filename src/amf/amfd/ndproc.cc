@@ -132,7 +132,7 @@ void avd_reg_su_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 
   if ((node->node_state == AVD_AVND_STATE_ABSENT) ||
       (node->node_state == AVD_AVND_STATE_GO_DOWN)) {
-    LOG_ER("%s: invalid node state %u for node id '%u'", __FUNCTION__,
+    LOG_ER("%s: invalid node state %u for node id '%x'", __FUNCTION__,
            node->node_state, n2d_msg->msg_info.n2d_reg_su.node_id);
     avsv_dnd_msg_free(n2d_msg);
     evt->info.avnd_msg = nullptr;
@@ -280,7 +280,7 @@ void avd_oper_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 
   if ((node->node_state == AVD_AVND_STATE_ABSENT) ||
       (node->node_state == AVD_AVND_STATE_GO_DOWN)) {
-    LOG_ER("%s: invalid node state %u for node id '%u'", __FUNCTION__,
+    LOG_ER("%s: invalid node state %u for node id '%x'", __FUNCTION__,
            node->node_state, n2d_msg->msg_info.n2d_op_req.node_id);
     goto done;
   }
@@ -879,7 +879,7 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
    */
   if (avd_snd_node_ack_msg(cb, node, node->rcv_msg_id) != NCSCC_RC_SUCCESS) {
     /* log error that the director is not able to send the message */
-    LOG_ER("%s:%u: %u", __FILE__, __LINE__, node->node_info.nodeId);
+    LOG_ER("%s:%u: %x", __FILE__, __LINE__, node->node_info.nodeId);
   }
 
   /* Verify that operation is only modification. */
@@ -1225,7 +1225,7 @@ void avd_comp_validation_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
 
   if ((node->node_state == AVD_AVND_STATE_ABSENT) ||
       (node->node_state == AVD_AVND_STATE_GO_DOWN)) {
-    LOG_ER("%s: invalid node state %u for node id '%u'", __FUNCTION__,
+    LOG_ER("%s: invalid node state %u for node id '%x'", __FUNCTION__,
            node->node_state, valid_info->node_id);
     avsv_dnd_msg_free(n2d_msg);
     evt->info.avnd_msg = nullptr;
