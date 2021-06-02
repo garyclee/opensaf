@@ -133,6 +133,7 @@ unsigned int ncs_agents_shutdown(void)
 unsigned int ncs_leap_startup(void)
 {
 	NCS_LIB_REQ_INFO lib_create;
+	NCS_LIB_REQ_INFO lib_destroy;
 
 	osaf_mutex_lock_ordie(&s_agent_startup_mutex);
 
@@ -159,17 +160,15 @@ unsigned int ncs_leap_startup(void)
 	}
 
 	if (sprr_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
-		TRACE_4("\nERROR: SPRR lib_req failed \n");
-		osaf_mutex_unlock_ordie(&s_agent_startup_mutex);
-		return NCSCC_RC_FAILURE;
+		TRACE_4("\nERROR: SPRR lib_req NCS_LIB_REQ_CREATE failed \n");
+		goto lib_req_fail;
 	}
 
 	/* Get & Update system specific arguments */
 	if (mainget_node_id(&gl_ncs_main_pub_cb.my_nodeid) !=
 	    NCSCC_RC_SUCCESS) {
 		TRACE_4("Not able to get the NODE ID\n");
-		osaf_mutex_unlock_ordie(&s_agent_startup_mutex);
-		return NCSCC_RC_FAILURE;
+		goto get_node_fail;
 	}
 	TRACE("NCS:NODE_ID=0x%08X\n", gl_ncs_main_pub_cb.my_nodeid);
 	gl_ncs_main_pub_cb.leap_use_count = 1;
@@ -180,6 +179,18 @@ unsigned int ncs_leap_startup(void)
 	gl_ncs_main_pub_cb.lib_hdl = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
 
 	return NCSCC_RC_SUCCESS;
+
+get_node_fail:
+	memset(&lib_destroy, 0, sizeof(lib_destroy));
+	lib_destroy.i_op = NCS_LIB_REQ_DESTROY;
+	lib_destroy.info.destroy.dummy = 0;
+	if (sprr_lib_req(&lib_destroy) != NCSCC_RC_SUCCESS)
+		TRACE_4("\nERROR: SPRR lib_req NCS_LIB_REQ_DESTROY failed\n");
+
+lib_req_fail:
+	leap_env_destroy();
+	osaf_mutex_unlock_ordie(&s_agent_startup_mutex);
+	return NCSCC_RC_FAILURE;
 }
 
 /***************************************************************************\
