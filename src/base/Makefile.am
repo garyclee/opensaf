@@ -191,7 +191,6 @@ bin_testleap_LDFLAGS = \
 
 bin_testleap_SOURCES = \
 	src/base/tests/sa_tmr_test.cc \
-	src/base/tests/sysf_ipc_test.cc \
 	src/base/tests/sysf_tmr_test.cc
 
 bin_testleap_LDADD = \
@@ -280,3 +279,21 @@ bin_core_common_test_LDADD = \
 	$(GTEST_DIR)/lib/libgtest_main.la \
 	$(GMOCK_DIR)/lib/libgmock.la \
 	$(GMOCK_DIR)/lib/libgmock_main.la
+
+bin_PROGRAMS += bin/basetest
+
+noinst_HEADERS += \
+	src/base/apitest/basetest.h
+
+bin_basetest_CFLAGS = $(AM_CFLAGS) -Wformat=1
+
+bin_basetest_CPPFLAGS = $(AM_CPPFLAGS)
+
+bin_basetest_SOURCES = \
+	src/base/apitest/basetest.c \
+	src/base/apitest/sysf_ipc_test.c
+
+bin_basetest_LDADD = \
+	lib/libapitest.la \
+	lib/libosaf_common.la \
+	lib/libopensaf_core.la
