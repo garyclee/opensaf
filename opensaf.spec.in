@@ -1384,7 +1384,6 @@ fi
 
 %files controller
 %defattr(-,root,root)
-%attr(-,%{opensaf_user},%{opensaf_group}) %dir %{_localstatedir}/log/%{name}/dtlog
 %attr(-,%{opensaf_user},%{opensaf_group}) %dir %{_localstatedir}/log/%{name}/saflog
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
