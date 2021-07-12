@@ -44,9 +44,11 @@
 #include <stdbool.h>
 #include "base/osaf_extended_name.h"
 #include "base/logtrace.h"
+#include "base/saf_error.h"
 
 static void ais_name_lend(SaConstStringT value, SaNameT *name);
 static SaConstStringT ais_name_borrow(const SaNameT *name);
+static SaConstStringT ais_error_str(SaAisErrorT error_number);
 
 /****************************************************************************
   Name		:  saAisNameLend
@@ -102,6 +104,21 @@ void saAisNameLend(SaConstStringT value, SaNameT *name)
 SaConstStringT saAisNameBorrow(const SaNameT *name)
     __attribute__((weak, alias("ais_name_borrow")));
 
+/****************************************************************************
+ * Name		 :  saAisStrError
+ *
+ * Description	 :  A function to return human readable error strings for
+ *		   AIS error number.
+ *
+ * Arguments	 :  error_number [in] - AIS error number
+ *
+ * Return Values : Error strings for AIS error number.
+ *
+ * Notes	 :
+ ******************************************************************************/
+SaConstStringT saAisStrError(SaAisErrorT error_number)
+	__attribute__((weak, alias("ais_error_str")));
+
 // cppcheck-suppress unusedFunction
 void ais_name_lend(SaConstStringT value, SaNameT *name)
 {
@@ -135,4 +152,10 @@ SaConstStringT ais_name_borrow(const SaNameT *name)
 			value = NULL;
 	}
 	return value;
+}
+
+// cppcheck-suppress unusedFunction
+SaConstStringT ais_error_str(SaAisErrorT error_number)
+{
+	return (SaConstStringT)saf_error(error_number);
 }

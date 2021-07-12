@@ -51,6 +51,7 @@ typedef unsigned long long    SaUint64T;
 typedef float                 SaFloatT;
 typedef double                SaDoubleT;
 typedef char*                 SaStringT;
+typedef const char*           SaConstStringT;
 
 typedef SaInt64T              SaTimeT;
 typedef SaUint64T             SaInvocationT;
@@ -178,6 +179,10 @@ typedef union {
     SaFloatT floatValue;
     SaDoubleT doubleValue;
 } SaLimitValueT;
+
+extern SaConstStringT
+saAisStrError(
+    SaAisErrorT error_number);
 
 #ifdef  __cplusplus
 }
