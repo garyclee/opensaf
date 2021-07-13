@@ -196,9 +196,13 @@ Role::Role(NODE_ID own_node_id)
       discover_peer_timeout_{base::GetEnv("RDE_DISCOVER_PEER_TIMEOUT",
                                           kDefaultDiscoverPeerTimeout)},
       pre_active_script_timeout_{base::GetEnv(
-          "RDE_PRE_ACTIVE_SCRIPT_TIMEOUT", kDefaultPreActiveScriptTimeout)} {}
+          "RDE_PRE_ACTIVE_SCRIPT_TIMEOUT", kDefaultPreActiveScriptTimeout)},
+      received_peer_info_{true},
+      peer_info_wait_time_{},
+      peer_info_wait_timeout_ {kDefaultWaitPeerInfoTimeout} {}
 
 timespec* Role::Poll(timespec* ts) {
+  TRACE_ENTER();
   timespec* timeout = nullptr;
   if (role_ == PCS_RDA_UNDEFINED) {
     timespec now = base::ReadMonotonicClock();
@@ -238,6 +242,25 @@ timespec* Role::Poll(timespec* ts) {
         cb->state_refresh_thread_started = true;
         std::thread(&Role::RefreshConsensusState, this, cb).detach();
       }
+      if (consensus_service.IsEnabled() == false) {
+        // We are already ACTIVE, and has just discovered a new node
+        // which makes the election_end_time_ reset
+        if (received_peer_info_ == false) {
+          timespec now = base::ReadMonotonicClock();
+          if (peer_info_wait_time_ >= now) {
+            *ts = peer_info_wait_time_ - now;
+            timeout = ts;
+          } else {
+            // Timeout but haven't received peer info
+            // The peer RDE could be in ACTIVE
+            // thus self-fence to avoid split-brain risk
+            LOG_ER("Discovery peer up without peer info. Risk in split-brain,"
+                "rebooting this node");
+            opensaf_quick_reboot("Probable split-brain due to "
+                "unknown RDE peer info");
+          }
+        }
+      }
     }
   }
   return timeout;
@@ -251,10 +274,23 @@ void Role::ExecutePreActiveScript() {
 }
 
 void Role::AddPeer(NODE_ID node_id) {
+  TRACE_ENTER();
   auto result = known_nodes_.insert(node_id);
   if (result.second) {
     ResetElectionTimer();
+    if (role_ == PCS_RDA_ACTIVE) {
+      ResetPeerInfoWaitTimer();
+      received_peer_info_ = false;
+    }
   }
+}
+
+void Role::RemovePeer(NODE_ID node_id) {
+  TRACE_ENTER();
+  if (received_peer_info_ == false && role_ != PCS_RDA_ACTIVE) {
+    StopPeerInfoWaitTimer();
+  }
+  known_nodes_.erase(node_id);
 }
 
 // call from main thread only
@@ -330,8 +366,22 @@ uint32_t Role::SetRole(PCS_RDA_ROLE new_role) {
 }
 
 void Role::ResetElectionTimer() {
+  TRACE_ENTER();
   election_end_time_ = base::ReadMonotonicClock() +
                        base::MillisToTimespec(discover_peer_timeout_);
+}
+
+void Role::ResetPeerInfoWaitTimer() {
+  TRACE_ENTER();
+  LOG_NO("Start/restart waiting peer info timer");
+  peer_info_wait_time_ = base::ReadMonotonicClock() +
+                       base::MillisToTimespec(peer_info_wait_timeout_);
+}
+
+void Role::StopPeerInfoWaitTimer() {
+  TRACE_ENTER();
+  // Turn off peer_info_timer
+  received_peer_info_ = true;
 }
 
 uint32_t Role::UpdateMdsRegistration(PCS_RDA_ROLE new_role,
@@ -357,6 +407,7 @@ uint32_t Role::UpdateMdsRegistration(PCS_RDA_ROLE new_role,
 
 void Role::SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id,
                         uint64_t peer_promote_pending) {
+  TRACE_ENTER();
   if (role() == PCS_RDA_UNDEFINED) {
     bool give_up = false;
     RDE_CONTROL_BLOCK *cb = rde_get_control_block();
@@ -372,6 +423,14 @@ void Role::SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id,
     }
     if (node_role == PCS_RDA_ACTIVE || node_role == PCS_RDA_STANDBY ||
         give_up) {
+      // broadcast QUIESCED role to all peers to stop their waiting peer
+      // info timer
+      rde_msg peer_info_req;
+      peer_info_req.type = RDE_MSG_PEER_INFO_RESP;
+      peer_info_req.info.peer_info.ha_role = PCS_RDA_QUIESCED;
+      peer_info_req.info.peer_info.promote_pending = 0;
+      rde_mds_broadcast(&peer_info_req);
+
       SetRole(PCS_RDA_QUIESCED);
       LOG_NO("Giving up election against 0x%" PRIx32
              " with role %s. "
@@ -379,6 +438,8 @@ void Role::SetPeerState(PCS_RDA_ROLE node_role, NODE_ID node_id,
              node_id, to_string(node_role), to_string(role()));
     }
   }
+  known_nodes_.insert(node_id);
+  StopPeerInfoWaitTimer();
 }
 
 void Role::PromoteNodeLate() {

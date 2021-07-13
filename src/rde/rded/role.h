@@ -50,12 +50,16 @@ class Role {
   void NodePromoted();
   void PromoteNodeLate();
   void RefreshConsensusState(RDE_CONTROL_BLOCK* cb);
+  void RemovePeer(NODE_ID node_id);
 
  private:
   static const uint64_t kDefaultDiscoverPeerTimeout = 2000;
+  static const uint64_t kDefaultWaitPeerInfoTimeout = 2000;
   static const uint64_t kDefaultPreActiveScriptTimeout = 5000;
   void ExecutePreActiveScript();
   void ResetElectionTimer();
+  void ResetPeerInfoWaitTimer();
+  void StopPeerInfoWaitTimer();
   uint32_t UpdateMdsRegistration(PCS_RDA_ROLE new_role, PCS_RDA_ROLE old_role);
   void PromoteNode(const uint64_t cluster_size, const bool relaxed_mode);
 
@@ -68,6 +72,9 @@ class Role {
   uint64_t pre_active_script_timeout_;
   static const char* const role_names_[];
   static const char* const pre_active_script_;
+  bool received_peer_info_;
+  timespec peer_info_wait_time_;
+  uint64_t peer_info_wait_timeout_;
 
   DELETE_COPY_AND_MOVE_OPERATORS(Role);
 };
