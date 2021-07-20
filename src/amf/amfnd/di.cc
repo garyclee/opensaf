@@ -1087,6 +1087,8 @@ uint32_t avnd_di_object_upd_send(AVND_CB *cb, AVSV_PARAM_INFO *param) {
   if ((cb->is_avd_down == false) && (cb->amfd_sync_required == true)) {
     msg.info.avd->msg_info.n2d_data_req.msg_id = 0;
     if (avnd_diq_rec_add(cb, &msg) == nullptr) {
+      /* free the contents of avnd message */
+      avnd_msg_content_free(cb, &msg);
       rc = NCSCC_RC_FAILURE;
     }
     LOG_NO(
