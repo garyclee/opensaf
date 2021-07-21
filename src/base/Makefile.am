@@ -280,6 +280,8 @@ bin_core_common_test_LDADD = \
 	$(GMOCK_DIR)/lib/libgmock.la \
 	$(GMOCK_DIR)/lib/libgmock_main.la
 
+if ENABLE_TESTS
+
 bin_PROGRAMS += bin/basetest
 
 noinst_HEADERS += \
@@ -297,3 +299,5 @@ bin_basetest_LDADD = \
 	lib/libapitest.la \
 	lib/libosaf_common.la \
 	lib/libopensaf_core.la
+
+endif
