@@ -3236,6 +3236,11 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su,
     osafassert(comp != nullptr);
     curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
         m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+    if ((cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED) &&
+      (!curr_csi)) {
+      LOG_NO("CSI has already removed in shutting down");
+      goto done;
+    }
     osafassert(curr_csi);
 
     /* mark the csi state assigned/removed */
