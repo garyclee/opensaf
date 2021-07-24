@@ -425,6 +425,7 @@ bool immModel_pbeIsInSync(IMMND_CB *cb, bool checkCriticalCcbs);
 SaImmRepositoryInitModeT immModel_getRepositoryInitMode(IMMND_CB *cb);
 
 unsigned int immModel_getMaxSyncBatchSize(IMMND_CB *cb);
+SaTimeT immModel_getSyncrTimeout(IMMND_CB *cb);
 
 SaAisErrorT immModel_rtObjectCreate(IMMND_CB *cb,
                                     struct ImmsvOmCcbObjectCreate *req,

@@ -28,6 +28,7 @@
 #include "immnd.h"
 #include "base/osaf_unicode.h"
 #include "base/osaf_extended_name.h"
+#include "base/saf_def.h"
 
 // Local types
 #define DEFAULT_TIMEOUT_SEC 6  /* Should be saImmOiTimeout in SaImmMngt */
@@ -596,6 +597,7 @@ static const std::string immManagementDn(
 static const std::string saImmRepositoryInit("saImmRepositoryInit");
 static const std::string saImmOiTimeout("saImmOiTimeout");
 static const std::string saImmFileSystemStatus("saImmFileSystemStatus");
+static const std::string saImmSyncrTimeout("saImmSyncrTimeout");
 static SaImmRepositoryInitModeT immInitMode = SA_IMM_INIT_FROM_FILE;
 static bool sRegenerateDb = false;
 
@@ -947,11 +949,12 @@ SaAisErrorT immModel_ccbObjectModify(
   std::string objectName;
   bool pbeFile = (cb->mPbeFile != NULL);
   bool changeRim = false;
+  bool changeSyncr = false;
   SaAisErrorT err =
       ImmModel::instance(&cb->immModel)
           ->ccbObjectModify(req, implConn, implNodeId, continuationId, pbeConn,
                             pbeNodeId, objectName, hasLongDns, pbeFile,
-                            &changeRim);
+                            &changeRim, &changeSyncr);
 
   if (err == SA_AIS_OK) {
     osaf_extended_name_alloc(objectName.c_str(), objName);
@@ -960,6 +963,11 @@ SaAisErrorT immModel_ccbObjectModify(
   if (err == SA_AIS_OK && changeRim) {
     cb->mPbeDisableCcbId = req->ccbId;
     TRACE("The mPbeDisableCcbId is set to ccbid:%u", cb->mPbeDisableCcbId);
+  }
+
+  if (err == SA_AIS_OK && changeSyncr) {
+    cb->mSyncrTimeout = true;
+    TRACE("Syncr Timeout is changed");
   }
 
   return err;
@@ -2069,6 +2077,10 @@ SaImmRepositoryInitModeT immModel_getRepositoryInitMode(IMMND_CB* cb) {
       ->getRepositoryInitMode();
 }
 
+SaTimeT immModel_getSyncrTimeout(IMMND_CB* cb) {
+  return ImmModel::instance(&cb->immModel)->getSyncrTimeout();
+}
+
 unsigned int immModel_getMaxSyncBatchSize(IMMND_CB* cb) {
   return ImmModel::instance(&cb->immModel)->getMaxSyncBatchSize();
 }
@@ -2962,6 +2974,22 @@ SaImmRepositoryInitModeT ImmModel::getRepositoryInitMode() {
   TRACE_2("%s not found or %s not found, returning INIT_FROM_FILE",
           immManagementDn.c_str(), saImmRepositoryInit.c_str());
   return SA_IMM_INIT_FROM_FILE;
+}
+
+SaTimeT ImmModel::getSyncrTimeout() {
+  ImmAttrValueMap::iterator avi;
+  ObjectInfo* immMgObject = NULL;
+  ObjectMap::iterator oi = sObjectMap.find(immManagementDn);
+  if (oi != sObjectMap.end()) {
+    immMgObject = oi->second;
+    avi = immMgObject->mAttrValueMap.find(saImmSyncrTimeout);
+
+    if (avi != immMgObject->mAttrValueMap.end()) {
+      osafassert(!avi->second->isMultiValued());
+      return avi->second->getValue_satimet();
+    }
+  }
+  return 0;
 }
 
 unsigned int ImmModel::getMaxSyncBatchSize() {
@@ -9179,7 +9207,7 @@ SaAisErrorT ImmModel::ccbObjectModify(
     const ImmsvOmCcbObjectModify* req, SaUint32T* implConn,
     unsigned int* implNodeId, SaUint32T* continuationId, SaUint32T* pbeConnPtr,
     unsigned int* pbeNodeIdPtr, std::string& objectName, bool* hasLongDns,
-    bool pbeFile, bool* changeRim) {
+    bool pbeFile, bool* changeRim, bool* changeSyncr) {
   TRACE_ENTER();
   osafassert(hasLongDns);
   *hasLongDns = false;
@@ -9213,7 +9241,6 @@ SaAisErrorT ImmModel::ccbObjectModify(
   ObjectMutationMap::iterator omuti;
   ObjectMutation* oMut = 0;
   bool chainedOp = false;
-  immsv_attr_mods_list* p = req->attrMods;
   bool modifiedNotifyAttr = false;
   bool longDnsPermitted = getLongDnsAllowed();
 
@@ -9445,7 +9472,7 @@ SaAisErrorT ImmModel::ccbObjectModify(
     collectNoDanglingRefs(afim, afimPreOpNDRefs);
   }
 
-  for (p = req->attrMods; p; p = p->next) {
+  for (immsv_attr_mods_list* p = req->attrMods; p; p = p->next) {
     sz = strnlen((char*)p->attrValue.attrName.buf,
                  (size_t)p->attrValue.attrName.size);
     std::string attrName((const char*)p->attrValue.attrName.buf, sz);
@@ -9628,6 +9655,16 @@ SaAisErrorT ImmModel::ccbObjectModify(
                 attrName.c_str());
             osafassert(!attr->mDefaultValue.empty());
             (*attrValue) = attr->mDefaultValue;
+            if (modifiedImmMngt && (attrName == saImmSyncrTimeout)) {
+              SaTimeT oldSyncr = getSyncrTimeout();
+              SaTimeT newSyncr = attr->mDefaultValue.getValue_satimet();
+              if (oldSyncr != newSyncr) {
+                *changeSyncr = true;
+              } else {
+                LOG_NO("Skip update. Syncr timeout does not changed: %lld",
+                       newSyncr);
+              }
+            }
 
             TRACE("Canonicalizing attr-mod for attribute '%s'",
                   attrName.c_str());
@@ -9718,6 +9755,23 @@ SaAisErrorT ImmModel::ccbObjectModify(
               (newRim == SA_IMM_INIT_FROM_FILE)) {
             LOG_NO("Request for rim change is arrived in ccb%u", ccbId);
             *changeRim = true;
+          }
+        }
+
+        if (modifiedImmMngt && (attrName == saImmSyncrTimeout)) {
+          SaTimeT oldSyncr = getSyncrTimeout();
+          SaTimeT newSyncr = attrValue->getValue_satimet();
+          if (newSyncr < NCS_SAF_MIN_ACCEPT_TIME && newSyncr != 0) {
+            LOG_WA("Invalid value (%lld) for param %s [10 - INT64_MAX]",
+                   newSyncr, saImmSyncrTimeout.c_str());
+            err = SA_AIS_ERR_BAD_OPERATION;
+            break;
+          }
+          if (oldSyncr != newSyncr) {
+            *changeSyncr = true;
+          } else {
+            LOG_NO("Skip update. Syncr timeout does not changed: %lld",
+                   newSyncr);
           }
         }
 

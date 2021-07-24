@@ -238,7 +238,6 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle,
   IMMSV_EVT init_evt;
   IMMSV_EVT *out_evt = NULL;
   bool locked = true;
-  char *timeout_env_value = NULL;
   char *value;
   TRACE_ENTER();
   osafassert(immHandle && cl_node);
@@ -262,15 +261,9 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle,
     goto clm_left;
   }
 
-  if ((timeout_env_value = getenv("IMMA_SYNCR_TIMEOUT")) != NULL) {
-    cl_node->syncr_timeout = atoi(timeout_env_value);
-    TRACE_2("IMMA library syncronous timeout set to:%lld",
-            cl_node->syncr_timeout);
-  }
-
-  if (cl_node->syncr_timeout < NCS_SAF_MIN_ACCEPT_TIME) {
-    cl_node->syncr_timeout = IMMSV_WAIT_TIME; /* Default */
-  }
+  cl_node->syncr_timeout = imma_getSyncrTimeout();
+  TRACE_2("IMMA library syncronous timeout set to:%lld",
+          cl_node->syncr_timeout);
 
   *immHandle = 0;
 
@@ -362,6 +355,12 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle,
 
     cl_node->handle = out_evt->info.imma.info.initRsp.immHandle;
     cl_node->isOm = true;
+    SaTimeT timeout = out_evt->info.imma.info.initRsp.syncrTimeout;
+    if (timeout >= NCS_SAF_MIN_ACCEPT_TIME) {
+      cl_node->syncr_timeout = timeout;
+      TRACE_2("IMMA library syncronous timeout set to:%lld",
+              cl_node->syncr_timeout);
+    }
 
     cl_node->maxSearchHandles = 100;
     if ((value = getenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE"))) {

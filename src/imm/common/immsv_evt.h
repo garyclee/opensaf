@@ -105,6 +105,7 @@ typedef enum imma_evt_type {
       34, /* when clm-lock/clm-node left the cluster */
   IMMA_EVT_ND2A_IMM_CLM_NODE_JOINED =
       35, /* when clm-lock/clm-node join the cluster */
+  IMMA_EVT_ND2A_IMM_SYNCR_TIMEOUT = 36,
 
   IMMA_EVT_MAX
 } IMMA_EVT_TYPE;
@@ -397,6 +398,7 @@ typedef struct immsv_oi_search_remote_rsp {
 typedef struct immsv_nd2a_init_rsp {
   SaImmHandleT immHandle;
   SaAisErrorT error;
+  SaTimeT syncrTimeout;
 } IMMSV_ND2A_INIT_RSP;
 
 /* AdminOwnerInit Response */
@@ -557,6 +559,7 @@ typedef struct imma_evt {
     IMMSV_OM_CLASS_DESCR classDescr;
     IMMSV_ND2A_IMPLSET_RSP implSetRsp;
     IMMA_TMR_INFO tmr_info;
+    IMMA_SYNCR_TIMEOUT_UPDATE immaTimeoutUpdate;
   } info;
 
 } IMMA_EVT;

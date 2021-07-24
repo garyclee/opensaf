@@ -1404,6 +1404,9 @@ void imma_proc_free_pointers(IMMA_CB *cb, IMMA_EVT *evt) {
     case IMMA_EVT_ND2A_PROC_STALE_CLIENTS:
       break;
 
+    case IMMA_EVT_ND2A_IMM_SYNCR_TIMEOUT:
+      break;
+
     default:
       TRACE_4("Unknown event type %u", evt->type);
       break;
@@ -1433,6 +1436,34 @@ static void imma_proc_clm_status_changed(IMMA_CB *cb, IMMA_EVT *evt) {
     TRACE("CLM node join the cluster");
   }
   m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
+}
+
+static void imma_proc_syncr_timeout_update(IMMA_CB *cb, IMMA_EVT *evt) {
+  TRACE_ENTER();
+  IMMA_CLIENT_NODE *cl_node = NULL;
+  SaImmHandleT impl_handle = evt->info.immaTimeoutUpdate.immHandle;
+
+  /* get the CB Lock */
+  if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
+    TRACE_3("Lock failure");
+    return;
+  }
+
+  /* Get the Client info */
+  imma_client_node_get(&cb->client_tree, &impl_handle, &cl_node);
+  if (cl_node == NULL) {
+    m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
+    TRACE_3("Could not find client node impl_handle: %llx", impl_handle);
+    return;
+  }
+  cl_node->syncr_timeout = evt->info.immaTimeoutUpdate.syncrTimeout;
+  if (cl_node->syncr_timeout == 0) {
+    cl_node->syncr_timeout = imma_getSyncrTimeout();
+  }
+  TRACE_3("IMMA library syncronous timeout set to:%lld",
+          cl_node->syncr_timeout);
+  m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
+  TRACE_LEAVE();
 }
 
 /****************************************************************************
@@ -1505,6 +1536,10 @@ void imma_process_evt(IMMA_CB *cb, IMMSV_EVT *evt) {
     case IMMA_EVT_ND2A_IMM_CLM_NODE_LEFT:
     case IMMA_EVT_ND2A_IMM_CLM_NODE_JOINED:
       imma_proc_clm_status_changed(cb, &evt->info.imma);
+      break;
+
+    case IMMA_EVT_ND2A_IMM_SYNCR_TIMEOUT:
+      imma_proc_syncr_timeout_update(cb, &evt->info.imma);
       break;
 
     default:

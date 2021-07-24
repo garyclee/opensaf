@@ -602,3 +602,17 @@ SaImmAttrValueT imma_copyAttrValue3(const SaImmValueTypeT attrValueType,
   }
   return retVal;
 }
+
+SaTimeT imma_getSyncrTimeout() {
+  SaTimeT syncr_timeout = IMMSV_WAIT_TIME;
+  char *timeout_env_value = NULL;
+
+  if ((timeout_env_value = getenv("IMMA_SYNCR_TIMEOUT"))) {
+    syncr_timeout = atoll(timeout_env_value);
+    if (syncr_timeout < NCS_SAF_MIN_ACCEPT_TIME) {
+      LOG_WA("Invalid IMMA_SYNCR_TIMEOUT environment variable");
+      syncr_timeout = NCS_SAF_MIN_ACCEPT_TIME;
+    }
+  }
+  return syncr_timeout;
+}
