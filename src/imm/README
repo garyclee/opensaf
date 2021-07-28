@@ -3097,6 +3097,25 @@ In summary:
  Bit 9 controls OpenSAF5.1 protocols allowed or not (normally on/1).
  Bit 10 controls OpenSAF5.17.11 protocols allowed or not (normally on/1).
  Bit 11 controls OpenSAF5.19.07 protocols allowed or not (normally on/1).
+===================================================================
+https://sourceforge.net/p/opensaf/tickets/3268/
+
+In a large cluster (e.g, 24 nodes), the components have very often been
+timeout in the single step upgrade. To prevent timeout in this case,
+Operator need to increase the MDS wait time for all clients in cluster.
+Technically the IMMA_SYNC_TIMEOUT environment variable can be exported with
+appropriate value in each components on every nodes. However, the cluster
+has several nodes, each of which has hundreds of components.
+
+This enhancement introduce a configurable attribute `saImmSyncrTimeout`
+to `SaImmMngt` class. This attribute represents the current MDS wait
+time of IMM clients. It has 0 (disable this feature) by default and
+a valid value is within the range [NCS_SAF_MIN_ACCEPT_TIME(10) - INT64_MAX].
+The unit of value is 10 milliseconds.
+
+IMMND will distribute new timeout to all IMM clients when there is a change.
+When deleting value of attribute `saImmSyncrTimeout`, it will go back
+to default value (0) then force all IMM clients restore to old value.
 
 ----------------------------------------
 DEPENDENCIES
