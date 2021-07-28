@@ -477,6 +477,7 @@ bin_immomtest_SOURCES = \
 	src/imm/apitest/management/test_saImmOmThreadInterference.c \
 	src/imm/apitest/management/test_saImmOmLongDn.c \
 	src/imm/apitest/management/test_saImmOmSaStringT.c \
+	src/imm/apitest/management/test_saImmConfigSyncrTimeoutImma.c \
 	src/imm/apitest/management/test_cleanup.c
 
 bin_immomtest_LDADD = \
