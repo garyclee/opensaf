@@ -2,6 +2,7 @@
 %define opensaf_group opensaf
 
 %define is_python %(test "@PYTHON_ENABLED@" = "yes" && echo 1 || echo 0)
+%define is_python3 %([[ "@PYTHON_VERSION@" = 3.* ]] && echo 1 || echo 0)
 %define is_java %(test "@JAVA_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_am4j %(test "@AM4J_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_tests %(test "@TESTS_ENABLED@" = "yes" && echo 1 || echo 0)
@@ -700,7 +701,11 @@ Requires: %{name}-clm-libs = %{version}-%{release}
 %package python
 Group: Development/Libraries
 Summary: The Python AIS Bindings for SAF Services
-BuildRequires: python-devel
+%if %is_python3
+BuildRequires: python3-devel
+%else
+BuildRequires: python2-devel
+%endif
 Requires: %{name}-amf-libs = %{version}-%{release}
 Requires: %{name}-clm-libs = %{version}-%{release}
 Requires: %{name}-imm-libs = %{version}-%{release}
@@ -745,6 +750,10 @@ Requires: %{name}-controller = %{version}-%{release}
 
 %prep
 %setup -q
+%if %is_python
+%define major_version %(echo @PYTHON_VERSION@ | head -c1)
+grep -rE "^#!(.+?)python$" %{_topdir}/BUILD | cut -d ':' -f 1 | xargs -I '{}' sed -i '1 s/python$/python%major_version/g' '{}'
+%endif
 
 
 %build
@@ -1553,27 +1562,45 @@ fi
 %if %is_python
 %files python
 %defattr(-,root,root)
-%{python_sitelib}/pyosaf/*.py
-%{python_sitelib}/pyosaf/*.pyc
-%{python_sitelib}/pyosaf/*.pyo
-%{python_sitelib}/pyosaf/utils/*.py
-%{python_sitelib}/pyosaf/utils/*.pyc
-%{python_sitelib}/pyosaf/utils/*.pyo
-%{python_sitelib}/pyosaf/utils/immom/*.py
-%{python_sitelib}/pyosaf/utils/immom/*.pyc
-%{python_sitelib}/pyosaf/utils/immom/*.pyo
-%{python_sitelib}/pyosaf/utils/clm/*.py
-%{python_sitelib}/pyosaf/utils/clm/*.pyc
-%{python_sitelib}/pyosaf/utils/clm/*.pyo
-%{python_sitelib}/pyosaf/utils/log/*.py
-%{python_sitelib}/pyosaf/utils/log/*.pyc
-%{python_sitelib}/pyosaf/utils/log/*.pyo
-%{python_sitelib}/pyosaf/utils/ntf/*.py
-%{python_sitelib}/pyosaf/utils/ntf/*.pyc
-%{python_sitelib}/pyosaf/utils/ntf/*.pyo
-%{python_sitelib}/pyosaf/utils/immoi/*.py
-%{python_sitelib}/pyosaf/utils/immoi/*.pyc
-%{python_sitelib}/pyosaf/utils/immoi/*.pyo
+%if %is_python3
+%{python3_sitelib}/pyosaf/*.py
+%{python3_sitelib}/pyosaf/__pycache__/*.pyc
+%{python3_sitelib}/pyosaf/utils/*.py
+%{python3_sitelib}/pyosaf/utils/__pycache__/*.pyc
+%{python3_sitelib}/pyosaf/utils/immom/*.py
+%{python3_sitelib}/pyosaf/utils/immom/__pycache__/*.pyc
+%{python3_sitelib}/pyosaf/utils/immoi/*.py
+%{python3_sitelib}/pyosaf/utils/immoi/__pycache__/*.pyc
+%{python3_sitelib}/pyosaf/utils/ntf/*.py
+%{python3_sitelib}/pyosaf/utils/ntf/__pycache__/*.pyc
+%{python3_sitelib}/pyosaf/utils/log/*.py
+%{python3_sitelib}/pyosaf/utils/log/__pycache__/*.pyc
+%{python3_sitelib}/pyosaf/utils/clm/*.py
+%{python3_sitelib}/pyosaf/utils/clm/__pycache__/*.pyc
+%else
+%{python2_sitelib}/pyosaf/*.py
+%{python2_sitelib}/pyosaf/*.pyc
+%{python2_sitelib}/pyosaf/*.pyo
+%{python2_sitelib}/pyosaf/utils/*.py
+%{python2_sitelib}/pyosaf/utils/*.pyc
+%{python2_sitelib}/pyosaf/utils/*.pyo
+%{python2_sitelib}/pyosaf/utils/immom/*.py
+%{python2_sitelib}/pyosaf/utils/immom/*.pyc
+%{python2_sitelib}/pyosaf/utils/immom/*.pyo
+%{python2_sitelib}/pyosaf/utils/clm/*.py
+%{python2_sitelib}/pyosaf/utils/clm/*.pyc
+%{python2_sitelib}/pyosaf/utils/clm/*.pyo
+%{python2_sitelib}/pyosaf/utils/log/*.py
+%{python2_sitelib}/pyosaf/utils/log/*.pyc
+%{python2_sitelib}/pyosaf/utils/log/*.pyo
+%{python2_sitelib}/pyosaf/utils/ntf/*.py
+%{python2_sitelib}/pyosaf/utils/ntf/*.pyc
+%{python2_sitelib}/pyosaf/utils/ntf/*.pyo
+%{python2_sitelib}/pyosaf/utils/immoi/*.py
+%{python2_sitelib}/pyosaf/utils/immoi/*.pyc
+%{python2_sitelib}/pyosaf/utils/immoi/*.pyo
+%endif
+
 %endif
 
 
