@@ -23,6 +23,7 @@
 #include "base/logtrace.h"
 #include "ntf/common/ntfsv_mem.h"
 #include "ntf/ntfd/NtfClient.h"
+#include "ntfs.h"
 
 #if DISCARDED_TEST
 /* TODO REMOVE TEST */
@@ -280,9 +281,45 @@ void NtfSubscription::sendNotification(NtfSmartPtr& notification,
        * list.*/
       notificationSentConfirmed(client->getClientId(), getSubscriptionId(),
                                 notification->getNotificationId(), 1);
-    }
+      { // Start
+        // Generate Discarded Ntf Clean up as
+        // we are not able to send second time.
+        ntfsv_ntfs_evt_t *evt = NULL;
+        if (NULL == (evt = reinterpret_cast<ntfsv_ntfs_evt_t *>
+              (calloc(1, sizeof(ntfsv_ntfs_evt_t))))) {
+          LOG_WA("mem alloc FAILURE");
+          goto done;
+        }
+        evt->evt_type = NTFSV_NTFS_EVT_NTFA_DOWN;
+        /** Initialize the Event Header **/
+        // Filling non-zero to determine an internal event
+        evt->internal_event = true;
+        evt->fr_node_id =
+          m_NTFS_GET_NODE_ID_FROM_ADEST(client->getMdsDest());
+        evt->fr_dest = client->getMdsDest();
+
+        /** Initialize the MDS portion of the header **/
+        evt->info.mds_info.node_id =
+          m_NTFS_GET_NODE_ID_FROM_ADEST(client->getMdsDest());
+        evt->info.mds_info.mds_dest_id = client->getMdsDest();
+        TRACE("Nodeid: %u, MdsDest: %lu", evt->info.mds_info.node_id,
+            evt->info.mds_info.mds_dest_id);
+        TRACE("mdsDest: %" PRIu64, evt->info.mds_info.mds_dest_id);
+
+        /* Push the event and we are done */
+        if (m_NCS_IPC_SEND(&ntfs_cb->mbx, evt, NCS_IPC_PRIORITY_HIGH) !=
+            NCSCC_RC_SUCCESS) {
+          LOG_WA("ipc send failed");
+          free(evt);
+          goto done;
+        }
+        LOG_ER("Down event missed for app with mdsdest: %lu on node: %u",
+            evt->info.mds_info.mds_dest_id, evt->info.mds_info.node_id);
+      }  // End
+  }
     free(d_info.discardedNotificationIdentifiers);
   }
+done:
   TRACE_LEAVE();
 }
 
