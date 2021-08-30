@@ -302,7 +302,7 @@ void NtfSubscription::sendNotification(NtfSmartPtr& notification,
         evt->info.mds_info.node_id =
           m_NTFS_GET_NODE_ID_FROM_ADEST(client->getMdsDest());
         evt->info.mds_info.mds_dest_id = client->getMdsDest();
-        TRACE("Nodeid: %u, MdsDest: %lu", evt->info.mds_info.node_id,
+        TRACE("Nodeid: %u, MdsDest: %" PRIu64, evt->info.mds_info.node_id,
             evt->info.mds_info.mds_dest_id);
         TRACE("mdsDest: %" PRIu64, evt->info.mds_info.mds_dest_id);
 
@@ -313,7 +313,8 @@ void NtfSubscription::sendNotification(NtfSmartPtr& notification,
           free(evt);
           goto done;
         }
-        LOG_ER("Down event missed for app with mdsdest: %lu on node: %u",
+        LOG_ER(
+            "Down event missed for app with mdsdest: %" PRIu64 " on node: %u",
             evt->info.mds_info.mds_dest_id, evt->info.mds_info.node_id);
       }  // End
   }
