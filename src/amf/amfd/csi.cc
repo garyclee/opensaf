@@ -897,6 +897,7 @@ static void ccb_apply_delete_hdlr(CcbUtilOperationData_t *opdata) {
   AVD_COMP_CSI_REL *t_csicomp;
   AVD_CSI *csi = static_cast<AVD_CSI *>(opdata->userData);
   AVD_CSI *csi_in_db;
+  uint32_t compcsi_cnt = 0;
 
   bool first_sisu = true;
 
@@ -936,13 +937,17 @@ static void ccb_apply_delete_hdlr(CcbUtilOperationData_t *opdata) {
        assigned to anybody because of unique comp-cstype configured and since
        comp1 is deleted so, there wouldn't be any assignment. So, Just delete
        csi.*/
-    t_sisu = csi->si->list_of_sisu;
-    while (t_sisu) {
+    for (t_sisu = csi->si->list_of_sisu; t_sisu; t_sisu = t_sisu->si_next) {
       /* Find the relevant comp-csi to send susi delete. */
       for (t_csicomp = t_sisu->list_of_csicomp; t_csicomp;
            t_csicomp = t_csicomp->susi_csicomp_next)
-        if (t_csicomp->csi == csi) break;
-      osafassert(t_csicomp);
+        if (t_csicomp->csi == csi) {
+          compcsi_cnt++;
+          break;
+        }
+      if (!t_csicomp) {
+        continue;
+      }
       /* Mark comp-csi and sisu to be under csi add/rem.*/
       /* Send csi assignment for act susi first to the corresponding amfnd. */
       if ((SA_AMF_HA_ACTIVE == t_sisu->state) && (true == first_sisu)) {
@@ -958,9 +963,8 @@ static void ccb_apply_delete_hdlr(CcbUtilOperationData_t *opdata) {
       t_sisu->comp_name = Amf::to_string(&t_csicomp->comp->comp_info.name);
       t_sisu->csi_name = t_csicomp->csi->name;
       m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, t_sisu, AVSV_CKPT_AVD_SI_ASS);
-      t_sisu = t_sisu->si_next;
     } /* while(t_sisu) */
-
+    osafassert(csi->compcsi_cnt == compcsi_cnt);
   } else { /* if (nullptr != csi->si->list_of_sisu) */
     csi_cmplt_delete(csi, false);
   }
