@@ -297,6 +297,11 @@ typedef struct ImmsvSyncFevsBase {
   SaImmHandleT client_hdl;  // odd to put client_hdl here..
 } IMMSV_SYNC_FEVS_BASE;
 
+typedef struct ImmaSyncrTimeoutUpdate {
+  SaUint64T immHandle;
+  SaTimeT syncrTimeout;
+} IMMA_SYNCR_TIMEOUT_UPDATE;
+
 /* Macros to pack and unpack imm handles */
 #define m_IMMSV_PACK_HANDLE(high, low) \
   ((((SaUint64T)high) << 32) | ((SaUint32T)low))

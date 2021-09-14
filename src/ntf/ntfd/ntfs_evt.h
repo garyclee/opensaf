@@ -39,6 +39,7 @@ typedef struct { PCS_RDA_ROLE io_role; } ntfsv_rda_info_t;
 typedef struct ntfsv_ntfs_evt {
   struct ntfsv_ntfs_evt *next;
   uint32_t cb_hdl;
+  bool internal_event;  // 0 for external and 1 for internal
   MDS_SYNC_SND_CTXT mds_ctxt; /* Relevant when this event has to be responded to
                                * in a synchronous fashion.
                                */

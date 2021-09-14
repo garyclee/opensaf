@@ -288,6 +288,8 @@ static uint32_t immnd_evt_proc_reset(IMMND_CB *cb, IMMND_EVT *evt,
 
 static uint32_t immnd_evt_impl_delete(IMMND_CB *cb, IMMND_EVT *evt);
 
+static uint32_t immnd_syncr_timeout_update_all(SaTimeT syncrTimeout);
+
 #if 0 /* Only for debug */
 static void printImmValue(SaImmValueTypeT t, IMMSV_EDU_ATTR_VAL *v)
 {
@@ -1030,6 +1032,8 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt,
 	}
 
 	send_evt.info.imma.info.initRsp.immHandle = cl_node->imm_app_hdl;
+	send_evt.info.imma.info.initRsp.syncrTimeout =
+	    immModel_getSyncrTimeout(cb);
 	error = SA_AIS_OK;
 
 clm_left:
@@ -4786,6 +4790,19 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 						   must cause cluster restart.
 						*/
 					}
+				}
+			}
+
+			if (cb->mSyncrTimeout) {
+				cb->mSyncrTimeout = false;
+				SaTimeT newSyncr = immModel_getSyncrTimeout(cb);
+				uint32_t rc = immnd_syncr_timeout_update_all(newSyncr);
+				if (rc == NCSCC_RC_SUCCESS) {
+					LOG_NO("Update Syncr timeout(%lld) successful", newSyncr);
+				}
+				else {
+					LOG_NO("Update Syncr timeout(%lld) failure. rc:%u",
+					       newSyncr, rc);
 				}
 			}
 
@@ -12519,5 +12536,38 @@ static uint32_t immnd_evt_impl_delete(IMMND_CB *cb, IMMND_EVT *evt)
 	TRACE_LEAVE();
 
 failed:
+	return rc;
+}
+
+uint32_t immnd_syncr_timeout_update_all(SaTimeT syncr_timeout)
+{
+	IMMSV_EVT send_evt;
+	TRACE_ENTER();
+	uint32_t rc = NCSCC_RC_SUCCESS;
+
+	SaImmHandleT client_handle = 0;
+	IMMND_IMM_CLIENT_NODE *client_node = NULL;
+
+	memset(&send_evt, '\0', sizeof(IMMSV_EVT));
+	send_evt.type = IMMSV_EVT_TYPE_IMMA;
+	send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_SYNCR_TIMEOUT;
+	send_evt.info.imma.info.immaTimeoutUpdate.syncrTimeout = syncr_timeout;
+
+	immnd_client_node_getnext(immnd_cb, 0, &client_node);
+	while (client_node) {
+		client_handle = client_node->imm_app_hdl;
+		send_evt.info.imma.info.immaTimeoutUpdate.immHandle =
+		    client_handle;
+		if (immnd_mds_msg_send(immnd_cb, client_node->sv_id,
+				       client_node->agent_mds_dest,
+				       &send_evt) != NCSCC_RC_SUCCESS) {
+			LOG_ER("Sending syncr timeout update to client id %llx failed",
+			       client_handle);
+			rc = NCSCC_RC_FAILURE;
+		}
+		immnd_client_node_getnext(immnd_cb, client_handle,
+					  &client_node);
+	}
+	TRACE_LEAVE();
 	return rc;
 }

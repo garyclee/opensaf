@@ -210,6 +210,7 @@ typedef struct immnd_cb_tag {
   tmr_t splitbrain_tmr;
   bool splitbrain_tmr_run;
   uint8_t mFevsMaxPending; /* Max pending fevs messages towards director */
+  bool mSyncrTimeout;
 } IMMND_CB;
 
 /* CB prototypes */

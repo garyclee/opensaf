@@ -102,6 +102,28 @@ int ImmAttrValue::getValue_int() const {
   return *((int*)mValue);
 }
 
+void ImmAttrValue::setValue_satimet(SaTimeT i) {
+  if (mValue && mValueSize != sizeof(SaTimeT)) {
+    delete[] mValue;
+    mValue = 0;
+    mValueSize = 0;
+  }
+
+  if (!mValue) {
+    mValueSize = sizeof(SaTimeT);
+    mValue = new char[mValueSize];
+  }
+  *(reinterpret_cast<SaTimeT*>(mValue)) = i;
+}
+
+SaTimeT ImmAttrValue::getValue_satimet() const {
+  if (mValueSize != sizeof(SaTimeT)) {
+    return 0;
+  }
+
+  return *(reinterpret_cast<SaTimeT*>(mValue));
+}
+
 void ImmAttrValue::setValueC_str(const char* str) {
   if (mValue) {
     if (str) {

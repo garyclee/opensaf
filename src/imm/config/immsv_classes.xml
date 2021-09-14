@@ -52,5 +52,13 @@
 			<category>SA_RUNTIME</category>
 			<flag>SA_CACHED</flag>
 		</attr>
+		<attr>
+			<name>saImmSyncrTimeout</name>
+			<type>SA_TIME_T</type>
+			<category>SA_CONFIG</category>
+			<flag>SA_WRITABLE</flag>
+			<flag>SA_STRONG_DEFAULT</flag>
+			<default-value>0</default-value>
+		</attr>
 	</class>
 </imm:IMM-contents>

@@ -78,7 +78,8 @@ def check_resource_abort(ccb_handle):
             list_err_strings = unmarshalNullArray(c_error_strings)
             for c_error_string in list_err_strings:
                 if c_error_string.startswith("IMM: Resource abort: "):
-                    return True
+                    if "CCB is in an error state" not in c_error_string:
+                        return True
 
     return False
 
@@ -117,7 +118,8 @@ def decorate(func):
                 sleep_time_interval = 3 * RETRY_INTERVAL
             elif rc == eSaAisErrorT.SA_AIS_ERR_FAILED_OPERATION:
                 # Retry on getting FAILED_OPERATION only applies to IMM
-                # CCB-related operations in case of a resource abort;
+                # CCB-related operations in case of a resource abort
+                # and CCB not in error state.
                 ccb_handle = args[0]
                 resource_abort = check_resource_abort(ccb_handle)
                 if not resource_abort:

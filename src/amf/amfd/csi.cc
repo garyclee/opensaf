@@ -1564,6 +1564,12 @@ SaAisErrorT avd_compcsi_recreate(AVSV_N2D_ND_CSICOMP_STATE_MSG_INFO *info) {
 
   TRACE_ENTER();
 
+  AVD_AVND *node = avd_node_find_nodeid(info->node_id);
+  if (node == 0) {
+    LOG_ER("Node %" PRIx32 " has left the cluster", info->node_id);
+    return SA_AIS_ERR_NOT_EXIST;
+  }
+
   for (csicomp = info->csicomp_list; csicomp != nullptr;
        csicomp = csicomp->next) {
     csi = csi_db->find(Amf::to_string(&csicomp->safCSI));

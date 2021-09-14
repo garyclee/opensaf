@@ -206,7 +206,8 @@ class ImmModel {
                               SaUint32T* implConn, unsigned int* implNodeId,
                               SaUint32T* continuationId, SaUint32T* pbeConn,
                               unsigned int* pbeNodeId, std::string& objectName,
-                              bool* hasLongDns, bool pbeFile, bool* changeRim);
+                              bool* hasLongDns, bool pbeFile, bool* changeRim,
+                              bool* changeSyncr);
 
   SaAisErrorT ccbObjectDelete(const ImmsvOmCcbObjectDelete* req,
                               SaUint32T reqConn,
@@ -377,6 +378,7 @@ class ImmModel {
   void setRegenerateDbFlag(bool value);
   SaImmRepositoryInitModeT getRepositoryInitMode();
   unsigned int getMaxSyncBatchSize();
+  SaTimeT getSyncrTimeout();
   bool getLongDnsAllowed(ObjectInfo* immObject = NULL);
   void prepareForLoading();
   bool readyForLoading();

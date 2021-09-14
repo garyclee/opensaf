@@ -1,3 +1,22 @@
+OpenSAF 5.21.09 (released 2021-09-14)
+-------------------------------------
+
+    * ntf: Fix compilation errors for 32 bit machine [#3279]
+    * NTF: Delete discarded notifications when send fails twice [#3277]
+    * imm: update README file for a new attribute [#3268]
+    * imm: add test case of saImmSyncrTimeout attribute [#3268]
+    * imm: Introduce a configurable attribute saImmSyncrTimeout [#3268]
+    * pyosaf: correct retry on failed operation [#3276]
+    * build: checking test is enable before compile basetest [#3274]
+    * amfnd: fix crash during shutdown [#3275]
+    * amf: fix leak memory in function avnd_di_object_upd_send() [#3273]
+    * osaf: Added an saAisStrError(SaAisErrorT) function [#2143]
+    * rde: Add timeout of waiting for peer info [#3263]
+    * build: Remove the dtlog directory [#2156]
+    * amf: ignore re-create comp-csi assignment if node left [#3269]
+    * base: move the testcase sysf_ipc_test to the apitest [#3267]
+    * base: destroy sprr when leap startup fail [#3266]
+
 OpenSAF 5.21.06 (released 2021-06-01)
 -------------------------------------
 

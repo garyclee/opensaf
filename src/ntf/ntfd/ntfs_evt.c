@@ -110,6 +110,18 @@ static uint32_t proc_ntfa_updn_mds_msg(ntfsv_ntfs_evt_t *evt)
 		} else {
 			clientRemoveMDS(evt->fr_dest);
 		}
+    if (evt->internal_event == true) {
+      // Internal down generated event in case of discarded ntf
+      TRACE("Sending async update to standby");
+      ntfsv_ckpt_msg_t ckpt;
+      memset(&ckpt, 0, sizeof(ckpt));
+      ckpt.header.ckpt_rec_type = NTFS_CKPT_AGENT_DOWN;
+      ckpt.header.num_ckpt_records = 1;
+      ckpt.header.data_len = 0;
+      ckpt.ckpt_rec.agent_dest = evt->fr_dest;
+      update_standby(&ckpt, NCS_MBCSV_ACT_RMV);
+    }
+
 		break;
 	default:
 		TRACE("Unknown evt type!!!");

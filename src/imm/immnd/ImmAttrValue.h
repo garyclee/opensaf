@@ -47,6 +47,8 @@ class ImmAttrValue {
 
   void setValue_int(int i);
   int getValue_int() const;
+  void setValue_satimet(SaTimeT i);
+  SaTimeT getValue_satimet() const;
   void setValueC_str(const char* str);
   const char* getValueC_str() const;
   void setValue(const IMMSV_OCTET_STRING& in);

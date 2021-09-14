@@ -56,4 +56,6 @@ SaAisErrorT imma_evt_fake_evs(IMMA_CB *cb, IMMSV_EVT *i_evt, IMMSV_EVT **o_evt,
 SaAisErrorT imma_proc_check_stale(IMMA_CB *cb, SaImmHandleT immHandle,
                                   SaAisErrorT defaultEr);
 
+SaTimeT imma_getSyncrTimeout();
+
 #endif  // IMM_AGENT_IMMA_H_

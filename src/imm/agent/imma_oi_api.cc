@@ -187,15 +187,9 @@ SaAisErrorT initialize_common(SaImmOiHandleT *immOiHandle,
     }
   }
 
-  if ((timeout_env_value = getenv("IMMA_SYNCR_TIMEOUT")) != NULL) {
-    cl_node->syncr_timeout = atoi(timeout_env_value);
-    TRACE_2("IMMA library syncronous timeout set to:%lld",
-            cl_node->syncr_timeout);
-  }
-
-  if (cl_node->syncr_timeout < NCS_SAF_MIN_ACCEPT_TIME) {
-    cl_node->syncr_timeout = IMMSV_WAIT_TIME; /* Default */
-  }
+  cl_node->syncr_timeout = imma_getSyncrTimeout();
+  TRACE_2("IMMA library syncronous timeout set to:%lld",
+          cl_node->syncr_timeout);
 
   if (cl_node->isImmA2e &&
       (timeout_env_value = getenv("IMMA_OI_CALLBACK_TIMEOUT")) != NULL) {
@@ -309,6 +303,12 @@ SaAisErrorT initialize_common(SaImmOiHandleT *immOiHandle,
     }
 
     cl_node->handle = out_evt->info.imma.info.initRsp.immHandle;
+    SaTimeT timeout = out_evt->info.imma.info.initRsp.syncrTimeout;
+    if (timeout >= NCS_SAF_MIN_ACCEPT_TIME) {
+      cl_node->syncr_timeout = timeout;
+      TRACE_2("IMMA library syncronous timeout set to:%lld",
+              cl_node->syncr_timeout);
+    }
 
     TRACE_1("Trying to add OI client id:%u node:%x handle:%llx",
             m_IMMSV_UNPACK_HANDLE_HIGH(cl_node->handle),

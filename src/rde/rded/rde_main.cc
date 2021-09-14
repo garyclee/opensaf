@@ -125,6 +125,7 @@ static void handle_mbx_event() {
     }
     case RDE_MSG_PEER_DOWN:
       LOG_NO("Peer down on node 0x%x", msg->fr_node_id);
+      role->RemovePeer(msg->fr_node_id);
       break;
     case RDE_MSG_NEW_ACTIVE_CALLBACK: {
       const std::string my_node = base::Conf::NodeName();

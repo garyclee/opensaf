@@ -602,6 +602,24 @@ static uint32_t ckpt_encode_async_update(ntfs_cb_t *ntfs_cb, EDU_HDL edu_hdl,
 			TRACE_2("eduerr: %x", ederror);
 		}
 		break;
+	case NTFS_CKPT_AGENT_DOWN:
+		/* Encode RegHeader */
+		ckpt_hdr.ckpt_rec_type = NTFS_CKPT_AGENT_DOWN;
+		ckpt_hdr.num_ckpt_records = 1;
+		ckpt_hdr.data_len = 0;
+		enc_ckpt_header(pheader, ckpt_hdr);
+
+		TRACE_2("NTFS_CKPT_AGENT_DOWN REC: ENCODE");
+		rc = m_NCS_EDU_EXEC(&ntfs_cb->edu_hdl,
+				ncs_edp_mds_dest,
+				&cbk_arg->info.encode.io_uba,
+				EDP_OP_TYPE_ENC, &data->ckpt_rec.agent_dest, &ederror);
+		if (rc != NCSCC_RC_SUCCESS) {
+			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
+			/* free(data); FIX ??? */
+			TRACE_2("eduerr: %x", ederror);
+		}
+		break;
 	case NTFS_CKPT_SUBSCRIBE:
 		TRACE("Async update NTFS_CKPT_SUBSCRIBE");
 		ckpt_hdr.ckpt_rec_type = NTFS_CKPT_SUBSCRIBE;

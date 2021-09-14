@@ -197,6 +197,11 @@ extern void saImmOmCcbValidate_02(void);
 extern void saImmOmCcbObjectRead_01(void);
 extern void saImmOmCcbObjectRead_02(void);
 extern void saImmOmCcbObjectRead_03(void);
+extern void test_modify_syncr_timeout_success(void);
+extern void test_modify_syncr_timeout_failure(void);
+extern void test_modify_syncr_timeout_with_imm_client_restart(void);
+extern void test_restore_syncr_timeout_with_setenv(void);
+extern void test_restore_syncr_timeout_without_setenv(void);
 
 __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 {
@@ -400,4 +405,21 @@ __attribute__((constructor)) static void saImmOmInitialize_constructor(void)
 		      "saImmOmCcbObjectRead escalated to modify - SA_AIS_OK");
 	test_case_add(6, saImmOmCcbObjectRead_03,
 		      "saImmOmCcbObjectRead escalated to delete - SA_AIS_OK");
+	test_case_add(6, test_modify_syncr_timeout_success,
+		      "saImmOmCcbObjectModify_2 - SA_AIS_OK, Set a valid "
+		      "value to saImmSyncrTimeout");
+	test_case_add(6, test_modify_syncr_timeout_failure,
+		      "saImmOmCcbObjectModify_2 - SA_AIS_ERR_BAD_OPERATION, "
+		      "Set a invalid value to saImmSyncrTimeout");
+	test_case_add(6, test_modify_syncr_timeout_with_imm_client_restart,
+		      "saImmOmCcbObjectModify_2 - SA_AIS_OK, Set a valid "
+		      "value to saImmSyncrTimeout then verify syncr timeout "
+		      "after imm client restart");
+	test_case_add(6, test_restore_syncr_timeout_with_setenv,
+		      "saImmOmCcbObjectModify_2 - SA_AIS_OK, set variable "
+		      "IMMA_SYNCR_TIMEOUT=600 and saImmSyncrTimeout=0 then "
+		      "verify syncr timeout");
+	test_case_add(6, test_restore_syncr_timeout_without_setenv,
+		      "saImmOmCcbObjectModify_2 - SA_AIS_OK, set attribute "
+		      "saImmSyncrTimeout=0 then verify syncr timeout");
 }

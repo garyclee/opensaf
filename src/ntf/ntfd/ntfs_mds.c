@@ -935,6 +935,7 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info)
 
 			/** Initialize the Event Header **/
 			evt->cb_hdl = 0;
+			evt->internal_event = false;
 			evt->fr_node_id = info->info.svc_evt.i_node_id;
 			evt->fr_dest = info->info.svc_evt.i_dest;
 
