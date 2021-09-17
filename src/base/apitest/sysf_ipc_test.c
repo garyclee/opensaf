@@ -21,11 +21,11 @@
 #include <poll.h>
 #include <pthread.h>
 #include <sched.h>
-#include <stdatomic.h>
 #include <string.h>
 #include <unistd.h>
 
-atomic_int no_of_msgs_sent;
+int no_of_msgs_sent;
+pthread_mutex_t lock;
 SYSF_MBX mbox;
 
 typedef struct message_ {
@@ -88,7 +88,9 @@ static void *message_sender()
 		int rc = m_NCS_IPC_SEND(&mbox, msg, msg->prio);
 		assert(rc == NCSCC_RC_SUCCESS && "m_NCS_IPC_SEND failed");
 
+		pthread_mutex_lock(&lock);
 		no_of_msgs_sent++;
+		pthread_mutex_unlock(&lock);
 
 		sched_yield();
 	}
