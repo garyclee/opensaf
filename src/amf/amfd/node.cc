@@ -442,12 +442,13 @@ void avd_node_state_set(AVD_AVND *node, AVD_AVND_STATE node_state) {
  */
 void avd_node_oper_state_set(AVD_AVND *node,
                              SaAmfOperationalStateT oper_state) {
+  SaImmAttrNameT attributeName = (char *)"saAmfNodeOperState";
   if (node->saAmfNodeOperState == oper_state) {
     /* In the case of node failover, oper_state is disabled in the avnd_down
      * event. Since we dont update oper_state in avnd_down because the role is
      * not set to Active(there is no implementer), so updating now.
      */
-    avd_saImmOiRtObjectUpdate(node->name, "saAmfNodeOperState",
+    avd_saImmOiRtObjectUpdate_sync(node->name, attributeName,
                               SA_IMM_ATTR_SAUINT32T, &node->saAmfNodeOperState);
 
     /* Send notification for node oper state down. It is set to
@@ -471,7 +472,7 @@ void avd_node_oper_state_set(AVD_AVND *node,
          avd_oper_state_name[node->saAmfNodeOperState],
          avd_oper_state_name[oper_state]);
   node->saAmfNodeOperState = oper_state;
-  avd_saImmOiRtObjectUpdate(node->name, "saAmfNodeOperState",
+  avd_saImmOiRtObjectUpdate_sync(node->name, attributeName,
                             SA_IMM_ATTR_SAUINT32T, &node->saAmfNodeOperState);
   m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node, AVSV_CKPT_AVND_OPER_STATE);
 
@@ -926,7 +927,8 @@ void node_admin_state_set(AVD_AVND *node, SaAmfAdminStateT admin_state) {
            node->name.c_str(), avd_adm_state_name[node->saAmfNodeAdminState],
            avd_adm_state_name[admin_state]);
     node->saAmfNodeAdminState = admin_state;
-    avd_saImmOiRtObjectUpdate(node->name, "saAmfNodeAdminState",
+    SaImmAttrNameT attributeName = (char *)"saAmfNodeAdminState";
+    avd_saImmOiRtObjectUpdate_sync(node->name, attributeName,
                               SA_IMM_ATTR_SAUINT32T,
                               &node->saAmfNodeAdminState);
     m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, node, AVSV_CKPT_AVND_ADMIN_STATE);
