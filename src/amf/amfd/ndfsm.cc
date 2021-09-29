@@ -351,11 +351,9 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
         goto done;
       }
       if (cb->node_sync_tmr.is_active == true) {
-        if (n2d_msg->msg_info.n2d_node_up.leds_set == false) {
           TRACE("NodeSync timer is active, ignore this node_up msg (nodeid:%x)",
                 n2d_msg->msg_info.n2d_node_up.node_id);
           goto done;
-        }
       }
     }
   }
@@ -378,6 +376,10 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
       (cb->init_state < AVD_INIT_DONE)) {
     // node up from local AVND
     avd_process_state_info_queue(cb);
+    // close nodesync window
+    TRACE("stop NodeSync timer");
+    avd_stop_tmr(cb, &cb->node_sync_tmr);
+    cb->node_sync_window_closed = true;
   }
 
   if (avnd->node_info.member != SA_TRUE) {
