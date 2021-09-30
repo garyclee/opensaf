@@ -1993,9 +1993,11 @@ bool SmfUpgradeProcedure::addStepModifications(
   // fail if the reboot is performed when the  versioned types are removed i.e.
   // during test traffic, if the types was removed in campaign wrapup/complete
   // section.
-  SmfUpgradeCampaign *ucamp =
-      SmfCampaignThread::instance()->campaign()->getUpgradeCampaign();
-  if (ucamp->getProcExecutionMode() != SMF_BALANCED_MODE) {
+  SmfCampaign* camp = SmfCampaignThread::instance()->campaign();
+  SmfUpgradeCampaign *ucamp = camp->getUpgradeCampaign();
+
+  if ((ucamp->getProcExecutionMode() != SMF_BALANCED_MODE) ||
+      (camp->getState() == SA_SMF_CMPG_EXECUTION_COMPLETED)) {
     // getImmStepsSingleStep handles this case for balanced mode
     if (getState() == SA_SMF_PROC_COMPLETED) {
       TRACE("Procedure is completed, skipping addStepModifications");
