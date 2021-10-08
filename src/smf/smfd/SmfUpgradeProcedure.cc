@@ -1589,8 +1589,8 @@ bool SmfUpgradeProcedure::mergeBundleRefRollingToSingleStep(
   // Add the old steps AMF node to the plmExecEnv of the bundle ref to make it
   // install on the right node/nodes.
 
-  std::list<SmfBundleRef> &bundlesOldStep = i_oldStep->getSwAddList();
-  for (auto &oldStepBundleIter : bundlesOldStep) {
+  std::list<SmfBundleRef> &bundlesOldSwAddStep = i_oldStep->getSwAddList();
+  for (auto &oldStepBundleIter : bundlesOldSwAddStep) {
     // Read the list of already saved bundles, if already exist only add the new
     // swNode to the existing bundle
     std::list<SmfBundleRef> &bundlesNewStep = io_newStep->getSwAddList();
@@ -1628,8 +1628,9 @@ bool SmfUpgradeProcedure::mergeBundleRefRollingToSingleStep(
 
   LOG_NO(
       "Merge SwRemoveLists from the rolling steps into a single step bundle list");
-  bundlesOldStep = i_oldStep->getSwRemoveList();
-  for (auto &oldStepBundleElem : bundlesOldStep) {
+  std::list<SmfBundleRef> &bundlesOldSwRemoveStep =
+    i_oldStep->getSwRemoveList();
+  for (auto &oldStepBundleElem : bundlesOldSwRemoveStep) {
     // Read the list of already saved bundles, if already exist only add the new
     // swNode to the existing bundle
     std::list<SmfBundleRef> &bundlesNewStep = io_newStep->getSwRemoveList();
