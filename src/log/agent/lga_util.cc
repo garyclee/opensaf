@@ -39,36 +39,24 @@ static unsigned int client_counter = 0;
 static unsigned int lga_create() {
   unsigned int rc = NCSCC_RC_SUCCESS;
 
-  // Create and init sel obj for mds sync
-  NCS_SEL_OBJ* lgs_sync_sel = LogAgent::instance()->get_lgs_sync_sel();
-  m_NCS_SEL_OBJ_CREATE(lgs_sync_sel);
-  std::atomic<bool>& lgs_sync_wait =
-      LogAgent::instance()->atomic_get_lgs_sync_wait();
-  lgs_sync_wait = true;
-
-  // register with MDS
+  // Register with MDS
   if ((NCSCC_RC_SUCCESS != (rc = lga_mds_init()))) {
+    TRACE("lga_mds_init FAILED");
     rc = NCSCC_RC_FAILURE;
     // Delete the lga init instances
     LogAgent::instance()->RemoveAllLogClients();
     return rc;
   }
 
-  // Block and wait for indication from MDS meaning LGS is up
+  // Wait for log server up
+  rc = LogAgent::instance()->WaitLogServerUp(LGS_WAIT_TIME);
+  if (rc != NCSCC_RC_SUCCESS) {
+    TRACE("WaitLogServerUp FAILED");
+    // Delete the lga init instances
+    LogAgent::instance()->RemoveAllLogClients();
+    return rc;
+  }
 
-  // #1179 Change timeout from 30 sec (30000) to 10 sec (10000)
-  // 30 sec is probably too long for a synchronous API function
-  NCS_SEL_OBJ sel = *lgs_sync_sel;
-  int fd = m_GET_FD_FROM_SEL_OBJ(sel);
-  osaf_poll_one_fd(fd, 10000);
-
-  lgs_sync_wait = false;
-  std::atomic<SaClmClusterChangesT>& clm_state =
-      LogAgent::instance()->atomic_get_clm_node_state();
-  clm_state = SA_CLM_NODE_JOINED;
-
-  // No longer needed
-  m_NCS_SEL_OBJ_DESTROY(lgs_sync_sel);
   return rc;
 }
 

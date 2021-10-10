@@ -19,6 +19,7 @@
 #include <string.h>
 #include <algorithm>
 #include "base/ncs_hdl_pub.h"
+#include "base/osaf_poll.h"
 #include "base/saf_error.h"
 #include "log/agent/lga_mds.h"
 #include "log/agent/lga_state.h"
@@ -155,6 +156,23 @@ LogAgent::LogAgent() {
   // Initialize @get_delete_obj_sync_mutex_
   result = pthread_mutex_init(&get_delete_obj_sync_mutex_, nullptr);
   assert(result == 0 && "Failed to init `get_delete_obj_sync_mutex_`");
+  // Create select objects
+  m_NCS_SEL_OBJ_CREATE(&init_clm_status_sel_);
+  m_NCS_SEL_OBJ_CREATE(&log_server_up_sel_);
+
+  atomic_data_.waiting_log_server_up = true;
+}
+
+LogAgent::~LogAgent() {
+  TRACE_ENTER();
+  ScopeLock scopeLock(mutex_);
+
+  m_NCS_SEL_OBJ_DESTROY(&init_clm_status_sel_);
+  m_NCS_SEL_OBJ_DESTROY(&log_server_up_sel_);
+  client_list_.clear();
+  atomic_data_.waiting_log_server_up = false;
+
+  TRACE_LEAVE();
 }
 
 void LogAgent::PopulateOpenParams(
@@ -238,6 +256,7 @@ void LogAgent::RemoveLogClient(LogClient** client) {
     delete *client;
     *client = nullptr;
     lga_decrease_user_counter();
+    TRACE_LEAVE();
     return;
   }
   // We hope it will never come to this line
@@ -251,6 +270,7 @@ void LogAgent::RemoveAllLogClients() {
     if (client == nullptr) continue;
     delete client;
   }
+  TRACE_LEAVE();
 }
 
 // Add one client @client to the list @client_list_
@@ -260,6 +280,7 @@ void LogAgent::AddLogClient(LogClient* client) {
   ScopeLock scopeLock(mutex_);
   assert(client != nullptr);
   client_list_.push_back(client);
+  TRACE_LEAVE();
 }
 
 // Do recover all log clients in list @client_list_
@@ -282,7 +303,79 @@ bool LogAgent::RecoverAllLogClients() {
     // by LOG client thread.
     if (client->RecoverMe() == false) continue;
   }
+  TRACE_LEAVE();
   return true;
+}
+
+// Wait for log service up and clm status event.
+// @param polling_timeout timeout for each polling (in 10ms)
+// @return  NCSCC_RC_SUCCESS on success
+//          or NCSCC_RC_REQ_TIMOUT on timeout
+//          or NCSCC_RC_FAILURE on error
+unsigned int LogAgent::WaitLogServerUp(int64_t polling_timeout) {
+  unsigned int rc = NCSCC_RC_SUCCESS;
+  int status = 0;
+  int64_t timeout = polling_timeout * 10; // in milisecond
+  TRACE_ENTER();
+
+  if (!atomic_data_.waiting_log_server_up) {
+    TRACE("Log server was up");
+    rc = NCSCC_RC_SUCCESS;
+    goto done;
+  }
+
+  // Wait for log server up
+  status = osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(log_server_up_sel_),
+                            timeout);
+  if (status == 0) {
+    TRACE("Waiting for log server up timeout");
+    rc = NCSCC_RC_REQ_TIMOUT;
+    goto done;
+  } else if (status < 0) {
+    TRACE("Waiting for log server up failed: %s", strerror(errno));
+    rc = NCSCC_RC_FAILURE;
+    goto done;
+  }
+
+  // Wait for initial clm status
+  status = osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(init_clm_status_sel_),
+                            timeout);
+  if (status == 0) {
+    // The server may not support this signal
+    // or it's dropped.
+    TRACE("Waiting for initial clm status timeout");
+    rc = NCSCC_RC_SUCCESS;
+    goto done;
+  } else if (status < 0) {
+    TRACE("Waiting for initial clm status failed: %s", strerror(errno));
+    rc = NCSCC_RC_FAILURE;
+    goto done;
+  }
+
+  // Log server was up and detected this agent. Stop waiting
+  atomic_data_.waiting_log_server_up = false;
+
+done:
+  TRACE_LEAVE();
+  return rc;
+}
+
+// Mark log server was up
+void LogAgent::MarkLogServerUp() {
+  TRACE_ENTER();
+  if (atomic_data_.waiting_log_server_up) {
+    m_NCS_SEL_OBJ_IND(&log_server_up_sel_);
+  }
+  TRACE_LEAVE();
+}
+
+// Mark received initial clm status
+void LogAgent::MarkInitClmStatus() {
+  TRACE_ENTER();
+  if (atomic_data_.waiting_log_server_up) {
+    m_NCS_SEL_OBJ_IND(&init_clm_status_sel_);
+  }
+  TRACE_LEAVE();
 }
 
 void LogAgent::NoLogServer() {
@@ -298,6 +391,7 @@ void LogAgent::NoLogServer() {
     if (client == nullptr) continue;
     client->NoLogServer();
   }
+  TRACE_LEAVE();
 }
 
 SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
@@ -355,9 +449,14 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
   //<
 
   // Initiate the client in the agent and if first client also start MDS
-  if ((rc = lga_startup()) != NCSCC_RC_SUCCESS) {
+  rc = lga_startup();
+  if (rc != NCSCC_RC_SUCCESS) {
     TRACE("lga_startup FAILED: %u", rc);
-    ais_rc = SA_AIS_ERR_LIBRARY;
+    if (rc == NCSCC_RC_REQ_TIMOUT) {
+      ais_rc = SA_AIS_ERR_TRY_AGAIN;
+    } else {
+      ais_rc = SA_AIS_ERR_LIBRARY;
+    }
     return ais_rc;
   }
 

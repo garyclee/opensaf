@@ -193,4 +193,6 @@ struct lgsv_msg_t {
   } info;
 };
 
+#define ALL_CLIENT_ID 0
+
 #endif  // LOG_COMMON_LGSV_MSG_H_

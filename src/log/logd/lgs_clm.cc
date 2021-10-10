@@ -16,6 +16,7 @@
  */
 #include <cinttypes>
 
+#include "log/common/lgsv_msg.h"
 #include "log/logd/lgs.h"
 #include "log/logd/lgs_evt.h"
 #include "log/logd/lgs_clm.h"
@@ -219,6 +220,26 @@ static uint32_t send_cluster_membership_msg_to_clients(
       rc = send_clm_node_status_lib(clusterChange, rec->client_id,
                                     rec->mds_dest);
   }
+
+  TRACE_LEAVE();
+  return rc;
+}
+
+/**
+ * @brief  Sends CLM membership status of the node to a log agent
+ *
+ * @param SaClmClusterChangesT (CLM status of node)
+ * @param mdsDest of log agent
+ *
+ * @return NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ */
+uint32_t lgs_send_clm_node_status(SaClmClusterChangesT status,
+                                  MDS_DEST mdsDest) {
+  uint32_t rc;
+  TRACE_ENTER();
+  TRACE_3("status:%u", status);
+
+  rc = send_clm_node_status_lib(status, ALL_CLIENT_ID, mdsDest);
 
   TRACE_LEAVE();
   return rc;
