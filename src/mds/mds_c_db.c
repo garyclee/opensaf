@@ -1991,20 +1991,14 @@ uint32_t mds_subtn_res_tbl_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id,
 					    .active_route_info
 					    ->next_active_in_turn =
 					    subtn_res_info;
-				} else { /* Present entry is Active Entry */
-
-					if (local_vdest_policy ==
-					    NCS_VDEST_TYPE_MxN) {
-						/* Change active to point to
-						 * this active */
-						active_subtn_res_info->info
-						    .active_vdest
-						    .active_route_info
-						    ->next_active_in_turn =
-						    subtn_res_info;
-					} else {
-						/* Do nothing just add entry */
-					}
+				} else {
+					/*
+					 * Present entry is Active Entry.
+					 * Do nothing just add entry.
+					 * It is an active entry conflict
+					 * in NCS_VDEST_TYPE_MxN mode, just wait
+					 * for an actice entry goes down.
+					 */
 				}
 			}
 		} else { /* role == V_DEST_RL_STANDBY */
