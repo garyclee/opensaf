@@ -625,6 +625,11 @@ SaAisErrorT LogAgent::saLogDispatch(SaLogHandleT logHandle,
   return ais_rc;
 }
 
+size_t LogAgent::CountClient() {
+  ScopeLock scopeLock(mutex_);
+  return client_list_.size();
+}
+
 SaAisErrorT LogAgent::SendFinalizeMsg(uint32_t client_id) {
   uint32_t mds_rc;
   lgsv_msg_t msg, *o_msg = nullptr;
@@ -671,6 +676,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
   bool updated = false;
   bool is_locked = false;
   SaAisErrorT ais_rc = SA_AIS_OK;
+  int rc;
 
   TRACE_ENTER();
 
@@ -689,20 +695,20 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     if (client == nullptr) {
       TRACE("No log client with such handle");
       ais_rc = SA_AIS_ERR_BAD_HANDLE;
-      return ais_rc;
+      goto done;
     }
 
     if (client->FetchAndDecreaseRefCounter(__func__, &updated) != 0) {
       // DO NOT delete this @client as it is being used by somewhere (>0)
       // Or it is being deleted by other thread (=-1)
       ais_rc = SA_AIS_ERR_TRY_AGAIN;
-      return ais_rc;
+      goto done;
     }
   }  // end critical section
 
   if (client->HaveLogStreamInUse() == true) {
     ais_rc = SA_AIS_ERR_TRY_AGAIN;
-    return ais_rc;
+    goto done;
   }
 
   // No LOG server. No service is provided.
@@ -710,7 +716,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     // We have a server but it is temporary unavailable. Client may try again
     TRACE("%s lgs_state = LGS no active", __func__);
     ais_rc = SA_AIS_ERR_TRY_AGAIN;
-    return ais_rc;
+    goto done;
   }
 
   // Avoid the recovery thread block operation on done-recovery client
@@ -722,7 +728,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
       // The client may try again
       TRACE("%s lga_state = LGA auto recovery ongoing (2)", __func__);
       ais_rc = SA_AIS_ERR_TRY_AGAIN;
-      return ais_rc;
+      goto done;
     }
 
     if (is_lga_recovery_state(RecoveryState::kRecovery1)) {
@@ -734,7 +740,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
         TRACE("\t Client is not initialized. Remove it from database");
         ScopeLock critical_section(get_delete_obj_sync_mutex_);
         RemoveLogClient(&client);
-        return ais_rc;
+        goto done;
       }
       TRACE("\t Client is initialized");
     }
@@ -749,6 +755,21 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
       ScopeLock critical_section(get_delete_obj_sync_mutex_);
       RemoveLogClient(&client);
     }
+  }
+
+done:
+  if (CountClient() == 0) {
+    // Stop recovery thread if it's running
+    stop_recovery2_thread();
+    // Shutdown the agent
+    rc = lga_shutdown();
+    if (rc != NCSCC_RC_SUCCESS) {
+      TRACE("lga_shutdown FAILED");
+      ais_rc = SA_AIS_ERR_LIBRARY;
+    }
+    m_NCS_SEL_OBJ_RMV_IND(&init_clm_status_sel_, true, false);
+    m_NCS_SEL_OBJ_RMV_IND(&log_server_up_sel_, true, false);
+    atomic_data_.waiting_log_server_up = true;
   }
 
   TRACE_LEAVE2("ais_rc = %s", saf_error(ais_rc));

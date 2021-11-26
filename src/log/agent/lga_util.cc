@@ -54,7 +54,27 @@ static unsigned int lga_create() {
     TRACE("WaitLogServerUp FAILED");
     // Delete the lga init instances
     LogAgent::instance()->RemoveAllLogClients();
+    // Unregister MDS
+    lga_mds_deinit();
     return rc;
+  }
+
+  return rc;
+}
+
+/**
+ * Delete log agent
+ *
+ * @return unsigned int
+ */
+static unsigned int lga_delete() {
+  unsigned int rc = NCSCC_RC_SUCCESS;
+
+  // Unregister in MDS
+  rc = lga_mds_deinit();
+  if (rc != NCSCC_RC_SUCCESS) {
+    TRACE("lga_mds_deinit FAILED");
+    rc = NCSCC_RC_FAILURE;
   }
 
   return rc;
@@ -85,6 +105,33 @@ unsigned int lga_startup() {
       ncs_agents_shutdown();
       goto done;
     }
+  }
+
+done:
+  TRACE_LEAVE2("rc: %u", rc);
+  return rc;
+}
+
+/**
+ * Shutdown the agent when not in use
+ * Stop NCS service and unregister MDS
+ *
+ * @return unsigned int
+ */
+unsigned int lga_shutdown() {
+  unsigned int rc = NCSCC_RC_SUCCESS;
+  ScopeLock lock(init_lock);
+  std::atomic<MDS_HDL>& mds_hdl = LogAgent::instance()->atomic_get_mds_hdl();
+  TRACE_ENTER();
+
+  if (mds_hdl) {
+    rc = lga_delete();
+    if (rc != NCSCC_RC_SUCCESS) {
+      TRACE("lga_delete FAILED");
+      goto done;
+    }
+    ncs_agents_shutdown();
+    mds_hdl = 0;
   }
 
 done:

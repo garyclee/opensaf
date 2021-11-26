@@ -37,6 +37,7 @@ void lga_recovery2_lock();
 void lga_recovery2_unlock();
 
 bool is_lga_recovery_state(RecoveryState state);
+void stop_recovery2_thread();
 void recovery2_lock(bool *is_locked);
 void recovery2_unlock(bool *is_locked);
 

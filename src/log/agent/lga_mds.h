@@ -25,6 +25,7 @@ struct lga_cb_t;
 struct lgsv_msg_t;
 
 uint32_t lga_mds_init();
+uint32_t lga_mds_deinit();
 void lga_msg_destroy(lgsv_msg_t *msg);
 
 uint32_t lga_mds_msg_sync_send(lgsv_msg_t *i_msg, lgsv_msg_t **o_msg,

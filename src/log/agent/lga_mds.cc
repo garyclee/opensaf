@@ -1332,6 +1332,34 @@ uint32_t lga_mds_init() {
 }
 
 /****************************************************************************
+  Name          : lga_mds_deinit
+
+  Description   : This routine unregisters the LGA Service in MDS.
+
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+
+  Notes         : None.
+******************************************************************************/
+uint32_t lga_mds_deinit() {
+  NCSMDS_INFO mds_info;
+  uint32_t rc = NCSCC_RC_SUCCESS;
+  std::atomic<MDS_HDL> &mds_hdl = LogAgent::instance()->atomic_get_mds_hdl();
+  TRACE_ENTER();
+
+  memset(&mds_info, 0, sizeof(NCSMDS_INFO));
+  mds_info.i_mds_hdl = mds_hdl.load();
+  mds_info.i_svc_id = NCSMDS_SVC_ID_LGA;
+  mds_info.i_op = MDS_UNINSTALL;
+  if ((rc = ncsmds_api(&mds_info)) != NCSCC_RC_SUCCESS) {
+    TRACE("mds api call failed");
+    return NCSCC_RC_FAILURE;
+  }
+
+  TRACE_LEAVE();
+  return rc;
+}
+
+/****************************************************************************
   Name          : lga_mds_msg_sync_send
 
   Description   : This routine sends the LGA message to LGS. The send
