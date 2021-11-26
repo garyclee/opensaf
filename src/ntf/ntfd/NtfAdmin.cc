@@ -1289,6 +1289,7 @@ void discardedClear(unsigned int clientId,
 }
 
 void PeriodicCheck() {
+  if (!activeController()) return;
   osafassert(NtfAdmin::theNtfAdmin != NULL);
   return NtfAdmin::theNtfAdmin->PeriodicCheck();
 }
