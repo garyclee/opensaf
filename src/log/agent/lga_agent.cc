@@ -757,7 +757,6 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     }
   }
 
-done:
   if (CountClient() == 0) {
     // Stop recovery thread if it's running
     stop_recovery2_thread();
@@ -767,11 +766,14 @@ done:
       TRACE("lga_shutdown FAILED");
       ais_rc = SA_AIS_ERR_LIBRARY;
     }
-    m_NCS_SEL_OBJ_RMV_IND(&init_clm_status_sel_, true, false);
-    m_NCS_SEL_OBJ_RMV_IND(&log_server_up_sel_, true, false);
-    atomic_data_.waiting_log_server_up = true;
+    if (!atomic_data_.waiting_log_server_up) {
+      m_NCS_SEL_OBJ_RMV_IND(&init_clm_status_sel_, true, false);
+      m_NCS_SEL_OBJ_RMV_IND(&log_server_up_sel_, true, false);
+      atomic_data_.waiting_log_server_up = true;
+    }
   }
 
+done:
   TRACE_LEAVE2("ais_rc = %s", saf_error(ais_rc));
   return ais_rc;
 }
