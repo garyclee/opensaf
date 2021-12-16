@@ -322,6 +322,11 @@ static void comp_hctype_update_compdb(AVND_CB *cb, AVSV_PARAM_INFO *param) {
               osafassert(0);
               break;
           }
+          // Ref #3298
+          uint32_t rc = avnd_start_tmr(avnd_cb, &comp_hc_rec->tmr, AVND_TMR_HC,
+                                    comp_hc_rec->period, comp_hc_rec->opq_hdl);
+          osafassert(rc == NCSCC_RC_SUCCESS);
+          comp_hc_rec->status = AVND_COMP_HC_STATUS_STABLE;
         }
       }
       osaf_extended_name_free(&hlt_chk.comp_name);
