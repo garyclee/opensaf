@@ -167,6 +167,8 @@ LogAgent::~LogAgent() {
   TRACE_ENTER();
   ScopeLock scopeLock(mutex_);
 
+  stop_recovery2_thread();
+  lga_shutdown();
   m_NCS_SEL_OBJ_DESTROY(&init_clm_status_sel_);
   m_NCS_SEL_OBJ_DESTROY(&log_server_up_sel_);
   client_list_.clear();
