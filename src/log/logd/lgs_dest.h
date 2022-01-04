@@ -254,7 +254,7 @@ class DestinationHandler {
   // Unique object instance of @DestinationHandler class
   static DestinationHandler& Instance() { return me_; }
   // Extract the stream name from stream DN
-  static std::string GenerateMsgId(const std::string&, bool);
+  static std::string GenerateMsgId(const std::string&);
 
   // Do destination configuration basing on input @vdest and @type.
   ErrCode ProcessCfgChange(const VectorString& vdest, ModifyType type);

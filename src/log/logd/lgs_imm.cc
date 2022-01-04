@@ -2336,8 +2336,7 @@ static SaAisErrorT stream_create_and_configure1(
           // Generate & cache `MSGID` to `rfc5424MsgId` which later
           // used in RFC5424 protocol
           (*stream)->rfc5424MsgId =
-              DestinationHandler::Instance().GenerateMsgId(
-              (*stream)->name, (*stream)->isRtStream);
+              DestinationHandler::Instance().GenerateMsgId((*stream)->name);
           TRACE("%s: stream %s - msgid = %s", __func__, (*stream)->name.c_str(),
                 (*stream)->rfc5424MsgId.c_str());
         }
@@ -2517,8 +2516,7 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata) {
         // Generate & cache `MSGID` to `rfc5424MsgId` which later
         // used in RFC5424 protocol
         stream->rfc5424MsgId =
-            DestinationHandler::Instance().GenerateMsgId(
-                stream->name, stream->isRtStream);
+            DestinationHandler::Instance().GenerateMsgId(stream->name);
         TRACE("%s: stream %s - msgid = %s", __func__, stream->name.c_str(),
               stream->rfc5424MsgId.c_str());
       }
@@ -2841,8 +2839,8 @@ static SaAisErrorT stream_create_and_configure(
       if (vstring.empty() == false) {
         // Generate & cache `MSGID` to `rfc5424MsgId` which later
         // used in RFC5424 protocol
-        stream->rfc5424MsgId = DestinationHandler::Instance().GenerateMsgId(
-            dn, stream->isRtStream);
+        stream->rfc5424MsgId =
+            DestinationHandler::Instance().GenerateMsgId(dn);
         TRACE("%s: stream %s - msgid = %s", __func__, stream->name.c_str(),
               stream->rfc5424MsgId.c_str());
       }

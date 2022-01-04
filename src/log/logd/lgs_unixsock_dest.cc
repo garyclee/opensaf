@@ -32,7 +32,7 @@
 // HOSTNAME        = FQDN = <hostname>[.<networkname>]
 // APP-NAME        = App name who generated log record
 // PROCID          = NILVALUE
-// MSGID           = log stream name + 'C'/'R' (e.g:saLogSystemC)
+// MSGID           = log stream name (e.g:saLogSystem)
 //                   or a hash number generated from log stream DN.
 // STRUCTURED-DATA = NILVALUE
 //
