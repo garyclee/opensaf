@@ -4691,7 +4691,23 @@ uint32_t mds_mcm_ll_data_rcv(MDS_DATA_RECV *recv)
 					    recv->dest_svc_hdl,
 					    recv->src_svc_id, recv->src_vdest,
 					    recv->src_adest, &lcl_subtn_res)) {
-			if (recv->src_seq_num != lcl_subtn_res->msg_rcv_cnt) {
+			if (recv->snd_type == MDS_SENDTYPE_BCAST
+					|| recv->snd_type == MDS_SENDTYPE_RBCAST) {
+				// The sequence number of broadcast message is associated
+				// with a specific destination not all destinations. Because
+				// it isn't reliable, this message is skipped by resetting
+				// the message count.
+				lcl_subtn_res->msg_rcv_cnt = 0;
+			} else if (lcl_subtn_res->msg_rcv_cnt == 0) {
+				// This is the first message received after subscribing
+				// the sender service or receiving a broadcast message,
+				// therefore the message count is initialized here.
+				// Note: all messages received before subscribing the
+				// sender service was not tracked so skip checking those
+				// messages.
+				lcl_subtn_res->msg_rcv_cnt = recv->src_seq_num;
+				lcl_subtn_res->msg_rcv_cnt++;
+			} else if (recv->src_seq_num != lcl_subtn_res->msg_rcv_cnt) {
 				m_MDS_LOG_ERR(
 				    "MDS_SND_RCV: msg loss detected, Src svc_id = %s(%d),"
 				    " Src vdest id= %d, Src Adest = %" PRIu64 ","
