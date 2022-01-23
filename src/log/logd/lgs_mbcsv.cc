@@ -2455,8 +2455,8 @@ uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, void *data) {
         stream->dest_names = logutil::Parser(stream->stb_dest_names, ";");
         // Generate & cache `MSGID` to `rfc5424MsgId` which later
         // used in RFC5424 protocol
-        stream->rfc5424MsgId = DestinationHandler::Instance().GenerateMsgId(
-            stream->name, stream->isRtStream);
+        stream->rfc5424MsgId =
+            DestinationHandler::Instance().GenerateMsgId(stream->name);
         TRACE("%s: stream %s - msgid = %s", __func__, stream->name.c_str(),
               stream->rfc5424MsgId.c_str());
       } else {
@@ -2757,8 +2757,8 @@ static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, void *data) {
       // 1) Have destination set
       // 2) Not yet generated
       if (stream->rfc5424MsgId.empty() == true) {
-        stream->rfc5424MsgId = DestinationHandler::Instance().GenerateMsgId(
-            stream->name, stream->isRtStream);
+        stream->rfc5424MsgId =
+            DestinationHandler::Instance().GenerateMsgId(stream->name);
         TRACE("%s: stream %s - msgid = %s", __func__, stream->name.c_str(),
               stream->rfc5424MsgId.c_str());
       }

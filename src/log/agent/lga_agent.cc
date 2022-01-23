@@ -19,6 +19,7 @@
 #include <string.h>
 #include <algorithm>
 #include "base/ncs_hdl_pub.h"
+#include "base/osaf_poll.h"
 #include "base/saf_error.h"
 #include "log/agent/lga_mds.h"
 #include "log/agent/lga_state.h"
@@ -155,6 +156,25 @@ LogAgent::LogAgent() {
   // Initialize @get_delete_obj_sync_mutex_
   result = pthread_mutex_init(&get_delete_obj_sync_mutex_, nullptr);
   assert(result == 0 && "Failed to init `get_delete_obj_sync_mutex_`");
+  // Create select objects
+  m_NCS_SEL_OBJ_CREATE(&init_clm_status_sel_);
+  m_NCS_SEL_OBJ_CREATE(&log_server_up_sel_);
+
+  atomic_data_.waiting_log_server_up = true;
+}
+
+LogAgent::~LogAgent() {
+  TRACE_ENTER();
+  ScopeLock scopeLock(mutex_);
+
+  stop_recovery2_thread();
+  lga_shutdown();
+  m_NCS_SEL_OBJ_DESTROY(&init_clm_status_sel_);
+  m_NCS_SEL_OBJ_DESTROY(&log_server_up_sel_);
+  client_list_.clear();
+  atomic_data_.waiting_log_server_up = false;
+
+  TRACE_LEAVE();
 }
 
 void LogAgent::PopulateOpenParams(
@@ -238,6 +258,7 @@ void LogAgent::RemoveLogClient(LogClient** client) {
     delete *client;
     *client = nullptr;
     lga_decrease_user_counter();
+    TRACE_LEAVE();
     return;
   }
   // We hope it will never come to this line
@@ -251,6 +272,7 @@ void LogAgent::RemoveAllLogClients() {
     if (client == nullptr) continue;
     delete client;
   }
+  TRACE_LEAVE();
 }
 
 // Add one client @client to the list @client_list_
@@ -260,6 +282,7 @@ void LogAgent::AddLogClient(LogClient* client) {
   ScopeLock scopeLock(mutex_);
   assert(client != nullptr);
   client_list_.push_back(client);
+  TRACE_LEAVE();
 }
 
 // Do recover all log clients in list @client_list_
@@ -282,7 +305,79 @@ bool LogAgent::RecoverAllLogClients() {
     // by LOG client thread.
     if (client->RecoverMe() == false) continue;
   }
+  TRACE_LEAVE();
   return true;
+}
+
+// Wait for log service up and clm status event.
+// @param polling_timeout timeout for each polling (in 10ms)
+// @return  NCSCC_RC_SUCCESS on success
+//          or NCSCC_RC_REQ_TIMOUT on timeout
+//          or NCSCC_RC_FAILURE on error
+unsigned int LogAgent::WaitLogServerUp(int64_t polling_timeout) {
+  unsigned int rc = NCSCC_RC_SUCCESS;
+  int status = 0;
+  int64_t timeout = polling_timeout * 10; // in milisecond
+  TRACE_ENTER();
+
+  if (!atomic_data_.waiting_log_server_up) {
+    TRACE("Log server was up");
+    rc = NCSCC_RC_SUCCESS;
+    goto done;
+  }
+
+  // Wait for log server up
+  status = osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(log_server_up_sel_),
+                            timeout);
+  if (status == 0) {
+    TRACE("Waiting for log server up timeout");
+    rc = NCSCC_RC_REQ_TIMOUT;
+    goto done;
+  } else if (status < 0) {
+    TRACE("Waiting for log server up failed: %s", strerror(errno));
+    rc = NCSCC_RC_FAILURE;
+    goto done;
+  }
+
+  // Wait for initial clm status
+  status = osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(init_clm_status_sel_),
+                            timeout);
+  if (status == 0) {
+    // The server may not support this signal
+    // or it's dropped.
+    TRACE("Waiting for initial clm status timeout");
+    rc = NCSCC_RC_SUCCESS;
+    goto done;
+  } else if (status < 0) {
+    TRACE("Waiting for initial clm status failed: %s", strerror(errno));
+    rc = NCSCC_RC_FAILURE;
+    goto done;
+  }
+
+  // Log server was up and detected this agent. Stop waiting
+  atomic_data_.waiting_log_server_up = false;
+
+done:
+  TRACE_LEAVE();
+  return rc;
+}
+
+// Mark log server was up
+void LogAgent::MarkLogServerUp() {
+  TRACE_ENTER();
+  if (atomic_data_.waiting_log_server_up) {
+    m_NCS_SEL_OBJ_IND(&log_server_up_sel_);
+  }
+  TRACE_LEAVE();
+}
+
+// Mark received initial clm status
+void LogAgent::MarkInitClmStatus() {
+  TRACE_ENTER();
+  if (atomic_data_.waiting_log_server_up) {
+    m_NCS_SEL_OBJ_IND(&init_clm_status_sel_);
+  }
+  TRACE_LEAVE();
 }
 
 void LogAgent::NoLogServer() {
@@ -298,6 +393,7 @@ void LogAgent::NoLogServer() {
     if (client == nullptr) continue;
     client->NoLogServer();
   }
+  TRACE_LEAVE();
 }
 
 SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
@@ -355,9 +451,14 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
   //<
 
   // Initiate the client in the agent and if first client also start MDS
-  if ((rc = lga_startup()) != NCSCC_RC_SUCCESS) {
+  rc = lga_startup();
+  if (rc != NCSCC_RC_SUCCESS) {
     TRACE("lga_startup FAILED: %u", rc);
-    ais_rc = SA_AIS_ERR_LIBRARY;
+    if (rc == NCSCC_RC_REQ_TIMOUT) {
+      ais_rc = SA_AIS_ERR_TRY_AGAIN;
+    } else {
+      ais_rc = SA_AIS_ERR_LIBRARY;
+    }
     return ais_rc;
   }
 
@@ -526,6 +627,11 @@ SaAisErrorT LogAgent::saLogDispatch(SaLogHandleT logHandle,
   return ais_rc;
 }
 
+size_t LogAgent::CountClient() {
+  ScopeLock scopeLock(mutex_);
+  return client_list_.size();
+}
+
 SaAisErrorT LogAgent::SendFinalizeMsg(uint32_t client_id) {
   uint32_t mds_rc;
   lgsv_msg_t msg, *o_msg = nullptr;
@@ -572,6 +678,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
   bool updated = false;
   bool is_locked = false;
   SaAisErrorT ais_rc = SA_AIS_OK;
+  int rc;
 
   TRACE_ENTER();
 
@@ -590,20 +697,20 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     if (client == nullptr) {
       TRACE("No log client with such handle");
       ais_rc = SA_AIS_ERR_BAD_HANDLE;
-      return ais_rc;
+      goto done;
     }
 
     if (client->FetchAndDecreaseRefCounter(__func__, &updated) != 0) {
       // DO NOT delete this @client as it is being used by somewhere (>0)
       // Or it is being deleted by other thread (=-1)
       ais_rc = SA_AIS_ERR_TRY_AGAIN;
-      return ais_rc;
+      goto done;
     }
   }  // end critical section
 
   if (client->HaveLogStreamInUse() == true) {
     ais_rc = SA_AIS_ERR_TRY_AGAIN;
-    return ais_rc;
+    goto done;
   }
 
   // No LOG server. No service is provided.
@@ -611,7 +718,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     // We have a server but it is temporary unavailable. Client may try again
     TRACE("%s lgs_state = LGS no active", __func__);
     ais_rc = SA_AIS_ERR_TRY_AGAIN;
-    return ais_rc;
+    goto done;
   }
 
   // Avoid the recovery thread block operation on done-recovery client
@@ -623,7 +730,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
       // The client may try again
       TRACE("%s lga_state = LGA auto recovery ongoing (2)", __func__);
       ais_rc = SA_AIS_ERR_TRY_AGAIN;
-      return ais_rc;
+      goto done;
     }
 
     if (is_lga_recovery_state(RecoveryState::kRecovery1)) {
@@ -635,7 +742,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
         TRACE("\t Client is not initialized. Remove it from database");
         ScopeLock critical_section(get_delete_obj_sync_mutex_);
         RemoveLogClient(&client);
-        return ais_rc;
+        goto done;
       }
       TRACE("\t Client is initialized");
     }
@@ -652,6 +759,23 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     }
   }
 
+  if (CountClient() == 0) {
+    // Stop recovery thread if it's running
+    stop_recovery2_thread();
+    // Shutdown the agent
+    rc = lga_shutdown();
+    if (rc != NCSCC_RC_SUCCESS) {
+      TRACE("lga_shutdown FAILED");
+      ais_rc = SA_AIS_ERR_LIBRARY;
+    }
+    if (!atomic_data_.waiting_log_server_up) {
+      m_NCS_SEL_OBJ_RMV_IND(&init_clm_status_sel_, true, false);
+      m_NCS_SEL_OBJ_RMV_IND(&log_server_up_sel_, true, false);
+      atomic_data_.waiting_log_server_up = true;
+    }
+  }
+
+done:
   TRACE_LEAVE2("ais_rc = %s", saf_error(ais_rc));
   return ais_rc;
 }

@@ -155,20 +155,26 @@ class LogAgent {
   // the attributes directly if they want to do so.
   std::atomic<MDS_HDL>& atomic_get_mds_hdl();
   std::atomic<MDS_DEST>& atomic_get_lgs_mds_dest();
-  std::atomic<bool>& atomic_get_lgs_sync_wait();
   std::atomic<SaClmClusterChangesT>& atomic_get_clm_node_state();
 
-  // Get pointer to @lgs_sync_sel attribute
-  NCS_SEL_OBJ* get_lgs_sync_sel() { return &lgs_sync_sel_; }
+  // Wait for log service up and clm status event.
+  // @param polling_timeout timeout for each polling (in 10ms)
+  // @return  NCSCC_RC_SUCCESS on success
+  //          or NCSCC_RC_REQ_TIMOUT on timeout
+  //          or NCSCC_RC_FAILURE on error
+  unsigned int WaitLogServerUp(int64_t polling_timeout);
 
-  // True if log agent is still waiting for active LOG service up
-  bool waiting_log_server_up() const;
+  // Mark log server is up
+  void MarkLogServerUp();
+
+  // Mark received initial clm status
+  void MarkInitClmStatus();
 
   // Enter critical section - make sure ref counter is fetched.
   // Introduce these public interface for MDS thread use.
   void EnterCriticalSection();
   void LeaveCriticalSection();
-  ~LogAgent() {}
+  ~LogAgent();
 
  private:
   // Not allow to create @LogAgent object, except the singleton object @me_.
@@ -191,6 +197,9 @@ class LogAgent {
 
   // True if there is no LOG server at all (headless)
   bool is_no_log_server() const;
+
+  // Count number of clients in agent
+  size_t CountClient();
 
   // Form finalize Msg and send to MDS
   SaAisErrorT SendFinalizeMsg(uint32_t client_id);
@@ -252,7 +261,7 @@ class LogAgent {
     // Constructor with default values
     AtomicData()
         : log_server_state{LogServerState::kHasActiveLogServer},
-          waiting_log_server_up{false},
+          waiting_log_server_up{true},
           mds_hdl{0},
           lgs_mds_dest{0},
           clm_node_state{SA_CLM_NODE_JOINED} {}
@@ -281,8 +290,10 @@ class LogAgent {
   // Hold list of current log clients
   std::vector<LogClient*> client_list_;
 
-  // LGS LGA sync params
-  NCS_SEL_OBJ lgs_sync_sel_;
+  // Initial CLM status sync params
+  NCS_SEL_OBJ init_clm_status_sel_;
+  // Log server sync params
+  NCS_SEL_OBJ log_server_up_sel_;
 
   DELETE_COPY_AND_MOVE_OPERATORS(LogAgent);
 };
@@ -344,10 +355,6 @@ inline std::atomic<MDS_DEST>& LogAgent::atomic_get_lgs_mds_dest() {
   return atomic_data_.lgs_mds_dest;
 }
 
-inline std::atomic<bool>& LogAgent::atomic_get_lgs_sync_wait() {
-  return atomic_data_.waiting_log_server_up;
-}
-
 inline std::atomic<SaClmClusterChangesT>&
 LogAgent::atomic_get_clm_node_state() {
   return atomic_data_.clm_node_state;
@@ -363,10 +370,6 @@ inline bool LogAgent::no_active_log_server_but_not_headless() const {
 
 inline bool LogAgent::is_no_log_server() const {
   return (atomic_data_.log_server_state == LogServerState::kNoLogServer);
-}
-
-inline bool LogAgent::waiting_log_server_up() const {
-  return atomic_data_.waiting_log_server_up.load();
 }
 
 inline void LogAgent::EnterCriticalSection() {

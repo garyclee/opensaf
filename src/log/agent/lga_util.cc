@@ -39,36 +39,44 @@ static unsigned int client_counter = 0;
 static unsigned int lga_create() {
   unsigned int rc = NCSCC_RC_SUCCESS;
 
-  // Create and init sel obj for mds sync
-  NCS_SEL_OBJ* lgs_sync_sel = LogAgent::instance()->get_lgs_sync_sel();
-  m_NCS_SEL_OBJ_CREATE(lgs_sync_sel);
-  std::atomic<bool>& lgs_sync_wait =
-      LogAgent::instance()->atomic_get_lgs_sync_wait();
-  lgs_sync_wait = true;
-
-  // register with MDS
+  // Register with MDS
   if ((NCSCC_RC_SUCCESS != (rc = lga_mds_init()))) {
+    TRACE("lga_mds_init FAILED");
     rc = NCSCC_RC_FAILURE;
     // Delete the lga init instances
     LogAgent::instance()->RemoveAllLogClients();
     return rc;
   }
 
-  // Block and wait for indication from MDS meaning LGS is up
+  // Wait for log server up
+  rc = LogAgent::instance()->WaitLogServerUp(LGS_WAIT_TIME);
+  if (rc != NCSCC_RC_SUCCESS) {
+    TRACE("WaitLogServerUp FAILED");
+    // Delete the lga init instances
+    LogAgent::instance()->RemoveAllLogClients();
+    // Unregister MDS
+    lga_mds_deinit();
+    return rc;
+  }
 
-  // #1179 Change timeout from 30 sec (30000) to 10 sec (10000)
-  // 30 sec is probably too long for a synchronous API function
-  NCS_SEL_OBJ sel = *lgs_sync_sel;
-  int fd = m_GET_FD_FROM_SEL_OBJ(sel);
-  osaf_poll_one_fd(fd, 10000);
+  return rc;
+}
 
-  lgs_sync_wait = false;
-  std::atomic<SaClmClusterChangesT>& clm_state =
-      LogAgent::instance()->atomic_get_clm_node_state();
-  clm_state = SA_CLM_NODE_JOINED;
+/**
+ * Delete log agent
+ *
+ * @return unsigned int
+ */
+static unsigned int lga_delete() {
+  unsigned int rc = NCSCC_RC_SUCCESS;
 
-  // No longer needed
-  m_NCS_SEL_OBJ_DESTROY(lgs_sync_sel);
+  // Unregister in MDS
+  rc = lga_mds_deinit();
+  if (rc != NCSCC_RC_SUCCESS) {
+    TRACE("lga_mds_deinit FAILED");
+    rc = NCSCC_RC_FAILURE;
+  }
+
   return rc;
 }
 
@@ -97,6 +105,33 @@ unsigned int lga_startup() {
       ncs_agents_shutdown();
       goto done;
     }
+  }
+
+done:
+  TRACE_LEAVE2("rc: %u", rc);
+  return rc;
+}
+
+/**
+ * Shutdown the agent when not in use
+ * Stop NCS service and unregister MDS
+ *
+ * @return unsigned int
+ */
+unsigned int lga_shutdown() {
+  unsigned int rc = NCSCC_RC_SUCCESS;
+  ScopeLock lock(init_lock);
+  std::atomic<MDS_HDL>& mds_hdl = LogAgent::instance()->atomic_get_mds_hdl();
+  TRACE_ENTER();
+
+  if (mds_hdl) {
+    rc = lga_delete();
+    if (rc != NCSCC_RC_SUCCESS) {
+      TRACE("lga_delete FAILED");
+      goto done;
+    }
+    ncs_agents_shutdown();
+    mds_hdl = 0;
   }
 
 done:

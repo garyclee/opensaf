@@ -60,6 +60,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
 	uint16_t ver3 = AVSV_AVD_AVND_MSG_FMT_VER_3;
 	uint16_t ver5 = AVSV_AVD_AVND_MSG_FMT_VER_5;
 	uint16_t ver6 = AVSV_AVD_AVND_MSG_FMT_VER_6;
+	uint16_t ver9 = AVSV_AVD_AVND_MSG_FMT_VER_9;
 
 	EDU_INST_SET avsv_dnd_msg_rules[] = {
 	    {EDU_START, avsv_edp_dnd_msg, 0, 0, 0, sizeof(AVSV_DND_MSG), 0,
@@ -553,10 +554,23 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
 	     (long)&((AVSV_DND_MSG *)0)
 		 ->msg_info.d2n_compcsi_assign_msg_info.csi_name,
 	     0, NULL},
+		{EDU_VER_GE, NULL, 0, 0, 2, 0, 0,
+		 (EDU_EXEC_RTINE)((uint16_t *)(&(ver9)))},
+		/* AVSV_D2N_COMPCSI_ASSIGN_MSG_INFO (cnt)
+		 * for message has version greater than
+		 * or equal to 9
+		 */
 	    {EDU_EXEC, avsv_edp_csi_attr_info, 0, 0, EDU_EXIT,
 	     (long)&((AVSV_DND_MSG *)0)
 		 ->msg_info.d2n_compcsi_assign_msg_info.info.attrs,
 	     0, NULL},
+		/* AVSV_D2N_COMPCSI_ASSIGN_MSG_INFO (cnt)
+		 * for message has version less than 9
+		 */
+		{EDU_EXEC, avsv_edp_csi_attr_info, 0, 0, 0,
+		 (long)&((AVSV_DND_MSG *)0)
+		 ->msg_info.d2n_compcsi_assign_msg_info.info.attrs,
+		 0, NULL},
 
 	    /* AVSV_D2N_CONTAINED_SU_MSG_INFO*/
             {EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
@@ -595,7 +609,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
 		struct_ptr = ptr;
 	}
 	rc = m_NCS_EDU_RUN_RULES(hdl, edu_tkn, avsv_dnd_msg_rules, struct_ptr,
-				 ptr_data_len, buf_env, op, o_err);
+				ptr_data_len, buf_env, op, o_err);
 	return rc;
 }
 
@@ -644,7 +658,7 @@ int avsv_dnd_msg_test_type_fnc(NCSCONTEXT arg)
 	       LCL_JMP_OFFSET_AVSV_N2D_ND_SISU_STATE_INFO_MSG = 125,
 	       LCL_JMP_OFFSET_AVSV_N2D_ND_CSICOMP_STATE_INFO_MSG = 131,
 	       LCL_JMP_OFFSET_AVSV_D2N_COMPCSI_ASSIGN_MSG = 137,
-	       LCL_JMP_OFFSET_AVSV_D2N_CONTAINED_SU_MSG = 143 };
+	       LCL_JMP_OFFSET_AVSV_D2N_CONTAINED_SU_MSG = 145 };
 	AVSV_DND_MSG_TYPE type;
 
 	if (arg == NULL)

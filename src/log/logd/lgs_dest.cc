@@ -46,8 +46,7 @@ DestinationHandler::DestType DestinationHandler::GetDestType(
   }
 }
 
-std::string DestinationHandler::GenerateMsgId(const std::string& dn,
-                                              bool isRtStream) {
+std::string DestinationHandler::GenerateMsgId(const std::string& dn) {
   const std::string parent = ",safApp=safLogService";
   std::string msgid{""};
   size_t posa = 0, posb = 0;
@@ -61,17 +60,15 @@ std::string DestinationHandler::GenerateMsgId(const std::string& dn,
 
   //>
   // Rules to generate msgid string:
-  // 1) Use stream name (e.g: saLogSystem) + 'C'/'R' if it is not over 31 chars
+  // 1) Use stream name (e.g: saLogSystem) if it is not over 32 chars
   //    and the stream DN contains the @parent ",safApp=safLogService";
-  //    Note: 'C' means configuration stream, 'R' means runtime stream.
-  //           Why 31? It is due to MSGID field length limitation
-  //           (max is 32 chars length).
+  //    Note: Why 32? It is due to MSGID field length limitation
+  //          (max is 32 chars length).
   // 2) Otherwise, generate a hash number from stream DN
-  //    if stream name is over 31 chars.
+  //    if stream name is over 32 chars.
   //<
-  if (sname.length() < 32 && dn.find(parent) != std::string::npos) {
-    msgid = ((isRtStream == true) ? std::string{sname + 'R'}
-                                  : std::string{sname + 'C'});
+  if (sname.length() <= 32 && dn.find(parent) != std::string::npos) {
+    msgid = sname;
   } else {
     // Do `InitializeHashFunction()` once
     static bool init_invoked = false;

@@ -53,6 +53,7 @@ extern "C" {
 #define AVSV_AVD_AVND_MSG_FMT_VER_6 6
 #define AVSV_AVD_AVND_MSG_FMT_VER_7 7
 #define AVSV_AVD_AVND_MSG_FMT_VER_8 8
+#define AVSV_AVD_AVND_MSG_FMT_VER_9 9
 
 /* Internode/External Components Validation result */
 typedef enum {

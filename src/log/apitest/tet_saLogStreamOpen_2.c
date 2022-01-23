@@ -871,7 +871,7 @@ void *saLogInitialize_1(void *arg)
 	SaAisErrorT *rt = (SaAisErrorT *)arg;
 	SaLogStreamHandleT logStreamHandle1;
 	SaLogHandleT logHandle1;
-	int time_wait = 10*1000; // Wait for timeout is 10 seconds
+	int time_wait = 20*1000; // Wait for timeout is 20 seconds
 	SaVersionT log_version;
 
 	struct timespec timeout_time;
@@ -1226,7 +1226,7 @@ __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 	    "saLogStreamOpen_2 with stream number out of the limitation, ERR");
 	test_case_add(
 	    2, saLogMultipleInitialize,
-	    "saLogInitialize() then saLogFinalize() multiple times. keep MDS connection, OK");
+	    "saLogInitialize() then saLogFinalize() multiple times, OK");
 	test_case_add(
 	    2, saLogMultiThreadMultiInit,
 	    "saLogInitialize() then saLogFinalize() multiple times in multiple threads, OK");

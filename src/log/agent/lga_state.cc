@@ -153,7 +153,7 @@ done:
  * Stops the recovery 2 thread
  * It is safe to call this function also if the thread is not running
  */
-static void stop_recovery2_thread(void) {
+void stop_recovery2_thread(void) {
   uint32_t ncs_rc = 0;
   int rc = 0;
 

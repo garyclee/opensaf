@@ -1189,7 +1189,38 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info) {
 
   /* If this evt was sent from LGA act on this */
   if (info->info.svc_evt.i_svc_id == NCSMDS_SVC_ID_LGA) {
-    if (info->info.svc_evt.i_change == NCSMDS_DOWN) {
+    if (info->info.svc_evt.i_change == NCSMDS_UP) {
+      TRACE_8("MDS UP dest: %" PRIx64 ", node ID: %x, svc_id: %d",
+              info->info.svc_evt.i_dest, info->info.svc_evt.i_node_id,
+              info->info.svc_evt.i_svc_id);
+
+      /* As of now we are only interested in LGA events */
+      evt = static_cast<lgsv_lgs_evt_t *>(calloc(1, sizeof(lgsv_lgs_evt_t)));
+      if (NULL == evt) {
+        LOG_WA("calloc FAILED");
+        rc = NCSCC_RC_FAILURE;
+        goto done;
+      }
+
+      evt->evt_type = LGSV_LGS_EVT_LGA_UP;
+
+      /** Initialize the Event Header **/
+      evt->cb_hdl = 0;
+      evt->fr_node_id = info->info.svc_evt.i_node_id;
+      evt->fr_dest = info->info.svc_evt.i_dest;
+
+      /** Initialize the MDS portion of the header **/
+      evt->info.mds_info.node_id = info->info.svc_evt.i_node_id;
+      evt->info.mds_info.mds_dest_id = info->info.svc_evt.i_dest;
+
+      /* Push to the lowest prio queue to not bypass any pending writes. If that
+       * fails (it is FULL) use the high prio unbounded ctrl msg queue */
+      if (m_NCS_IPC_SEND(&lgs_mbx, evt, LGS_IPC_PRIO_APP_STREAM) !=
+          NCSCC_RC_SUCCESS) {
+        rc = m_NCS_IPC_SEND(&lgs_mbx, evt, LGS_IPC_PRIO_CTRL_MSGS);
+        osafassert(rc == NCSCC_RC_SUCCESS);
+      }
+    } else if (info->info.svc_evt.i_change == NCSMDS_DOWN) {
       TRACE_8("MDS DOWN dest: %" PRIx64 ", node ID: %x, svc_id: %d",
               info->info.svc_evt.i_dest, info->info.svc_evt.i_node_id,
               info->info.svc_evt.i_svc_id);

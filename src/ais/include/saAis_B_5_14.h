@@ -29,8 +29,6 @@
 extern "C" {
 #endif
 
-typedef const char* SaConstStringT;
-
 #ifdef SA_EXTENDED_NAME_SOURCE
 #define SA_MAX_UNEXTENDED_NAME_LENGTH 256
 

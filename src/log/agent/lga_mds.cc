@@ -495,10 +495,10 @@ static uint32_t lga_enc_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg) {
 }
 
 /****************************************************************************
-  Name          : lga_lgs_msg_proc
+  Name          : lga_client_lgs_msg_proc
 
   Description   : This routine is used to process the ASYNC incoming
-                  LGS messages.
+                  LGS messages for a log client.
 
   Arguments     : pointer to struct ncsmds_callback_info
 
@@ -506,7 +506,7 @@ static uint32_t lga_enc_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg) {
 
   Notes         : None.
 ******************************************************************************/
-static uint32_t lga_lgs_msg_proc(lgsv_msg_t *lgsv_msg,
+static uint32_t lga_client_lgs_msg_proc(lgsv_msg_t *lgsv_msg,
                                  MDS_SEND_PRIORITY_TYPE prio) {
   TRACE_ENTER();
   int rc = NCSCC_RC_SUCCESS;
@@ -624,6 +624,50 @@ static uint32_t lga_lgs_msg_proc(lgsv_msg_t *lgsv_msg,
 }
 
 /****************************************************************************
+  Name          : lga_lgs_msg_proc
+
+  Description   : This routine is used to process the ASYNC incoming
+                  LGS messages.
+
+  Arguments     : pointer to struct ncsmds_callback_info
+
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+
+  Notes         : None.
+******************************************************************************/
+static uint32_t lga_lgs_msg_proc(lgsv_msg_t *lgsv_msg,
+                                 MDS_SEND_PRIORITY_TYPE prio) {
+  int rc = NCSCC_RC_SUCCESS;
+  TRACE_ENTER();
+
+  if (lgsv_msg->type == LGSV_LGS_CBK_MSG) {
+    if (lgsv_msg->info.cbk_info.type == LGSV_CLM_NODE_STATUS_CALLBACK
+             && lgsv_msg->info.cbk_info.lgs_client_id == ALL_CLIENT_ID) {
+      SaClmClusterChangesT status;
+      status = lgsv_msg->info.cbk_info.clm_node_status_cbk.clm_node_status;
+
+      TRACE_2("LGSV_CLM_NODE_STATUS_CALLBACK clm_node_status: %d", status);
+      std::atomic<SaClmClusterChangesT> &clm_node_state =
+          LogAgent::instance()->atomic_get_clm_node_state();
+      clm_node_state = status;
+      // Signal waiting thread
+      LogAgent::instance()->MarkInitClmStatus();
+      lga_msg_destroy(lgsv_msg);
+      rc = NCSCC_RC_SUCCESS;
+    } else {
+      rc = lga_client_lgs_msg_proc(lgsv_msg, prio);
+    }
+  } else /* lgsv_msg->type != LGSV_LGS_CBK_MSG */{
+    TRACE_2("Unexpected message type: %d", lgsv_msg->type);
+    lga_msg_destroy(lgsv_msg);
+    rc = NCSCC_RC_FAILURE;
+  }
+
+  TRACE_LEAVE();
+  return rc;
+}
+
+/****************************************************************************
   Name          : lga_mds_svc_evt
 
   Description   : This is a callback routine that is invoked to inform LGA
@@ -673,10 +717,8 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info) {
           // and provide it the LOG server destination address too.
           LogAgent::instance()->HasActiveLogServer(
               mds_cb_info->info.svc_evt.i_dest);
-          if (LogAgent::instance()->waiting_log_server_up() == true) {
-            // Signal waiting thread
-            m_NCS_SEL_OBJ_IND(LogAgent::instance()->get_lgs_sync_sel());
-          }
+          // Inform LOG server is up
+          LogAgent::instance()->MarkLogServerUp();
           // Start recovery
           lga_serv_recov1state_set();
           break;
@@ -1285,6 +1327,34 @@ uint32_t lga_mds_init() {
     TRACE("mds api call failed");
     return rc;
   }
+  TRACE_LEAVE();
+  return rc;
+}
+
+/****************************************************************************
+  Name          : lga_mds_deinit
+
+  Description   : This routine unregisters the LGA Service in MDS.
+
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+
+  Notes         : None.
+******************************************************************************/
+uint32_t lga_mds_deinit() {
+  NCSMDS_INFO mds_info;
+  uint32_t rc = NCSCC_RC_SUCCESS;
+  std::atomic<MDS_HDL> &mds_hdl = LogAgent::instance()->atomic_get_mds_hdl();
+  TRACE_ENTER();
+
+  memset(&mds_info, 0, sizeof(NCSMDS_INFO));
+  mds_info.i_mds_hdl = mds_hdl.load();
+  mds_info.i_svc_id = NCSMDS_SVC_ID_LGA;
+  mds_info.i_op = MDS_UNINSTALL;
+  if ((rc = ncsmds_api(&mds_info)) != NCSCC_RC_SUCCESS) {
+    TRACE("mds api call failed");
+    return NCSCC_RC_FAILURE;
+  }
+
   TRACE_LEAVE();
   return rc;
 }

@@ -410,11 +410,25 @@ static uint32_t proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt) {
   lgsv_ckpt_msg_v2_t ckpt_v2;
   uint32_t async_rc = NCSCC_RC_SUCCESS;
   struct timespec closetime_tspec;
+  SaVersionT *version;
 
   TRACE_ENTER();
 
   switch (evt->evt_type) {
     case LGSV_LGS_EVT_LGA_UP:
+      TRACE("%s: LGSV_LGS_EVT_LGA_UP mds_dest = %" PRIx64, __FUNCTION__,
+            evt->fr_dest);
+      version = &(evt->info.msg.info.api_info.param.init.version);
+      if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) {
+        SaClmClusterChangesT clusterChange = SA_CLM_NODE_LEFT;
+        if (is_client_clm_member(evt->fr_node_id, version)) {
+          clusterChange = SA_CLM_NODE_JOINED;
+        } else {
+          clusterChange = SA_CLM_NODE_LEFT;
+        }
+        /* Send clm status to log agent */
+        lgs_send_clm_node_status(clusterChange, evt->fr_dest);
+      }
       break;
 
     case LGSV_LGS_EVT_LGA_DOWN:

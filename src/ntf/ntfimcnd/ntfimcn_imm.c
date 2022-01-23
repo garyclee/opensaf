@@ -575,8 +575,20 @@ saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
 		if (SA_AIS_OK == rc) {
 			ccbOperData->userData = curAttr;
 		} else {
-			ccbOperData->userData = NULL;
-			LOG_ER("Failed to get current attributes rc = %u", rc);
+			struct CcbUtilOperationData *ccbOperationData;
+
+			ccbOperationData =
+			    ccbutil_getCcbOpDataByDN(ccbId, objectName);
+			if (ccbOperationData != NULL &&
+			    ccbOperationData->operationType == CCBUTIL_CREATE) {
+				curAttr =
+				    (SaImmAttrValuesT_2 **)ccbOperationData
+					->param.create.attrValues;
+				ccbOperData->userData = curAttr;
+			} else {
+				ccbOperData->userData = NULL;
+				LOG_WA("Failed to get current attributes rc = %u", rc);
+			}
 		}
 	}
 

@@ -289,7 +289,7 @@ void invalidDestName(void)
 //
 const char sendMsg[] = "writing a record to destination";
 const char sendCmd[] = "saflogger -y";
-const char logpath[] = "/var/log/opensaf/saLogSystemC";
+const char logpath[] = "/var/log/opensaf/saLogSystem";
 
 bool is_executed_on_active_node()
 {

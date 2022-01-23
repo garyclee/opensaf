@@ -23,6 +23,7 @@
 #include <saLog.h>
 
 unsigned int lga_startup();
+unsigned int lga_shutdown();
 void lga_increase_user_counter(void);
 void lga_decrease_user_counter(void);
 

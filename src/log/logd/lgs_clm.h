@@ -32,6 +32,7 @@ typedef struct { NODE_ID clm_node_id; } lgs_clm_node_t;
 void lgs_init_with_clm(void);
 bool is_client_clm_member(NODE_ID node_id, SaVersionT *ver);
 uint32_t lgs_clm_node_map_init(lgs_cb_t *lgs_cb);
-bool is_client_clm_member(NODE_ID node_id, SaVersionT *ver);
+uint32_t lgs_send_clm_node_status(SaClmClusterChangesT status,
+                                       MDS_DEST mdsDest);
 
 #endif  // LOG_LOGD_LGS_CLM_H_
