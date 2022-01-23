@@ -1,3 +1,27 @@
+OpenSAF 5.22.01 (released 2022-01-24)
+-------------------------------------
+
+    * log: removal of letter 'C'/'R' from msgId in RFC5424 format [#3303]
+    * log: Stop all threads while releasing the log agent object [#3302]
+    * amf: Correct HC period to make it effect immediately[#3298]
+    * log: Correct condition to shutdown the log agent [#3301]
+    * log: Increase timeout in logtest [#3291]
+    * log: Shutdown log agent when not in use [#3291]
+    * log: Introduce the initial clm node status [#3291]
+    * amf: Correct the version of csi attribute message [#3296]
+    * ntf: correct the behavior of periodic check log pending [#3297]
+    * mds: Resolve active MxN VDEST conflict in split brain [#3281]
+    * smf: correct merge bundle rolling to single step [#3290]
+    * ntf: get attribute value from local when value not existed [#3289]
+    * immd: fix cannot find candidate for new immnd coordinator [#3284]
+    * smf: make more robustness in BISU upgrade [#3286]
+    * amfd: Tightens sync window condition to proceed headless restoration [#3271]
+    * osaf: fixed redefinition of typedef 'SaConstStringT' [#3287]
+    * amf: update runtime attributes of node to IMM in sync [#3285]
+    * amfd: Correct checking CSICOMP while deleting CSI [#3282]
+    * base: using mutex for test case sysf_ipc_test instead of atomic [#3283]
+    * build: adaptive python version for rpm build [#3270]
+
 OpenSAF 5.21.09 (released 2021-09-14)
 -------------------------------------
 
