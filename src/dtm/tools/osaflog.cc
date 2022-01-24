@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
 
-  while ((option = getopt_long(argc, argv, "m:b:p:f:e:i:ra:F:T:",
+  while ((option = getopt_long(argc, argv, "m:b:fprade:i:F:T:",
                                long_options, &long_index)) != -1) {
     switch (option) {
       case 'p':
