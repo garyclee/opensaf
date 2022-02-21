@@ -819,6 +819,7 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt) {
   // reset msg_id counter
   cb->rcv_msg_id = 0;
   cb->snd_msg_id = 0;
+  cb->active_ack_msg_id = 0;
 
   //Inform AMFA about SCs absence now.
   avnd_send_sc_status_message(OSAF_AMF_SC_ABSENT);
@@ -1260,10 +1261,23 @@ uint32_t avnd_di_ack_nack_msg_send(AVND_CB *cb, uint32_t rcv_id,
   msg.info.avd->msg_info.n2d_ack_nack_info.msg_id = (cb->snd_msg_id + 1);
   msg.info.avd->msg_info.n2d_ack_nack_info.node_id = cb->node_info.nodeId;
 
-  if (rcv_id != cb->rcv_msg_id)
-    msg.info.avd->msg_info.n2d_ack_nack_info.ack = false;
-  else
+  if (rcv_id != cb->rcv_msg_id) {
+    LOG_WA("Mismatch msg id, AVD send ID count: %u, "
+          "AVND receive ID count: %u", rcv_id, cb->rcv_msg_id);
+    // During SC failover, message sent on ACTIVE AMFD can not
+    // be checked point to AMFD on STANDBY SC. But the AMFND still
+    // receive msg id. STANDBY SC takes ACTIVE and mismatch message
+    // id b/w AMFD and AMFND on new ACTIVE. In this case AVND receive
+    // ID count greater than AVD sent id count. Shoudl rsp ack(true).
+    if (cb->rcv_msg_id > rcv_id) {
+      cb->rcv_msg_id = rcv_id;
+      msg.info.avd->msg_info.n2d_ack_nack_info.ack = true;
+    } else {
+      msg.info.avd->msg_info.n2d_ack_nack_info.ack = false;
+    }
+  } else {
     msg.info.avd->msg_info.n2d_ack_nack_info.ack = true;
+  }
 
   TRACE_1("MsgId=%u,ACK=%u", msg.info.avd->msg_info.n2d_ack_nack_info.msg_id,
           msg.info.avd->msg_info.n2d_ack_nack_info.ack);
@@ -1362,6 +1376,8 @@ uint32_t avnd_di_node_down_msg_send(AVND_CB *cb)
 ******************************************************************************/
 void avnd_di_msg_ack_process(AVND_CB *cb, uint32_t mid) {
   TRACE_ENTER2("%u", mid);
+
+  cb->active_ack_msg_id = mid;
 
   for (auto iter =  cb->dnd_list.begin(); iter != cb->dnd_list.end(); ++iter) {
     auto rec = *iter;

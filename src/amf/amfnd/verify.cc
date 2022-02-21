@@ -128,15 +128,25 @@ uint32_t avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt) {
   }
 
   if ((cb->snd_msg_id != info->rcv_id_cnt) && (msg_found == false)) {
-    /* Log error, seems to be some problem.*/
-    LOG_EM(
-        "AVND record not found, after failover, snd_msg_id = %u, receive id = %u",
-        cb->snd_msg_id, info->rcv_id_cnt);
-    opensaf_reboot(
-        avnd_cb->node_info.nodeId,
-        osaf_extended_name_borrow(&avnd_cb->node_info.executionEnvironment),
-        "AVND record not found, after failover");
-    exit(0);
+    if (cb->snd_msg_id == cb->active_ack_msg_id) {
+      // During SC failover, message received on ACTIVE AMFD can not
+      // be checked point to AMFD on STANDBY SC. But the AMFND still
+      // process the message ack for that message then it remove from queue.
+      // STANDBY SC takes ACTIVE and mismatch message id b/w AMFD and AMFND
+      // on new ACTIVE. In this case AVND send ID count greater than AVD receive
+      // ID count on new ACTIVE. Shoudl realign.
+      cb->snd_msg_id = info->rcv_id_cnt;
+    } else {
+      /* Log error, seems to be some problem.*/
+      LOG_EM(
+            "AVND record not found, after failover, snd_msg_id = %u, receive id = %u",
+            cb->snd_msg_id, info->rcv_id_cnt);
+        opensaf_reboot(
+            avnd_cb->node_info.nodeId,
+            osaf_extended_name_borrow(&avnd_cb->node_info.executionEnvironment),
+            "AVND record not found, after failover");
+        exit(0);
+    }
   }
 
   /*
