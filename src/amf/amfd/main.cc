@@ -436,6 +436,13 @@ static void handle_event_in_failover_state(AVD_EVT *evt) {
       if (AVD_AVND_STATE_ABSENT == node->node_state &&
           cb->failover_list.find(node->node_info.nodeId) == cb->failover_list.end()) {
         bool fover_done = false;
+        if (amfnd_svc_db->find(node->node_info.nodeId) !=
+            amfnd_svc_db->end()) {
+          LOG_WA("Node %x reconnect before failover,"
+                "order reboot node", node->node_info.nodeId);
+          LOG_WA("Sending node reboot order");
+          avd_d2n_reboot_snd(node);
+        }
         /* Check whether this node failover has been
            performed or not. */
         for (const auto &i_su : node->list_of_ncs_su) {
