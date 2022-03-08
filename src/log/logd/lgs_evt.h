@@ -38,6 +38,7 @@ typedef enum lgsv_lgs_evt_type {
 typedef struct lgsv_lgs_mds_info {
   uint32_t node_id;
   MDS_DEST mds_dest_id;
+  MDS_SVC_PVT_SUB_PART_VER i_rem_svc_pvt_ver;
 } lgsv_lgs_mds_info_t;
 
 typedef struct { PCS_RDA_ROLE io_role; } lgsv_rda_info_t;

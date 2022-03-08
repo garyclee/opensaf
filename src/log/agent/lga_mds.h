@@ -32,4 +32,6 @@ uint32_t lga_mds_msg_sync_send(lgsv_msg_t *i_msg, lgsv_msg_t **o_msg,
                                SaTimeT timeout, uint32_t prio);
 uint32_t lga_mds_msg_async_send(lgsv_msg_t *i_msg, uint32_t prio);
 
+bool lga_mds_msg_does_support_init_clm_status();
+
 #endif  // SRC_LOG_AGENT_LGA_MDS_H_
