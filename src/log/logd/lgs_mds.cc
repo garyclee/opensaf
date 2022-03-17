@@ -1591,17 +1591,3 @@ uint32_t lgs_mds_msg_send(lgs_cb_t *cb, lgsv_msg_t *msg, MDS_DEST *dest,
   }
   return rc;
 }
-
-/****************************************************************************
- * Name          : lgs_mds_does_support_init_clm_status
- *
- * Description   : Check if the log agent supports the init clm status or not
- *
- * Arguments     : mds_info  - ptr to the mds info
- *
- * Return Values : true/false
- *****************************************************************************/
-bool lgs_mds_does_support_init_clm_status(lgsv_lgs_mds_info_t *mds_info) {
-  return mds_info->i_rem_svc_pvt_ver >=
-          LGS_WRT_LGA_INIT_CLM_STATE_SUBPART_VERSION;
-}

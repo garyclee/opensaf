@@ -106,7 +106,5 @@ extern uint32_t lgs_mds_change_role(lgs_cb_t *cb);
 extern uint32_t lgs_mds_msg_send(lgs_cb_t *cb, lgsv_msg_t *msg, MDS_DEST *dest,
                                  MDS_SYNC_SND_CTXT *mds_ctxt,
                                  MDS_SEND_PRIORITY_TYPE prio);
-extern bool lgs_mds_does_support_init_clm_status(
-                lgsv_lgs_mds_info_t *mds_info);
 
 #endif  // LOG_LOGD_LGS_H_

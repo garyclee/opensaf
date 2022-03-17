@@ -426,10 +426,8 @@ static uint32_t proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt) {
         } else {
           clusterChange = SA_CLM_NODE_LEFT;
         }
-        if (lgs_mds_does_support_init_clm_status(&evt->info.mds_info)) {
-          /* Send clm status to log agent */
-          lgs_send_clm_node_status(clusterChange, evt->fr_dest);
-        }
+        /* Send clm status to log agent */
+        lgs_send_clm_node_status(clusterChange, evt->fr_dest);
       }
       break;
 
