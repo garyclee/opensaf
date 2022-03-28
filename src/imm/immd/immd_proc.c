@@ -119,10 +119,10 @@ void immd_proc_immd_reset(IMMD_CB *cb, bool active)
 		//	sleep(3);
 		//}
 		LOG_ER(
-		    "IMM RELOAD with NO persistent back end => ensure cluster restart by IMMD exit at both SCs, exiting");
+		    "IMM RELOAD with NO Persistent Back End => ensure cluster restart by IMMD exit at both SCs, exiting");
 		exit(1);
 	} else {
-		/*LOG_WA("IMM RELOAD with persistent back end => No need to
+		/*LOG_WA("IMM RELOAD with Persistent Back End => No need to
 		 * restart cluster");*/
 		LOG_ER(
 		    "IMM RELOAD  => ensure cluster restart by IMMD exit at both SCs, exiting");

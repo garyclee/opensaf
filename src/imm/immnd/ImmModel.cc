@@ -334,7 +334,7 @@ typedef enum {
       7,  // Explicit validate has completed (saImmOmCcbValidate only)
   IMM_CCB_PREPARE = 8,   // Waiting for nodes prepare & completed calls/replies
   IMM_CCB_CRITICAL = 9,  // Unilateral abort no longer allowed (except by PBE).
-  IMM_CCB_PBE_ABORT = 10,  // The Persistent back end replied with abort
+  IMM_CCB_PBE_ABORT = 10,  // The Persistent Back End replied with abort
   IMM_CCB_COMMITTED = 11,  // Committed at nodes pending implementer apply calls
   IMM_CCB_ABORTED = 12,    // READY->ABORTED PREPARE->ABORTED
   IMM_CCB_ILLEGAL = 13     // CCB has been removed.
@@ -2383,7 +2383,7 @@ bool ImmModel::immNotWritable() {
 /* immNotPbeWritable returning true means:
    (1) immNotWriteable is true OR...
    (2) immNotWritable is false (imm service is writable), but according to
-   configuration there should be a persistent back-end (Pbe) and the Pbe is
+   configuration there should be a Persistent Back End (Pbe) and the Pbe is
    currently not operational. OR..
    (3) PBE is operational, but backlog on PRTOs or Ccbs is large enough to
    warant back-presure (TRY_AGAIN) towards the application.
@@ -8771,7 +8771,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(
       }
     }
 
-    // Prepare for call on PersistentBackEnd
+    // Prepare for call on Persistent Back End
     if ((err == SA_AIS_OK) && pbeNodeIdPtr) {
       void* pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
       if (!pbe) {
@@ -8780,13 +8780,13 @@ SaAisErrorT ImmModel::ccbObjectCreate(
           err = SA_AIS_ERR_FAILED_OPERATION;
           ccb->mVeto = err;
           LOG_WA(
-              "ERR_FAILED_OPERATION: Persistent back end is down "
+              "ERR_FAILED_OPERATION: Persistent Back End is down "
               "ccb %u is aborted",
               ccbId);
           setCcbErrorString(ccb, IMM_RESOURCE_ABORT "PBE is down");
         } else {
           /* Pristine ccb can not start because PBE down */
-          TRACE_5("ERR_TRY_AGAIN: Persistent back end is down");
+          TRACE_5("ERR_TRY_AGAIN: Persistent Back End is down");
           err = SA_AIS_ERR_TRY_AGAIN;
         }
       }
@@ -9905,7 +9905,7 @@ SaAisErrorT ImmModel::ccbObjectModify(
     }
   }  // for (p = ....)
 
-  // Prepare for call on PersistentBackEnd
+  // Prepare for call on Persistent Back End
   if ((err == SA_AIS_OK) && pbeNodeIdPtr) {
     void* pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
     if (!pbe) {
@@ -9914,13 +9914,13 @@ SaAisErrorT ImmModel::ccbObjectModify(
         err = SA_AIS_ERR_FAILED_OPERATION;
         ccb->mVeto = err;
         LOG_WA(
-            "ERR_FAILED_OPERATION: Persistent back end is down "
+            "ERR_FAILED_OPERATION: Persistent Back End is down "
             "ccb %u is aborted",
             ccbId);
         setCcbErrorString(ccb, IMM_RESOURCE_ABORT "PBE is down");
       } else {
         /* Pristine ccb can not start because PBE down */
-        TRACE_5("ERR_TRY_AGAIN: Persistent back end is down");
+        TRACE_5("ERR_TRY_AGAIN: Persistent Back End is down");
         err = SA_AIS_ERR_TRY_AGAIN;
       }
     }
@@ -10544,7 +10544,7 @@ SaAisErrorT ImmModel::ccbObjectDelete(
     return SA_AIS_ERR_BAD_OPERATION;
   }
 
-  // Prepare for call on PersistentBackEnd
+  // Prepare for call on Persistent Back End
 
   if ((err == SA_AIS_OK) && pbeNodeIdPtr) {
     void* pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
@@ -10554,13 +10554,13 @@ SaAisErrorT ImmModel::ccbObjectDelete(
         err = SA_AIS_ERR_FAILED_OPERATION;
         ccb->mVeto = err;
         LOG_WA(
-            "ERR_FAILED_OPERATION: Persistent back end is down "
+            "ERR_FAILED_OPERATION: Persistent Back End is down "
             "ccb %u is aborted",
             ccbId);
         setCcbErrorString(ccb, IMM_RESOURCE_ABORT "PBE is down");
       } else {
         /* Pristine ccb can not start because PBE down */
-        TRACE_5("ERR_TRY_AGAIN: Persistent back end is down");
+        TRACE_5("ERR_TRY_AGAIN: Persistent Back End is down");
         err = SA_AIS_ERR_TRY_AGAIN;
       }
     } else {
@@ -11362,7 +11362,7 @@ bool ImmModel::ccbWaitForCompletedAck(SaUint32T ccbId, SaAisErrorT* err,
       ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
       *err = ccb->mVeto;
       LOG_WA(
-          "ERR_FAILED_OPERATION: Persistent back end is down "
+          "ERR_FAILED_OPERATION: Persistent Back End is down "
           "ccb %u is aborted",
           ccbId);
       setCcbErrorString(ccb, IMM_RESOURCE_ABORT "PBE is down");
@@ -17059,7 +17059,7 @@ SaAisErrorT ImmModel::rtObjectCreate(
     }
 
     if (isPersistent) {
-      if (pbe) { /* Persistent back end is up (somewhere) */
+      if (pbe) { /* Persistent Back End is up (somewhere) */
 
         object->mObjFlags |= IMM_CREATE_LOCK;
         /* Dont overwrite IMM_DN_INTERNAL_REP*/
@@ -17930,7 +17930,7 @@ SaAisErrorT ImmModel::rtObjectUpdate(
       */
       pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
       if (!pbe) {
-        LOG_WA("ERR_TRY_AGAIN: Persistent back end is down - unexpected here");
+        LOG_WA("ERR_TRY_AGAIN: Persistent Back End is down - unexpected here");
         err = SA_AIS_ERR_TRY_AGAIN;
         goto rtObjectUpdateExit;
         /* We have already checked for PbeWritable with success inside
@@ -18552,7 +18552,7 @@ SaAisErrorT ImmModel::rtObjectDelete(
       */
       pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
       if (!pbe) {
-        LOG_NO("ERR_TRY_AGAIN: Persistent back end is down - unexpected here");
+        LOG_NO("ERR_TRY_AGAIN: Persistent Back End is down - unexpected here");
         err = SA_AIS_ERR_TRY_AGAIN;
         goto rtObjectDeleteExit;
         /* We have already checked for PbeWritable with success inside

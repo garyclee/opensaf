@@ -6395,11 +6395,11 @@ static void immnd_evt_proc_class_create(IMMND_CB *cb, IMMND_EVT *evt,
 				     &continuationId, &pbeConn, pbeNodeIdPtr);
 
 	if (pbeNodeId && error == SA_AIS_OK) {
-		/*The persistent back-end is present => wait for reply. */
+		/*The Persistent Back End is present => wait for reply. */
 		delayedReply = true;
 		if (pbeConn) {
 			const char *osafImmDn = OPENSAF_IMM_OBJECT_DN;
-			/*The persistent back-end is executing at THIS node. */
+			/*The Persistent Back End is executing at THIS node. */
 			osafassert(cb->mIsCoord);
 			osafassert(pbeNodeId);
 			osafassert(pbeNodeId == cb->node_id);
@@ -6557,11 +6557,11 @@ static void immnd_evt_proc_class_delete(IMMND_CB *cb, IMMND_EVT *evt,
 				     &continuationId, &pbeConn, pbeNodeIdPtr);
 
 	if (pbeNodeId && error == SA_AIS_OK) {
-		/*The persistent back-end is present => wait for reply. */
+		/*The Persistent Back End is present => wait for reply. */
 		delayedReply = true;
 		if (pbeConn) {
 			const char *osafImmDn = OPENSAF_IMM_OBJECT_DN;
-			/*The persistent back-end is executing at THIS node. */
+			/*The Persistent Back End is executing at THIS node. */
 			osafassert(cb->mIsCoord);
 			osafassert(pbeNodeId);
 			osafassert(pbeNodeId == cb->node_id);
@@ -6931,10 +6931,10 @@ static void immnd_evt_proc_rt_object_create(IMMND_CB *cb, IMMND_EVT *evt,
 	}
 
 	if (pbeNodeId && err == SA_AIS_OK) {
-		/*The persistent back-end is present => wait for reply. */
+		/*The Persistent Back End is present => wait for reply. */
 		delayedReply = true;
 		if (pbeConn) {
-			/*The persistent back-end is executing at THIS node. */
+			/*The Persistent Back End is executing at THIS node. */
 			osafassert(!pbe2BConn);
 			osafassert(cb->mIsCoord);
 			osafassert(pbeNodeId == cb->node_id);
@@ -7190,7 +7190,7 @@ static void immnd_evt_proc_object_create(IMMND_CB *cb, IMMND_EVT *evt,
 	    evt->type == IMMND_EVT_A2ND_OBJ_CREATE_2);
 
 	if (pbeNodeIdPtr && pbeConn && err == SA_AIS_OK) {
-		/*The persistent back-end is present and executing at THIS node.
+		/*The Persistent Back End is present and executing at THIS node.
 		 */
 		osafassert(cb->mIsCoord);
 		osafassert(pbeNodeId);
@@ -7469,7 +7469,7 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb, IMMND_EVT *evt,
 	writableAttrHasLongDns = hasLongDns;
 
 	if (pbeNodeIdPtr && pbeConn && err == SA_AIS_OK) {
-		/*The persistent back-end is present and executing at THIS node.
+		/*The Persistent Back End is present and executing at THIS node.
 		 */
 		osafassert(cb->mIsCoord);
 		osafassert(pbeNodeId);
@@ -7924,10 +7924,10 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb, IMMND_EVT *evt,
 	*/
 
 	if (pbeNodeId && err == SA_AIS_OK) {
-		/*The persistent back-end is present => wait for reply. */
+		/*The Persistent Back End is present => wait for reply. */
 		delayedReply = true;
 		if (pbeConn) {
-			/*The persistent back-end is executing at THIS node. */
+			/*The Persistent Back End is executing at THIS node. */
 			osafassert(!pbe2BConn);
 			osafassert(cb->mIsCoord);
 			osafassert(pbeNodeId);
@@ -8416,7 +8416,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 				immnd_proc_global_abort_ccb(cb, evt->info.objDelete.ccbId);
 			}
 		}
-	} /* End of PersistentBackEnd handling. */
+	} /* End of Persistent Back End handling. */
 
 	if (err == SA_AIS_OK) {
 		if (arrSize) {
@@ -8768,12 +8768,12 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 	}
 
 	if (pbeNodeId && (err == SA_AIS_OK)) {
-		/*The persistent back-end is present & PRTOs deleted in subtree
+		/*The Persistent Back End is present & PRTOs deleted in subtree
 		 * => wait for reply. */
 		delayedReply = true;
 		if (pbeConn && arrSize) {
 			TRACE("PBE at this node arrSize:%u", arrSize);
-			/*The persistent back-end is executing at THIS node. */
+			/*The Persistent Back End is executing at THIS node. */
 			osafassert(!pbe2BConn);
 			osafassert(cb->mIsCoord);
 			osafassert(pbeNodeId == cb->node_id);
@@ -8866,7 +8866,7 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 			pbe_cl_node = NULL;
 		} else if (pbe2BConn && arrSize) {
 			TRACE("PBE SLAVE at this node arrSize:%u", arrSize);
-			/*The persistent back-end is executing at THIS node. */
+			/*The Persistent Back End is executing at THIS node. */
 			osafassert(!(cb->mIsCoord));
 			osafassert(cb->mCanBeCoord);
 			osafassert(pbeNodeId != cb->node_id);

@@ -918,7 +918,7 @@ void immnd_adjustEpoch(IMMND_CB *cb, bool increment)
 	if (pbeNodeId && pbeConn) {
 		IMMND_IMM_CLIENT_NODE *pbe_cl_node = NULL;
 
-		/*The persistent back-end is executing at THIS node. */
+		/*The Persistent Back End is executing at THIS node. */
 		osafassert(cb->mIsCoord);
 		osafassert(pbeNodeId == cb->node_id);
 		SaImmOiHandleT implHandle =
@@ -1689,11 +1689,11 @@ static bool immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration,
 			 */
 			if ((cb->mPbeKills++) == 0) {
 				LOG_WA(
-				    "Persistent back end process appears hung, restarting it.");
+				    "Persistent Back End process appears hung, restarting it.");
 				kill(cb->pbePid, SIGTERM);
 			} else if (cb->mPbeKills > 10) {
 				LOG_WA(
-				    "Persistent back end process appears hung, sending SIGKILL");
+				    "Persistent Back End process appears hung, sending SIGKILL");
 				kill(cb->pbePid, SIGKILL);
 			}
 		} else {
@@ -2441,10 +2441,10 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 					if (cb->mRim ==
 					    SA_IMM_KEEP_REPOSITORY) {
 						LOG_WA(
-						    "Persistent back-end process has apparently died.");
+						    "Persistent Back End process has apparently died.");
 					} else {
 						LOG_NO(
-						    "Persistent back-end process has terminated.");
+						    "Persistent Back End process has terminated.");
 					}
 					cb->pbePid = 0;
 					cb->mPbeKills = 0;
@@ -2546,10 +2546,10 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 			if (waitpid(cb->pbePid, &status, WNOHANG) > 0) {
 				if (cb->mRim == SA_IMM_KEEP_REPOSITORY) {
 					LOG_WA(
-					    "Persistent back-end process has apparently died.");
+					    "Persistent Back End process has apparently died.");
 				} else {
 					LOG_NO(
-					    "Persistent back-end process has terminated.");
+					    "Persistent Back End process has terminated.");
 				}
 				cb->pbePid = 0;
 				cb->mPbeKills = 0;
