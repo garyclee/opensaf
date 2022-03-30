@@ -20,14 +20,19 @@
 #include <unistd.h>
 #include <limits.h>
 #include <stdlib.h>
+#include "test_cpsv.h"
 #include "osaf/apitest/utest.h"
 #include "osaf/apitest/util.h"
 
 extern void fill_testcase_data(void);
 
+char *ckpt_valid_name;
+char *ckpt_invalid_name;
+
 int main(int argc, char **argv)
 {
 	int suite = ALL_SUITES, tcase = ALL_TESTS;
+	int rc = 0;
 
 	/* Initialize Test Data */
 	fill_testcase_data();
@@ -45,5 +50,9 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	return test_run(suite, tcase);
+	rc = test_run(suite, tcase);
+
+	free_testase_data();
+
+	return rc;
 }
