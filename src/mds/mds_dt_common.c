@@ -24,6 +24,9 @@
 #include "base/osaf_utility.h"
 #include "base/osaf_secutil.h"
 
+MDTM_REF_HDL_LIST *mdtm_ref_hdl_list_hdr;
+NCS_PATRICIA_TREE mdtm_reassembly_list;
+
 static SYSF_MBX mdtm_mbx_common;
 static MDTM_TX_TYPE mdtm_transport;
 static uint32_t mdtm_fill_data(MDTM_REASSEMBLY_QUEUE *reassem_queue,

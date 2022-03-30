@@ -40,7 +40,7 @@ static void saImmOiAdminOperationCallback(
 	immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 }
 
-SaImmOiCallbacksT_2 immOiCallbacks = {
+SaImmOiCallbacksT_2 immOiCallbacks_1 = {
     saImmOiAdminOperationCallback, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
 static void *implementer_thread(void *arg)
@@ -139,7 +139,7 @@ void saImmOmThreadInterference_01(void)
 	isOiDone = 0;
 	isOmDone = 0;
 	safassert(
-	    immutil_saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion),
+	    immutil_saImmOiInitialize_2(&immOiHandle, &immOiCallbacks_1, &immVersion),
 	    SA_AIS_OK);
 	safassert(immutil_saImmOiImplementerSet(immOiHandle, implementerName),
 		  SA_AIS_OK);

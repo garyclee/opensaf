@@ -33,7 +33,7 @@
 #include <saAmf.h>
 #include "cpd_cb.h"
 
-uint32_t gl_cpd_cb_hdl;
+extern uint32_t gl_cpd_cb_hdl;
 
 /* Macro to get the component name for the component type */
 #define m_CPD_TASKNAME "CPD"

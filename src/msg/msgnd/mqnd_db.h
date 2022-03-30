@@ -33,7 +33,7 @@
 #include <saClm.h>
 #include <saImmOi.h>
 /* Decleration for global variable */
-uint32_t gl_mqnd_cb_hdl;
+extern uint32_t gl_mqnd_cb_hdl;
 
 /* Macros for reading global database */
 #define m_MQND_STORE_HDL(hdl) (gl_mqnd_cb_hdl = (hdl))

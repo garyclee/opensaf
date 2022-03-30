@@ -50,7 +50,7 @@ typedef struct mdtm_tcp_cb {
 
 } MDTM_TCP_CB;
 
-MDTM_TCP_CB *tcp_cb;
+extern MDTM_TCP_CB *tcp_cb;
 
 typedef enum mds_mdtm_dtm_msg_types {
   MDS_MDTM_DTM_PID_TYPE = 1,

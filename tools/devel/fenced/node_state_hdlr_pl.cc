@@ -26,6 +26,7 @@
 #include <cstring>
 #include <thread>
 #include <utility>
+#include <cstdlib>
 
 NodeStateHdlrPl::NodeStateHdlrPl() {
   syslog(LOG_INFO, "NodeStateHdlrPl instantiated");

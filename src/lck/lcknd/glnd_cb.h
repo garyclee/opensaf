@@ -28,8 +28,8 @@ extern "C" {
 #endif
 
 /* global variables */
-uint32_t gl_glnd_hdl;
-NCSCONTEXT gl_glnd_task_hdl;
+extern uint32_t gl_glnd_hdl;
+extern NCSCONTEXT gl_glnd_task_hdl;
 
 /* macros for the global varibales */
 #define m_GLND_RETRIEVE_GLND_CB_HDL gl_glnd_hdl

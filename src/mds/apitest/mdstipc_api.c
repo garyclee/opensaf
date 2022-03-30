@@ -39,6 +39,23 @@ MDS_SVC_ID svc_ids[3] = {2006, 2007, 2008};
 pthread_mutex_t safe_printf_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t gl_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+int gl_vdest_indx;
+TET_ADEST gl_tet_adest;
+TET_VDEST gl_tet_vdest[4];
+TET_SVC gl_tet_svc;
+TET_MDS_RECVD_MSG_INFO gl_rcvdmsginfo, gl_direct_rcvmsginfo;
+TET_EVENT_INFO gl_event_data;
+MDS_DIRECT_BUFF direct_buff;
+
+/*Callback Failure*/
+int gl_COPY_CB_FAIL;
+int gl_SYS_EVENT_CB_FAIL;
+int gl_ENC_CB_FAIL;
+int gl_DEC_CB_FAIL;
+int gl_ENC_FLAT_CB_FAIL;
+int gl_DEC_FLAT_CB_FAIL;
+int gl_RECEIVE_CB_FAIL;
+
 void safe_printf(const char* format, ... ) {
 	pthread_mutex_lock(&safe_printf_mutex);
 	va_list args;
