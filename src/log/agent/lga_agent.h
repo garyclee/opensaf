@@ -198,9 +198,6 @@ class LogAgent {
   // True if there is no LOG server at all (headless)
   bool is_no_log_server() const;
 
-  // Count number of clients in agent
-  size_t CountClient();
-
   // Form finalize Msg and send to MDS
   SaAisErrorT SendFinalizeMsg(uint32_t client_id);
 

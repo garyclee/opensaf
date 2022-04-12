@@ -26,6 +26,7 @@ unsigned int lga_startup();
 unsigned int lga_shutdown();
 void lga_increase_user_counter(void);
 void lga_decrease_user_counter(void);
+unsigned int lga_get_number_of_user(void);
 
 bool lga_is_extended_name_valid(const SaNameT* name);
 

@@ -451,6 +451,9 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
   // server and is not conflicting with auto recovery
   //<
 
+  // Increase client counter
+  lga_increase_user_counter();
+
   // Initiate the client in the agent and if first client also start MDS
   rc = lga_startup();
   if (rc != NCSCC_RC_SUCCESS) {
@@ -460,11 +463,9 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
     } else {
       ais_rc = SA_AIS_ERR_LIBRARY;
     }
+    lga_decrease_user_counter();
     return ais_rc;
   }
-
-  // Increase client counter
-  lga_increase_user_counter();
 
   // Populate the message to be sent to the LGS
   memset(&i_msg, 0, sizeof(lgsv_msg_t));
@@ -628,11 +629,6 @@ SaAisErrorT LogAgent::saLogDispatch(SaLogHandleT logHandle,
   return ais_rc;
 }
 
-size_t LogAgent::CountClient() {
-  ScopeLock scopeLock(mutex_);
-  return client_list_.size();
-}
-
 SaAisErrorT LogAgent::SendFinalizeMsg(uint32_t client_id) {
   uint32_t mds_rc;
   lgsv_msg_t msg, *o_msg = nullptr;
@@ -760,7 +756,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     }
   }
 
-  if (CountClient() == 0) {
+  if (lga_get_number_of_user() == 0) {
     // Stop recovery thread if it's running
     stop_recovery2_thread();
     // Shutdown the agent

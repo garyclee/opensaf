@@ -163,6 +163,15 @@ void lga_decrease_user_counter(void) {
 }
 
 /**
+ * Get number of user
+ */
+unsigned int lga_get_number_of_user(void){
+  ScopeLock lock(init_lock);
+
+  return client_counter;
+}
+
+/**
  * Check if the name is valid or not.
  */
 bool lga_is_extended_name_valid(const SaNameT* name) {
