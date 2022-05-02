@@ -2341,6 +2341,9 @@ void ImmModel::sendSyncAbortAt(timespec& time) {
 void ImmModel::getSyncAbortRsp() {
   sSyncAbortSentAt.tv_sec  = 0;
   sSyncAbortSentAt.tv_nsec = 0;
+  if (!immNotWritable()) {
+    removeDeadAdminOwners();
+  }
 }
 
 static bool is_sync_aborting() {
@@ -2828,6 +2831,7 @@ void ImmModel::abortSync() {
       LOG_ER("Impossible node state, will terminate");
       abort();
   }
+  removeDeadAdminOwners();
 }
 
 /**
@@ -20354,4 +20358,20 @@ void ImmModel::isolateThisNode(unsigned int thisNode, bool isAtCoord) {
      immnd_proc_discard_other_nodes() that calls
      immnd_proc_imma_discard_connection()
    */
+}
+
+void ImmModel::removeDeadAdminOwners() {
+  TRACE_ENTER();
+  std::vector<AdminOwnerInfo*> dead_admin_owners;
+  auto it = sOwnerVector.begin();
+  while (it != sOwnerVector.end()) {
+    if ((*it)->mDying) {
+      LOG_WA("Removing admin owner %u %s which is in demise.",
+             (*it)->mId, (*it)->mAdminOwnerName.c_str());
+      osafassert(adminOwnerDelete((*it)->mId, true) == SA_AIS_OK);
+    } else {
+      it++;
+    }
+  }
+  TRACE_LEAVE();
 }
