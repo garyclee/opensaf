@@ -15059,13 +15059,22 @@ SaAisErrorT ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
           obj = oi->second;
 
           if (obj->mImplementer == info) {
-            osafassert(!isApplier);
-            TRACE(
-                "TRY_AGAIN: ccb %u is active on object '%s' bound to OI name "
-                "'%s'. Can not set re-attach implementer",
-                ccb->mId, omit->first.c_str(), implName.c_str());
-            err = SA_AIS_ERR_TRY_AGAIN;
-            goto done;
+            if (implName == OPENSAF_IMM_PBE_IMPL_NAME) {
+              // The ccb is waiting for PBE. If PBE couldn't set the
+              // implementer here, it is a dead lock between PBE and ccb.
+              // Therefore, allow the PBE to set implementer in this case.
+              TRACE("ccb %u is active on object '%s' bound to OI name "
+                    "'%s' which is PBE. Allow to re-attach implementer",
+                    ccb->mId, omit->first.c_str(), implName.c_str());
+            } else {
+              osafassert(!isApplier);
+              TRACE(
+                  "TRY_AGAIN: ccb %u is active on object '%s' bound to OI name "
+                  "'%s'. Can not set re-attach implementer",
+                  ccb->mId, omit->first.c_str(), implName.c_str());
+              err = SA_AIS_ERR_TRY_AGAIN;
+              goto done;
+            }
           }
 
           if (isApplier && conn) {
@@ -15391,31 +15400,38 @@ SaAisErrorT ImmModel::classImplementerSet(const struct ImmsvOiImplSetReq* req,
       if (i1 != sCcbVector.end() && (*i1)->isActive()) {
         std::string objDn;
         getObjectName(obj, objDn); /* External name form */
-        LOG_NO(
-            "ERR_TRY_AGAIN: ccb %u is active on object %s "
-            "of class %s. Can not add class implementer",
-            obj->mCcbId, objDn.c_str(), className.c_str());
-        err = SA_AIS_ERR_TRY_AGAIN;
-        /*err = SA_AIS_ERR_BUSY; Not allowed according top spec.
-           But ERR_BUSY *is* allowed in the corresponding situation for
-           saImmOiClassImplementerRelease. Possibly this is because
-           ClassImplementerSet will add validation/protection and so
-           should override the progress of CCBs that have bypassed
-           validation.
-           We can only attempt to abort the ccb and only non critical
-           ccbs can be aborted. But critical ccbs are already comitting
-           and should hopefully complete the commit soon.
-           We only abort one non critical ccb per try of this function.
-        */
-        if (ccbId && ((*i1)->mState < IMM_CCB_CRITICAL)) {
-          *ccbId = (*i1)->mId;
+        if (info->mImplementerName != OPENSAF_IMM_PBE_IMPL_NAME) {
           LOG_NO(
-              "Trying to abort ccb %u to allow implementer %s to protect class %s",
-              *ccbId, info->mImplementerName.c_str(), className.c_str());
-          /* We have located a non critical ccb that blocks this operation.
-             Skip checking the remaining ccbs for now. Return and abort this
-             one. */
-          goto done;
+              "ERR_TRY_AGAIN: ccb %u is active on object %s "
+              "of class %s. Can not add class implementer",
+              obj->mCcbId, objDn.c_str(), className.c_str());
+          err = SA_AIS_ERR_TRY_AGAIN;
+          /*err = SA_AIS_ERR_BUSY; Not allowed according top spec.
+            But ERR_BUSY *is* allowed in the corresponding situation for
+            saImmOiClassImplementerRelease. Possibly this is because
+            ClassImplementerSet will add validation/protection and so
+            should override the progress of CCBs that have bypassed
+            validation.
+            We can only attempt to abort the ccb and only non critical
+            ccbs can be aborted. But critical ccbs are already comitting
+            and should hopefully complete the commit soon.
+            We only abort one non critical ccb per try of this function.
+          */
+          if (ccbId && ((*i1)->mState < IMM_CCB_CRITICAL)) {
+            *ccbId = (*i1)->mId;
+            LOG_NO("Trying to abort ccb %u to allow implementer %s to protect"
+                   " class %s", *ccbId, info->mImplementerName.c_str(),
+                   className.c_str());
+            /* We have located a non critical ccb that blocks this operation.
+              Skip checking the remaining ccbs for now. Return and abort this
+              one. */
+            goto done;
+          }
+        } else {
+          // This is PBE
+          TRACE("ccb %u is active on object %s of class %s."
+                " Allow PBE to add class implementer",
+                obj->mCcbId, objDn.c_str(), className.c_str());
         }
       }
     }
