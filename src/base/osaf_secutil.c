@@ -50,6 +50,8 @@
 #include "base/logtrace.h"
 #include "base/osaf_secutil.h"
 
+#define DEFAULT_GRP_MEM_BUF_SIZE 16384
+
 static struct group *osaf_getgrent_r(struct group *gbuf, char **buf,
 				     size_t *buflen);
 
@@ -276,14 +278,13 @@ int osaf_auth_server_create(const char *pathname,
 /* used by server, logging is OK */
 bool osaf_user_is_member_of_group(uid_t uid, const char *groupname)
 {
-	long grpmembufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
-	if (grpmembufsize < 0)
-		grpmembufsize = 16384;
+	bool ret = false;
+	long grpmembufsize = DEFAULT_GRP_MEM_BUF_SIZE;
 	char *grpmembuf = malloc(grpmembufsize);
 	if (grpmembuf == NULL) {
 		LOG_ER("%s: Failed to allocate %ld bytes", __FUNCTION__,
 		       grpmembufsize);
-		return false;
+		return ret;
 	}
 
 	long pwdmembufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -294,27 +295,59 @@ bool osaf_user_is_member_of_group(uid_t uid, const char *groupname)
 		LOG_ER("%s: Failed to allocate %ld bytes", __FUNCTION__,
 		       pwdmembufsize);
 		free(grpmembuf);
-		return false;
+		return ret;
 	}
 
 	// get group file entry with list of member user names
+	// in case error, an error number is returned
+	// errno=ERANGE means that grpmembufsize is insufficient
+	// realloc grpmembuf with grpmembufsize increase
+	// the increase will not surpass maxgrpmembufsize
 	struct group gbuf;
 	struct group *client_grp;
-	int grnam_retval =
-	    getgrnam_r(groupname, &gbuf, grpmembuf, grpmembufsize, &client_grp);
+	long maxgrpmembufsize = DEFAULT_GRP_MEM_BUF_SIZE;
+	int grnam_retval = 0;
+
+	grnam_retval = getgrnam_r(groupname, &gbuf, grpmembuf, grpmembufsize,
+							&client_grp);
+	if (grnam_retval == ERANGE) {
+		char *buff_size = NULL;
+		buff_size = getenv("MAX_GRP_MEM_BUF_SIZE");
+
+		if (buff_size != NULL) {
+			maxgrpmembufsize = strtol(buff_size, NULL, 10);
+			if (errno == ERANGE || maxgrpmembufsize > UINT16_MAX) {
+				maxgrpmembufsize = UINT16_MAX;
+				LOG_WA("Too large, allign to %ld", maxgrpmembufsize);
+			} else if (maxgrpmembufsize < DEFAULT_GRP_MEM_BUF_SIZE) {
+				maxgrpmembufsize = DEFAULT_GRP_MEM_BUF_SIZE;
+				LOG_WA("Too small, allign to %ld", maxgrpmembufsize);
+			}
+		}
+	}
+	while (grnam_retval == ERANGE && grpmembufsize < maxgrpmembufsize) {
+		grpmembufsize += DEFAULT_GRP_MEM_BUF_SIZE;
+		char *temp = realloc(grpmembuf, grpmembufsize);
+
+		if (temp == NULL) {
+			LOG_ER("%s: realloc failed, %s", __func__,
+			       strerror(errno));
+			goto done;
+		}
+		grpmembuf = temp;
+		grnam_retval = getgrnam_r(groupname, &gbuf, grpmembuf, grpmembufsize,
+									&client_grp);
+	}
 	if (grnam_retval != 0) {
 		LOG_ER("%s: get group file entry failed for '%s' - %s",
-		       __FUNCTION__, groupname, strerror(grnam_retval));
-		free(pwdmembuf);
-		free(grpmembuf);
-		return false;
+				__func__, groupname, strerror(grnam_retval));
+		goto done;
 	}
+
 	if (client_grp == NULL) {
 		LOG_ER("%s: group '%s' does not exist", __FUNCTION__,
 		       groupname);
-		free(pwdmembuf);
-		free(grpmembuf);
-		return false;
+		goto done;
 	}
 
 	// get password file entry for user
@@ -325,38 +358,33 @@ bool osaf_user_is_member_of_group(uid_t uid, const char *groupname)
 	if (pwuid_retval != 0) {
 		LOG_WA("%s: get password file entry failed for uid=%u - %s",
 		       __FUNCTION__, (unsigned)uid, strerror(pwuid_retval));
-		free(pwdmembuf);
-		free(grpmembuf);
-		return false;
+		goto done;
 	}
 	if (client_pwd == NULL) {
 		LOG_WA("%s: user id %u does not exist", __FUNCTION__,
 		       (unsigned)uid);
-		free(pwdmembuf);
-		free(grpmembuf);
-		return false;
+		goto done;
 	}
 
 	// check the primary group of the user
 	if (client_pwd->pw_gid == client_grp->gr_gid) {
-		free(pwdmembuf);
-		free(grpmembuf);
-		return true;
+		ret = true;
+		goto done;
 	}
 
 	/* loop list of usernames that are members of the group trying find a
 	 * match with the specified user name */
 	for (char **member = client_grp->gr_mem; *member != NULL; member++) {
 		if (strcmp(client_pwd->pw_name, *member) == 0) {
-			free(pwdmembuf);
-			free(grpmembuf);
-			return true;
+			ret = true;
+			goto done;
 		}
 	}
 
+done:
 	free(pwdmembuf);
 	free(grpmembuf);
-	return false;
+	return ret;
 }
 
 bool osaf_pid_has_supplementary_group(pid_t pid, const char *groupname)
