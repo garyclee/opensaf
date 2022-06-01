@@ -23,16 +23,18 @@
 #include "base/osaf_time.h"
 #include "base/osaf_extended_name.h"
 
-#define LGS_SVC_PVT_SUBPART_VERSION 1
+#define LGS_SVC_PVT_SUBPART_VERSION 2
 #define LGS_WRT_LGA_SUBPART_VER_AT_MIN_MSG_FMT 1
-#define LGS_WRT_LGA_SUBPART_VER_AT_MAX_MSG_FMT 1
+#define LGS_WRT_LGA_SUBPART_VER_AT_MAX_MSG_FMT 2
 #define LGS_WRT_LGA_SUBPART_VER_RANGE       \
   (LGS_WRT_LGA_SUBPART_VER_AT_MAX_MSG_FMT - \
    LGS_WRT_LGA_SUBPART_VER_AT_MIN_MSG_FMT + 1)
+#define LGS_WRT_LGA_INIT_CLM_STATE_SUBPART_VERSION 2
 
 static MDS_CLIENT_MSG_FORMAT_VER
     LGS_WRT_LGA_MSG_FMT_ARRAY[LGS_WRT_LGA_SUBPART_VER_RANGE] = {
-        1 /*msg format version for LGA subpart version 1 */
+        1, /*msg format version for LGA subpart version 1 */
+        2  /*msg format version for LGA subpart version 2 */
 };
 
 /****************************************************************************
@@ -1212,6 +1214,8 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info) {
       /** Initialize the MDS portion of the header **/
       evt->info.mds_info.node_id = info->info.svc_evt.i_node_id;
       evt->info.mds_info.mds_dest_id = info->info.svc_evt.i_dest;
+      evt->info.mds_info.i_rem_svc_pvt_ver =
+          info->info.svc_evt.i_rem_svc_pvt_ver;
 
       /* Push to the lowest prio queue to not bypass any pending writes. If that
        * fails (it is FULL) use the high prio unbounded ctrl msg queue */
@@ -1243,6 +1247,8 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info) {
       /** Initialize the MDS portion of the header **/
       evt->info.mds_info.node_id = info->info.svc_evt.i_node_id;
       evt->info.mds_info.mds_dest_id = info->info.svc_evt.i_dest;
+      evt->info.mds_info.i_rem_svc_pvt_ver =
+          info->info.svc_evt.i_rem_svc_pvt_ver;
 
       /* Push to the lowest prio queue to not bypass any pending writes. If that
        * fails (it is FULL) use the high prio unbounded ctrl msg queue */

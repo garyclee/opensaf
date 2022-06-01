@@ -4683,30 +4683,46 @@ uint32_t mds_mcm_ll_data_rcv(MDS_DATA_RECV *recv)
 	}
 
 	/* For the message loss indication */
-	if ((true == svccb->i_msg_loss_indication) &&
-	    ((recv->snd_type != MDS_SENDTYPE_ACK) ||
-	     (recv->snd_type != MDS_SENDTYPE_RACK))) {
+	if (recv->snd_type != MDS_SENDTYPE_ACK
+			&& recv->snd_type != MDS_SENDTYPE_RACK) {
 		/* Get the subscription table result table function pointer */
 		MDS_SUBSCRIPTION_RESULTS_INFO *lcl_subtn_res = NULL;
 		if (NCSCC_RC_SUCCESS == mds_get_subtn_res_tbl_by_adest(
 					    recv->dest_svc_hdl,
 					    recv->src_svc_id, recv->src_vdest,
 					    recv->src_adest, &lcl_subtn_res)) {
-			if (recv->src_seq_num != lcl_subtn_res->msg_rcv_cnt) {
+			if (recv->snd_type == MDS_SENDTYPE_BCAST
+					|| recv->snd_type == MDS_SENDTYPE_RBCAST) {
+				// The sequence number of broadcast message is associated
+				// with a specific destination not all destinations. Because
+				// it isn't reliable, this message is skipped by resetting
+				// the message count.
+				lcl_subtn_res->msg_rcv_cnt = 0;
+			} else if (lcl_subtn_res->msg_rcv_cnt == 0) {
+				// This is the first message received after subscribing
+				// the sender service or receiving a broadcast message,
+				// therefore the message count is initialized here.
+				// Note: all messages received before subscribing the
+				// sender service was not tracked so skip checking those
+				// messages.
+				lcl_subtn_res->msg_rcv_cnt = recv->src_seq_num;
+				lcl_subtn_res->msg_rcv_cnt++;
+			} else if (recv->src_seq_num != lcl_subtn_res->msg_rcv_cnt) {
 				m_MDS_LOG_ERR(
-				    "MDS_SND_RCV: msg loss detected, Src svc_id = %s(%d), Src vdest id= %d,\
-						Src Adest = %" PRIu64
-				    ", local svc_id = %s(%d) msg num=%d, recvd cnt=%d\n",
+				    "MDS_SND_RCV: msg loss detected, Src svc_id = %s(%d),"
+				    " Src vdest id= %d, Src Adest = %" PRIu64 ","
+				    " local svc_id = %s(%d) msg num=%d, recvd cnt=%d\n",
 				    get_svc_names(recv->src_svc_id),
 				    recv->src_svc_id, recv->src_vdest,
 				    recv->src_adest,
 				    get_svc_names(svccb->svc_id), svccb->svc_id,
 				    recv->src_seq_num,
 				    lcl_subtn_res->msg_rcv_cnt);
-
-				mds_mcm_msg_loss(
-				    recv->dest_svc_hdl, recv->src_adest,
-				    recv->src_svc_id, recv->src_vdest);
+				if (svccb->i_msg_loss_indication == true) {
+					mds_mcm_msg_loss(
+						recv->dest_svc_hdl, recv->src_adest,
+						recv->src_svc_id, recv->src_vdest);
+				}
 				lcl_subtn_res->msg_rcv_cnt = recv->src_seq_num;
 				lcl_subtn_res->msg_rcv_cnt++;
 			} else {

@@ -152,24 +152,24 @@ typedef struct COUNTER {
 } COUNTER;
 
 /********************* GLOBAL variables ********************/
-TET_ADEST gl_tet_adest;
-TET_VDEST
+extern TET_ADEST gl_tet_adest;
+extern TET_VDEST
     gl_tet_vdest[4]; /*change it to 6 to run VDS Redundancy: 101 for Stress*/
-TET_SVC gl_tet_svc;
-TET_MDS_RECVD_MSG_INFO gl_rcvdmsginfo, gl_direct_rcvmsginfo;
-TET_EVENT_INFO gl_event_data;
-int gl_vdest_indx;
-MDS_DIRECT_BUFF direct_buff;
+extern TET_SVC gl_tet_svc;
+extern TET_MDS_RECVD_MSG_INFO gl_rcvdmsginfo;
+extern TET_MDS_RECVD_MSG_INFO gl_direct_rcvmsginfo;
+extern TET_EVENT_INFO gl_event_data;
+extern int gl_vdest_indx;
+extern MDS_DIRECT_BUFF direct_buff;
 
 /*Callback Failure*/
-int gl_COPY_CB_FAIL;
-int gl_SYS_EVENT_CB_FAIL;
-int gl_ENC_CB_FAIL;
-int gl_DEC_CB_FAIL;
-int gl_ENC_FLAT_CB_FAIL;
-int gl_DEC_FLAT_CB_FAIL;
-int gl_RECEIVE_CB_FAIL;
-int gl_COPY_CB_FAIL;
+extern int gl_COPY_CB_FAIL;
+extern int gl_SYS_EVENT_CB_FAIL;
+extern int gl_ENC_CB_FAIL;
+extern int gl_DEC_CB_FAIL;
+extern int gl_ENC_FLAT_CB_FAIL;
+extern int gl_DEC_FLAT_CB_FAIL;
+extern int gl_RECEIVE_CB_FAIL;
 
 uint32_t tet_mds_svc_callback(NCSMDS_CALLBACK_INFO *);
 /******************MDS call back routines *********************************/

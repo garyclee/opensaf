@@ -24,6 +24,7 @@ extern const char *saf_error_string[];
 int gl_try_again_cnt;
 int gl_tmout_cnt;
 int gl_sync_pointnum;
+NCSCONTEXT gl_task_hdl;
 int tmoutFlag;
 
 int cpsv_test_result(SaAisErrorT rc, SaAisErrorT exp_out, char *test_case,
@@ -653,21 +654,26 @@ void selection_thread_blocking(NCSCONTEXT arg)
 		m_TEST_CPSV_PRINTF("\n Thread selected \n");
 }
 
+void cpsv_deletethread(void)
+{
+	m_NCS_TASK_RELEASE(gl_task_hdl);
+}
+
 void cpsv_createthread(SaCkptHandleT *cl_hdl)
 {
 	SaAisErrorT rc;
-	NCSCONTEXT thread_handle;
 
 	rc = m_NCS_TASK_CREATE((NCS_OS_CB)selection_thread_blocking,
 			       (NCSCONTEXT)cl_hdl, "cpsv_block_test", 0,
-			       SCHED_OTHER, 8000, &thread_handle);
+			       SCHED_OTHER, 8000, &gl_task_hdl);
 	if (rc != NCSCC_RC_SUCCESS) {
 		m_TEST_CPSV_PRINTF(" Failed to create thread\n");
 		return;
 	}
 
-	rc = m_NCS_TASK_START(thread_handle);
+	rc = m_NCS_TASK_START(gl_task_hdl);
 	if (rc != NCSCC_RC_SUCCESS) {
+		m_NCS_TASK_RELEASE(gl_task_hdl);
 		m_TEST_CPSV_PRINTF(" Failed to start thread\n");
 		return;
 	}
@@ -3007,6 +3013,11 @@ static void ntfCallback(SaNtfSubscriptionIdT subscriptionId,
 			break;
 		}
 	} while (false);
+
+	if (notification->notificationType == SA_NTF_TYPE_STATE_CHANGE)
+		saNtfNotificationFree(
+		    notification->notification.stateChangeNotification
+			.notificationHandle);
 }
 
 int test_ckptNtfStateChange(int i, CONFIG_FLAG cfg_flg)

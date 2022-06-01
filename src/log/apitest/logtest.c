@@ -61,6 +61,12 @@ SaNameT saNameT_appstream_name_256;
 
 static char buf[2048];
 
+bool tag_flg;
+
+bool silent_flg;
+
+bool verbose_flg;
+
 SaLogBufferT alarmStreamBuffer = {
     .logBuf = (SaUint8T *)buf, .logBufSize = 0,
 };

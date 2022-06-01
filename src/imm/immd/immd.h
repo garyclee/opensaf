@@ -43,7 +43,7 @@
 #include "immd_sbedu.h"
 #include "base/ncs_mda_pvt.h"
 
-IMMD_CB *immd_cb;
+extern IMMD_CB *immd_cb;
 
 extern uint32_t initialize_for_assignment(IMMD_CB *cb, SaAmfHAStateT ha_state);
 

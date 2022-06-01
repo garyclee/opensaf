@@ -3676,7 +3676,7 @@ additional ccb-operations can be added to the ccb until the current set of
 successfully validated ccb is highly likely to succeed, but still not guaranteed
                    to succeed. If an apply of a validated ccb fails, it will
 obviously not be due to any failure in validation, but for "physical" reasons,
-                   such as some problem with the PBE (persistent back end), or a
+                   such as some problem with the PBE (Persistent Back End), or a
 crash of some vital IMM process.
 
                    Thus after a successfull saImmOmCcbValidate, the ccb is in a

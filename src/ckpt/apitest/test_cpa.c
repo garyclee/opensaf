@@ -262,6 +262,14 @@ struct cpsv_testcase_data tcd = {.section3 = SA_CKPT_DEFAULT_SECTION_ID,
 				 .gen_sec = SA_CKPT_GENERATED_SECTION_ID,
 				 .section7 = SA_CKPT_GENERATED_SECTION_ID};
 
+void free_testase_data()
+{
+	if (ckpt_valid_name)
+		free(ckpt_valid_name);
+	if (ckpt_invalid_name)
+		free(ckpt_invalid_name);
+}
+
 void fill_testcase_data()
 {
 	/* Variables for initialization */
@@ -355,24 +363,24 @@ void fill_testcase_data()
 	fill_ckpt_name(&tcd.collocated_ckpt_large,
 		       "safCkpt=collocated_large_ckpt,safApp=safCkptService");
 
-	char *ckpt_name = malloc(VALID_EXTENDED_NAME_LENGTH);
-	memset(ckpt_name, 0, VALID_EXTENDED_NAME_LENGTH);
-	memset(ckpt_name, '.', VALID_EXTENDED_NAME_LENGTH - 1);
+	ckpt_valid_name = malloc(VALID_EXTENDED_NAME_LENGTH);
+	memset(ckpt_valid_name, 0, VALID_EXTENDED_NAME_LENGTH);
+	memset(ckpt_valid_name, '.', VALID_EXTENDED_NAME_LENGTH - 1);
 	int length = sprintf(
-	    ckpt_name,
+	    ckpt_valid_name,
 	    "safCkpt=all_replicas_ckpt_with_valid_extended_name_length");
-	*(ckpt_name + length) = '.';
-	saAisNameLend(ckpt_name,
+	*(ckpt_valid_name + length) = '.';
+	saAisNameLend(ckpt_valid_name,
 		      &tcd.all_replicas_ckpt_with_valid_extended_name_length);
 
-	ckpt_name = malloc(INVALID_EXTENDED_NAME_LENGTH);
-	memset(ckpt_name, 0, INVALID_EXTENDED_NAME_LENGTH);
-	memset(ckpt_name, '.', INVALID_EXTENDED_NAME_LENGTH - 1);
+	ckpt_invalid_name = malloc(INVALID_EXTENDED_NAME_LENGTH);
+	memset(ckpt_invalid_name, 0, INVALID_EXTENDED_NAME_LENGTH);
+	memset(ckpt_invalid_name, '.', INVALID_EXTENDED_NAME_LENGTH - 1);
 	length = sprintf(
-	    ckpt_name,
+	    ckpt_invalid_name,
 	    "safCkpt=all_replicas_ckpt_with_invalid_extended_name_length");
-	*(ckpt_name + length) = '.';
-	saAisNameLend(ckpt_name,
+	*(ckpt_invalid_name + length) = '.';
+	saAisNameLend(ckpt_invalid_name,
 		      &tcd.all_replicas_ckpt_with_invalid_extended_name_length);
 
 	/* Variables for sec create */
@@ -1045,6 +1053,7 @@ final3:
 	test_ckpt_cleanup(CPSV_CLEAN_ASYNC_ALL_MODES_SUCCESS_T);
 final2:
 	test_cpsv_cleanup(CPSV_CLEAN_INIT_SUCCESS_T);
+	cpsv_deletethread();
 final1:
 	printResult(result);
 	test_validate(result, TEST_PASS);

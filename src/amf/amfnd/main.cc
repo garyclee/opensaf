@@ -343,6 +343,8 @@ AVND_CB *avnd_cb_create() {
   cb->is_avd_down = true;
   cb->amfd_sync_required = false;
 
+  cb->active_ack_msg_id = 0;
+
   // retrieve hydra configuration from IMM
   hydra_config_get(cb);
   cb->sc_absence_tmr.is_active = false;

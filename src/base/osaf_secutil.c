@@ -225,8 +225,8 @@ static char *get_supplementary_group_list(pid_t pid)
 		// Exclude 'Groups:' string and a following tab
 		size_t len = strlen(line_buf) - groups_len - 1;
 		assert(len && "Invalid sumplementary group list");
-		group_list = (char *)malloc(len);
-		strcpy(group_list, line_buf + groups_len + 1);
+		group_list = (char *)calloc(len, sizeof(char));
+		memcpy(group_list, line_buf + groups_len + 1, len);
 
 		// Remove a character 'new line' at the end of the string
 		group_list[len - 1] = '\0';

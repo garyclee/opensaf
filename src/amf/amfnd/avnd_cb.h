@@ -96,6 +96,7 @@ typedef struct avnd_cb_tag {
   uint32_t rcv_msg_id; /* Message ID of the last message received */
   /* AvD messaging params (retransmit list etc.) */
   uint32_t snd_msg_id; /* send msg id */
+  uint32_t active_ack_msg_id;  // msg id acked by active
 
   /** List of messages sent to director but not yet acked.
    * Messages are removed when acked with the ACK message.

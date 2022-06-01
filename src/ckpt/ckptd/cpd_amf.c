@@ -37,7 +37,6 @@
 #include "ckpt/ckptd/cpd_imm.h"
 #define NCS_2_0 1
 #if NCS_2_0 /* Required for NCS 2.0 */
-extern uint32_t gl_cpd_cb_hdl;
 extern const SaImmOiImplementerNameT implementer_name;
 
 /****************************************************************************

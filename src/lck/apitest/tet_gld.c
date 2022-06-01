@@ -2,7 +2,6 @@
 
 #include "tet_glsv.h"
 
-extern uint32_t gl_gld_hdl;
 
 void tet_run_gld() { tet_create_gld(); }
 

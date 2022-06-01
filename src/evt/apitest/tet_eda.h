@@ -44,33 +44,54 @@
 
 void tet_result(int result);
 
-int gl_act;
-int gl_tNode1, gl_tNode2, gl_tNode3, gl_node_id, gl_jCount, gl_allocatedNumber,
-    gl_patternLength, gl_tCount, gl_tCase, gl_iteration, gl_listNumber,
-    gl_error, subCount, gl_err, gl_cbk, iCmpCount, tempDataSize, gl_hide;
-char *gl_saf_msg, *tempData;
-char gl_eventData[20];
-NCSCONTEXT gl_t_handle;
-SaEvtHandleT gl_evtHandle, gl_threadEvtHandle;
-SaVersionT gl_version;
-SaAisErrorT gl_rc;
-SaSelectionObjectT gl_selObject;
-SaDispatchFlagsT gl_dispatchFlags;
-SaNameT gl_channelName, gl_publisherName;
-SaEvtChannelOpenFlagsT gl_channelOpenFlags;
-SaTimeT gl_timeout, gl_retentionTime, gl_publishTime;
-SaEvtChannelHandleT gl_channelHandle;
-SaInvocationT gl_invocation;
-SaEvtEventHandleT gl_eventHandle, gl_eventDeliverHandle;
-SaEvtEventIdT gl_evtId;
-SaEvtEventPatternArrayT gl_patternArray;
-SaEvtEventPriorityT gl_priority;
-SaSizeT gl_eventDataSize;
-SaEvtEventFilterArrayT gl_filterArray;
-SaEvtSubscriptionIdT gl_subscriptionId, gl_dupSubscriptionId;
-SaEvtEventPatternT gl_pattern[2];
-SaEvtEventFilterT gl_filter[1];
-SaEvtCallbacksT gl_evtCallbacks;
+extern int gl_tNode1;
+extern int gl_tNode2;
+extern int gl_tNode3;
+extern int gl_node_id;
+extern int gl_jCount;
+extern int gl_allocatedNumber;
+extern int gl_patternLength;
+extern int gl_tCount;
+extern int gl_tCase;
+extern int gl_iteration;
+extern int gl_listNumber;
+extern int gl_error;
+extern int subCount;
+extern int gl_err;
+extern int gl_cbk;
+extern int iCmpCount;
+extern int tempDataSize;
+extern int gl_hide;
+extern char *gl_saf_msg;
+extern char *tempData;
+extern char gl_eventData[20];
+extern NCSCONTEXT gl_t_handle;
+extern SaEvtHandleT gl_evtHandle;
+extern SaEvtHandleT gl_threadEvtHandle;
+extern SaVersionT gl_version;
+extern SaAisErrorT gl_rc;
+extern SaSelectionObjectT gl_selObject;
+extern SaDispatchFlagsT gl_dispatchFlags;
+extern SaNameT gl_channelName;
+extern SaNameT gl_publisherName;
+extern SaEvtChannelOpenFlagsT gl_channelOpenFlags;
+extern SaTimeT gl_timeout;
+extern SaTimeT gl_retentionTime;
+extern SaTimeT gl_publishTime;
+extern SaEvtChannelHandleT gl_channelHandle;
+extern SaInvocationT gl_invocation;
+extern SaEvtEventHandleT gl_eventHandle;
+extern SaEvtEventHandleT gl_eventDeliverHandle;
+extern SaEvtEventIdT gl_evtId;
+extern SaEvtEventPatternArrayT gl_patternArray;
+extern SaEvtEventPriorityT gl_priority;
+extern SaSizeT gl_eventDataSize;
+extern SaEvtEventFilterArrayT gl_filterArray;
+extern SaEvtSubscriptionIdT gl_subscriptionId;
+extern SaEvtSubscriptionIdT gl_dupSubscriptionId;
+extern SaEvtEventPatternT gl_pattern[2];
+extern SaEvtEventFilterT gl_filter[1];
+extern SaEvtCallbacksT gl_evtCallbacks;
 void EvtOpenCallback(SaInvocationT invocationCallback,
                      SaEvtChannelHandleT asyncChannelHandle, SaAisErrorT error);
 void EvtDeliverCallback(SaEvtSubscriptionIdT subscriptionId,
@@ -85,9 +106,10 @@ struct gl_list {
   char *gl_eventData;
 };
 
-NCSCONTEXT eda_thread_handle, subscription_handle;
+extern NCSCONTEXT eda_thread_handle;
+extern NCSCONTEXT subscription_handle;
 /*******String Constants*******/
-const char *gl_saf_error[32];
+extern const char *gl_saf_error[32];
 
 typedef enum {
   EDSV_TEST = 1,

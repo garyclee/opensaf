@@ -334,7 +334,7 @@ static uint32_t immnd_initialize(char *progname)
 
 	if ((immnd_cb->mPbeFile = getenv("IMMSV_PBE_FILE")) != NULL) {
 		LOG_NO(
-		    "Persistent Back-End capability configured, Pbe file:%s (suffix may get added)",
+		    "Persistent Back End capability configured, Pbe file:%s (suffix may get added)",
 		    immnd_cb->mPbeFile);
 	}
 	immnd_cb->mFevsMaxPending = 16;

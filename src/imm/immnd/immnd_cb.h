@@ -61,7 +61,7 @@ typedef struct immnd_immom_client_node {
   NCSMDS_SVC_ID sv_id; /* OM or OI */
   IMMND_OM_SEARCH_NODE *searchOpList;
   uint8_t mIsSync;             /* Client is special sync client */
-  uint8_t mIsPbe;              /* Client is persistent back end */
+  uint8_t mIsPbe;              /* Client is Persistent Back End */
   uint8_t mSyncBlocked;        /* Sync client expects reply */
   uint8_t mIsStale;            /* Client disconnected when IMMD
                           is unavailable => postpone
@@ -168,7 +168,7 @@ typedef struct immnd_cb_tag {
   int32_t preLoadPid;  // Forked preloader probes PBE file, for 2Pbe.
   int32_t loaderPid;
   int32_t syncPid;
-  int32_t pbePid;   // Persistent back end (PBE) is running if pbePid > 0
+  int32_t pbePid;   // Persistent Back End (PBE) is running if pbePid > 0
   int32_t pbePid2;  // Redundant PBE (2PBE) is running if pbePid2 > 0
   IMMND_SERVER_STATE mState;
   uint32_t mStep;  // Measures progress in immnd_proc_server

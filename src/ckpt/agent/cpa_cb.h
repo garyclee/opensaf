@@ -119,7 +119,7 @@ typedef struct cpa_cb {
 
 } CPA_CB;
 
-uint32_t gl_cpa_hdl;
+extern uint32_t gl_cpa_hdl;
 
 typedef struct cpa_prcess_evt_sync {
   NCS_QELEM qelem;

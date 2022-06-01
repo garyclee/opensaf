@@ -16,7 +16,7 @@
 #
 
 AC_PREREQ([2.64])
-AC_INIT([opensaf], [5.22.01], [opensaf-users@lists.sourceforge.net], [opensaf], [http://opensaf.sourceforge.net/])
+AC_INIT([opensaf], [5.22.06], [opensaf-users@lists.sourceforge.net], [opensaf], [http://opensaf.sourceforge.net/])
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_SYSTEM
 AC_CONFIG_SRCDIR([opensaf.spec.in])
@@ -330,12 +330,12 @@ AM_CONDITIONAL([ENABLE_TESTS], [test "$enable_tests" = yes])
 AC_SUBST([TESTS_ENABLED], ["$enable_tests"])
 
 #
-# Enable/disable IMM Persistent Backend
+# Enable/disable IMM Persistent Back End
 #
-AC_MSG_CHECKING([whether to use the IMM persistent backend])
+AC_MSG_CHECKING([whether to use the IMM Persistent Back End])
 AC_ARG_ENABLE([imm-pbe],
 	[AS_HELP_STRING([--enable-imm-pbe],
-		[enable the IMM Persistent Backend Interface [default=no]])],
+		[enable the IMM Persistent Back End Interface [default=no]])],
 	[],
 	[enable_imm_pbe=no])
 AC_MSG_RESULT([$enable_imm_pbe])

@@ -72,6 +72,6 @@
 #include "base/daemon.h"
 
 /* EDS CB global handle declaration */
-uint32_t gl_eds_hdl;
+extern uint32_t gl_eds_hdl;
 
 #endif  // EVT_EVTD_EDS_H_

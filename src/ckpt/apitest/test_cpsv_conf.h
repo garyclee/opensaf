@@ -154,7 +154,7 @@ struct cpsv_testcase_data {
   int ntfTest;
 };
 
-struct cpsv_testcase_data tcd;
+extern struct cpsv_testcase_data tcd;
 
 extern int test_ckptInitialize(int i, CONFIG_FLAG cfg_flg);
 extern int test_ckptSelectionObject(int i, CONFIG_FLAG cfg_flg);
@@ -206,6 +206,7 @@ extern int test_red_ckptIterationNext(int i, CONFIG_FLAG cfg_flg);
 extern int test_red_ckptIterationFin(int i, CONFIG_FLAG cfg_flg);
 extern void selection_thread_blocking(NCSCONTEXT arg);
 extern void cpsv_createthread(SaCkptHandleT *cl_hdl);
+extern void cpsv_deletethread(void);
 
 extern void printHead(char *str);
 extern void cpsv_clean_clbk_params();

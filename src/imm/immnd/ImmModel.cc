@@ -334,7 +334,7 @@ typedef enum {
       7,  // Explicit validate has completed (saImmOmCcbValidate only)
   IMM_CCB_PREPARE = 8,   // Waiting for nodes prepare & completed calls/replies
   IMM_CCB_CRITICAL = 9,  // Unilateral abort no longer allowed (except by PBE).
-  IMM_CCB_PBE_ABORT = 10,  // The Persistent back end replied with abort
+  IMM_CCB_PBE_ABORT = 10,  // The Persistent Back End replied with abort
   IMM_CCB_COMMITTED = 11,  // Committed at nodes pending implementer apply calls
   IMM_CCB_ABORTED = 12,    // READY->ABORTED PREPARE->ABORTED
   IMM_CCB_ILLEGAL = 13     // CCB has been removed.
@@ -2341,6 +2341,9 @@ void ImmModel::sendSyncAbortAt(timespec& time) {
 void ImmModel::getSyncAbortRsp() {
   sSyncAbortSentAt.tv_sec  = 0;
   sSyncAbortSentAt.tv_nsec = 0;
+  if (!immNotWritable()) {
+    removeDeadAdminOwners();
+  }
 }
 
 static bool is_sync_aborting() {
@@ -2383,7 +2386,7 @@ bool ImmModel::immNotWritable() {
 /* immNotPbeWritable returning true means:
    (1) immNotWriteable is true OR...
    (2) immNotWritable is false (imm service is writable), but according to
-   configuration there should be a persistent back-end (Pbe) and the Pbe is
+   configuration there should be a Persistent Back End (Pbe) and the Pbe is
    currently not operational. OR..
    (3) PBE is operational, but backlog on PRTOs or Ccbs is large enough to
    warant back-presure (TRY_AGAIN) towards the application.
@@ -2828,6 +2831,7 @@ void ImmModel::abortSync() {
       LOG_ER("Impossible node state, will terminate");
       abort();
   }
+  removeDeadAdminOwners();
 }
 
 /**
@@ -8771,7 +8775,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(
       }
     }
 
-    // Prepare for call on PersistentBackEnd
+    // Prepare for call on Persistent Back End
     if ((err == SA_AIS_OK) && pbeNodeIdPtr) {
       void* pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
       if (!pbe) {
@@ -8780,13 +8784,13 @@ SaAisErrorT ImmModel::ccbObjectCreate(
           err = SA_AIS_ERR_FAILED_OPERATION;
           ccb->mVeto = err;
           LOG_WA(
-              "ERR_FAILED_OPERATION: Persistent back end is down "
+              "ERR_FAILED_OPERATION: Persistent Back End is down "
               "ccb %u is aborted",
               ccbId);
           setCcbErrorString(ccb, IMM_RESOURCE_ABORT "PBE is down");
         } else {
           /* Pristine ccb can not start because PBE down */
-          TRACE_5("ERR_TRY_AGAIN: Persistent back end is down");
+          TRACE_5("ERR_TRY_AGAIN: Persistent Back End is down");
           err = SA_AIS_ERR_TRY_AGAIN;
         }
       }
@@ -9905,7 +9909,7 @@ SaAisErrorT ImmModel::ccbObjectModify(
     }
   }  // for (p = ....)
 
-  // Prepare for call on PersistentBackEnd
+  // Prepare for call on Persistent Back End
   if ((err == SA_AIS_OK) && pbeNodeIdPtr) {
     void* pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
     if (!pbe) {
@@ -9914,13 +9918,13 @@ SaAisErrorT ImmModel::ccbObjectModify(
         err = SA_AIS_ERR_FAILED_OPERATION;
         ccb->mVeto = err;
         LOG_WA(
-            "ERR_FAILED_OPERATION: Persistent back end is down "
+            "ERR_FAILED_OPERATION: Persistent Back End is down "
             "ccb %u is aborted",
             ccbId);
         setCcbErrorString(ccb, IMM_RESOURCE_ABORT "PBE is down");
       } else {
         /* Pristine ccb can not start because PBE down */
-        TRACE_5("ERR_TRY_AGAIN: Persistent back end is down");
+        TRACE_5("ERR_TRY_AGAIN: Persistent Back End is down");
         err = SA_AIS_ERR_TRY_AGAIN;
       }
     }
@@ -10544,7 +10548,7 @@ SaAisErrorT ImmModel::ccbObjectDelete(
     return SA_AIS_ERR_BAD_OPERATION;
   }
 
-  // Prepare for call on PersistentBackEnd
+  // Prepare for call on Persistent Back End
 
   if ((err == SA_AIS_OK) && pbeNodeIdPtr) {
     void* pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
@@ -10554,13 +10558,13 @@ SaAisErrorT ImmModel::ccbObjectDelete(
         err = SA_AIS_ERR_FAILED_OPERATION;
         ccb->mVeto = err;
         LOG_WA(
-            "ERR_FAILED_OPERATION: Persistent back end is down "
+            "ERR_FAILED_OPERATION: Persistent Back End is down "
             "ccb %u is aborted",
             ccbId);
         setCcbErrorString(ccb, IMM_RESOURCE_ABORT "PBE is down");
       } else {
         /* Pristine ccb can not start because PBE down */
-        TRACE_5("ERR_TRY_AGAIN: Persistent back end is down");
+        TRACE_5("ERR_TRY_AGAIN: Persistent Back End is down");
         err = SA_AIS_ERR_TRY_AGAIN;
       }
     } else {
@@ -11362,7 +11366,7 @@ bool ImmModel::ccbWaitForCompletedAck(SaUint32T ccbId, SaAisErrorT* err,
       ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
       *err = ccb->mVeto;
       LOG_WA(
-          "ERR_FAILED_OPERATION: Persistent back end is down "
+          "ERR_FAILED_OPERATION: Persistent Back End is down "
           "ccb %u is aborted",
           ccbId);
       setCcbErrorString(ccb, IMM_RESOURCE_ABORT "PBE is down");
@@ -15059,13 +15063,22 @@ SaAisErrorT ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
           obj = oi->second;
 
           if (obj->mImplementer == info) {
-            osafassert(!isApplier);
-            TRACE(
-                "TRY_AGAIN: ccb %u is active on object '%s' bound to OI name "
-                "'%s'. Can not set re-attach implementer",
-                ccb->mId, omit->first.c_str(), implName.c_str());
-            err = SA_AIS_ERR_TRY_AGAIN;
-            goto done;
+            if (implName == OPENSAF_IMM_PBE_IMPL_NAME) {
+              // The ccb is waiting for PBE. If PBE couldn't set the
+              // implementer here, it is a dead lock between PBE and ccb.
+              // Therefore, allow the PBE to set implementer in this case.
+              TRACE("ccb %u is active on object '%s' bound to OI name "
+                    "'%s' which is PBE. Allow to re-attach implementer",
+                    ccb->mId, omit->first.c_str(), implName.c_str());
+            } else {
+              osafassert(!isApplier);
+              TRACE(
+                  "TRY_AGAIN: ccb %u is active on object '%s' bound to OI name "
+                  "'%s'. Can not set re-attach implementer",
+                  ccb->mId, omit->first.c_str(), implName.c_str());
+              err = SA_AIS_ERR_TRY_AGAIN;
+              goto done;
+            }
           }
 
           if (isApplier && conn) {
@@ -15391,31 +15404,38 @@ SaAisErrorT ImmModel::classImplementerSet(const struct ImmsvOiImplSetReq* req,
       if (i1 != sCcbVector.end() && (*i1)->isActive()) {
         std::string objDn;
         getObjectName(obj, objDn); /* External name form */
-        LOG_NO(
-            "ERR_TRY_AGAIN: ccb %u is active on object %s "
-            "of class %s. Can not add class implementer",
-            obj->mCcbId, objDn.c_str(), className.c_str());
-        err = SA_AIS_ERR_TRY_AGAIN;
-        /*err = SA_AIS_ERR_BUSY; Not allowed according top spec.
-           But ERR_BUSY *is* allowed in the corresponding situation for
-           saImmOiClassImplementerRelease. Possibly this is because
-           ClassImplementerSet will add validation/protection and so
-           should override the progress of CCBs that have bypassed
-           validation.
-           We can only attempt to abort the ccb and only non critical
-           ccbs can be aborted. But critical ccbs are already comitting
-           and should hopefully complete the commit soon.
-           We only abort one non critical ccb per try of this function.
-        */
-        if (ccbId && ((*i1)->mState < IMM_CCB_CRITICAL)) {
-          *ccbId = (*i1)->mId;
+        if (info->mImplementerName != OPENSAF_IMM_PBE_IMPL_NAME) {
           LOG_NO(
-              "Trying to abort ccb %u to allow implementer %s to protect class %s",
-              *ccbId, info->mImplementerName.c_str(), className.c_str());
-          /* We have located a non critical ccb that blocks this operation.
-             Skip checking the remaining ccbs for now. Return and abort this
-             one. */
-          goto done;
+              "ERR_TRY_AGAIN: ccb %u is active on object %s "
+              "of class %s. Can not add class implementer",
+              obj->mCcbId, objDn.c_str(), className.c_str());
+          err = SA_AIS_ERR_TRY_AGAIN;
+          /*err = SA_AIS_ERR_BUSY; Not allowed according top spec.
+            But ERR_BUSY *is* allowed in the corresponding situation for
+            saImmOiClassImplementerRelease. Possibly this is because
+            ClassImplementerSet will add validation/protection and so
+            should override the progress of CCBs that have bypassed
+            validation.
+            We can only attempt to abort the ccb and only non critical
+            ccbs can be aborted. But critical ccbs are already comitting
+            and should hopefully complete the commit soon.
+            We only abort one non critical ccb per try of this function.
+          */
+          if (ccbId && ((*i1)->mState < IMM_CCB_CRITICAL)) {
+            *ccbId = (*i1)->mId;
+            LOG_NO("Trying to abort ccb %u to allow implementer %s to protect"
+                   " class %s", *ccbId, info->mImplementerName.c_str(),
+                   className.c_str());
+            /* We have located a non critical ccb that blocks this operation.
+              Skip checking the remaining ccbs for now. Return and abort this
+              one. */
+            goto done;
+          }
+        } else {
+          // This is PBE
+          TRACE("ccb %u is active on object %s of class %s."
+                " Allow PBE to add class implementer",
+                obj->mCcbId, objDn.c_str(), className.c_str());
         }
       }
     }
@@ -17059,7 +17079,7 @@ SaAisErrorT ImmModel::rtObjectCreate(
     }
 
     if (isPersistent) {
-      if (pbe) { /* Persistent back end is up (somewhere) */
+      if (pbe) { /* Persistent Back End is up (somewhere) */
 
         object->mObjFlags |= IMM_CREATE_LOCK;
         /* Dont overwrite IMM_DN_INTERNAL_REP*/
@@ -17930,7 +17950,7 @@ SaAisErrorT ImmModel::rtObjectUpdate(
       */
       pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
       if (!pbe) {
-        LOG_WA("ERR_TRY_AGAIN: Persistent back end is down - unexpected here");
+        LOG_WA("ERR_TRY_AGAIN: Persistent Back End is down - unexpected here");
         err = SA_AIS_ERR_TRY_AGAIN;
         goto rtObjectUpdateExit;
         /* We have already checked for PbeWritable with success inside
@@ -18552,7 +18572,7 @@ SaAisErrorT ImmModel::rtObjectDelete(
       */
       pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
       if (!pbe) {
-        LOG_NO("ERR_TRY_AGAIN: Persistent back end is down - unexpected here");
+        LOG_NO("ERR_TRY_AGAIN: Persistent Back End is down - unexpected here");
         err = SA_AIS_ERR_TRY_AGAIN;
         goto rtObjectDeleteExit;
         /* We have already checked for PbeWritable with success inside
@@ -20338,4 +20358,20 @@ void ImmModel::isolateThisNode(unsigned int thisNode, bool isAtCoord) {
      immnd_proc_discard_other_nodes() that calls
      immnd_proc_imma_discard_connection()
    */
+}
+
+void ImmModel::removeDeadAdminOwners() {
+  TRACE_ENTER();
+  std::vector<AdminOwnerInfo*> dead_admin_owners;
+  auto it = sOwnerVector.begin();
+  while (it != sOwnerVector.end()) {
+    if ((*it)->mDying) {
+      LOG_WA("Removing admin owner %u %s which is in demise.",
+             (*it)->mId, (*it)->mAdminOwnerName.c_str());
+      osafassert(adminOwnerDelete((*it)->mId, true) == SA_AIS_OK);
+    } else {
+      it++;
+    }
+  }
+  TRACE_LEAVE();
 }

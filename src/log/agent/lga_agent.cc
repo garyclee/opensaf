@@ -330,7 +330,7 @@ unsigned int LogAgent::WaitLogServerUp(int64_t polling_timeout) {
   status = osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(log_server_up_sel_),
                             timeout);
   if (status == 0) {
-    TRACE("Waiting for log server up timeout");
+    TRACE("Timeout of waiting for the log server up expired");
     rc = NCSCC_RC_REQ_TIMOUT;
     goto done;
   } else if (status < 0) {
@@ -339,19 +339,20 @@ unsigned int LogAgent::WaitLogServerUp(int64_t polling_timeout) {
     goto done;
   }
 
-  // Wait for initial clm status
-  status = osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(init_clm_status_sel_),
-                            timeout);
-  if (status == 0) {
-    // The server may not support this signal
-    // or it's dropped.
-    TRACE("Waiting for initial clm status timeout");
-    rc = NCSCC_RC_SUCCESS;
-    goto done;
-  } else if (status < 0) {
-    TRACE("Waiting for initial clm status failed: %s", strerror(errno));
-    rc = NCSCC_RC_FAILURE;
-    goto done;
+  if (lga_mds_msg_does_support_init_clm_status()) {
+    // Wait for the initial clm status
+    TRACE("Waiting for the initial clm status");
+    status = osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(init_clm_status_sel_),
+                              timeout);
+    if (status == 0) {
+      TRACE("Timeout of waiting for the initial clm status expired");
+      rc = NCSCC_RC_SUCCESS;
+      goto done;
+    } else if (status < 0) {
+      TRACE("Waiting for initial clm status failed: %s", strerror(errno));
+      rc = NCSCC_RC_FAILURE;
+      goto done;
+    }
   }
 
   // Log server was up and detected this agent. Stop waiting
@@ -450,6 +451,9 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
   // server and is not conflicting with auto recovery
   //<
 
+  // Increase client counter
+  lga_increase_user_counter();
+
   // Initiate the client in the agent and if first client also start MDS
   rc = lga_startup();
   if (rc != NCSCC_RC_SUCCESS) {
@@ -459,11 +463,9 @@ SaAisErrorT LogAgent::saLogInitialize(SaLogHandleT* logHandle,
     } else {
       ais_rc = SA_AIS_ERR_LIBRARY;
     }
+    lga_decrease_user_counter();
     return ais_rc;
   }
-
-  // Increase client counter
-  lga_increase_user_counter();
 
   // Populate the message to be sent to the LGS
   memset(&i_msg, 0, sizeof(lgsv_msg_t));
@@ -627,11 +629,6 @@ SaAisErrorT LogAgent::saLogDispatch(SaLogHandleT logHandle,
   return ais_rc;
 }
 
-size_t LogAgent::CountClient() {
-  ScopeLock scopeLock(mutex_);
-  return client_list_.size();
-}
-
 SaAisErrorT LogAgent::SendFinalizeMsg(uint32_t client_id) {
   uint32_t mds_rc;
   lgsv_msg_t msg, *o_msg = nullptr;
@@ -759,7 +756,7 @@ SaAisErrorT LogAgent::saLogFinalize(SaLogHandleT logHandle) {
     }
   }
 
-  if (CountClient() == 0) {
+  if (lga_get_number_of_user() == 0) {
     // Stop recovery thread if it's running
     stop_recovery2_thread();
     // Shutdown the agent

@@ -29,16 +29,19 @@
 #include "log/agent/lga_common.h"
 #include "log/common/lgsv_defs.h"
 
-#define LGA_SVC_PVT_SUBPART_VERSION 1
+#define LGA_SVC_PVT_SUBPART_VERSION 2
 #define LGA_WRT_LGS_SUBPART_VER_AT_MIN_MSG_FMT 1
-#define LGA_WRT_LGS_SUBPART_VER_AT_MAX_MSG_FMT 1
+#define LGA_WRT_LGS_SUBPART_VER_AT_MAX_MSG_FMT 2
 #define LGA_WRT_LGS_SUBPART_VER_RANGE       \
   (LGA_WRT_LGS_SUBPART_VER_AT_MAX_MSG_FMT - \
    LGA_WRT_LGS_SUBPART_VER_AT_MIN_MSG_FMT + 1)
+#define LGA_SVC_PVT_INIT_CLM_STATE_SUBPART_VERSION 2
 
-// msg format version for LGA subpart version 1
+// msg format version for LGA subpart version 2
 static MDS_CLIENT_MSG_FORMAT_VER
-    LGA_WRT_LGS_MSG_FMT_ARRAY[LGA_WRT_LGS_SUBPART_VER_RANGE] = {1};
+    LGA_WRT_LGS_MSG_FMT_ARRAY[LGA_WRT_LGS_SUBPART_VER_RANGE] = {1, 2};
+
+static MDS_SVC_PVT_SUB_PART_VER rem_svc_pvt_ver = LGA_SVC_PVT_SUBPART_VERSION;
 
 /****************************************************************************
   Name          : lga_enc_initialize_msg
@@ -719,6 +722,7 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info) {
               mds_cb_info->info.svc_evt.i_dest);
           // Inform LOG server is up
           LogAgent::instance()->MarkLogServerUp();
+          rem_svc_pvt_ver = mds_cb_info->info.svc_evt.i_rem_svc_pvt_ver;
           // Start recovery
           lga_serv_recov1state_set();
           break;
@@ -1457,6 +1461,17 @@ uint32_t lga_mds_msg_async_send(lgsv_msg_t *i_msg, uint32_t prio) {
 
   TRACE_LEAVE();
   return rc;
+}
+
+/****************************************************************************
+ * Name          : lga_mds_msg_does_support_init_clm_status
+ *
+ * Description   : Check if the log director supports the init clm status or not
+ *
+ * Return Values : true/false
+ *****************************************************************************/
+bool lga_mds_msg_does_support_init_clm_status() {
+  return rem_svc_pvt_ver >= LGA_SVC_PVT_INIT_CLM_STATE_SUBPART_VERSION;
 }
 
 /****************************************************************************

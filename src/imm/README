@@ -427,7 +427,7 @@ such data. The configuration data and persistent runtime data will survive
 cluster restart, but only the latest dumped version will be recovered.
 
 One of the main new immsv features available in OpenSAF4.0 is the
-Persistent Back-End (PBE). By default this feature is not enabled.
+Persistent Back End (PBE). By default this feature is not enabled.
 See the instructions below for how to enable it. Use of the PBE
 has a signifigant (negative) impact on performance for CCBs and
 persistent runtime data, both response time and throughput.

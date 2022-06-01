@@ -36,6 +36,9 @@
 #define TEST_UNINITIATED 6
 #define TEST_NORESULT 7
 
+extern char *ckpt_valid_name;
+extern char *ckpt_invalid_name;
+
 struct SafCkptInitialize {
   SaCkptHandleT *ckptHandle;
   SaVersionT *vers;
@@ -963,6 +966,7 @@ void AppCkptOpenCallback(SaInvocationT invocation,
                          SaAisErrorT error);
 void AppCkptSyncCallback(SaInvocationT invocation, SaAisErrorT error);
 void fill_testcase_data(void);
+void free_testase_data(void);
 void test_cpsv_get_inputs(TEST_CPSV_INST *inst);
 void test_initialize(void);
 void test_cpsv_fill_inputs(TEST_CPSV_INST *inst);

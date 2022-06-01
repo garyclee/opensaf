@@ -39,7 +39,7 @@
 #include "base/logtrace.h"
 
 /* EDA CB global handle declaration */
-uint32_t gl_eda_hdl;
+extern uint32_t gl_eda_hdl;
 
 /* EDA Default MDS timeout value */
 #define EDA_MDS_DEF_TIMEOUT 100

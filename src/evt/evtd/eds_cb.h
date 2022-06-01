@@ -40,7 +40,7 @@
 #include "base/ncssysf_tmr.h"
 
 /* global variables */
-uint32_t gl_eds_hdl;
+extern uint32_t gl_eds_hdl;
 
 struct eda_reg_list_tag;
 

@@ -1,3 +1,21 @@
+OpenSAF 5.22.06 (released 2022-06-01)
+-------------------------------------
+
+    * imm: Remove dead admin owner [#3315]
+    * imm: Fix pbe deadlock [#3314]
+    * imm: fix PBE logging inconsistent [#3311]
+    * log: Update counting log client [#3313]
+    * ckpt: fix memleak in API test [#3307]
+    * osaf: osaf: support compile gcc/g++ 10 [#3307]
+    * log: The log director always sends the initial message [#3310]
+    * log: Increase the log subpart version [#3310]
+    * amf: reboot to recovery PL in split-brain [#3309]
+    * amf: fix unexpected node reboot during failover [#3308]
+    * dtm: fix osaflog tool to work with short argument [#3295]
+    * base: fix immnd crash when authenticate non-local user [#3305]
+    * mds: Correct checking the sequence number in loss indication [#3304]
+    * mds: Log the message loss by default [#3304]
+
 OpenSAF 5.22.01 (released 2022-01-24)
 -------------------------------------
 

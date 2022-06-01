@@ -81,20 +81,20 @@ const static SaVersionT kLogVersion = {'A', 0x02, 0x03};
 const static SaVersionT kImmVersion = {'A', 02, 11};
 
 /* Vebose mode. If set some test cases will print extra information */
-bool verbose_flg;
+extern bool verbose_flg;
 void printf_v(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /* Silent mode. If set test cases printing information will be silent
  * Only affects stdout. Do not affect default printouts for PASS/FAIL info
  */
-bool silent_flg;
+extern bool silent_flg;
 void printf_s(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /* Tag mode. Same as silent mode except that a TAG is printed on stdout when
  * time to take an external action. E.g. TAG_ND means stop SC nodes.
  * The tag is printed on a separate line.
  */
-bool tag_flg;
+extern bool tag_flg;
 void print_t(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /* Extra test cases */

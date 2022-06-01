@@ -534,6 +534,8 @@ class ImmModel {
                                            SaUint32T attrType,
                                            SaImmAttrFlagsT attrFlags = 0,
                                            bool* hasLongDn = NULL);
+
+  void removeDeadAdminOwners();
 };
 
 #endif  // IMM_IMMND_IMMMODEL_H_

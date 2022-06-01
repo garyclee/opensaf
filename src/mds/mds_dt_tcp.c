@@ -66,8 +66,7 @@ extern MDS_SUBTN_REF_VAL mdtm_handle;
 extern uint32_t mdtm_global_frag_num_tcp;
 
 uint32_t mds_socket_domain = AF_UNIX;
-MDTM_REF_HDL_LIST *mdtm_ref_hdl_list_hdr;
-NCS_PATRICIA_TREE mdtm_reassembly_list;
+MDTM_TCP_CB *tcp_cb;
 
 /* Get the pid of the process */
 pid_t mdtm_pid;
