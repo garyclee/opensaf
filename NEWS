@@ -1,8 +1,8 @@
-OpenSAF 5.22.01 (released 2022-01-24)
+OpenSAF 5.22.06 (released 2022-06-01)
 -------------------------------------
 
 This is a major release containing new enhancements. Before installing or
-upgrading to OpenSAF 5.22.01, make sure your system meets the minimum version
+upgrading to OpenSAF 5.22.06, make sure your system meets the minimum version
 requirements of the following system components:
 
 - Linux kernel, version 2.6.39 or later. Recommended version is Linux 3.18 or
@@ -34,20 +34,20 @@ configuration object amfConfig=1,safApp=safAmfService.
 Important enhancements in this release
 --------------------------------------
 
-**AMF enhancements**
+**IMM enhancements**
 
-- amf: update runtime attributes of node to IMM synchronously [#3285]
+- imm: PBE logging inconsistent
 
 Links
 -----
 
-* The complete list of enhancements in the 5.22.01 release can be found in this
+* The complete list of enhancements in the 5.22.06 release can be found in this
   report:
 
-https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A5.22.01+AND+_type%3Aenhancement
+https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A5.22.06+AND+_type%3Aenhancement
 
-* The documentation for the OpenSAF 5.22.01 release can be downloaded here:
+* The documentation for the OpenSAF 5.22.06 release can be downloaded here:
 
-http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.22.01.tar.gz/download
+http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.22.06.tar.gz/download
 
 You can also check the README of the respective OpenSAF service.
