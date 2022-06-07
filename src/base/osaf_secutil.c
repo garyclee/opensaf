@@ -315,18 +315,24 @@ bool osaf_user_is_member_of_group(uid_t uid, const char *groupname)
 		buff_size = getenv("MAX_GRP_MEM_BUF_SIZE");
 
 		if (buff_size != NULL) {
+			errno = 0;
 			maxgrpmembufsize = strtol(buff_size, NULL, 10);
 			if (errno == ERANGE || maxgrpmembufsize > UINT16_MAX) {
+				TRACE_3("MAX_GRP_MEM_BUF_SIZE=%ld set too large,"
+				    " align to %d", maxgrpmembufsize, UINT16_MAX);
 				maxgrpmembufsize = UINT16_MAX;
-				LOG_WA("Too large, allign to %ld", maxgrpmembufsize);
 			} else if (maxgrpmembufsize < DEFAULT_GRP_MEM_BUF_SIZE) {
+				TRACE_3("MAX_GRP_MEM_BUF_SIZE=%ld set too small,"
+				    " align to %d", maxgrpmembufsize,
+				    DEFAULT_GRP_MEM_BUF_SIZE);
 				maxgrpmembufsize = DEFAULT_GRP_MEM_BUF_SIZE;
-				LOG_WA("Too small, allign to %ld", maxgrpmembufsize);
 			}
 		}
 	}
 	while (grnam_retval == ERANGE && grpmembufsize < maxgrpmembufsize) {
-		grpmembufsize += DEFAULT_GRP_MEM_BUF_SIZE;
+		grpmembufsize += NSS_BUFLEN_GROUP;
+		if (grpmembufsize > maxgrpmembufsize)
+			grpmembufsize = maxgrpmembufsize;
 		char *temp = realloc(grpmembuf, grpmembufsize);
 
 		if (temp == NULL) {
@@ -338,6 +344,7 @@ bool osaf_user_is_member_of_group(uid_t uid, const char *groupname)
 		grnam_retval = getgrnam_r(groupname, &gbuf, grpmembuf, grpmembufsize,
 									&client_grp);
 	}
+
 	if (grnam_retval != 0) {
 		LOG_ER("%s: get group file entry failed for '%s' - %s",
 				__func__, groupname, strerror(grnam_retval));
