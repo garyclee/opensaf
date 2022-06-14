@@ -523,13 +523,6 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info) {
     case NCSMDS_NEW_ACTIVE:
       if (evt_info->i_svc_id == NCSMDS_SVC_ID_AVD) {
         LOG_NO("AVD NEW_ACTIVE, adest:%" PRIu64, evt_info->i_dest);
-
-        // sometimes NEW_ACTIVE director is received before
-        // DOWN is received for the old director ..
-        if (m_AVND_CB_IS_AVD_UP(cb)) {
-          m_AVND_CB_AVD_UP_RESET(cb);
-        }
-
         evt = avnd_evt_create(cb, AVND_EVT_MDS_AVD_UP, 0, &evt_info->i_dest, 0,
                               0, 0);
         evt->info.mds.i_change = evt_info->i_change;
@@ -584,7 +577,13 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info) {
           osafassert(0);
       }
       break;
-
+    case NCSMDS_NO_ACTIVE:
+      if (evt_info->i_svc_id == NCSMDS_SVC_ID_AVD) {
+        evt = avnd_evt_create(cb, AVND_EVT_MDS_AVD_DN, 0, &evt_info->i_dest,
+                              &evt_info->i_node_id, 0, 0);
+        evt->info.mds.i_change = evt_info->i_change;
+      }
+      break;
     case NCSMDS_DOWN:
       switch (evt_info->i_svc_id) {
         case NCSMDS_SVC_ID_AVD:
@@ -596,6 +595,7 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info) {
 
           evt = avnd_evt_create(cb, AVND_EVT_MDS_AVD_DN, 0, &evt_info->i_dest,
                                 &evt_info->i_node_id, 0, 0);
+          evt->info.mds.i_change = evt_info->i_change;
           break;
 
         case NCSMDS_SVC_ID_AVA:
