@@ -2006,12 +2006,15 @@ uint32_t mds_mcm_svc_up(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 			adest_info->node.key_info =
 				(uint8_t *)&adest_info->adest;
 			adest_info->svc_cnt = 1;
+			adest_info->is_up = true;
 			ncs_patricia_tree_add(
 			    &gl_mds_mcm_cb->adest_list,
 			    (NCS_PATRICIA_NODE *)adest_info);
 		} else {
-			if (adest_info->svc_cnt == 0)
+			if (adest_info->svc_cnt == 0) {
 				stop_mds_down_tmr(adest_info);
+				adest_info->is_up = true;
+			}
 			adest_info->svc_cnt++;
 		}
 	}

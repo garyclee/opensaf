@@ -5762,6 +5762,114 @@ void tet_send_response_tp_13()
 	test_validate(FAIL, 0);
 }
 
+void tet_send_response_tp_14()
+{
+	int FAIL = 1;
+	mds_shutdown();
+
+	printf("\nTest Case 14: Now send_response to dead Adest don't stuck"
+	       " in waiting 1.5s after adest down timer expires\n");
+	/*-------------------------------------------------------------------*/
+	pid_t pid = fork();
+	if (pid == 0) {
+		/* child as sender */
+		MDS_SVC_ID to_svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+		mds_startup();
+		if (adest_get_handle() == NCSCC_RC_SUCCESS) {
+			if (mds_service_install(
+					gl_tet_adest.mds_pwe1_hdl,
+					NCSMDS_SVC_ID_INTERNAL_MIN, 1,
+					NCSMDS_SCOPE_NONE, false, false)
+					== NCSCC_RC_SUCCESS) {
+				if (mds_service_subscribe(
+						gl_tet_adest.mds_pwe1_hdl,
+						NCSMDS_SVC_ID_INTERNAL_MIN,
+						NCSMDS_SCOPE_INTRANODE,
+						1, to_svcids)
+						== NCSCC_RC_SUCCESS) {
+					TET_MDS_MSG msg;
+					sleep(1); // Wait for up event
+					mds_send_get_response(
+					    gl_tet_adest.mds_pwe1_hdl,
+					    NCSMDS_SVC_ID_INTERNAL_MIN,
+					    NCSMDS_SVC_ID_EXTERNAL_MIN,
+					    gl_tet_adest.svc[0].svcevt[0].dest,
+					    100, MDS_SEND_PRIORITY_HIGH,
+					    &msg);
+					mds_service_uninstall(
+						gl_tet_adest.mds_pwe1_hdl,
+						NCSMDS_SVC_ID_INTERNAL_MIN);
+					sleep(30);
+				}
+			}
+		}
+		mds_shutdown();
+	} else if (pid > 0) {
+		/* parent as receiver */
+		struct timespec time1, time2, wait_time;
+		MDS_SVC_ID to_svcids[] = {NCSMDS_SVC_ID_INTERNAL_MIN};
+		mds_startup();
+		if (adest_get_handle() == NCSCC_RC_SUCCESS) {
+			if (mds_service_install(
+					gl_tet_adest.mds_pwe1_hdl,
+					NCSMDS_SVC_ID_EXTERNAL_MIN, 1,
+					NCSMDS_SCOPE_NONE, true, false)
+					== NCSCC_RC_SUCCESS) {
+				if (mds_service_subscribe(
+						gl_tet_adest.mds_pwe1_hdl,
+						NCSMDS_SVC_ID_EXTERNAL_MIN,
+						NCSMDS_SCOPE_INTRANODE,
+						1, to_svcids)
+						== NCSCC_RC_SUCCESS) {
+					while (is_adest_sel_obj_found(0)) {
+						if (mds_service_retrieve(
+						    gl_tet_adest.mds_pwe1_hdl,
+						    NCSMDS_SVC_ID_EXTERNAL_MIN,
+						    SA_DISPATCH_ONE)
+						  == NCSCC_RC_SUCCESS &&
+						  gl_rcvdmsginfo.msg) {
+							// Received the message
+							break;
+						}
+					}
+					sleep(15); // Make sure the adest down
+						   // timer expires
+					osaf_clock_gettime(CLOCK_MONOTONIC,
+							   &time1);
+					// Send response
+					TET_MDS_MSG msg;
+					if (mds_send_response(
+					    gl_tet_adest.mds_pwe1_hdl,
+					    NCSMDS_SVC_ID_EXTERNAL_MIN,
+					    &msg)
+					    == NCSCC_RC_FAILURE) {
+						osaf_clock_gettime(
+						    CLOCK_MONOTONIC,
+						    &time2);
+						osaf_timespec_subtract(
+						    &time2,
+						    &time1,
+						    &wait_time);
+						if (osaf_timespec_to_millis(
+						    &wait_time) > 50) {
+							printf("\nResponse to"
+							" dead Adest hang >"
+							" 50ms");
+						} else {
+							FAIL = 0;
+						}
+					}
+				}
+			}
+		}
+		kill(pid, SIGKILL);
+		mds_shutdown();
+	} else {
+		printf("\nFAIL to fork()\n");
+	}
+	test_validate(FAIL, 0);
+}
+
 void tet_vdest_rcvr_thread()
 {
 	MDS_SVC_ID svc_id;
@@ -14423,6 +14531,10 @@ __attribute__((constructor)) static void mdsTipcAPI_constructor(void)
 	test_case_add(
 	    9, tet_send_response_tp_13,
 	    "Now send_response to dead Adest don't stuck in waiting 1.5s");
+	test_case_add(
+	    9, tet_send_response_tp_14,
+	    "Now send_response to dead Adest don't stuck in waiting 1.5s"
+	    " after adest down timer expires");
 
 	test_suite_add(10, "Send All test cases");
 	test_case_add(
