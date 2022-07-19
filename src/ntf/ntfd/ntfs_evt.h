@@ -26,6 +26,7 @@ typedef enum ntfsv_ntfs_evt_type {
   NTFSV_NTFS_EVT_NTFA_DOWN = 3,
   NTFSV_EVT_QUIESCED_ACK = 4,
   NTFSV_EVT_RDA = 5,
+  NTFSV_EVT_ASYNC_CKPT = 6,
   NTFSV_NTFS_EVT_MAX
 } NTFSV_NTFS_EVT_TYPE;
 
