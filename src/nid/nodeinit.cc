@@ -724,6 +724,7 @@ int32_t fork_daemon(NID_SPAWN_INFO *service, char *app, char *args[],
     }
 
     setsid();
+    umask(026);
     if (!freopen("/dev/null", "r", stdin))
       LOG_ER("freopen stdin: %s", strerror(errno));
 
@@ -810,6 +811,7 @@ int32_t fork_script(NID_SPAWN_INFO *service, char *app, char *args[],
 
     sigprocmask(SIG_SETMASK, &omask, NULL);
     setsid();
+    mode_t mask = umask(026);
     if (!freopen("/dev/null", "r", stdin))
       LOG_ER("freopen stdin: %s", strerror(errno));
 
@@ -823,6 +825,7 @@ int32_t fork_script(NID_SPAWN_INFO *service, char *app, char *args[],
     if (prio_stat < 0)
       LOG_ER("Failed to set priority for %s", service->serv_name);
 
+    umask(mask);
     /* Reset all the signals */
     for (i = 1; i < NSIG; i++) SETSIG(sa, i, SIG_DFL, SA_RESTART);
 
@@ -878,6 +881,7 @@ int32_t fork_process(NID_SPAWN_INFO *service, char *app, char *args[],
     if (!freopen("/dev/null", "r", stdin))
       LOG_ER("freopen stdin: %s", strerror(errno));
 
+    mode_t mask = umask(026);
     if (!freopen(NIDLOG, "a", stdout))
       LOG_ER("freopen stdout: %s", strerror(errno));
 
@@ -890,6 +894,7 @@ int32_t fork_process(NID_SPAWN_INFO *service, char *app, char *args[],
         LOG_ER("Failed to set priority for %s", service->serv_name);
     }
 
+    umask(mask);
     /* Reset all the signals */
     for (i = 1; i < NSIG; i++) SETSIG(sa, i, SIG_DFL, SA_RESTART);
 
