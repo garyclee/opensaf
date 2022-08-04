@@ -5590,13 +5590,14 @@ void verRotatedLogCfgFile(void)
 	rc_validate(num_files, max_file * 2);
 }
 
-// Verify that log file is rotated via admin operation with admin id = 2
-// and no parameter
+// Verify that log file is rotated via admin operation with admin id = 2,
+// current log file not empty and no parameter
 //
 // Step1: Create and delete the app stream with (saLogStreamMaxFilesRotated = 2)
-// step2: Do admin operation 2 times to rotate log file.
+// Step2: Write a record to stream
+// step3: Do admin operation 2 times to rotate log file.
 //        Two new log file are created
-// step3: Verify log file is rotated via admin operation by checking that
+// step4: Verify log file is rotated via admin operation by checking that
 //        there are 2 log files on disk
 void verRotatedLogCfgFile2(void)
 {
@@ -5620,11 +5621,20 @@ void verRotatedLogCfgFile2(void)
 		rc_validate(rc, 0);
 		return;
 	}
+
+	char command[MAX_DATA];
+
+	sprintf(command, "saflogger -a %s %s", object_dn, __func__);
+	// Write a record to stream
+	rc = systemCall(command);
+	if (rc != 0) {
+		rc_validate(rc, 0);
+		return;
+	}
 	osaf_nanosleep(&kHundredMilliseconds);
 
 	// Do admin operation to rotate log file without the parameter
 	// Two new log files are created. One oldest file is removed.
-	char command[MAX_DATA];
 	sprintf(command, "immadm -o 2 %s", object_dn);
 	for (int i = 0; i < 2; ++i) {
 		rc = execute_admin_operation_and_retries(command);
@@ -5637,7 +5647,7 @@ void verRotatedLogCfgFile2(void)
 
 	// Find all log files and count number of files
 	// Step 1: Find all that files's data were last modified 1 minutes ago
-	// Step 2: Filter all 'verRotatedFile2_[0-9]{8}_[0-9]{6}.log'
+	// Step 2: Filter all file of stream verRotatedFile2
 	// Step 3: Count number of files at step 2
 	sprintf(command, "find %s -type f -mmin -1 "
 			 "| egrep '%s.*\\.log$' "
@@ -5741,6 +5751,85 @@ void verRotatedLogCfgFile3(void)
 	// Verify 1 oldest log files are removed
 	// by checking that there is 1 log files on disk
 	uint32_t num_files = atoi(num_files_c);
+	rc_validate(num_files, 1);
+}
+
+
+// Verify that log file is rotated via admin operation with admin id = 2,
+// current log file empty and no parameter
+//
+// Step1: Create and delete the app stream with (saLogStreamMaxFilesRotated = 2)
+// step2: Do admin operation 2 times to rotate log file.
+//        Two new log file are created
+// step3: Verify log file is rotated via admin operation by checking that
+//        there is a log file on disk
+void verRotatedLogCfgFile4(void)
+{
+	const char *object_dn =
+			"safLgStrCfg=verRotatedFile4,safApp=safLogService";
+	// Command to create configuration application stream
+	char create_cfg_application_stream[MAX_DATA];
+
+	sprintf(create_cfg_application_stream,
+		"immcfg -c SaLogStreamConfig %s "
+		" -a saLogStreamPathName=. "
+		"-a saLogStreamFileName=verRotatedFile4"
+		" -a saLogStreamMaxFilesRotated=2",
+		object_dn);
+	// Command to delete configuration application stream
+	char delete_cfg_application_stream[MAX_DATA];
+
+	sprintf(delete_cfg_application_stream, "immcfg -d %s", object_dn);
+
+	// Create  the app stream.
+	int rc = systemCall(create_cfg_application_stream);
+
+	if (rc != 0) {
+		rc_validate(rc, 0);
+		return;
+	}
+
+	osaf_nanosleep(&kHundredMilliseconds);
+
+	// Do admin operation to rotate log file without the parameter
+	// Two new log files are created. One oldest file is removed.
+	char command[MAX_DATA];
+
+	sprintf(command, "immadm -o 2 %s", object_dn);
+	for (int i = 0; i < 2; ++i) {
+		rc = execute_admin_operation_and_retries(command);
+		if (rc != 0) {
+			systemCall(delete_cfg_application_stream);
+			rc_validate(rc, 0);
+			return;
+		}
+	}
+
+	// Find all log files and count number of files
+	// Step 1: Find all that files's data were last modified 1 minutes ago
+	// Step 2: Filter all file of stream verRotatedFile4
+	// Step 3: Count number of files at step 2
+	sprintf(command, "find %s -type f -mmin -1 "
+			 "| egrep '%s.*\\.log$' "
+			 "| wc -l | awk '{printf $1}'",
+			 log_root_path, "verRotatedFile4");
+	char num_files_c[10];
+	FILE *fp = popen(command, "r");
+	// Get number of log files
+	while (fgets(num_files_c, sizeof(num_files_c) - 1, fp) != NULL);
+	pclose(fp);
+
+	// Close the application stream
+	rc = systemCall(delete_cfg_application_stream);
+	if (rc != 0) {
+		rc_validate(rc, 0);
+		return;
+	}
+
+	// Verify 1 empty log is removed
+	// by checking that there is 1 log file on disk
+	uint32_t num_files = atoi(num_files_c);
+
 	rc_validate(num_files, 1);
 }
 
@@ -6106,8 +6195,11 @@ __attribute__((constructor)) static void saOiOperations_constructor(void)
 	      "Verify that both log and cfg files are rotated");
 	test_case_add(6, verRotatedLogCfgFile2,
 	      "Verify log file is rotated via admin operation "
-	      "without parameter");
+	      "without parameter and current log file not empty");
 	test_case_add(6, verRotatedLogCfgFile3,
 	      "Verify oldest log files are removed via admin operation "
 	      "with parameter");
+	test_case_add(6, verRotatedLogCfgFile4,
+	      "Verify log file is rotated via admin operation "
+	      "without parameter and current log file empty");
 }

@@ -1114,14 +1114,26 @@ int log_rotation_stb(log_stream_t *stream) {
       }
     }
 
-    std::string emptyStr = "";
-    // Rename file to give it the "close timestamp"
-    rc = lgs_file_rename_h(root_path, stream->pathName,
-                           stream->stb_logFileCurrent, current_time_str,
-                           LGS_LOG_FILE_EXT, &emptyStr);
-    if (rc == -1) {
-      LOG_NO("Rename log file failed");
-      return rc;
+    if (stream->stb_curFileSize == 0) {
+      std::string pathname = root_path + "/" + stream->pathName + "/" +
+                             stream->stb_logFileCurrent + ".log";
+      TRACE("Delete empty file %s", pathname.c_str());
+      rc = file_unlink_h(pathname);
+      if (rc == -1) {
+        LOG_NO("Delete empty file failed: %s - %s", pathname.c_str(),
+               strerror(errno));
+        return rc;
+      }
+    } else {
+      std::string emptyStr = "";
+      // Rename file to give it the "close timestamp"
+      rc = lgs_file_rename_h(root_path, stream->pathName,
+                             stream->stb_logFileCurrent, current_time_str,
+                             LGS_LOG_FILE_EXT, &emptyStr);
+      if (rc == -1) {
+        LOG_NO("Rename log file failed");
+        return rc;
+      }
     }
 
     // Remove oldest file if needed
@@ -1179,12 +1191,24 @@ int log_rotation_act(log_stream_t *stream) {
     }
   }
 
-  // Rename file to give it the "close timestamp"
-  rc = lgs_file_rename_h(root_path, stream->pathName, stream->logFileCurrent,
-                         current_time, LGS_LOG_FILE_EXT, &emptyStr);
-  if (rc == -1) {
-    LOG_NO("Rename log file failed");
-    return rc;
+  if (stream->curFileSize == 0) {
+    std::string pathname = root_path + "/" + stream->pathName + "/" +
+                           stream->logFileCurrent + ".log";
+    TRACE("Delete empty file %s", pathname.c_str());
+    rc = file_unlink_h(pathname);
+    if (rc == -1) {
+      LOG_NO("Delete empty file failed: %s - %s", pathname.c_str(),
+             strerror(errno));
+      return rc;
+    }
+  } else {
+    // Rename file to give it the "close timestamp"
+    rc = lgs_file_rename_h(root_path, stream->pathName, stream->logFileCurrent,
+                           current_time, LGS_LOG_FILE_EXT, &emptyStr);
+    if (rc == -1) {
+      LOG_NO("Rename log file failed");
+      return rc;
+    }
   }
 
   // Save time when logFileCurrent was closed
