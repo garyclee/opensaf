@@ -2108,7 +2108,7 @@ static void imma_proc_ccbaug_setup(IMMA_CLIENT_NODE *cl_node,
         if (q->attrValuesNumber > 1) {
           int ix;
           IMMSV_EDU_ATTR_VAL_LIST *r = q->attrMoreValues;
-          for (ix = 1; ix < q->attrValuesNumber; ++ix) {
+          for (ix = q->attrValuesNumber - 1; ix > 0; --ix) {
             osafassert(r);
             attr[i]->attrValues[ix] = /*alloc-5 */
                 imma_copyAttrValue3((SaImmValueTypeT)q->attrValueType, &(r->n));
