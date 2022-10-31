@@ -1198,7 +1198,7 @@ uint32_t mds_svc_op_vdest_mxn_active_delete(const MCM_SVC_INFO *info) {
 		callback_info.arch_word = MDS_SVC_ARCHWORD_TYPE_UNSPECIFIED;
 		status = mds_subtn_res_tbl_query_next_active(
 				info->local_svc_hdl, info->svc_id, info->vdest,
-				subtn_result_info, &next_active_result_info);
+				NULL, &next_active_result_info);
 		if (status == NCSCC_RC_FAILURE) {
 			/* No other active present */
 			mds_svc_op_subtn_res_tbl_remove_active(info);
@@ -1568,7 +1568,7 @@ uint32_t mds_svc_op_vdest_nway_active_delete(const MCM_SVC_INFO *info) {
 	if (active_adest == info->adest) {
 		status = mds_subtn_res_tbl_query_next_active(
 					info->local_svc_hdl, info->svc_id,
-					info->vdest, subtn_result_info,
+					info->vdest, NULL,
 					&next_active_result_info);
 		if (status == NCSCC_RC_FAILURE) {
 			MCM_SVC_INFO callback_info = *info;
