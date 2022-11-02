@@ -216,3 +216,89 @@ write_log:
 done:
 	logFinalize();
 }
+
+void saLogWriteLogCallbackT_03(void)
+{
+	SaInvocationT invocation;
+	struct pollfd fds[1];
+	int ret;
+
+	invocation = random();
+	logCallbacks.saLogWriteLogCallback = logWriteLogCallbackT;
+	rc = logInitialize();
+	if (rc != SA_AIS_OK) {
+		test_validate(rc, SA_AIS_OK);
+		return;
+	}
+	pid_t pid = fork();
+	if (pid < 0) {
+		fprintf(stderr, "fork failed: %s \n", strerror(errno));
+		test_validate(SA_AIS_ERR_LIBRARY, SA_AIS_OK);
+	} else if (pid == 0) {
+		// While exiting this process, the destructor of log agent
+		// will be called.
+		exit(0);
+	} else {
+		sleep(2); /* Sleep to make sure the child process exited. */
+		rc = saLogSelectionObjectGet(logHandle, &selectionObject);
+		if (rc != SA_AIS_OK) {
+			fprintf(stderr,
+				"saLogSelectionObjectGet failed: %d \n",
+				(int)rc);
+			test_validate(rc, SA_AIS_OK);
+			goto done;
+		}
+		rc = logStreamOpen(&systemStreamName);
+		if (rc != SA_AIS_OK) {
+			test_validate(rc, SA_AIS_OK);
+			goto done;
+		}
+		strcpy((char *)genLogRecord.logBuffer->logBuf, __FUNCTION__);
+		genLogRecord.logBuffer->logBufSize = strlen(__FUNCTION__) + 1;
+
+		struct timespec timeout_time;
+		osaf_set_millis_timeout(2 * kWaitTime, &timeout_time);
+
+	write_log:
+		cb_index = 0;
+		rc = logWrite(invocation, SA_LOG_RECORD_WRITE_ACK,
+			      &genLogRecord);
+		if (rc != SA_AIS_OK) {
+			test_validate(rc, SA_AIS_OK);
+			goto done;
+		}
+
+		fds[0].fd = (int)selectionObject;
+		fds[0].events = POLLIN;
+		ret = poll(fds, 1, 6000);
+		if (ret != 1) {
+			fprintf(stderr, "poll log callback failed: %d \n",
+				ret);
+			test_validate(ret, 1);
+			goto done;
+		}
+		rc = saLogDispatch(logHandle, SA_DISPATCH_ONE);
+		if (rc != SA_AIS_OK) {
+			fprintf(stderr, "saLogDispatch failed: %d \n",
+				(int)rc);
+			test_validate(rc, SA_AIS_OK);
+			goto done;
+		}
+
+		if (cb_error[0] == SA_AIS_ERR_TRY_AGAIN &&
+				!osaf_is_timeout(&timeout_time)) {
+			osaf_nanosleep(&kHundredMilliseconds);
+			printf("Get try again error, re-write \n");
+			goto write_log;
+		}
+
+		if (cb_invocation[0] == invocation) {
+			test_validate(cb_error[0], SA_AIS_OK);
+		} else {
+			test_validate(SA_AIS_ERR_LIBRARY, SA_AIS_OK);
+		}
+
+	done:
+		logFinalize();
+	}
+}
