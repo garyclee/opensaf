@@ -135,7 +135,22 @@ ScopeData::~ScopeData() {
 //------------------------------------------------------------------------------
 // LogAgent
 //------------------------------------------------------------------------------
+
+// Create the static instance of the log agent early. Sometime the destructor
+// of other class calls a function of the log agent. If the log agent was
+// cleaned in its destructor, the destructor of other class could be crashed
+// while calling a function of the log agent. The destructor of the static
+// objects will be called in the reverse order of constructors. Therefore,
+// constructing the log agent early will prevent the error in other
+// destructors.
+LogAgent LogAgent::me;
+
+LogAgent* LogAgent::instance() {
+  return &me;
+}
+
 LogAgent::LogAgent() {
+  TRACE_ENTER();
   client_list_.clear();
   // There is high risk of calling one @LogClient method
   // in the body of other @LogClient methods, such case would cause deadlock
@@ -161,19 +176,15 @@ LogAgent::LogAgent() {
   m_NCS_SEL_OBJ_CREATE(&log_server_up_sel_);
 
   atomic_data_.waiting_log_server_up = true;
+  TRACE_LEAVE();
 }
 
 LogAgent::~LogAgent() {
   TRACE_ENTER();
-  ScopeLock scopeLock(mutex_);
-
-  stop_recovery2_thread();
-  lga_shutdown();
-  m_NCS_SEL_OBJ_DESTROY(&init_clm_status_sel_);
-  m_NCS_SEL_OBJ_DESTROY(&log_server_up_sel_);
-  client_list_.clear();
-  atomic_data_.waiting_log_server_up = false;
-
+  // Shouldn't clean the shared resources like sockets because it could be
+  // used in other process. If this process was forked, two processes will
+  // share all created sockets. Cleaning resources in one process causes
+  // undefined behaviours in other process.
   TRACE_LEAVE();
 }
 

@@ -82,15 +82,7 @@ class LogClient;
 //<
 class LogAgent {
  public:
-  static std::shared_ptr<LogAgent>& instance() {
-    // Ensure this static singleton instance is only destroyed when
-    // no one is using it. Note that: static data can be destroyed
-    // in log application thread which calls exit() libc. So, introducing
-    // shared_ptr<> to avoid races among threads.
-    static std::shared_ptr<LogAgent> me =
-        std::shared_ptr<LogAgent>{new LogAgent()};
-    return me;
-  }
+  static LogAgent* instance();
 
   //<
   // C++ APIs wrapper for corresponding C LOG Agent APIs
@@ -291,6 +283,9 @@ class LogAgent {
   NCS_SEL_OBJ init_clm_status_sel_;
   // Log server sync params
   NCS_SEL_OBJ log_server_up_sel_;
+
+  // Static object of this class
+  static LogAgent me;
 
   DELETE_COPY_AND_MOVE_OPERATORS(LogAgent);
 };
