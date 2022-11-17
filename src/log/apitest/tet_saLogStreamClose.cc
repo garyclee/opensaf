@@ -15,7 +15,9 @@
  *
  */
 
+extern "C" {
 #include "logtest.h"
+}
 
 /* Object to test: logStreamClose() API:
  * Test: Test closing an open stream using an valid handle
@@ -81,6 +83,84 @@ void saLogStreamClose_with_uninitialized_handle(void)
 	test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
 }
 
+/* Object to test: logStreamClose() API:
+ * Test: Test closing an open stream inside a destructor
+ * step1: Create an object
+ * step2: Call logInitialize()
+ * step3: Call logStreamOpen()
+ * step4: Call saLogStreamClose() and logFinalize() in the
+ *        destructor of the object.
+ * Result: Shall pass with the return code SA_AIS_OK
+ */
+class ClosingStreamInDestructor
+{
+public:
+	static ClosingStreamInDestructor* getInstance()
+	{
+		static ClosingStreamInDestructor me;
+		return &me;
+	}
+	void run()
+	{
+		SaAisErrorT rc = logInitialize();
+		if (rc != SA_AIS_OK)
+		{
+			test_validate(rc, SA_AIS_OK);
+			return;
+		}
+		rc = logStreamOpen(&systemStreamName);
+		if (rc != SA_AIS_OK)
+		{
+			test_validate(rc, SA_AIS_OK);
+		}
+	}
+private:
+	ClosingStreamInDestructor()
+	{
+	};
+
+	~ClosingStreamInDestructor()
+	{
+		SaAisErrorT rc = logStreamClose();
+		if (rc != SA_AIS_OK) {
+			exit(1);
+		}
+		rc = logFinalize();
+		if (rc != SA_AIS_OK) {
+			exit(1);
+		}
+	};
+};
+
+void saLogStreamCloseInDestructor(void)
+{
+	pid_t pid = fork();
+	if (pid == -1) {
+		test_validate(SA_AIS_ERR_LIBRARY, SA_AIS_OK);
+	} else if (pid == 0) {
+		// Child process
+		ClosingStreamInDestructor* obj =
+				ClosingStreamInDestructor::getInstance();
+		obj->run();
+		exit(0);
+	} else {
+		// Parent process
+		int status;
+		wait(&status);
+		if (WIFEXITED(status)) {
+			printf("Child process exited, status=%d\n",
+				   WEXITSTATUS(status));
+			test_validate(WEXITSTATUS(status), 0);
+		} else if (WIFSIGNALED(status) && WCOREDUMP(status)) {
+			printf("Coredump in child process\n");
+			test_validate(SA_AIS_ERR_LIBRARY, SA_AIS_OK);
+		} else {
+			printf("Child process was stopped by a signal\n");
+			test_validate(SA_AIS_OK, SA_AIS_OK);
+		}
+	}
+}
+
 __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 {
 	test_case_add(2, saLogStreamClose_with_valid_handle,
@@ -89,4 +169,6 @@ __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 		      "saLogStreamClose with invalid handle");
 	test_case_add(2, saLogStreamClose_with_uninitialized_handle,
 		      "saLogStreamClose with uninitialized handle");
+	test_case_add(2, saLogStreamCloseInDestructor,
+				  "saLogStreamClose in a destructor");
 }
