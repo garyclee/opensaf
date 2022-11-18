@@ -703,6 +703,12 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt) {
 
   TRACE_ENTER();
 
+  if (evt->info.mds.i_change == NCSMDS_NO_ACTIVE) {
+    m_AVND_CB_AVD_UP_RESET(cb);
+    TRACE_LEAVE();
+    return rc;
+  }
+
   if (m_MDS_DEST_IS_AN_ADEST(evt->info.mds.mds_dest)) {
     if (evt->info.mds.node_id != ncs_get_node_id()) {
       /* Ignore the other AVD Adest Down.*/

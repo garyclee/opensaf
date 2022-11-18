@@ -18,6 +18,7 @@
 #ifndef NTF_NTFD_NTFS_CB_H_
 #define NTF_NTFD_NTFS_CB_H_
 
+#include "base/ncs_queue.h"
 #include <stdbool.h>
 #include <saNtf.h>
 #include <saClm.h>
@@ -71,6 +72,7 @@ typedef struct ntfs_cb {
   NCS_SEL_OBJ usr2_sel_obj; /* Selection object for CLM initialization.*/
   uint16_t peer_mbcsv_version; /*Remeber peer NTFS MBCSV version.*/
   bool clm_initialized;        // For CLM init status;
+  NCS_QUEUE async_ckpt_queue;
 } ntfs_cb_t;
 
 extern uint32_t ntfs_cb_init(ntfs_cb_t *);

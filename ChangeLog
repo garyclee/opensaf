@@ -1,3 +1,20 @@
+OpenSAF 5.22.11 (released 2022-11-18)
+-------------------------------------
+
+    * mds: Test cases for conflicted vdests [#3324]
+    * mds: Add a test function to wait for vdest events [#3324]
+    * mds: Fix invalid read [#3324]
+    * imm: fix multiple value attribute out of order [#3321]
+    * log: delete the empty log file when rotate log file [#3320]
+    * amf: Update handling mds event in amfnd [#3317]
+    * base: remove others/world permissions for mds.log, nid.log, osaf.log and trace files [#3318]
+    * mds: Refactor api functions [#3294]
+    * mds: Not wait for dead Adest to send RSP [#3102]
+    * ntf: Process the asynchronous checkpoint after sending response [#3319]
+    * base: Correctly use the MAX_GRP_MEM_BUF_SIZE [#3316]
+    * base: increase buffer size for users in group [#3316]
+
+
 OpenSAF 5.22.06 (released 2022-06-01)
 -------------------------------------
 

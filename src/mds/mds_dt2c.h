@@ -194,6 +194,7 @@ typedef struct mcm_svc_up_info {
 } MCM_SVC_UP_INFO;
 
 typedef MCM_SVC_UP_INFO MCM_SVC_DOWN_INFO;
+typedef MCM_SVC_UP_INFO MCM_SVC_INFO;
 
 uint32_t mds_dt2c_query_adest(MDS_MDTM_QUERY_ADEST_INFO *req);
 

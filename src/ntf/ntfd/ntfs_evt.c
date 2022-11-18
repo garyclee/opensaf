@@ -36,6 +36,7 @@
 static uint32_t process_api_evt(ntfsv_ntfs_evt_t *evt);
 static uint32_t proc_ntfa_updn_mds_msg(ntfsv_ntfs_evt_t *evt);
 static uint32_t proc_mds_quiesced_ack_msg(ntfsv_ntfs_evt_t *evt);
+static uint32_t process_async_ckpt_evt();
 static uint32_t proc_initialize_msg(ntfs_cb_t *, ntfsv_ntfs_evt_t *evt);
 static uint32_t proc_finalize_msg(ntfs_cb_t *, ntfsv_ntfs_evt_t *evt);
 static uint32_t proc_subscribe_msg(ntfs_cb_t *, ntfsv_ntfs_evt_t *evt);
@@ -164,6 +165,36 @@ static uint32_t proc_mds_quiesced_ack_msg(ntfsv_ntfs_evt_t *evt)
 }
 
 /****************************************************************************
+ * Name          : process_async_ckpt_evt
+ *
+ * Description   : Process an async checkpoint that ntfs received from its peer
+ *
+ * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ *
+ * Notes         : None.
+ *****************************************************************************/
+static uint32_t process_async_ckpt_evt()
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	TRACE_ENTER();
+	if (ntfs_cb->ha_state == SA_AMF_HA_ACTIVE) {
+		TRACE("Unexpectly received a checkpoint event while active."
+		      " Skipped");
+	} else if (ntfs_cb->ha_state == SA_AMF_HA_STANDBY) {
+		ntfsv_ckpt_msg_t *ckpt_msg = ncs_dequeue(
+						&ntfs_cb->async_ckpt_queue);
+		if(ckpt_msg != NULL) {
+			rc = ntfs_mbcsv_process_ckpt_data(ntfs_cb, ckpt_msg);
+			/* Update the Async Update Count at standby */
+			ntfs_cb->async_upd_cnt++;
+			free(ckpt_msg);
+		}
+	}
+	TRACE_LEAVE();
+	return rc;
+}
+
+/****************************************************************************
  * Name          : proc_rda_cb_msg
  *
  * Description   : This function processes the role change message from RDE.
@@ -191,6 +222,27 @@ static uint32_t proc_rda_cb_msg(ntfsv_ntfs_evt_t *evt)
 	    ntfs_cb->ha_state != SA_AMF_HA_ACTIVE) {
 		SaAmfHAStateT old_ha_state = ntfs_cb->ha_state;
 		LOG_NO("ACTIVE request");
+		if (old_ha_state == SA_AMF_HA_STANDBY) {
+			// Process pending async checkpoint if any
+			ntfsv_ckpt_msg_t *ckpt_msg = NULL;
+			TRACE("Process pending async checkpoint");
+			while ((ckpt_msg = ncs_dequeue(
+						&ntfs_cb->async_ckpt_queue))
+						!= NULL) {
+				if (ntfs_mbcsv_process_ckpt_data(
+							ntfs_cb, ckpt_msg)
+							!= NCSCC_RC_SUCCESS) {
+					LOG_ER("Failed to process a pending"
+					       " checkpoint while changing"
+					       " role from standby to"
+					       " active");
+					exit(EXIT_FAILURE);
+				}
+				/* Update the Async Update Count at standby */
+				ntfs_cb->async_upd_cnt++;
+				free(ckpt_msg);
+			}
+		}
 
 		ntfs_cb->mds_role = V_DEST_RL_ACTIVE;
 		if ((rc = ntfs_mds_change_role()) != NCSCC_RC_SUCCESS) {
@@ -247,6 +299,7 @@ uint32_t ntfs_cb_init(ntfs_cb_t *ntfs_cb)
 	ntfs_cb->clm_hdl = 0;
 	ntfs_cb->clm_initialized = false;
 	ntfs_cb->clmSelectionObject = -1;
+	ncs_create_queue(&ntfs_cb->async_ckpt_queue);
 
 	tmp = (char *)getenv("NTFSV_ENV_CACHE_SIZE");
 	if (tmp) {
@@ -730,6 +783,8 @@ void ntfs_process_mbx(SYSF_MBX *mbx)
 			}
 			if (msg->evt_type == NTFSV_EVT_RDA) {
 				proc_rda_cb_msg(msg);
+			} else if (msg->evt_type == NTFSV_EVT_ASYNC_CKPT) {
+				process_async_ckpt_evt();
 			}
 		}
 

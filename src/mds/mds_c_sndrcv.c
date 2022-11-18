@@ -2715,7 +2715,13 @@ static uint32_t mds_mcm_process_disc_queue_checks_redundant(
 				(MDS_ADEST_INFO *)ncs_patricia_tree_get(
 					&gl_mds_mcm_cb->adest_list,
 					(uint8_t *)&anchor);
-			if (adest_info && adest_info->svc_cnt == 0) {
+			if (adest_info == NULL) {
+				m_MDS_LOG_NOTIFY(
+				    "MDS_SND_RCV: Subscription exists but"
+				    " Adest was down\n");
+				return NCSCC_RC_FAILURE;
+			} else if (adest_info->svc_cnt == 0 &&
+					adest_info->is_up) {
 				m_MDS_LOG_NOTIFY(
 				    "MDS_SND_RCV: Adest <0x%08x, %u> may down,"
 				    " wait for some time for sure",
@@ -4910,6 +4916,26 @@ static uint32_t mds_mcm_process_recv_snd_msg_common(MDS_SVC_INFO *svccb,
 	uint32_t rc = 0;
 
 	m_MDS_ENTER();
+	if (recv->snd_type == MDS_SENDTYPE_SNDRSP ||
+			recv->snd_type == MDS_SENDTYPE_REDRSP) {
+		MDS_ADEST_INFO *adest_info =
+			(MDS_ADEST_INFO *)ncs_patricia_tree_get(
+				&gl_mds_mcm_cb->adest_list,
+				(uint8_t *)&recv->src_adest);
+		if (!adest_info) {
+			/* Add adest to adest list */
+			adest_info = m_MMGR_ALLOC_ADEST_INFO;
+			memset(adest_info, 0, sizeof(MDS_ADEST_INFO));
+			adest_info->adest = recv->src_adest;
+			adest_info->node.key_info =
+				(uint8_t *)&adest_info->adest;
+			adest_info->svc_cnt = 0;
+			adest_info->is_up = false;
+			ncs_patricia_tree_add(
+				&gl_mds_mcm_cb->adest_list,
+				(NCS_PATRICIA_NODE *)adest_info);
+		}
+	}
 	if (true == svccb->q_ownership) {
 		if (NCSCC_RC_SUCCESS !=
 		    mds_mcm_mailbox_post(svccb, recv, recv->pri)) {

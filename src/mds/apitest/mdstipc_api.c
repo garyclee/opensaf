@@ -2107,6 +2107,481 @@ void tet_svc_subscr_VDEST_12()
 	test_validate(FAIL, 0);
 }
 
+void tet_svc_subscr_VDEST_13() {
+	int FAIL = 0;
+	SaUint32T rc;
+	MDS_SVC_ID svc_id_sixhd[] = {600};
+
+	mds_shutdown();
+	pid_t pid = fork();
+	if (pid < 0) {
+		printf("\nFailed to fork process\n");
+		FAIL = 1;
+		test_validate(FAIL, 0);
+	} else if (pid > 0) {
+		// Parent process
+		mds_startup();
+		printf("\nTest case 13: conflict mxn active vdests\n");
+		printf("\nGet an adest handle\n");
+		if (adest_get_handle() != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		// Create a vdest with id = 1001
+		rc = create_vdest(NCS_VDEST_TYPE_MxN, 1001);
+		if (rc != NCSCC_RC_SUCCESS) {
+			printf("\nFailed to create a vdest with id =1001\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Install the service 600\n");
+		if (mds_service_install(gl_tet_vdest[0].mds_pwe1_hdl, 600, 1,
+					NCSMDS_SCOPE_INTRACHASSIS, true,
+					false) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		printf("\nAction: Change the role of vdest 1001 to active\n");
+		if (vdest_change_role(1001, V_DEST_RL_ACTIVE)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Install the service 500\n");
+		if (mds_service_install(gl_tet_adest.mds_pwe1_hdl, 500, 1,
+					NCSMDS_SCOPE_INTRACHASSIS, true,
+					false) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Subscribe for the services\n");
+		if (mds_service_subscribe(gl_tet_adest.mds_pwe1_hdl, 500,
+					NCSMDS_SCOPE_INTRACHASSIS, 1,
+					svc_id_sixhd) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Retrieve the event\n");
+		if (wait_adest_sel_obj(500, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
+					SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nRetrieve fail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Verify for the version for UP event\n");
+		if (tet_verify_version(gl_tet_adest.mds_pwe1_hdl, 500, 600, 1,
+				NCSMDS_UP) != 1) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Sleep to wait for the service in the child"
+		       " process to change role to active\n");
+		sleep(5);
+
+		printf("\nAction: Uninstall 600 in vdest 1001\n");
+		if (mds_service_uninstall(gl_tet_vdest[0].mds_pwe1_hdl, 600)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Retrieve the event\n");
+		if (wait_adest_sel_obj(500, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
+					SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nRetrieve fail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Verify for the versions for NO_ACTIVE"
+		       " event\n");
+		if (tet_verify_version(gl_tet_adest.mds_pwe1_hdl, 500, 600, 1,
+				       NCSMDS_NO_ACTIVE) != 1) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Retrieve the event\n");
+		if (wait_adest_sel_obj(500, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
+					SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nRetrieve fail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Verify for the versions for NEW_ACTIVE"
+		       " event\n");
+		if (tet_verify_version(gl_tet_adest.mds_pwe1_hdl, 500, 600, 1,
+				       NCSMDS_NEW_ACTIVE) != 1) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Cancel the subscription\n");
+		if (mds_service_cancel_subscription(
+				gl_tet_adest.mds_pwe1_hdl, 500, 1,
+				svc_id_sixhd) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Uninstall the service 500\n");
+		if (mds_service_uninstall(gl_tet_adest.mds_pwe1_hdl, 500)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		// Destroy a vdest with id = 1001
+		printf("\nAction: Destroy the vdest 1001\n");
+		rc = destroy_vdest(1001);
+		if (rc != NCSCC_RC_SUCCESS) {
+			printf("\nFail to destroy a vdest with id = 1001\n");
+			FAIL = 1;
+		}
+
+		test_validate(FAIL, 0);
+	} else {
+		// Child process
+		MDS_SVC_ID svc_id_fivehd[] = {500};
+		mds_startup();
+		printf("\nChild: Get an adest handle\n");
+		if (adest_get_handle() != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Create a vdest with id =1001\n");
+		if (create_vdest(NCS_VDEST_TYPE_MxN, 1001) !=
+				NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Install the service\n");
+		if (mds_service_install(gl_tet_vdest[0].mds_pwe1_hdl, 600, 1,
+					NCSMDS_SCOPE_INTRACHASSIS, true,
+					false) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Subscribe for the services\n");
+		if (mds_service_subscribe(gl_tet_vdest[0].mds_pwe1_hdl, 600,
+					NCSMDS_SCOPE_INTRACHASSIS, 1,
+					svc_id_fivehd) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Retrieve the event\n");
+		if (wait_vdest_sel_obj(&gl_tet_vdest[0], 600, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(
+				gl_tet_vdest[0].mds_pwe1_hdl, 600,
+				SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nRetrieve fail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Verify for the versions for UP event\n");
+		if (tet_verify_version(gl_tet_vdest[0].mds_pwe1_hdl, 600, 500,
+				       1, NCSMDS_UP) != 1) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Sleep to wait for up event of other vdest\n");
+		sleep(1);
+
+		printf("\nChild: Change the role of vdest 1001 to active\n");
+		if (vdest_change_role(1001, V_DEST_RL_ACTIVE)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Retrieve the events\n");
+		if (wait_vdest_sel_obj(&gl_tet_vdest[0], 600, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_vdest[0].mds_pwe1_hdl, 600,
+					SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+			printf("\nRetrieve fail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Verify for the versions for DOWN event\n");
+		if (tet_verify_version(gl_tet_vdest[0].mds_pwe1_hdl, 600, 500,
+				       1, NCSMDS_DOWN) != 1) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Cancel the subscription\n");
+		if (mds_service_cancel_subscription(
+				gl_tet_vdest[0].mds_pwe1_hdl, 600, 1,
+				svc_id_fivehd) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Uninstall the service\n");
+		if (mds_service_uninstall(gl_tet_vdest[0].mds_pwe1_hdl, 600)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Destroy the vdest 1001\n");
+		if (destroy_vdest(1001) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		test_validate(FAIL, 0);
+	}
+}
+
+void tet_svc_subscr_VDEST_14() {
+	int FAIL = 0;
+	SaUint32T rc;
+	MDS_SVC_ID svc_id_sixhd[] = {600};
+
+	mds_shutdown();
+	pid_t pid = fork();
+	if (pid < 0) {
+		printf("\nFailed to fork process\n");
+		FAIL = 1;
+		test_validate(FAIL, 0);
+	} else if (pid > 0) {
+		// Parent process
+		mds_startup();
+		printf("\nTest case 14: conflict nway active vdests\n");
+		printf("\nGet an adest handle\n");
+		if (adest_get_handle() != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		// Creating a vdest with id = 1001
+		rc = create_vdest(NCS_VDEST_TYPE_N_WAY_ROUND_ROBIN, 1001);
+		if (rc != NCSCC_RC_SUCCESS) {
+			printf("\nFailed to create a vdest with id ="
+			       " 1001\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Install the service 600\n");
+		if (mds_service_install(gl_tet_vdest[0].mds_pwe1_hdl, 600, 1,
+					NCSMDS_SCOPE_INTRACHASSIS, true,
+					false) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Change the role of vdest 1001 to active\n");
+		if (vdest_change_role(1001, V_DEST_RL_ACTIVE)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Install the service 500\n");
+		if (mds_service_install(gl_tet_adest.mds_pwe1_hdl, 500, 1,
+					NCSMDS_SCOPE_INTRACHASSIS, true,
+				false) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Subscribe for the services\n");
+		if (mds_service_subscribe(gl_tet_adest.mds_pwe1_hdl, 500,
+					NCSMDS_SCOPE_INTRACHASSIS, 1,
+					svc_id_sixhd) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Retrieve the event\n");
+		if (wait_adest_sel_obj(500, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
+					SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nRetrieve fail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Verify for the versions for UP event\n");
+		if (tet_verify_version(gl_tet_adest.mds_pwe1_hdl, 500, 600, 1,
+				NCSMDS_UP) != 1) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Sleep to wait for the service in the child"
+		       " process to change role to active\n");
+		sleep(5);
+
+		printf("\nAction: Uninstall 600 in vdest 1001\n");
+		if (mds_service_uninstall(gl_tet_vdest[0].mds_pwe1_hdl, 600)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Sleep to wait for changing active vdest\n");
+		sleep(1);
+
+		printf("\nAction: Cancel the subscription\n");
+		if (mds_service_cancel_subscription(
+				gl_tet_adest.mds_pwe1_hdl, 500, 1,
+				svc_id_sixhd) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nAction: Uninstall the service 500\n");
+		if (mds_service_uninstall(gl_tet_adest.mds_pwe1_hdl, 500) !=
+				NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		// Destroy a vdest with id = 1001
+		printf("\nAction: Destroy the vdest 1001\n");
+		rc = destroy_vdest(1001);
+		if (rc != NCSCC_RC_SUCCESS) {
+			printf("\nFail to destroy a vdest with id = 1001\n");
+			FAIL = 1;
+		}
+
+		test_validate(FAIL, 0);
+	} else {
+		// Child process
+		MDS_SVC_ID svc_id_fivehd[] = {500};
+		mds_startup();
+		printf("\nChild: Get an adest handle\n");
+		if (adest_get_handle() != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Create a nway vdest with id = 1001\n");
+		if (create_vdest(NCS_VDEST_TYPE_N_WAY_ROUND_ROBIN, 1001) !=
+				NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Install the service\n");
+		if (mds_service_install(gl_tet_vdest[0].mds_pwe1_hdl, 600, 1,
+					NCSMDS_SCOPE_INTRACHASSIS, true,
+					false) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Subscribe for the services\n");
+		if (mds_service_subscribe(gl_tet_vdest[0].mds_pwe1_hdl, 600,
+					NCSMDS_SCOPE_INTRACHASSIS, 1,
+					svc_id_fivehd) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Retrieve the events\n");
+		if (wait_vdest_sel_obj(&gl_tet_vdest[0], 600, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(
+				gl_tet_vdest[0].mds_pwe1_hdl, 600,
+				SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nRetrieve fail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Verify for the versions for UP event\n");
+		if (tet_verify_version(gl_tet_vdest[0].mds_pwe1_hdl, 600, 500,
+				       1, NCSMDS_UP) != 1) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Sleep to wait for up event of other vdest\n");
+		sleep(1);
+
+		printf("\nChild: Change the role of vdest 1001 to active\n");
+		if (vdest_change_role(1001, V_DEST_RL_ACTIVE)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Retrieve the events\n");
+		if (wait_vdest_sel_obj(&gl_tet_vdest[0], 600, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_vdest[0].mds_pwe1_hdl, 600,
+					SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+			printf("\nRetrieve fail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Verify for the versions for DOWN event\n");
+		if (tet_verify_version(gl_tet_vdest[0].mds_pwe1_hdl, 600, 500,
+				       1, NCSMDS_DOWN) != 1) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Cancel the subscription\n");
+		if (mds_service_cancel_subscription(
+				gl_tet_vdest[0].mds_pwe1_hdl, 600, 1,
+				svc_id_fivehd) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Uninstall the service\n");
+		if (mds_service_uninstall(gl_tet_vdest[0].mds_pwe1_hdl, 600)
+				!= NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		printf("\nChild: Destroy the vdest 1001\n");
+		if (destroy_vdest(1001) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
+		test_validate(FAIL, 0);
+	}
+}
+
 void tet_adest_cancel_thread()
 {
 	MDS_SVC_ID svcids[] = {600, 700};
@@ -5747,6 +6222,114 @@ void tet_send_response_tp_13()
 						    &wait_time) > 50) {
 							printf("\nResponse to dead"
 							" Adest hang > 50ms");
+						} else {
+							FAIL = 0;
+						}
+					}
+				}
+			}
+		}
+		kill(pid, SIGKILL);
+		mds_shutdown();
+	} else {
+		printf("\nFAIL to fork()\n");
+	}
+	test_validate(FAIL, 0);
+}
+
+void tet_send_response_tp_14()
+{
+	int FAIL = 1;
+	mds_shutdown();
+
+	printf("\nTest Case 14: Now send_response to dead Adest don't stuck"
+	       " in waiting 1.5s after adest down timer expires\n");
+	/*-------------------------------------------------------------------*/
+	pid_t pid = fork();
+	if (pid == 0) {
+		/* child as sender */
+		MDS_SVC_ID to_svcids[] = {NCSMDS_SVC_ID_EXTERNAL_MIN};
+		mds_startup();
+		if (adest_get_handle() == NCSCC_RC_SUCCESS) {
+			if (mds_service_install(
+					gl_tet_adest.mds_pwe1_hdl,
+					NCSMDS_SVC_ID_INTERNAL_MIN, 1,
+					NCSMDS_SCOPE_NONE, false, false)
+					== NCSCC_RC_SUCCESS) {
+				if (mds_service_subscribe(
+						gl_tet_adest.mds_pwe1_hdl,
+						NCSMDS_SVC_ID_INTERNAL_MIN,
+						NCSMDS_SCOPE_INTRANODE,
+						1, to_svcids)
+						== NCSCC_RC_SUCCESS) {
+					TET_MDS_MSG msg;
+					sleep(1); // Wait for up event
+					mds_send_get_response(
+					    gl_tet_adest.mds_pwe1_hdl,
+					    NCSMDS_SVC_ID_INTERNAL_MIN,
+					    NCSMDS_SVC_ID_EXTERNAL_MIN,
+					    gl_tet_adest.svc[0].svcevt[0].dest,
+					    100, MDS_SEND_PRIORITY_HIGH,
+					    &msg);
+					mds_service_uninstall(
+						gl_tet_adest.mds_pwe1_hdl,
+						NCSMDS_SVC_ID_INTERNAL_MIN);
+					sleep(30);
+				}
+			}
+		}
+		mds_shutdown();
+	} else if (pid > 0) {
+		/* parent as receiver */
+		struct timespec time1, time2, wait_time;
+		MDS_SVC_ID to_svcids[] = {NCSMDS_SVC_ID_INTERNAL_MIN};
+		mds_startup();
+		if (adest_get_handle() == NCSCC_RC_SUCCESS) {
+			if (mds_service_install(
+					gl_tet_adest.mds_pwe1_hdl,
+					NCSMDS_SVC_ID_EXTERNAL_MIN, 1,
+					NCSMDS_SCOPE_NONE, true, false)
+					== NCSCC_RC_SUCCESS) {
+				if (mds_service_subscribe(
+						gl_tet_adest.mds_pwe1_hdl,
+						NCSMDS_SVC_ID_EXTERNAL_MIN,
+						NCSMDS_SCOPE_INTRANODE,
+						1, to_svcids)
+						== NCSCC_RC_SUCCESS) {
+					while (is_adest_sel_obj_found(0)) {
+						if (mds_service_retrieve(
+						    gl_tet_adest.mds_pwe1_hdl,
+						    NCSMDS_SVC_ID_EXTERNAL_MIN,
+						    SA_DISPATCH_ONE)
+						  == NCSCC_RC_SUCCESS &&
+						  gl_rcvdmsginfo.msg) {
+							// Received the message
+							break;
+						}
+					}
+					sleep(15); // Make sure the adest down
+						   // timer expires
+					osaf_clock_gettime(CLOCK_MONOTONIC,
+							   &time1);
+					// Send response
+					TET_MDS_MSG msg;
+					if (mds_send_response(
+					    gl_tet_adest.mds_pwe1_hdl,
+					    NCSMDS_SVC_ID_EXTERNAL_MIN,
+					    &msg)
+					    == NCSCC_RC_FAILURE) {
+						osaf_clock_gettime(
+						    CLOCK_MONOTONIC,
+						    &time2);
+						osaf_timespec_subtract(
+						    &time2,
+						    &time1,
+						    &wait_time);
+						if (osaf_timespec_to_millis(
+						    &wait_time) > 50) {
+							printf("\nResponse to"
+							" dead Adest hang >"
+							" 50ms");
 						} else {
 							FAIL = 0;
 						}
@@ -14262,6 +14845,12 @@ __attribute__((constructor)) static void mdsTipcAPI_constructor(void)
 	test_case_add(
 	    4, tet_svc_subscr_VDEST_12,
 	    "In the NO_ACTIVE event notification, the remote service subpart version is set to the last active instance.s remote-service sub-part version");
+	test_case_add(
+	    4, tet_svc_subscr_VDEST_13,
+	    "Conflict mxn active vdests");
+	test_case_add(
+	    4, tet_svc_subscr_VDEST_14,
+	    "Conflict nway active vdests");
 
 	test_suite_add(5, "Subscribe ADEST");
 	test_case_add(
@@ -14423,6 +15012,10 @@ __attribute__((constructor)) static void mdsTipcAPI_constructor(void)
 	test_case_add(
 	    9, tet_send_response_tp_13,
 	    "Now send_response to dead Adest don't stuck in waiting 1.5s");
+	test_case_add(
+	    9, tet_send_response_tp_14,
+	    "Now send_response to dead Adest don't stuck in waiting 1.5s"
+	    " after adest down timer expires");
 
 	test_suite_add(10, "Send All test cases");
 	test_case_add(

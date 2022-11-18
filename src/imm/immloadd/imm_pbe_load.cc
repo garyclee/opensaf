@@ -652,13 +652,13 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
             val = (char *)realloc(val, size);
             snprintf(val, size, "%.17g", d);
           }
-          attrValueBuffers.push_front(val);
+          attrValueBuffers.push_back(val);
         } else {
           val = (char *)sqlite3_column_text(stmt, 0);
           if (val) {
             /* Guard for NULL values. */
             char *str = strdup(val);
-            attrValueBuffers.push_front(str);
+            attrValueBuffers.push_back(str);
             TRACE("ABT pushed value:%s", str);
           }
         }

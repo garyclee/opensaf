@@ -56,7 +56,7 @@ void LogWriter::Open() {
     int fd;
     do {
       fd = open(log_file(0).c_str(), O_WRONLY | O_CLOEXEC | O_CREAT,
-                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+                S_IRUSR | S_IWUSR | S_IRGRP);
     } while (fd == -1 && errno == EINTR);
     if (fd >= 0) {
       off_t seek_result = lseek(fd, 0, SEEK_END);

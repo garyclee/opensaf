@@ -103,6 +103,7 @@ typedef struct {
 } ntfsv_ckpt_header_t;
 
 typedef struct {
+  NCS_QELEM qelem;
   ntfsv_ckpt_header_t header;
   union {
     ntfs_ckpt_reg_msg_t reg_rec;
@@ -130,5 +131,6 @@ void update_standby(ntfsv_ckpt_msg_t *ckpt, uint32_t action);
 uint32_t enc_ckpt_reserv_header(NCS_UBAID *uba, ntfsv_ckpt_msg_type_t type,
                                 uint32_t num_rec, uint32_t len);
 uint32_t enc_mbcsv_client_msg(NCS_UBAID *uba, ntfs_ckpt_reg_msg_t *param);
+uint32_t ntfs_mbcsv_process_ckpt_data(ntfs_cb_t *cb, ntfsv_ckpt_msg_t *data);
 
 #endif  // NTF_NTFD_NTFS_MBCSV_H_

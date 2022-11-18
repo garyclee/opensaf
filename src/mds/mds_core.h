@@ -257,6 +257,7 @@ typedef struct mds_adest_info {
   /* Adest info */
   MDS_DEST adest; /* Key for Patricia node */
   uint16_t svc_cnt; /* Adest SVC counter */
+  bool is_up;
   MDS_TMR_REQ_INFO *tmr_req_info;
   uint32_t tmr_hdl;
 } MDS_ADEST_INFO;

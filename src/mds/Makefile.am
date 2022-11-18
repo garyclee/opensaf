@@ -18,6 +18,7 @@ noinst_HEADERS += \
 	src/mds/mda_dl_api.h \
 	src/mds/mda_mem.h \
 	src/mds/mda_pvt_api.h \
+	src/mds/mds_adest_op.h \
 	src/mds/mds_adm.h \
 	src/mds/mds_core.h \
 	src/mds/mds_dl_api.h \
@@ -28,9 +29,11 @@ noinst_HEADERS += \
 	src/mds/mds_dt_tcp_trans.h \
 	src/mds/mds_log.h \
 	src/mds/mds_papi.h \
-	src/mds/mds_pvt.h
+	src/mds/mds_pvt.h \
+	src/mds/mds_svc_op.h
 
 lib_libopensaf_core_la_SOURCES += \
+	src/mds/mds_adest_op.c \
 	src/mds/mds_c_api.c \
 	src/mds/mds_c_db.c \
 	src/mds/mds_c_sndrcv.c \
@@ -41,6 +44,7 @@ lib_libopensaf_core_la_SOURCES += \
 	src/mds/mds_log.cc \
 	src/mds/mds_main.c \
 	src/mds/mds_papi.c \
+	src/mds/mds_svc_op.c \
 	src/mds/ncs_ada.c \
 	src/mds/ncs_mda.c \
 	src/mds/ncs_vda.c

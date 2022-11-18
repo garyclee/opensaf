@@ -86,8 +86,6 @@ static uint32_t ckpt_decode_cold_sync(ntfs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg);
 static uint32_t ckpt_peer_info_cbk_handler(NCS_MBCSV_CB_ARG *arg);
 static uint32_t ckpt_notify_cbk_handler(NCS_MBCSV_CB_ARG *arg);
 static uint32_t ckpt_err_ind_cbk_handler(NCS_MBCSV_CB_ARG *arg);
-
-static uint32_t process_ckpt_data(ntfs_cb_t *cb, ntfsv_ckpt_msg_t *data);
 static void ntfs_exit(const char *msg, SaAmfRecommendedRecoveryT rec_rcvr);
 
 static NTFS_CKPT_HDLR ckpt_data_handler[NTFS_CKPT_MSG_MAX] = {
@@ -967,12 +965,35 @@ static uint32_t ckpt_decode_async_update(ntfs_cb_t *cb,
 		break;
 	} /*end switch */
 	if (rc == NCSCC_RC_SUCCESS) {
-		rc = process_ckpt_data(cb, ckpt_msg);
-		/* Update the Async Update Count at standby */
-		cb->async_upd_cnt++;
+		// Allocate a mailbox message
+		ntfsv_ntfs_evt_t *mbx_evt = calloc(1,
+						   sizeof(ntfsv_ntfs_evt_t));
+		if (!mbx_evt) {
+			rc = NCSCC_RC_FAILURE;
+			TRACE("Failed to allocate memory for mailbox event");
+			goto done;
+		}
+		// Put checkpoint to queue. The checkpoint will be freed later
+		// after processing it.
+		ncs_enqueue(&cb->async_ckpt_queue, (void *)ckpt_msg);
+		ckpt_msg = NULL;
+		// Send an async checkpoint event to mailbox. Don't process
+		// it here because the active ntf is waiting for the response.
+		// ntf will check the async checkpoint queue and
+		// process it after receive this event in mailbox.
+		mbx_evt->evt_type = NTFSV_EVT_ASYNC_CKPT;
+		rc = ncs_ipc_send(&ntfs_cb->mbx, (NCS_IPC_MSG *) mbx_evt,
+				  NCS_IPC_PRIORITY_NORMAL);
+		if (rc != NCSCC_RC_SUCCESS) {
+			LOG_ER("IPC send failed %d", rc);
+			free(mbx_evt);
+			goto done;
+		}
 	}
 done:
-	free(ckpt_msg);
+	if (ckpt_msg) {
+		free(ckpt_msg);
+	}
 	TRACE_LEAVE();
 	return rc;
 	/* if failure, should an indication be sent to active ? */
@@ -1114,7 +1135,7 @@ static uint32_t ckpt_decode_cold_sync(ntfs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg)
 			goto done;
 		}
 		/* Update our database */
-		rc = process_ckpt_data(cb, data);
+		rc = ntfs_mbcsv_process_ckpt_data(cb, data);
 		if (rc != NCSCC_RC_SUCCESS) {
 			goto done;
 		}
@@ -1324,7 +1345,7 @@ done:
 }
 
 /****************************************************************************
- * Name          : process_ckpt_data
+ * Name          : ntfs_mbcsv_process_ckpt_data
  *
  * Description   : This function updates the ntfs internal databases
  *                 based on the data type.
@@ -1338,7 +1359,7 @@ done:
  * Notes         : None.
  *****************************************************************************/
 
-static uint32_t process_ckpt_data(ntfs_cb_t *cb, ntfsv_ckpt_msg_t *data)
+uint32_t ntfs_mbcsv_process_ckpt_data(ntfs_cb_t *cb, ntfsv_ckpt_msg_t *data)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	if ((!cb) || (data == NULL)) {
@@ -1359,7 +1380,7 @@ static uint32_t process_ckpt_data(ntfs_cb_t *cb, ntfsv_ckpt_msg_t *data)
 	} else {
 		return (rc = NCSCC_RC_FAILURE);
 	}
-} /*End ntfs_process_ckpt_data() */
+} /*End ntfs_mbcsv_process_ckpt_data() */
 
 /****************************************************************************
  * Name          : ckpt_proc_reg_rec
