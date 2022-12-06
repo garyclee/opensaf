@@ -111,12 +111,11 @@ const static char * DOWN_TAG = "svc_down";
 
 #define MDS_SVC_LOG_INFO(tag, info, format, args...)                          \
 	m_MDS_LOG_INFO("MCM:API: %s : svc_id = %s(%d)"                        \
-		       " on VDEST id = %d, svc_pvt_ver = %d : " format,       \
+		       " on VDEST id = %d : " format,                         \
 		       tag,                                                   \
 		       get_svc_names((info)->i_svc_id),                       \
 		       (info)->i_svc_id,                                      \
 		       m_MDS_GET_VDEST_ID_FROM_PWE_HDL(info->i_mds_hdl),      \
-		       (info)->info.svc_install.i_mds_svc_pvt_ver,            \
 		       ##args);
 
 uint32_t mds_svc_op_install(NCSMDS_INFO *info) {
@@ -241,7 +240,9 @@ uint32_t mds_svc_op_install(NCSMDS_INFO *info) {
 		}
 	}
 
-	MDS_SVC_LOG_INFO(INSTALL_TAG, info, "Install successfull");
+	MDS_SVC_LOG_INFO(INSTALL_TAG, info, "Install successful with"
+					    " svc_pvt_ver = %d",
+			 info->info.svc_install.i_mds_svc_pvt_ver);
 	m_MDS_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
@@ -371,7 +372,9 @@ uint32_t mds_svc_op_uninstall(const NCSMDS_INFO *info) {
 	mds_svc_tbl_del((MDS_PWE_HDL)info->i_mds_hdl, info->i_svc_id,
 			info->info.svc_uninstall.i_msg_free_cb);
 
-	MDS_SVC_LOG_INFO(UNINSTALL_TAG, info, "Uninstall successfull");
+	MDS_SVC_LOG_INFO(UNINSTALL_TAG, info, "Uninstall successful with"
+					      " svc_pvt_ver = %d",
+			 svc_cb->svc_sub_part_ver);
 	m_MDS_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }

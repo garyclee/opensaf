@@ -431,6 +431,7 @@ uint32_t mds_service_install(MDS_HDL mds_hdl, MDS_SVC_ID svc_id,
 	svc_to_mds_info.info.svc_install.i_yr_svc_hdl = gl_tet_svc.yr_svc_hdl;
 	svc_to_mds_info.info.svc_install.i_install_scope = install_scope;
 	svc_to_mds_info.info.svc_install.i_mds_q_ownership = mds_q_ownership;
+	svc_to_mds_info.info.svc_install.i_msg_loss_indication = false;
 
 	if (ncsmds_api(&svc_to_mds_info) == NCSCC_RC_SUCCESS) {
 		printf("\n %d : SERVICE INSTALL is SUCCESSFULL", svc_id);
@@ -1719,6 +1720,14 @@ uint32_t tet_create_task(NCS_OS_CB task_startup, NCSCONTEXT *t_handle)
 			      NCS_STACKSIZE_MEDIUM,
 			      t_handle) == NCSCC_RC_SUCCESS)
 
+		return NCSCC_RC_SUCCESS;
+	else
+		return NCSCC_RC_FAILURE;
+}
+
+uint32_t tet_join_task(void *task_handle)
+{
+	if (m_NCS_TASK_JOIN(task_handle) == NCSCC_RC_SUCCESS)
 		return NCSCC_RC_SUCCESS;
 	else
 		return NCSCC_RC_FAILURE;

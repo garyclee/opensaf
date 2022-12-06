@@ -757,6 +757,10 @@ uint32_t mds_mcm_pwe_destroy(NCSMDS_ADMOP_INFO *info)
 	svc_info = (MDS_SVC_INFO *)ncs_patricia_tree_getnext(
 	    &gl_mds_mcm_cb->svc_list, NULL);
 	while (svc_info != NULL) {
+		MDS_SVC_INFO *next_svc_info =
+			(MDS_SVC_INFO *)ncs_patricia_tree_getnext(
+						&gl_mds_mcm_cb->svc_list,
+						(uint8_t *)&svc_info->svc_hdl);
 		temp_pwe_hdl =
 		    m_MDS_GET_PWE_HDL_FROM_SVC_HDL(svc_info->svc_hdl);
 		if (temp_pwe_hdl ==
@@ -769,8 +773,7 @@ uint32_t mds_mcm_pwe_destroy(NCSMDS_ADMOP_INFO *info)
 
 			mds_mcm_svc_uninstall(&temp_ncsmds_info);
 		}
-		svc_info = (MDS_SVC_INFO *)ncs_patricia_tree_getnext(
-		    &gl_mds_mcm_cb->svc_list, (uint8_t *)&svc_info->svc_hdl);
+		svc_info = next_svc_info;
 	}
 
 	/* STEP 2: Delete entry from PWE Table */
