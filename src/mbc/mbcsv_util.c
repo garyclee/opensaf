@@ -424,6 +424,8 @@ uint32_t mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send,
 		TRACE("calling encode callback");
 		uba = &parg.info.encode.io_uba;
 		memset(uba, '\0', sizeof(NCS_UBAID));
+		memset(&parg, '\0', sizeof(NCS_MBCSV_CB_ARG));
+		memset(&evt_msg, '\0', sizeof(MBCSV_EVT));
 
 		if (NCSCC_RC_SUCCESS != ncs_enc_init_space(uba)) {
 			TRACE_LEAVE2("encode init failed");
@@ -792,6 +794,8 @@ uint32_t mbcsv_send_data_req(NCS_UBAID *uba, CKPT_INST *ckpt_inst,
 	MBCSV_EVT evt_msg;
 	TRACE_ENTER();
 
+	memset(&evt_msg, '\0', sizeof(MBCSV_EVT));
+
 	/*
 	 * Generate the message to be sent.
 	 */
@@ -838,6 +842,7 @@ uint32_t mbcsv_send_client_msg(PEER_INST *peer, uint8_t evt, uint32_t action)
 		TRACE_LEAVE2("malloc failed");
 		return NCSCC_RC_FAILURE;
 	}
+	memset(evt_msg, '\0', sizeof(MBCSV_EVT));
 
 	/*
 	 * Generate the message to be sent.
@@ -889,6 +894,7 @@ uint32_t ncs_mbcsv_encode_message(PEER_INST *peer, MBCSV_EVT *evt_msg,
 	 * Call encode callback to encode message to be sent.
 	 */
 	memset(uba, '\0', sizeof(NCS_UBAID));
+	memset(&parg, '\0', sizeof(NCS_MBCSV_CB_ARG));
 
 	if (NCSCC_RC_SUCCESS != ncs_enc_init_space(uba)) {
 		TRACE_LEAVE2("leap enc init failed");

@@ -247,6 +247,7 @@ void ncs_mbcsv_tmr_expiry(void *uarg)
 		TRACE_LEAVE2("malloc failed");
 		return;
 	}
+	memset(mbc_evt, '\0', sizeof(MBCSV_EVT));
 
 	/* Extract timer expiration info from uarg. */
 	tmr = (NCS_MBCSV_TMR *)uarg;

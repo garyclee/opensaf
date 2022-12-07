@@ -742,6 +742,8 @@ uint32_t mbcsv_process_chg_role_request(NCS_MBCSV_ARG *arg)
 		rc = SA_AIS_ERR_NO_MEMORY;
 		goto err2;
 	}
+	memset(evt, '\0', sizeof(MBCSV_EVT));
+
 	evt->msg_type = MBCSV_EVT_INTERNAL;
 	evt->info.peer_msg.type = MBCSV_EVT_CHG_ROLE;
 	evt->info.peer_msg.info.chg_role.ckpt_hdl =
@@ -858,6 +860,8 @@ uint32_t mbcsv_process_snd_ckpt_request(NCS_MBCSV_ARG *arg)
 			rc = SA_AIS_ERR_NO_MEMORY;
 			goto err2;
 		}
+
+		memset(evt, '\0', sizeof(MBCSV_EVT));
 
 		evt->msg_type = MBCSV_EVT_INTERNAL;
 		evt->info.peer_msg.type = MBCSV_EVT_MBC_ASYNC_SEND;
