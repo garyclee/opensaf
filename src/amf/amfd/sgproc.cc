@@ -1258,6 +1258,13 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
            AVSV_N2D_INFO_SU_SI_ASSIGN_MSG,
            n2d_msg->msg_info.n2d_su_si_assign.msg_id)) == nullptr) {
     /* sanity failed return */
+    // Force to reboot mismatch msg node to avoid partial_assigned
+    SaClmNodeIdT node_id = n2d_msg->msg_info.n2d_su_si_assign.node_id;
+    if ((node = avd_node_find_nodeid(node_id)) == nullptr) {
+      LOG_WA("%s: invalid node ID (%x)", __FUNCTION__, node_id);
+    } else {
+      avd_d2n_reboot_snd(node);
+    }
     goto done;
   }
 
