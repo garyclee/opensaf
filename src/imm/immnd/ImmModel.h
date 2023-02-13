@@ -376,9 +376,8 @@ class ImmModel {
                   bool increment);
   bool getRegenerateDbFlag();
   void setRegenerateDbFlag(bool value);
-  SaImmRepositoryInitModeT getRepositoryInitMode();
+  int getAttrValueImmManagement(std::string attrName);
   unsigned int getMaxSyncBatchSize();
-  SaTimeT getSyncrTimeout();
   bool getLongDnsAllowed(ObjectInfo* immObject = NULL);
   void prepareForLoading();
   bool readyForLoading();
