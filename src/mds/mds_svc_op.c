@@ -368,13 +368,12 @@ uint32_t mds_svc_op_uninstall(const NCSMDS_INFO *info) {
 					  "Node failed to unsubscribe");
 		}
 	}
-
-	mds_svc_tbl_del((MDS_PWE_HDL)info->i_mds_hdl, info->i_svc_id,
-			info->info.svc_uninstall.i_msg_free_cb);
-
 	MDS_SVC_LOG_INFO(UNINSTALL_TAG, info, "Uninstall successful with"
 					      " svc_pvt_ver = %d",
 			 svc_cb->svc_sub_part_ver);
+
+	mds_svc_tbl_del((MDS_PWE_HDL)info->i_mds_hdl, info->i_svc_id,
+			info->info.svc_uninstall.i_msg_free_cb);
 	m_MDS_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }

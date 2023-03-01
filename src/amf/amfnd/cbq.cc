@@ -666,6 +666,8 @@ uint32_t avnd_evt_tmr_cbk_resp_evh(AVND_CB *cb, AVND_EVT *evt) {
                                AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL);
   } else if (AVSV_AMF_COMP_TERM == rec->cbk_info->type) {
     m_AVND_COMP_TERM_FAIL_SET(rec->comp);
+    rc =
+        avnd_comp_clc_fsm_run(cb, rec->comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
     if (rec->comp->term_cbq_inv_value != 0) {
       AVND_COMP_CBK *cbk_rec;
       /* Since, the cbq timer has expired and no down event
@@ -678,8 +680,6 @@ uint32_t avnd_evt_tmr_cbk_resp_evh(AVND_CB *cb, AVND_EVT *evt) {
         avnd_comp_cbq_rec_pop_and_del(cb, rec->comp, cbk_rec->opq_hdl, false);
       }
     }
-    rc =
-        avnd_comp_clc_fsm_run(cb, rec->comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
   } else {
     switch (rec->cbk_info->type) {
       case AVSV_AMF_HC:
