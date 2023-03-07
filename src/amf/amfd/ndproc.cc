@@ -736,8 +736,8 @@ void cluster_startup_expiry_event_generate(AVD_CL_CB *cb) {
   cb->amf_init_tmr.type = AVD_TMR_CL_INIT;
 
   evt->info.tmr = cb->amf_init_tmr;
-  evt->rcv_evt = static_cast<AVD_EVT_TYPE>(
-      (evt->info.tmr.type - AVD_TMR_CL_INIT) + AVD_EVT_TMR_CL_INIT);
+  evt->rcv_evt = static_cast<AVD_EVT_TYPE>((int)(
+      (evt->info.tmr.type - AVD_TMR_CL_INIT) + AVD_EVT_TMR_CL_INIT));
 
   if (m_NCS_IPC_SEND(&cb->avd_mbx, evt, NCS_IPC_PRIORITY_VERY_HIGH) !=
       NCSCC_RC_SUCCESS) {

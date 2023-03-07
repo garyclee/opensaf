@@ -362,8 +362,8 @@ uint32_t avd_n2d_msg_rcv(AVD_DND_MSG *rcv_msg, NODE_ID node_id,
       evt->rcv_evt = AVD_EVT_ND_CSICOMP_STATE_INFO_MSG;
       break;
     default:
-      evt->rcv_evt = static_cast<AVD_EVT_TYPE>(
-          (rcv_msg->msg_type - AVSV_N2D_NODE_UP_MSG) + AVD_EVT_NODE_UP_MSG);
+      evt->rcv_evt = static_cast<AVD_EVT_TYPE>((int)(
+          (rcv_msg->msg_type - AVSV_N2D_NODE_UP_MSG) + AVD_EVT_NODE_UP_MSG));
       break;
   }
 

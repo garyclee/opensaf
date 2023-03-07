@@ -107,14 +107,16 @@ void saClmInitialize_12() {
 
 /*for code coverage*/
 void saClmInitialize_13() {
-  SaClmHandleT clmHandle1, clmHandle2, clmHandle3;
+  SaClmHandleT clmHandle1(0), clmHandle2(0), clmHandle3(0);
   rc = ClmTest::saClmInitialize(&clmHandle1, &clmCallbacks_1, &clmVersion_1);
+  test_validate(rc, SA_AIS_OK);
   rc = ClmTest::saClmInitialize(&clmHandle2, &clmCallbacks_1, &clmVersion_1);
+  test_validate(rc, SA_AIS_OK);
   rc = ClmTest::saClmInitialize(&clmHandle3, &clmCallbacks_1, &clmVersion_1);
+  test_validate(rc, SA_AIS_OK);
   safassert(ClmTest::saClmFinalize(clmHandle1), SA_AIS_OK);
   safassert(ClmTest::saClmFinalize(clmHandle2), SA_AIS_OK);
   safassert(ClmTest::saClmFinalize(clmHandle3), SA_AIS_OK);
-  test_validate(rc, SA_AIS_OK);
 }
 #if 0
 void saClmInitialize_13()

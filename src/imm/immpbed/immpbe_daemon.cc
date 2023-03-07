@@ -1237,8 +1237,15 @@ static void saImmOiAdminOperationCallback(
     while (params[i]) {
       if ((strcmp(params[i]->paramName, SA_IMM_PARAM_ADMOP_NAME)) == 0) {
         param_len++;
-        rparams = (SaImmAdminOperationParamsT_2 **)realloc(
+        SaImmAdminOperationParamsT_2 **tmp = (SaImmAdminOperationParamsT_2 **)realloc(
             rparams, (param_len + 1) * sizeof(SaImmAdminOperationParamsT_2 *));
+        if (tmp == nullptr) {
+          LOG_ER("realloc() failed");
+          rc = SA_AIS_ERR_NO_RESOURCES;
+          if (rparams) free(rparams);
+          goto fail;
+        }
+        rparams = tmp;
         resparams = (SaImmAdminOperationParamsT_2 *)malloc(
             sizeof(SaImmAdminOperationParamsT_2));
         opName = (*(SaStringT *)params[i]->paramBuffer);
@@ -1256,8 +1263,15 @@ static void saImmOiAdminOperationCallback(
     while (params[i]) {
       if ((strcmp(params[i]->paramName, "resource")) == 0) {
         param_len++;
-        rparams = (SaImmAdminOperationParamsT_2 **)realloc(
+        SaImmAdminOperationParamsT_2 **tmp = (SaImmAdminOperationParamsT_2 **)realloc(
             rparams, (param_len + 1) * sizeof(SaImmAdminOperationParamsT_2 *));
+        if (tmp == nullptr) {
+          LOG_ER("realloc() failed");
+          rc = SA_AIS_ERR_NO_RESOURCES;
+          if (rparams) free(rparams);
+          goto fail;
+        }
+        rparams = tmp;
         resparams = (SaImmAdminOperationParamsT_2 *)malloc(
             sizeof(SaImmAdminOperationParamsT_2));
         res = (*(SaStringT *)params[i]->paramBuffer);

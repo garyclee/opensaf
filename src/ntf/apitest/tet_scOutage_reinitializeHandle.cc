@@ -300,7 +300,7 @@ void fillCommonNotifHeader(SaNtfNotificationHeaderT *head) {
           (SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) + 1));
 
   for (i = 0; i < head->numCorrelatedNotifications; i++) {
-    head->correlatedNotifications[i] = (SaNtfIdentifierT)(i + 400);
+    head->correlatedNotifications[i] = (SaNtfIdentifierT)((SaUint16T)(i + 400));
   }
 
   for (i = 0; i < head->numAdditionalInfo; i++) {
@@ -346,7 +346,7 @@ SaAisErrorT scoutage_saNtfPtrValAllocate(SaNtfNotificationHeaderT *head,
           (SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) + 1));
 
   for (i = 0; i < head->numCorrelatedNotifications; i++)
-    head->correlatedNotifications[i] = (SaNtfIdentifierT)(i + 400);
+    head->correlatedNotifications[i] = (SaNtfIdentifierT)((SaUint16T)(i + 400));
 
   // Fill first additionalInfo as extended SaNameT including NULL
   // character
@@ -963,6 +963,7 @@ void reader_life_cycle(int test_api) {
   SaNtfSearchCriteriaT searchCriteria;
   SaNtfNotificationsT returnedNotification;
 
+  memset(&searchCriteria, '\0', sizeof(SaNtfSearchCriteriaT));
   fprintf_v(stdout, "\nStart test API: %s",
       ntf_api_name_list[test_api].apiName);
   resetCounters();

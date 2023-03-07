@@ -782,6 +782,8 @@ int log_file_open(const std::string &root_path, log_stream_t *stream,
   TRACE("%s - Opening file \"%s\"", __FUNCTION__, pathname.c_str());
 
   fd = fileopen_h(pathname, &errno_ret);
+  if (fd == -1) return fd;
+
   if (errno_save != 0) {
     *errno_save = errno_ret;
   }

@@ -111,10 +111,12 @@ static uint32_t lgs_clm_node_add(NODE_ID clm_node_id) {
     if (!p.second) {
       TRACE("unable to add clm node info map - the id %x already existed",
             clm_node->clm_node_id);
+      delete clm_node;
       rc = NCSCC_RC_FAILURE;
     }
   } else {
     TRACE("can't find local sec map in lgs_clm_node_add");
+    delete clm_node;
     rc = NCSCC_RC_FAILURE;
   }
   TRACE_LEAVE();

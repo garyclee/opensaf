@@ -166,8 +166,8 @@ void avd_tmr_exp(void *uarg) {
     evt = new AVD_EVT();
 
     evt->info.tmr = *tmr;
-    evt->rcv_evt = static_cast<AVD_EVT_TYPE>((tmr->type - AVD_TMR_CL_INIT) +
-                                             AVD_EVT_TMR_CL_INIT);
+    evt->rcv_evt = static_cast<AVD_EVT_TYPE>((int)((tmr->type - AVD_TMR_CL_INIT) +
+                                             AVD_EVT_TMR_CL_INIT));
 
     if (m_NCS_IPC_SEND(&cb->avd_mbx, evt, NCS_IPC_PRIORITY_VERY_HIGH) !=
         NCSCC_RC_SUCCESS) {

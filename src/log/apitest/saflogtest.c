@@ -381,7 +381,7 @@ int main(int argc, char *argv[])
 	int interval = 0;
 	char hostname[_POSIX_HOST_NAME_MAX];
 	int write_count = 1;
-	SaAisErrorT error;
+	SaAisErrorT error = SA_AIS_ERR_TRY_AGAIN;
 	SaLogHandleT logHandle;
 	SaLogStreamHandleT logStreamHandle;
 	SaSelectionObjectT selectionObject;

@@ -870,7 +870,7 @@ void *saLogInitialize_1(void *arg)
 {
 	SaAisErrorT *rt = (SaAisErrorT *)arg;
 	SaLogStreamHandleT logStreamHandle1;
-	SaLogHandleT logHandle1;
+	SaLogHandleT logHandle1 = 0;
 	int time_wait = 20*1000; // Wait for timeout is 20 seconds
 	SaVersionT log_version;
 

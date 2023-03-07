@@ -607,7 +607,7 @@ bool SmfUpgradeProcedure::calculateRollingSteps(
       newStep->setDn(newStep->getRdn() + "," + getDn());
       unitNameAndState tmp;
       tmp.name = *it;
-      tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+      tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
       newStep->addActivationUnit(tmp);
       newStep->addDeactivationUnit(tmp);
       newStep->setMaxRetry(i_rollingUpgrade->getStepMaxRetryCount());
@@ -673,7 +673,7 @@ bool SmfUpgradeProcedure::calculateRollingSteps(
       newStep->setDn(newStep->getRdn() + "," + getDn());
       unitNameAndState tmp;
       tmp.name = *itActDeact;
-      tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+      tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
       newStep->addActivationUnit(tmp);
       newStep->addDeactivationUnit(tmp);
       newStep->setMaxRetry(i_rollingUpgrade->getStepMaxRetryCount());
@@ -907,7 +907,7 @@ bool SmfUpgradeProcedure::calculateSingleStep(
         for (const auto &a : actUnits) {
           unitNameAndState tmp;
           tmp.name = a;
-          tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+          tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
           newStep->addActivationUnit(tmp);
         }
       } else {
@@ -932,7 +932,7 @@ bool SmfUpgradeProcedure::calculateSingleStep(
     for (auto &entity : entityList) {
       unitNameAndState tmp;
       tmp.name = entity;
-      tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+      tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
       newStep->addActivationUnit(tmp);
     }
     entityList.clear();
@@ -981,7 +981,7 @@ bool SmfUpgradeProcedure::calculateSingleStep(
         for (const auto &a : deactUnits) {
           unitNameAndState tmp;
           tmp.name = a;
-          tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+          tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
           newStep->addDeactivationUnit(tmp);
         }
       } else {
@@ -1019,7 +1019,7 @@ bool SmfUpgradeProcedure::calculateSingleStep(
     for (const auto &entity : entityList) {
       unitNameAndState tmp;
       tmp.name = entity;
-      tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+      tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
       newStep->addDeactivationUnit(tmp);
     }
     entityList.clear();
@@ -1121,7 +1121,7 @@ bool SmfUpgradeProcedure::calculateSingleStep(
     for (const auto &a : actDeactUnits) {
       unitNameAndState tmp;
       tmp.name = a;
-      tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+      tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
       newStep->addDeactivationUnit(tmp);
       newStep->addActivationUnit(tmp);
     }
@@ -3540,7 +3540,7 @@ SaAisErrorT SmfUpgradeProcedure::readCampaignImmModel(
         TRACE("addActivationUnit %s", osaf_extended_name_borrow(au));
         unitNameAndState tmp;
         tmp.name = osaf_extended_name_borrow(au);
-        tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+        tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
         if (tmp.name != "") {
           i_newStep->addActivationUnit(tmp);
         } else {
@@ -3641,7 +3641,7 @@ SaAisErrorT SmfUpgradeProcedure::readCampaignImmModel(
         TRACE("addDeactivationUnit %s", osaf_extended_name_borrow(du));
         unitNameAndState tmp;
         tmp.name = osaf_extended_name_borrow(du);
-        tmp.initState = SA_AMF_ADMIN_UNLOCKED;
+        tmp.currentState = tmp.initState = SA_AMF_ADMIN_UNLOCKED;
         if (tmp.name != "") {
           i_newStep->addDeactivationUnit(tmp);
         } else {

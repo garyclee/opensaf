@@ -138,8 +138,8 @@ uint32_t avnd_evt_avnd_avnd_api_msg_hdl(AVND_CB *cb, AVND_EVT *evt) {
 
   /* Create AvA message, so that it look like it is coming from AvA. */
   evt_type =
-      static_cast<AVND_EVT_TYPE>(evt->info.avnd->info.msg->info.api_info.type -
-                                 AVSV_AMF_FINALIZE + AVND_EVT_AVA_FINALIZE);
+      static_cast<AVND_EVT_TYPE>((int)(evt->info.avnd->info.msg->info.api_info.type -
+                                 AVSV_AMF_FINALIZE + AVND_EVT_AVA_FINALIZE));
   evt->info.ava.msg = evt->info.avnd->info.msg;
 
   if (AVND_EVT_AVA_COMP_REG == evt_type) {
