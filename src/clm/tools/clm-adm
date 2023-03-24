@@ -16,7 +16,7 @@
 usage()
 {
   echo ""
-  echo "USAGE: $(basename "$0") [-t value] <-o op_name>  <DN>"
+  echo "USAGE: $(basename "$0") [-t value] <-o op_name> [-a action_name]  <DN>"
   echo ""
   echo "OPTIONS:"
   echo "        -t or --timeout : command timeout in seconds (default=60) (optional)"
@@ -24,16 +24,33 @@ usage()
   echo "                             'lock'     for admin lock "
   echo "                             'unlock'   for admin unlock "
   echo "                             'shutdown' for admin shutdown "
-  echo "                             'reset'    for admin reset of cluster"
+  echo "                             'reset'    for admin reset of node/cluster"
+  echo "                             'execute'  for executing action on remote node/cluster"
+  echo "        -a or --action  : action name is a script stored in /usr/lib/opensaf/clm-scripts"
+  echo "                          directory started with prefix "osafclm_""
   echo "        DN              : a valid DN name of CLM node or cluster (mandatory)"
+  echo ""
+  echo ""
+  echo "NOTES:"
+  echo "        1) -a is only mandatory with 'execute' operation"
+  echo ""
+  echo ""
+  echo "EXAMPLES:"
+  echo "        clm-adm -o execute -a test safNode=SC-2,safCluster=myClmCluster"
+  echo "                execute script locate on /usr/lib/opensaf/clm-scripts/osafclm_test on SC-2"
+  echo "        clm-adm -o reset safCluster=myClmCluster"
+  echo "                Cluster reboot"
+  echo "        clm-adm -o reset safNode=SC-2,safCluster=myClmCluster"
+  echo "                Node SC-2 reboot"
   echo ""
   echo ""
 }
 
-options=$(getopt -o t:o:h -l timeout:,admin-op:,help -- "$@")
+options=$(getopt -o t:o:a:h -l timeout:,admin-op:,action:,help -- "$@")
 status=$?
+info="Try '$(basename "$0") -h or --help' for more information"
 if [ $status -ne 0 ] ; then
-  echo "Try '$(basename "$0") -h or --help' for more information"
+  echo $info
   exit 1
 fi
 eval set -- "$options"
@@ -41,6 +58,8 @@ eval set -- "$options"
 DN=""
 CMD=""
 TIMEOUT=""
+ACTION=""
+OPERATION=""
 
 while true; do
   case $1 in
@@ -51,6 +70,7 @@ while true; do
                 ;;
     -o|--admin-op)
                 shift 1
+                OPERATION=$1
                 if [ "$1" = "unlock" ]; then
                   CMD=1
                 elif [ "$1" = "lock" ]; then
@@ -59,10 +79,17 @@ while true; do
                   CMD=3
                 elif [ "$1" = "reset" ]; then
                   CMD=4
+                elif [ "$1" = "execute" ]; then
+                  CMD=5
                 else
                   echo "Invalid operation name"
                   exit 1
                 fi
+                shift 1
+                    ;;
+    -a|--action)
+                shift 1
+                ACTION=$1
                 shift 1
                     ;;
     -h|--help)
@@ -82,23 +109,44 @@ done
 
 if [ "$CMD" = "" ]; then
   echo "operation name is mandatory"
-  echo "Try '$(basename "$0") -h or --help' for more information"
+  echo $info
+  exit 1
+fi
+
+if [ "$CMD" = "5" ] && [ "$ACTION" = "" ]; then
+  echo "action name is mandatory in 'execute' operation"
+  echo $info
+  exit 1
+fi
+
+if [ "$CMD" != "5" ] && [ "$ACTION" != "" ]; then
+  echo "-a option is redundant in '$OPERATION' operation"
+  echo $info
   exit 1
 fi
 
 shift $((OPTIND -1))
 
 DN="$*"
+
 if [ "$DN" = "" ]; then
   echo "DN name is mandatory"
-  echo "Try '$(basename "$0") -h or --help' for more information"
+  echo $info
   exit 1
 fi
 
 if [ "$TIMEOUT" = "" ]; then
-  immadm -o "$CMD" "$DN"
+  if [ "$ACTION" != "" ]; then
+    immadm -o "$CMD" -p "saClmAction:SA_STRING_T:$ACTION" "$DN"
+  else
+    immadm -o "$CMD" "$DN"
+  fi
 else
-  immadm -t "$TIMEOUT" -o "$CMD"  "$DN"
+  if [ "$ACTION" != "" ]; then
+    immadm -t "$TIMEOUT" -o "$CMD" -p "saClmAction:SA_STRING_T:$ACTION" "$DN"
+  else
+    immadm -t "$TIMEOUT" -o "$CMD"  "$DN"
+  fi
 fi
 
 exit $?
