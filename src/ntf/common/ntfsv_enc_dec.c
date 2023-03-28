@@ -2239,6 +2239,7 @@ uint32_t ntfsv_enc_read_next_msg(NCS_UBAID *uba, ntfsv_read_next_req_t *param)
 	ncs_encode_32bit(&p8, param->client_id);
 	ncs_encode_8bit(&p8, param->searchDirection);
 	ncs_encode_32bit(&p8, param->readerId);
+	ncs_encode_8bit(&p8, 0);
 	ncs_enc_claim_space(uba, 10);
 
 	TRACE_LEAVE();

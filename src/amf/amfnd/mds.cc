@@ -386,16 +386,16 @@ uint32_t avnd_mds_rcv(AVND_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info) {
       else if (msg.info.avd->msg_type == AVSV_D2N_CONTAINED_SU_MSG)
         type = AVND_EVT_AVD_CONTAINED_SU_MSG;
       else
-        type = static_cast<AVND_EVT_TYPE>(
+        type = static_cast<AVND_EVT_TYPE>((int)(
             (msg.info.avd->msg_type - AVSV_D2N_NODE_UP_MSG) +
-            AVND_EVT_AVD_NODE_UP_MSG);
+            AVND_EVT_AVD_NODE_UP_MSG));
       break;
 
     case AVND_MSG_AVA:
       osafassert(AVSV_AVA_API_MSG == msg.info.ava->type);
-      type = static_cast<AVND_EVT_TYPE>(
+      type = static_cast<AVND_EVT_TYPE>((int)(
           (msg.info.ava->info.api_info.type - AVSV_AMF_FINALIZE) +
-          AVND_EVT_AVA_FINALIZE);
+          AVND_EVT_AVA_FINALIZE));
       break;
 
     case AVND_MSG_AVND:
@@ -467,7 +467,7 @@ uint32_t avnd_mds_cpy(AVND_CB *cb, MDS_CALLBACK_COPY_INFO *cpy_info) {
     case NCSMDS_SVC_ID_AVD:
       cpy_info->o_msg_fmt_ver =
           avnd_avd_msg_fmt_map_table[cpy_info->i_rem_svc_pvt_ver - 1];
-      avnd_msg_copy(cb, msg, (AVND_MSG *)cpy_info->i_msg);
+      rc = avnd_msg_copy(cb, msg, (AVND_MSG *)cpy_info->i_msg);
       cpy_info->o_cpy = (NCSCONTEXT)msg->info.avd;
       msg->info.avd = 0;
       break;
@@ -476,18 +476,19 @@ uint32_t avnd_mds_cpy(AVND_CB *cb, MDS_CALLBACK_COPY_INFO *cpy_info) {
     case NCSMDS_SVC_ID_AVND_CNTLR:
       cpy_info->o_msg_fmt_ver =
           avnd_avnd_msg_fmt_map_table[cpy_info->i_rem_svc_pvt_ver - 1];
-      avnd_msg_copy(cb, msg, (AVND_MSG *)cpy_info->i_msg);
+      rc = avnd_msg_copy(cb, msg, (AVND_MSG *)cpy_info->i_msg);
       cpy_info->o_cpy = (NCSCONTEXT)msg->info.avnd;
       msg->info.avnd = 0;
       break;
 
     case NCSMDS_SVC_ID_AVA:
-      avnd_msg_copy(cb, msg, (AVND_MSG *)cpy_info->i_msg);
+      rc = avnd_msg_copy(cb, msg, (AVND_MSG *)cpy_info->i_msg);
       cpy_info->o_cpy = (NCSCONTEXT)msg->info.ava;
       msg->info.ava = 0;
       break;
 
     default:
+      delete msg;
       osafassert(0);
       break;
   }

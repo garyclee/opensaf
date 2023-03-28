@@ -599,6 +599,10 @@ uint32_t parse_nodeinit_conf(char *strbuf) {
   if (fscanf(ntfile, "%s", tmp) > 0) {
     /* Form complete name of nodeinit.conf.<controller or payload>. */
     snprintf(nidconf, sizeof(nidconf), NID_PLAT_CONF ".%s", tmp);
+  } else {
+    LOG_ER("fscanf() error");
+    (void)fclose(ntfile);
+    return NCSCC_RC_FAILURE;
   }
 
   (void)fclose(ntfile);
@@ -1188,7 +1192,7 @@ static pid_t get_pid_from_file(const char *service_name) {
 
   if (fscanf(f, "%d", &pid) == 0) {
     LOG_WA("Could not read PID from file %s", pid_file);
-    return -1;
+    pid = -1;
   }
 
   if (fclose(f) != 0) {
@@ -1323,7 +1327,7 @@ uint32_t recovery_action(NID_SPAWN_INFO *service, char *strbuff, int reason) {
 
     if (service->recovery_matrix[opt].retry_count == 0) {
       if (count != 0) LOG_ER("%s", nid_recerr[opt][3]);
-      opt = static_cast<NID_RECOVERY_OPT>(static_cast<int>(opt) + 1);
+      opt = static_cast<NID_RECOVERY_OPT>((int)(static_cast<int>(opt) + 1));
       continue;
     }
   }

@@ -17,6 +17,7 @@
  */
 
 #include "lgs_mbcsv_v6.h"
+#include "base/ncs_saf_edu.h"
 
 /****************************************************************************
  * Name          : edp_ed_reg_rec_v6
@@ -40,7 +41,8 @@ uint32_t edp_ed_reg_rec_v6(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
                            uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env,
                            EDP_OP_TYPE op, EDU_ERR *o_err) {
   uint32_t rc = NCSCC_RC_SUCCESS;
-  lgs_ckpt_initialize_msg_t *ckpt_reg_msg_ptr = NULL, **ckpt_reg_msg_dec_ptr;
+  lgs_ckpt_initialize_msg_v6_t *ckpt_reg_msg_ptr = NULL,
+                               **ckpt_reg_msg_dec_ptr;
 
   EDU_INST_SET ckpt_reg_rec_ed_rules[] = {
       {EDU_START, edp_ed_reg_rec_v6, 0, 0, 0,
@@ -51,15 +53,18 @@ uint32_t edp_ed_reg_rec_v6(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
        (long)&((lgs_ckpt_initialize_msg_v6_t *)0)->mds_dest, 0, NULL},
       {EDU_EXEC, edp_ed_stream_list, EDQ_POINTER, 0, 0,
        (long)&((lgs_ckpt_initialize_msg_v6_t *)0)->stream_list, 0, NULL},
-      {EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
+      {EDU_EXEC, ncs_edp_saversiont, 0, 0, 0,
        (long)&((lgs_ckpt_initialize_msg_v6_t *)0)->client_ver, 0, NULL},
+      {EDU_EXEC, ncs_edp_uns8, 0, 0, 0,
+       (long)&((lgs_ckpt_initialize_msg_v6_t *)0)->padding_ver, 0, NULL},
       {EDU_END, 0, 0, 0, 0, 0, 0, NULL},
   };
 
   if (op == EDP_OP_TYPE_ENC) {
-    ckpt_reg_msg_ptr = static_cast<lgs_ckpt_initialize_msg_t *>(ptr);
+    ckpt_reg_msg_ptr = static_cast<lgs_ckpt_initialize_msg_v6_t *>(ptr);
+    ckpt_reg_msg_ptr->padding_ver = 0;
   } else if (op == EDP_OP_TYPE_DEC) {
-    ckpt_reg_msg_dec_ptr = static_cast<lgs_ckpt_initialize_msg_t **>(ptr);
+    ckpt_reg_msg_dec_ptr = static_cast<lgs_ckpt_initialize_msg_v6_t **>(ptr);
 
     if (*ckpt_reg_msg_dec_ptr == NULL) {
       *o_err = EDU_ERR_MEM_FAIL;
@@ -68,7 +73,7 @@ uint32_t edp_ed_reg_rec_v6(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn, NCSCONTEXT ptr,
     memset(*ckpt_reg_msg_dec_ptr, '\0', sizeof(lgs_ckpt_initialize_msg_t));
     ckpt_reg_msg_ptr = *ckpt_reg_msg_dec_ptr;
   } else {
-    ckpt_reg_msg_ptr = static_cast<lgs_ckpt_initialize_msg_t *>(ptr);
+    ckpt_reg_msg_ptr = static_cast<lgs_ckpt_initialize_msg_v6_t *>(ptr);
   }
 
   rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_reg_rec_ed_rules,

@@ -1279,6 +1279,7 @@ uint32_t avsv_dequeue_async_update_msgs(AVD_CL_CB *cb, bool pr_or_fr) {
           avd_dec_data_func_list[updt_msg->dec.i_reo_type](cb, &updt_msg->dec);
     }
   free_msg:
+    ncs_reset_uba(&updt_msg->dec.i_uba);
     delete updt_msg;
   }
 

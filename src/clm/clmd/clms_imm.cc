@@ -1634,6 +1634,8 @@ uint32_t clms_prep_and_send_track(CLMS_CB *cb, CLMS_CLUSTER_NODE *node,
   msg.info.cbk_info.param.track.cor_ids = (SaNtfCorrelationIdsT *)malloc(
       sizeof(SaNtfCorrelationIdsT)); /*Not Supported as of now */
   msg.info.cbk_info.param.track.step = step;
+  memset(msg.info.cbk_info.param.track.cor_ids, 0,
+         sizeof(SaNtfCorrelationIdsT));
 
   if (step == SA_CLM_CHANGE_START)
     msg.info.cbk_info.param.track.time_super = node->lck_cbk_timeout;
@@ -2681,6 +2683,7 @@ static void clms_lock_send_start_cbk(CLMS_CLUSTER_NODE *nodeop) {
   signal_spec.sigev_signo = SIGALRM;
   signal_spec.sigev_value.sival_ptr = nodeop;
 
+  memset(&act, 0, sizeof(struct sigaction));
   act.sa_sigaction = clms_lock_timer_exp;
   act.sa_flags = SA_SIGINFO;
 

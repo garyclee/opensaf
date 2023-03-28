@@ -205,6 +205,7 @@ uint32_t destroy_pwe_on_vdest(MDS_HDL);
 /**************     USER DEFINED WRAPPERS FOR MDS SERVICE APIs **************/
 
 uint32_t tet_create_task(NCS_OS_CB, NCSCONTEXT*);
+uint32_t tet_join_task(void *task_handle);
 uint32_t tet_release_task(void *task_handle);
 uint32_t wait_adest_sel_obj(MDS_SVC_ID, int64_t);
 uint32_t wait_vdest_sel_obj(TET_VDEST*, MDS_SVC_ID, int64_t);

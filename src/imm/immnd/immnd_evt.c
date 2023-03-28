@@ -3351,6 +3351,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt,
 	TRACE_2("sender_count: %llu size: %u ", evt->info.fevsReq.sender_count,
 		evt->info.fevsReq.msg.size);
 
+	memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 	client_hdl = evt->info.fevsReq.client_hdl;
 	immnd_client_node_get(cb, client_hdl, &cl_node);
 	if (cl_node == NULL || cl_node->mIsStale) {
@@ -3366,8 +3367,6 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt,
 			goto agent_rsp;
 		}
 	}
-
-	memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 	if (!immnd_is_immd_up(cb)) {
 		if (asyncReq) {

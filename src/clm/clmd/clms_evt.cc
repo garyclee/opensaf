@@ -1849,10 +1849,13 @@ static void clms_send_track_current_cbkresp(SaAisErrorT ais_rc,
   msg.info.cbk_info.param.track.inv = 0; /* Response not required */
   msg.info.cbk_info.param.track.root_cause_ent =
       (SaNameT *)malloc(sizeof(SaNameT));
+  memset(msg.info.cbk_info.param.track.root_cause_ent, 0, sizeof(SaNameT));
   msg.info.cbk_info.param.track.root_cause_ent->length =
       10; /* to avoid osafassert in mds */
   msg.info.cbk_info.param.track.cor_ids =
       (SaNtfCorrelationIdsT *)malloc(sizeof(SaNtfCorrelationIdsT));
+  memset(msg.info.cbk_info.param.track.cor_ids, 0,
+         sizeof(SaNtfCorrelationIdsT));
   msg.info.cbk_info.param.track.step = SA_CLM_CHANGE_COMPLETED;
   msg.info.cbk_info.param.track.time_super = (SaTimeT)SA_TIME_UNKNOWN;
   msg.info.cbk_info.param.track.buf_info.viewNumber =

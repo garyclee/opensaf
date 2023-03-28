@@ -403,6 +403,11 @@ static SaAisErrorT sendNotification(
 	/* Instantiate a security alarm notification struct */
 	SaNtfSecurityAlarmNotificationT mySecurityAlarmNotification;
 
+	memset(&myAlarmNotification, '\0', sizeof(SaNtfAlarmNotificationT));
+	memset(&myStateChangeNotification, '\0', sizeof(SaNtfStateChangeNotificationT));
+	memset(&myObjectCreateDeleteNotification, '\0', sizeof(SaNtfObjectCreateDeleteNotificationT));
+	memset(&myAttributeChangeNotification, '\0', sizeof(SaNtfAttributeChangeNotificationT));
+	memset(&mySecurityAlarmNotification, '\0', sizeof(SaNtfSecurityAlarmNotificationT));
 	unsigned int repeat = notificationParams->repeateSends;
 
 	errorCode = ntftool_saNtfInitialize(&ntfHandle, NULL, &version);

@@ -238,9 +238,9 @@ uint32_t process_all_events(void) {
           running = false;
         }
 
-        delete evt;
         portid_map_mutex.unlock();
         if (!running) m_NCS_SEL_OBJ_IND(&evt->destroy_ack_obj_);
+        delete evt;
       }
     }
     // timeout, scan all portid and send ack msgs

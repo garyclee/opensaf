@@ -351,9 +351,15 @@ int main(int argc, char *argv[])
 			break;
 		case 'p':
 			params_len++;
-			params = realloc(
+			const SaImmAdminOperationParamsT_2 **tmp = realloc(
 			    params, (params_len + 1) *
 					sizeof(SaImmAdminOperationParamsT_2 *));
+			if (tmp == NULL){
+				fprintf(stderr, "realloc() error");
+				if (params) free(params);
+				exit(EXIT_FAILURE);
+			}
+			params =  tmp;
 			param = malloc(sizeof(SaImmAdminOperationParamsT_2));
 			params[params_len - 1] = param;
 			params[params_len] = NULL;

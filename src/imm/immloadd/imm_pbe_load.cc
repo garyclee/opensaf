@@ -550,7 +550,13 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
         int size = snprintf(val, 30, "%.17g", dbl);
         size++;
         if (size > 30) {
-          val = (char *)realloc(val, size);
+          char *tmp = (char *)realloc(val, size);
+          if (tmp == nullptr) {
+            LOG_ER("realloc() failed");
+            if (val) free(val);
+            return false;
+          }
+          val = tmp;
           snprintf(val, size, "%.17g", dbl);
         }
       } else {
@@ -649,7 +655,13 @@ bool loadObjectFromPbe(void *pbeHandle, SaImmHandleT immHandle,
           int size = snprintf(val, 30, "%.17g", d);
           size++;
           if (size > 30) {
-            val = (char *)realloc(val, size);
+            char *tmp = (char *)realloc(val, size);
+            if (tmp == nullptr) {
+              LOG_ER("realloc() failed");
+              if (val) free(val);
+              return false;
+            }
+            val = tmp;
             snprintf(val, size, "%.17g", d);
           }
           attrValueBuffers.push_back(val);

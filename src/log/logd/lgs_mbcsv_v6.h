@@ -46,6 +46,7 @@ typedef struct {
   MDS_DEST mds_dest;  /* Handy when an LGA instance goes away */
   lgs_stream_list_t *stream_list;
   SaVersionT client_ver; /* Version of client that was initialized */
+  uint8_t padding_ver; /* to keep backward compatible */
 } lgs_ckpt_initialize_msg_v6_t;
 
 typedef struct {

@@ -1419,7 +1419,7 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes) {
   /* Remove any previous environment variables */
   if (comp->saAmfCompCmdEnv != nullptr) {
     env_cntr = 0;
-    while ((env = comp->saAmfCompCmdEnv[env_cntr++]) != nullptr) delete env;
+    while ((env = comp->saAmfCompCmdEnv[env_cntr++]) != nullptr) delete[] env;
     delete[] comp->saAmfCompCmdEnv;
     comp->saAmfCompCmdEnv = nullptr;
   }

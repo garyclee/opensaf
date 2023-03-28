@@ -1,3 +1,25 @@
+OpenSAF 5.23.03 (released 2023-03-28)
+-------------------------------------
+
+    * amf: Fix errors reported by valgrind (cont) [#3331]
+    * build: fix HIGH severity in codechecker - part 1 [#3327]
+    * amf: Fix errors reported by valgrind [#3331]
+    * imm: Make NFS state consistent among nodes [#3330]
+    * dtm: flush logtrace asap when logtrace owner is terminated [#3106]
+    * amf: reboot to recover from mismatch msg id [#3040]
+    * mds: Fix errors reported by valgrind [#3328]
+    * log: fix access uninitialised value [#3326]
+    * imm: fix access uninitialised value [#3326]
+    * ntf: fix access uninitialised value [#3326]
+    * mbc: fix access uninitialised value [#3326]
+    * clm: fix access uninitialised value [#3326]
+    * mds: Fix failed test cases in mdstest [#2798]
+    * log: fix invalid read [#3325]
+    * log: Testcase for closing log stream in destructor [#3322]
+    * log: Create a test case for forked processes [#3322]
+    * log: Update the destructor and constructor of log agent [#3322]
+
+
 OpenSAF 5.22.11 (released 2022-11-18)
 -------------------------------------
 

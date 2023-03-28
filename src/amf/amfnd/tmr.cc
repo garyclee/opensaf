@@ -150,8 +150,8 @@ void avnd_tmr_exp(void *uarg) {
     if (AVND_TMR_QSCING_CMPL_RESP == tmr->type) {
       type = AVND_EVT_TMR_QSCING_CMPL;
     } else {
-      type = static_cast<AVND_EVT_TYPE>((tmr->type - AVND_TMR_HC) +
-                                        AVND_EVT_TMR_HC);
+      type = static_cast<AVND_EVT_TYPE>((int)((tmr->type - AVND_TMR_HC) +
+                                        AVND_EVT_TMR_HC));
     }
 
     /* create & send the timer event */

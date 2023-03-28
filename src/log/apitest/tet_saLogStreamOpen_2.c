@@ -870,7 +870,7 @@ void *saLogInitialize_1(void *arg)
 {
 	SaAisErrorT *rt = (SaAisErrorT *)arg;
 	SaLogStreamHandleT logStreamHandle1;
-	SaLogHandleT logHandle1;
+	SaLogHandleT logHandle1 = 0;
 	int time_wait = 20*1000; // Wait for timeout is 20 seconds
 	SaVersionT log_version;
 
@@ -1000,6 +1000,40 @@ void saLogMultiThreadMultiInit(void)
 	}
 
 	test_validate(rc, SA_AIS_OK);
+}
+
+/*
+ * Ticket 3322
+ * Verify that logInitialize in forked process
+ * OK
+ */
+void saLogInitializeInForkedProcess(void)
+{
+	int pid = -1;
+	// Call an api function of log agent to create the LogAgent object
+	// indirectly
+	SaAisErrorT rc = logStreamOpen(&systemStreamName);
+	if (rc == SA_AIS_OK)
+	{
+		test_validate(rc, SA_AIS_ERR_LIBRARY);
+		return;
+	}
+	// Fork current process then exit the child process
+	pid = fork();
+	if (pid < 0) {
+		exit(1);
+	} else if (pid == 0) {
+		exit(0);
+	}
+	// Initialize the log agent
+	rc = logInitialize();
+	if (rc != SA_AIS_OK)
+	{
+		test_validate(rc, SA_AIS_OK);
+		return;
+	}
+	// Finalize the log agent
+	logFinalize();
 }
 
 //
@@ -1141,6 +1175,7 @@ extern void saLogStreamOpenCallbackT_01(void);
 extern void saLogWriteLog_01(void);
 extern void saLogWriteLogCallbackT_01(void);
 extern void saLogWriteLogCallbackT_02(void);
+extern void saLogWriteLogCallbackT_03(void);
 
 __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 {
@@ -1206,6 +1241,9 @@ __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 		      "saLogWriteLogCallbackT() SA_DISPATCH_ONE");
 	test_case_add(2, saLogWriteLogCallbackT_02,
 		      "saLogWriteLogCallbackT() SA_DISPATCH_ALL");
+	test_case_add(2, saLogWriteLogCallbackT_03,
+		      "saLogWriteLogCallbackT(),"
+		      " fork process after initialization");
 	test_case_add(2, saLogStreamOpen_2_46,
 		      "saLogStreamOpen_2 with maxFilesRotated = 0, ERR");
 	test_case_add(2, saLogStreamOpen_2_47,
@@ -1230,4 +1268,7 @@ __attribute__((constructor)) static void saLibraryLifeCycle_constructor(void)
 	test_case_add(
 	    2, saLogMultiThreadMultiInit,
 	    "saLogInitialize() then saLogFinalize() multiple times in multiple threads, OK");
+	test_case_add(
+	    2, saLogInitializeInForkedProcess,
+	    "saLogInitialize() in the forked process, OK");
 }

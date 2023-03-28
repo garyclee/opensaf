@@ -199,14 +199,16 @@ void DestinationHandler::FormCfgDestMsg(const std::string& dest,
   if (tmp.size() > 1) {
     strncpy(msg->type, tmp[kType].c_str(), kMaxChar - 1);
   }
-  if (tmp.size() == kSize) memcpy(msg->value, tmp[kValue].c_str(), kMaxChar);
+  if (tmp.size() == kSize) {
+    memcpy(msg->value, tmp[kValue].c_str(), tmp[kValue].length() + 1);
+  }
 }
 
 void DestinationHandler::FormDelDestMsg(const std::string& dest,
                                         DelDestMsg* msg) {
   osafassert(msg != nullptr);
   const VectorString tmp = logutil::Parser(dest, kDelimeter);
-  memcpy(msg->name, tmp[kName].c_str(), kMaxChar);
+  memcpy(msg->name, tmp[kName].c_str(), tmp[kName].length() + 1);
 }
 
 bool DestinationHandler::VectorFind(const VectorString& vec,

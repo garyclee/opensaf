@@ -382,6 +382,8 @@ uint32_t ncs_mbscv_rcv_decode(PEER_INST *peer, MBCSV_EVT *evt)
 	MBCSV_REG *mbc_inst = peer->my_ckpt_inst->my_mbcsv_inst;
 	TRACE_ENTER();
 
+	memset(&parg, '\0', sizeof(NCS_MBCSV_CB_ARG));
+
 	parg.i_client_hdl = peer->my_ckpt_inst->client_hdl;
 	parg.i_ckpt_hdl = peer->my_ckpt_inst->ckpt_hdl;
 

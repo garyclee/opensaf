@@ -2074,11 +2074,12 @@ bool immModel_pbeIsInSync(IMMND_CB* cb, bool checkCriticalCcbs) {
 
 SaImmRepositoryInitModeT immModel_getRepositoryInitMode(IMMND_CB* cb) {
   return (SaImmRepositoryInitModeT)ImmModel::instance(&cb->immModel)
-      ->getRepositoryInitMode();
+      ->getAttrValueImmManagement(saImmRepositoryInit);
 }
 
 SaTimeT immModel_getSyncrTimeout(IMMND_CB* cb) {
-  return ImmModel::instance(&cb->immModel)->getSyncrTimeout();
+  return ImmModel::instance(&cb->immModel)
+      ->getAttrValueImmManagement(saImmSyncrTimeout);
 }
 
 unsigned int immModel_getMaxSyncBatchSize(IMMND_CB* cb) {
@@ -2845,7 +2846,8 @@ void ImmModel::setLoader(int pid) {
     sImmNodeState = IMM_NODE_FULLY_AVAILABLE;
     LOG_NO("NODE STATE-> IMM_NODE_FULLY_AVAILABLE %u", __LINE__);
 
-    immInitMode = getRepositoryInitMode();
+    immInitMode = (SaImmRepositoryInitModeT)
+                    getAttrValueImmManagement(saImmRepositoryInit);
     if (immInitMode == SA_IMM_KEEP_REPOSITORY) {
       LOG_NO("RepositoryInitModeT is SA_IMM_KEEP_REPOSITORY");
     } else {
@@ -2957,43 +2959,37 @@ void ImmModel::setRegenerateDbFlag(bool value) {
 }
 
 /**
- * Fetches the SaImmRepositoryInitT value of the attribute
- * 'saImmRepositoryInit' in the object immManagementDn.
- * If not found then return SA_IMM_INIT_FROM_FILE as default.
- */
-SaImmRepositoryInitModeT ImmModel::getRepositoryInitMode() {
+ * Fetches value of one the these attribute in object immManagementDn:
+ * - saImmRepositoryInit
+ * - saImmSyncrTimeout
+ * - saImmFileSystemStatus
+ * If not found then return default value as follow:
+ * - saImmRepositoryInit - SA_IMM_INIT_FROM_FILE(2)
+ * - saImmSyncrTimeout - 0
+ * - saImmFileSystemStatus - true
+*/
+int ImmModel::getAttrValueImmManagement(std::string attrName) {
   ImmAttrValueMap::iterator avi;
   ObjectInfo* immMgObject = NULL;
   ObjectMap::iterator oi = sObjectMap.find(immManagementDn);
   if (oi != sObjectMap.end()) {
     immMgObject = oi->second;
-    avi = immMgObject->mAttrValueMap.find(saImmRepositoryInit);
+    avi = immMgObject->mAttrValueMap.find(attrName);
 
     if (avi != immMgObject->mAttrValueMap.end()) {
       osafassert(!avi->second->isMultiValued());
-      return (SaImmRepositoryInitModeT)avi->second->getValue_int();
+      if (attrName == saImmSyncrTimeout) {
+        return avi->second->getValue_satimet();
+      } else if (attrName == saImmRepositoryInit) {
+        return avi->second->getValue_int();
+      } else if (attrName == saImmFileSystemStatus) {
+        if (avi->second->empty()) return true;
+        return (avi->second->getValue_int() != 0);
+      }
     }
   }
-
-  TRACE_2("%s not found or %s not found, returning INIT_FROM_FILE",
-          immManagementDn.c_str(), saImmRepositoryInit.c_str());
-  return SA_IMM_INIT_FROM_FILE;
-}
-
-SaTimeT ImmModel::getSyncrTimeout() {
-  ImmAttrValueMap::iterator avi;
-  ObjectInfo* immMgObject = NULL;
-  ObjectMap::iterator oi = sObjectMap.find(immManagementDn);
-  if (oi != sObjectMap.end()) {
-    immMgObject = oi->second;
-    avi = immMgObject->mAttrValueMap.find(saImmSyncrTimeout);
-
-    if (avi != immMgObject->mAttrValueMap.end()) {
-      osafassert(!avi->second->isMultiValued());
-      return avi->second->getValue_satimet();
-    }
-  }
-  return 0;
+  if (attrName == saImmSyncrTimeout) return 0;
+  return SA_IMM_INIT_FROM_FILE;  // reuse as true
 }
 
 unsigned int ImmModel::getMaxSyncBatchSize() {
@@ -6251,7 +6247,8 @@ bool ImmModel::commitModify(const std::string& dn, ObjectInfo* afterImage) {
        tight enough.
     */
     SaImmRepositoryInitModeT oldMode = immInitMode;
-    immInitMode = getRepositoryInitMode();
+    immInitMode = (SaImmRepositoryInitModeT)
+                    getAttrValueImmManagement(saImmRepositoryInit);
     if (oldMode != immInitMode) {
       if (immInitMode == SA_IMM_KEEP_REPOSITORY) {
         LOG_NO("SaImmRepositoryInitModeT changed to: SA_IMM_KEEP_REPOSITORY");
@@ -9660,7 +9657,7 @@ SaAisErrorT ImmModel::ccbObjectModify(
             osafassert(!attr->mDefaultValue.empty());
             (*attrValue) = attr->mDefaultValue;
             if (modifiedImmMngt && (attrName == saImmSyncrTimeout)) {
-              SaTimeT oldSyncr = getSyncrTimeout();
+              SaTimeT oldSyncr = getAttrValueImmManagement(saImmSyncrTimeout);
               SaTimeT newSyncr = attr->mDefaultValue.getValue_satimet();
               if (oldSyncr != newSyncr) {
                 *changeSyncr = true;
@@ -9739,7 +9736,9 @@ SaAisErrorT ImmModel::ccbObjectModify(
         }
 
         if (modifiedRim) {
-          SaImmRepositoryInitModeT oldRim = getRepositoryInitMode();
+          SaImmRepositoryInitModeT oldRim =
+              (SaImmRepositoryInitModeT)getAttrValueImmManagement(
+                                                      saImmRepositoryInit);
           SaImmRepositoryInitModeT newRim =
               (SaImmRepositoryInitModeT)attrValue->getValue_int();
           if ((newRim != SA_IMM_INIT_FROM_FILE) &&
@@ -9763,7 +9762,7 @@ SaAisErrorT ImmModel::ccbObjectModify(
         }
 
         if (modifiedImmMngt && (attrName == saImmSyncrTimeout)) {
-          SaTimeT oldSyncr = getSyncrTimeout();
+          SaTimeT oldSyncr = getAttrValueImmManagement(saImmSyncrTimeout);
           SaTimeT newSyncr = attrValue->getValue_satimet();
           if (newSyncr < NCS_SAF_MIN_ACCEPT_TIME && newSyncr != 0) {
             LOG_WA("Invalid value (%lld) for param %s [10 - INT64_MAX]",
@@ -20275,6 +20274,7 @@ SaAisErrorT ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
       }
       // Old member passed verification.
     }
+    sFileSystemAvailable = getAttrValueImmManagement(saImmFileSystemStatus);
   }
 
   sImplsDeadDuringSync.clear(); /* for coord, sync-client & veterans. */

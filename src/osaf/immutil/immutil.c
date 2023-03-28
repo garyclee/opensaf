@@ -363,7 +363,12 @@ char const *immutil_getDnItem(SaNameT const *name, unsigned int index)
 	assert(objName != NULL);
 
 	size = strlen(objName) + 1;
-	buffer = realloc(buffer, size);
+	buffer = realloc(NULL, size);
+	if (buffer == NULL) {
+		LOG_ER("realloc() error");
+		return NULL;
+	}
+
 	memcpy(buffer, objName, size);
 	value = buffer;
 	cp = strchr(value, ',');

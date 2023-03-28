@@ -96,7 +96,7 @@ static SaAisErrorT getClassDescription(const SaImmClassNameT className,
 	SaImmClassCategoryT classCategory;
 	struct timespec timeout_ts;
 	struct timespec delay_ts;
-	SaAisErrorT ais_rc;
+	SaAisErrorT ais_rc = SA_AIS_OK;
 
 	osaf_millis_to_timespec(sleep_delay_ms, &delay_ts);
 	osaf_set_millis_timeout(max_waiting_time_7s, &timeout_ts);
@@ -986,7 +986,7 @@ static bool initializeImmOmHandle(SaImmHandleT* immOmHandle) {
 static void finalizeImmOmHandle(SaImmHandleT immOmHandle) {
 	struct timespec timeout_ts;
 	struct timespec delay_ts;
-	SaAisErrorT ais_rc;
+	SaAisErrorT ais_rc = SA_AIS_OK;
 
 	osaf_millis_to_timespec(sleep_delay_ms, &delay_ts);
 	osaf_set_millis_timeout(max_waiting_time_60s, &timeout_ts);

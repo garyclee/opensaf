@@ -416,7 +416,7 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt) {
       /* indicate that capability is invalid for later use when
        * creating CSI_REC */
       for (csi = info->list; csi != nullptr; csi = csi->next) {
-        csi->capability = (SaAmfCompCapabilityModelT)~0;
+        csi->capability = (SaAmfCompCapabilityModelT)((int)~0);
       }
 
       /* SI rank is uninitialized, read it from IMM */

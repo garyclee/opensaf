@@ -440,6 +440,11 @@ static SaAisErrorT clma_hdl_cbk_rec_prc(clma_cb_t *cb, CLMSV_MSG *msg,
         if (reg_cbk->saClmClusterNodeGetCallback) {
           SaClmClusterNodeT *node =
               (SaClmClusterNodeT *)malloc(sizeof(SaClmClusterNodeT));
+          if (node == nullptr) {
+            LOG_ER("malloc() error");
+            rc = SA_AIS_ERR_NO_MEMORY;
+            break;
+          }
           clma_fill_node_from_node4(node, cbk_info->param.node_get.info);
           reg_cbk->saClmClusterNodeGetCallback(
               cbk_info->param.node_get.inv, node, cbk_info->param.node_get.err);

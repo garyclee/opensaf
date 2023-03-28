@@ -1469,11 +1469,11 @@ void avd_csi_remove_csiattr(AVD_CSI *csi, AVD_CSI_ATTR *attr) {
       csi->list_attributes = i_attr->attr_next;
     } else {
       p_attr->attr_next = i_attr->attr_next;
-      osaf_extended_name_free(&attr->name_value.name);
-      osaf_extended_name_free(&attr->name_value.value);
-      delete[] attr->name_value.string_ptr;
-      delete attr;
     }
+    osaf_extended_name_free(&attr->name_value.name);
+    osaf_extended_name_free(&attr->name_value.value);
+    delete[] attr->name_value.string_ptr;
+    delete attr;
   }
 
   osafassert(csi->num_attributes > 0);

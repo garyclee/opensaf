@@ -218,7 +218,7 @@ bin_logtest_SOURCES = \
 	src/log/apitest/tet_saLogWriteLogAsync.c \
 	src/log/apitest/tet_saLogWriteLogCallbackT.c \
 	src/log/apitest/tet_saLogFilterSetCallbackT.c \
-	src/log/apitest/tet_saLogStreamClose.c \
+	src/log/apitest/tet_saLogStreamClose.cc \
 	src/log/apitest/tet_saLogLimitGet.c \
 	src/log/apitest/tet_LogOiOps.c \
 	src/log/apitest/tet_Log_misc.c \

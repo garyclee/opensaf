@@ -1733,9 +1733,23 @@ void tet_svc_subscr_VDEST_10()
 		printf("\nFail to change role\n");
 		FAIL = 1;
 	}
-	// Retrieving the events
+	// Retrieving the first UP event
+	if (wait_adest_sel_obj(500, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
-				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+				 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+		printf("\nRetrieve servive 500 Fail\n");
+		FAIL = 1;
+	}
+	// Retrieving the second UP event
+	if (wait_adest_sel_obj(500, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
+				 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
 		printf("\nRetrieve servive 500 Fail\n");
 		FAIL = 1;
 	}
@@ -1753,10 +1767,24 @@ void tet_svc_subscr_VDEST_10()
 		printf("\nFail to change the role of vdest role to quiesced\n");
 		FAIL = 1;
 	}
-	// Retrieving the events
+	// Retrieving the first NO_ACTIVE event
+	if (wait_adest_sel_obj(500, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
-				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
-		printf("\nFail to retreive events\n");
+				 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+		printf("\nFail to retreive event\n");
+		FAIL = 1;
+	}
+	// Retrieving the second NO_ACTIVE event
+	if (wait_adest_sel_obj(500, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
+				 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+		printf("\nFail to retreive event\n");
 		FAIL = 1;
 	}
 	if ((tet_verify_version(gl_tet_adest.mds_pwe1_hdl, 500, 600, 1,
@@ -1774,9 +1802,23 @@ void tet_svc_subscr_VDEST_10()
 	}
 	printf(" \n Sleeping for 3 minutes \n");
 	sleep(200);
-	// Retrieving the events
+	// Retrieving the first DOWN event
+	if (wait_adest_sel_obj(500, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
-				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+				 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+		printf("\nRetrieve Fail\n");
+		FAIL = 1;
+	}
+	// Retrieving the second DOWN event
+	if (wait_adest_sel_obj(500, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
+				 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
 		printf("\nRetrieve Fail\n");
 		FAIL = 1;
 	}
@@ -2021,6 +2063,10 @@ void tet_svc_subscr_VDEST_12()
 	}
 
 	printf("\nAction: Retrieving the events\n");
+	if (wait_adest_sel_obj(500, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
 				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
 		printf("Retrieve Fail\n");
@@ -2666,6 +2712,10 @@ void tet_svc_subscr_ADEST_1()
 		FAIL = 1;
 	} else {
 		printf("\nAction: Retrieve only ONE event\n");
+		if (wait_adest_sel_obj(500, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
 					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
 			printf("Fail, retrieve ONE\n");
@@ -2993,6 +3043,10 @@ void tet_svc_subscr_ADEST_9()
 		FAIL = 1;
 	} else {
 		printf("\nAction: Retreive three times, third shall fail\n");
+		if (wait_adest_sel_obj(500, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl, 500,
 					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
 			printf("\nFail mds_service_retrieve\n");
@@ -6160,7 +6214,7 @@ void tet_send_response_tp_13()
 					1, to_svcids)
 					== NCSCC_RC_SUCCESS) {
 					sleep(1);
-					TET_MDS_MSG msg;
+					TET_MDS_MSG msg = {5, 0, "dump", ""};
 					mds_send_get_response(
 					    gl_tet_adest.mds_pwe1_hdl,
 					    NCSMDS_SVC_ID_INTERNAL_MIN,
@@ -6205,7 +6259,7 @@ void tet_send_response_tp_13()
 					osaf_clock_gettime(
 					    CLOCK_MONOTONIC,
 					    &time1);
-					TET_MDS_MSG msg;
+					TET_MDS_MSG msg = {5, 0, "dump", ""};
 					if (mds_send_response(
 					    gl_tet_adest.mds_pwe1_hdl,
 					    NCSMDS_SVC_ID_EXTERNAL_MIN,
@@ -6239,7 +6293,7 @@ void tet_send_response_tp_13()
 
 void tet_send_response_tp_14()
 {
-	int FAIL = 1;
+	int FAIL = 0;
 	mds_shutdown();
 
 	printf("\nTest Case 14: Now send_response to dead Adest don't stuck"
@@ -6254,7 +6308,7 @@ void tet_send_response_tp_14()
 			if (mds_service_install(
 					gl_tet_adest.mds_pwe1_hdl,
 					NCSMDS_SVC_ID_INTERNAL_MIN, 1,
-					NCSMDS_SCOPE_NONE, false, false)
+					NCSMDS_SCOPE_NONE, true, false)
 					== NCSCC_RC_SUCCESS) {
 				if (mds_service_subscribe(
 						gl_tet_adest.mds_pwe1_hdl,
@@ -6262,8 +6316,21 @@ void tet_send_response_tp_14()
 						NCSMDS_SCOPE_INTRANODE,
 						1, to_svcids)
 						== NCSCC_RC_SUCCESS) {
-					TET_MDS_MSG msg;
-					sleep(1); // Wait for up event
+					// Retrieve the up event
+					if (wait_adest_sel_obj(
+						    NCSMDS_SVC_ID_INTERNAL_MIN,
+						    10)) {
+						printf("\nFail\n");
+						FAIL = 1;
+					} else if (mds_service_retrieve(
+						    gl_tet_adest.mds_pwe1_hdl,
+						    NCSMDS_SVC_ID_INTERNAL_MIN,
+						    SA_DISPATCH_ONE)
+						   != NCSCC_RC_SUCCESS) {
+						printf("\nFail\n");
+						FAIL = 1;
+					}
+					TET_MDS_MSG msg = {5, 0, "dump", ""};
 					mds_send_get_response(
 					    gl_tet_adest.mds_pwe1_hdl,
 					    NCSMDS_SVC_ID_INTERNAL_MIN,
@@ -6296,23 +6363,55 @@ void tet_send_response_tp_14()
 						NCSMDS_SCOPE_INTRANODE,
 						1, to_svcids)
 						== NCSCC_RC_SUCCESS) {
-					while (is_adest_sel_obj_found(0)) {
-						if (mds_service_retrieve(
+					// Retrieve the up event
+					if (wait_adest_sel_obj(
+						    NCSMDS_SVC_ID_EXTERNAL_MIN,
+						    10)) {
+						printf("\nFail\n");
+						FAIL = 1;
+					} else if (mds_service_retrieve(
 						    gl_tet_adest.mds_pwe1_hdl,
 						    NCSMDS_SVC_ID_EXTERNAL_MIN,
 						    SA_DISPATCH_ONE)
-						  == NCSCC_RC_SUCCESS &&
-						  gl_rcvdmsginfo.msg) {
-							// Received the message
-							break;
-						}
+						   != NCSCC_RC_SUCCESS) {
+						printf("\nFail\n");
+						FAIL = 1;
+					}
+					// Retrieve the message
+					if (wait_adest_sel_obj(
+						    NCSMDS_SVC_ID_EXTERNAL_MIN,
+						    10)) {
+						printf("\nFail\n");
+						FAIL = 1;
+					} else if (mds_service_retrieve(
+						    gl_tet_adest.mds_pwe1_hdl,
+						    NCSMDS_SVC_ID_EXTERNAL_MIN,
+						    SA_DISPATCH_ONE)
+						    != NCSCC_RC_SUCCESS
+						  || !gl_rcvdmsginfo.msg) {
+						printf("\nFail\n");
+						FAIL = 1;
+					}
+					// Retrieve the down event
+					if (wait_adest_sel_obj(
+						    NCSMDS_SVC_ID_EXTERNAL_MIN,
+						    10)) {
+						printf("\nFail\n");
+						FAIL = 1;
+					} else if (mds_service_retrieve(
+						    gl_tet_adest.mds_pwe1_hdl,
+						    NCSMDS_SVC_ID_EXTERNAL_MIN,
+						    SA_DISPATCH_ONE)
+						   != NCSCC_RC_SUCCESS) {
+						printf("\nFail\n");
+						FAIL = 1;
 					}
 					sleep(15); // Make sure the adest down
 						   // timer expires
 					osaf_clock_gettime(CLOCK_MONOTONIC,
 							   &time1);
 					// Send response
-					TET_MDS_MSG msg;
+					TET_MDS_MSG msg = {5, 0, "dump", ""};
 					if (mds_send_response(
 					    gl_tet_adest.mds_pwe1_hdl,
 					    NCSMDS_SVC_ID_EXTERNAL_MIN,
@@ -6330,17 +6429,30 @@ void tet_send_response_tp_14()
 							printf("\nResponse to"
 							" dead Adest hang >"
 							" 50ms");
-						} else {
-							FAIL = 0;
+							FAIL = 1;
 						}
+					} else {
+						printf("\nResponse to"
+						" dead Adest successful\n");
+						FAIL = 1;
 					}
+				} else {
+					printf("\nFailed to subscribe\n");
+					FAIL = 1;
 				}
+			} else {
+				printf("\nFailed to install service\n");
+				FAIL = 1;
 			}
+		} else {
+			printf("\nFailed to get the adest handle\n");
+			FAIL = 1;
 		}
 		kill(pid, SIGKILL);
 		mds_shutdown();
 	} else {
 		printf("\nFAIL to fork()\n");
+		FAIL = 1;
 	}
 	test_validate(FAIL, 0);
 }
@@ -6827,11 +6939,27 @@ void tet_send_all_tp_1()
 		FAIL = 1;
 	}
 
-	if (vdest_change_role(200, V_DEST_RL_STANDBY) != NCSCC_RC_SUCCESS) {
+	// Retrieve the service events
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
+				 NCSMDS_SVC_ID_EXTERNAL_MIN,
+				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
 		printf("\nFail\n");
 		FAIL = 1;
 	}
 
+	if (vdest_change_role(200, V_DEST_RL_STANDBY) != NCSCC_RC_SUCCESS) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	// Retrieve the service event after changing role
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 				 NCSMDS_SVC_ID_EXTERNAL_MIN,
 				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
@@ -6874,6 +7002,11 @@ void tet_send_all_tp_1()
 		printf("\nFail\n");
 		FAIL = 1;
 	}
+	// Retrieve the service event after changing role
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 				 NCSMDS_SVC_ID_EXTERNAL_MIN,
 				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
@@ -6890,7 +7023,7 @@ void tet_send_all_tp_1()
 
 	if ((mds_send_get_response(
 		 gl_tet_vdest[1].mds_pwe1_hdl, NCSMDS_SVC_ID_EXTERNAL_MIN,
-		 NCSMDS_SVC_ID_EXTERNAL_MIN, gl_tet_adest.adest, 0,
+		 NCSMDS_SVC_ID_EXTERNAL_MIN, gl_tet_adest.adest, 30,
 		 MDS_SEND_PRIORITY_LOW, mesg) != NCSCC_RC_SUCCESS)) {
 		printf("\nFail\n");
 		FAIL = 1;
@@ -6995,11 +7128,28 @@ void tet_send_all_tp_2()
 		FAIL = 1;
 	}
 
+	// Retrieving the UP event
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
+				 NCSMDS_SVC_ID_EXTERNAL_MIN,
+				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+
 	if (vdest_change_role(200, V_DEST_RL_STANDBY) != NCSCC_RC_SUCCESS) {
 		printf("\nFail\n");
 		FAIL = 1;
 	}
 
+	// Retrieving the service event after changing role
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 				 NCSMDS_SVC_ID_EXTERNAL_MIN,
 				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
@@ -7021,6 +7171,11 @@ void tet_send_all_tp_2()
 		printf("\nFail\n");
 		FAIL = 1;
 	}
+	// Retrieving the service event after changing role
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 				 NCSMDS_SVC_ID_EXTERNAL_MIN,
 				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
@@ -7030,6 +7185,11 @@ void tet_send_all_tp_2()
 	/*SNDACK*/
 	printf("\nChange role to standby\n");
 	if (vdest_change_role(200, V_DEST_RL_STANDBY) != NCSCC_RC_SUCCESS) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	// Retrieving the service event after changing role
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
 		printf("\nFail\n");
 		FAIL = 1;
 	}
@@ -7070,9 +7230,25 @@ void tet_send_all_tp_2()
 		printf("\nTASK is released\n");
 	fflush(stdout);
 	/*SNDRSP*/
+	// Retrieving the NEW_ACTIVE event
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
+				 NCSMDS_SVC_ID_EXTERNAL_MIN,
+				 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
 
 	printf("\nChange role to standby\n");
 	if (vdest_change_role(200, V_DEST_RL_STANDBY) != NCSCC_RC_SUCCESS) {
+		printf("\nFail\n");
+		FAIL = 1;
+	}
+	// Retrieving the service event after changing role
+	if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
 		printf("\nFail\n");
 		FAIL = 1;
 	}
@@ -7128,10 +7304,10 @@ void tet_send_all_tp_2()
 	else
 		printf("\nSuccess\n");
 
-	/*Now Stop and Release the Receiver Thread*/
-	if (tet_release_task(gl_tet_adest.svc[1].task.t_handle) ==
+	/*Now join the Receiver Thread*/
+	if (tet_join_task(gl_tet_adest.svc[1].task.t_handle) ==
 	    NCSCC_RC_SUCCESS)
-		printf("\nTASK is released\n");
+		printf("\nTASK is joined\n");
 	fflush(stdout);
 #if 0
   /*SNDRACK*/
@@ -9840,14 +10016,26 @@ void tet_direct_send_all_tp_5()
 			printf("\nFail");
 			FAIL = 1;
 		}
+		// Retrieving the first UP event from either adest or vdest
 		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
-					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
-			printf("\nFail");
+					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		// Retrieving the second UP event from either adest or vdest
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
+					 NCSMDS_SVC_ID_EXTERNAL_MIN,
+					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
 			FAIL = 1;
 		}
 
@@ -9860,9 +10048,14 @@ void tet_direct_send_all_tp_5()
 			FAIL = 1;
 		}
 
+		// Retrieving the NO_ACTIVE event
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
-					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}
@@ -9882,9 +10075,14 @@ void tet_direct_send_all_tp_5()
 			printf("\nFail\n");
 			FAIL = 1;
 		}
+		// Retrieving the NEW_ACTIVE event
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
-					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}
@@ -9895,9 +10093,14 @@ void tet_direct_send_all_tp_5()
 			printf("\nFail\n");
 			FAIL = 1;
 		}
+		// Retrieving the NO_ACTIVE event
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
-					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}
@@ -9929,6 +10132,18 @@ void tet_direct_send_all_tp_5()
 		else
 			printf("\nSuccess\n");
 
+		// Retrieving the NEW_ACTIVE event
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
+					 NCSMDS_SVC_ID_EXTERNAL_MIN,
+					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+
 		if (tet_release_task(gl_tet_adest.svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS)
 			printf("\nTASK is released\n");
@@ -9940,9 +10155,15 @@ void tet_direct_send_all_tp_5()
 			printf("\nFail\n");
 			FAIL = 1;
 		}
+
+		// Retrieving the NO_ACTIVE event
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
-					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
+					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}
@@ -9972,6 +10193,17 @@ void tet_direct_send_all_tp_5()
 
 		else
 			printf("\nSuccess\n");
+		// Retrieving the NEW_ACTIVE event
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
+					 NCSMDS_SVC_ID_EXTERNAL_MIN,
+					 SA_DISPATCH_ONE) != NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (tet_release_task(gl_tet_vdest[1].svc[1].task.t_handle) ==
 		    NCSCC_RC_SUCCESS)
 			printf("\nTASK is released\n");
@@ -10129,6 +10361,10 @@ void tet_direct_send_all_tp_6()
 			printf("\nFail\n");
 			FAIL = 1;
 		}
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
 					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
@@ -10142,6 +10378,10 @@ void tet_direct_send_all_tp_6()
 			FAIL = 1;
 		}
 
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
 		if (mds_service_retrieve(gl_tet_adest.mds_pwe1_hdl,
 					 NCSMDS_SVC_ID_EXTERNAL_MIN,
 					 SA_DISPATCH_ALL) != NCSCC_RC_SUCCESS) {
@@ -10197,6 +10437,10 @@ void tet_direct_send_all_tp_6()
 		printf("\nChange role to active\n");
 		if (vdest_change_role(200, V_DEST_RL_ACTIVE) !=
 		    NCSCC_RC_SUCCESS) {
+			printf("\nFail\n");
+			FAIL = 1;
+		}
+		if (wait_adest_sel_obj(NCSMDS_SVC_ID_EXTERNAL_MIN, 10)) {
 			printf("\nFail\n");
 			FAIL = 1;
 		}

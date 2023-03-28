@@ -681,7 +681,7 @@ void fillHeader(SaNtfNotificationHeaderT *head) {
           (SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) + 1));
 
   for (i = 0; i < head->numCorrelatedNotifications; i++) {
-    head->correlatedNotifications[i] = (SaNtfIdentifierT)(i + 400);
+    head->correlatedNotifications[i] = (SaNtfIdentifierT)((SaUint16T)(i + 400));
   }
 
   for (i = 0; i < head->numAdditionalInfo; i++) {
