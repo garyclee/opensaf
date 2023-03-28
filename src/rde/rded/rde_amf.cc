@@ -151,6 +151,7 @@ uint32_t rde_amf_init(RDE_AMF_CB *rde_amf_cb) {
           NCSCC_RC_SUCCESS)
     return NCSCC_RC_FAILURE;
 
+  memset(&amfCallbacks, 0, sizeof(amfCallbacks));
   amfCallbacks.saAmfHealthcheckCallback = rde_saf_health_chk_callback;
   amfCallbacks.saAmfCSISetCallback = rde_saf_CSI_set_callback;
   amfCallbacks.saAmfCSIRemoveCallback = rde_saf_CSI_rem_callback;
