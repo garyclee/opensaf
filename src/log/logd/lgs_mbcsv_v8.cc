@@ -205,6 +205,9 @@ uint32_t ckpt_proc_push_async(lgs_cb_t* cb, void* data) {
 uint32_t ckpt_proc_pop_async(lgs_cb_t* cb, void* data) {
   TRACE_ENTER();
   assert(lgs_is_peer_v8() && "The peer should run with V8 or beyond!");
+  if (Cache::instance()->Size() == 0) {
+    return NCSCC_RC_FAILURE;
+  }
   auto data_v8 = static_cast<lgsv_ckpt_msg_v8_t*>(data);
   auto param = &data_v8->ckpt_rec.pop_async;
   uint64_t seq_id = param->seq_id;
@@ -225,6 +228,11 @@ uint32_t ckpt_proc_pop_write_async(lgs_cb_t* cb, void* data) {
   assert(lgs_is_peer_v8() && "The peer should run with V8 or beyond!");
   auto data_v8 = static_cast<lgsv_ckpt_msg_v8_t*>(data);
   auto param = &data_v8->ckpt_rec.pop_and_write_async;
+  if (Cache::instance()->Size() == 0) {
+    lgs_free_edu_mem(param->log_record);
+    lgs_free_edu_mem(param->log_file);
+    return NCSCC_RC_FAILURE;
+  }
   uint64_t seq_id = param->seq_id;
   auto top = Cache::instance()->Front();
   if (top->seq_id_ != seq_id) {
