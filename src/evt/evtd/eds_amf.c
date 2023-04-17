@@ -865,10 +865,10 @@ SaBoolT update_node_db(EDS_CB *cb, NODE_ID node_id, SaBoolT is_member)
 			if (ncs_patricia_tree_add(&cb->eds_cluster_nodes_list,
 						  &cn->pat_node) !=
 			    NCSCC_RC_SUCCESS) {
-				free(cn);
 				LOG_ER(
 				    "Patricia add failed for cluster node %u",
 				    cn->node_id);
+				free(cn);
 				TRACE_LEAVE();
 				return SA_FALSE;
 			} else {
