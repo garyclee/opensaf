@@ -575,7 +575,6 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer,
 		mds_mcm_ll_data_rcv(&reassem_queue->recv);
 
 		/* Free Memory allocated to this structure */
-		mdtm_free_reassem_msg_mem(&reassem_queue->recv.msg);
 		m_MMGR_FREE_REASSEM_QUEUE(reassem_queue);
 
 		return NCSCC_RC_SUCCESS;
