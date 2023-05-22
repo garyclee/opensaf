@@ -43,21 +43,21 @@ def _value_to_ctype_ptr(value_type, value):
         c_void_p: ctype pointer which points to value
     """
     if value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAINT32T:
-        ctypeptr = cast(pointer(SaInt32T(value)), c_void_p)
+        ctypeptr = cast(pointer(SaInt32T(int(value))), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAUINT32T:
-        ctypeptr = cast(pointer(SaUint32T(value)), c_void_p)
+        ctypeptr = cast(pointer(SaUint32T(int(value))), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAINT64T:
-        ctypeptr = cast(pointer(SaInt64T(value)), c_void_p)
+        ctypeptr = cast(pointer(SaInt64T(int(value))), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAUINT64T:
-        ctypeptr = cast(pointer(SaUint64T(value)), c_void_p)
+        ctypeptr = cast(pointer(SaUint64T(int(value))), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SATIMET:
-        ctypeptr = cast(pointer(SaTimeT(value)), c_void_p)
+        ctypeptr = cast(pointer(SaTimeT(int(value))), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SANAMET:
         ctypeptr = cast(pointer(SaNameT(value)), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAFLOATT:
-        ctypeptr = cast(pointer(SaFloatT(value)), c_void_p)
+        ctypeptr = cast(pointer(SaFloatT(float(value))), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SADOUBLET:
-        ctypeptr = cast(pointer(SaDoubleT(value)), c_void_p)
+        ctypeptr = cast(pointer(SaDoubleT(float(value))), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SASTRINGT:
         ctypeptr = cast(pointer(SaStringT(value)), c_void_p)
     elif value_type is eSaImmValueTypeT.SA_IMM_ATTR_SAANYT:
