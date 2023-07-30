@@ -48,10 +48,12 @@ static uint32_t msg_encode(MDS_CALLBACK_ENC_INFO *enc_info) {
       assert(data);
       ncs_encode_32bit(&data, msg->info.peer_info.ha_role);
       ncs_enc_claim_space(uba, sizeof(uint32_t));
-      data = ncs_enc_reserve_space(uba, sizeof(uint64_t));
-      assert(data);
-      ncs_encode_64bit(&data, msg->info.peer_info.promote_pending);
-      ncs_enc_claim_space(uba, sizeof(uint64_t));
+      if (msg->info.peer_info.ha_role == PCS_RDA_UNDEFINED) {
+        data = ncs_enc_reserve_space(uba, sizeof(uint64_t));
+        assert(data);
+        ncs_encode_64bit(&data, msg->info.peer_info.promote_pending);
+        ncs_enc_claim_space(uba, sizeof(uint64_t));
+      }
       break;
 
     default:

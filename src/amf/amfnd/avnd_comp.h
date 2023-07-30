@@ -878,7 +878,7 @@ extern uint32_t avnd_dblist_hc_rec_cmp(uint8_t *key1, uint8_t *key2);
 extern void avnd_comp_hc_rec_del_all(struct avnd_cb_tag *, AVND_COMP *);
 
 extern void avnd_comp_cbq_del(struct avnd_cb_tag *, AVND_COMP *, bool);
-extern void avnd_comp_cbq_rec_pop_and_del(struct avnd_cb_tag *, AVND_COMP *,
+extern uint32_t avnd_comp_cbq_rec_pop_and_del(struct avnd_cb_tag *, AVND_COMP *,
                                           uint32_t opq_hdl, bool);
 extern AVND_COMP_CBK *avnd_comp_cbq_rec_add(struct avnd_cb_tag *, AVND_COMP *,
                                             AVSV_AMF_CBK_INFO *, MDS_DEST *,

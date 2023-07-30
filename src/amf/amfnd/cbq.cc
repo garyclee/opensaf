@@ -247,6 +247,7 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt) {
   uint32_t rc = NCSCC_RC_SUCCESS;
   bool msg_from_avnd = false, int_ext_comp = false;
   SaAisErrorT amf_rc = SA_AIS_OK;
+  uint32_t cbk_rec_deleted = 0;
 
   TRACE_ENTER();
 
@@ -432,9 +433,12 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt) {
         LOG_ER("'%s', not found",
                osaf_extended_name_borrow(
                    &cbk_rec->cbk_info->param.csi_attr_change.csi_name));
-      avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec->opq_hdl, false);
-      if (m_AVND_TMR_IS_ACTIVE(cbk_rec->resp_tmr)) {
-        m_AVND_TMR_COMP_CBK_RESP_STOP(cb, *cbk_rec)
+      cbk_rec_deleted =
+          avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec->opq_hdl, false);
+      if (!cbk_rec_deleted) {
+        if (m_AVND_TMR_IS_ACTIVE(cbk_rec->resp_tmr)) {
+          m_AVND_TMR_COMP_CBK_RESP_STOP(cb, *cbk_rec)
+        }
       }
       if (SA_AIS_OK != resp->err) {
         // generate a failure report.
@@ -943,11 +947,12 @@ void avnd_comp_cbq_del(AVND_CB *cb, AVND_COMP *comp, bool send_del_cbk) {
                   send_del_cbk - true if the callback is tobe deleted and
                                  an event can be sent to another AvND.
 
-  Return Values : None.
+  Return Values : true if found and delete the record
+                  false if not found the record.
 
   Notes         : None.
 ******************************************************************************/
-void avnd_comp_cbq_rec_pop_and_del(AVND_CB *cb, AVND_COMP *comp,
+uint32_t avnd_comp_cbq_rec_pop_and_del(AVND_CB *cb, AVND_COMP *comp,
                                    uint32_t opq_hdl, bool send_del_cbk) {
   uint32_t found;
   NODE_ID dest_node_id = 0;
@@ -972,6 +977,7 @@ void avnd_comp_cbq_rec_pop_and_del(AVND_CB *cb, AVND_COMP *comp,
     }   /* if(true == send_del_cbk) */
     avnd_comp_cbq_rec_del(cb, comp, rec);
   } /* if(found) */
+  return found;
 }
 
 /****************************************************************************

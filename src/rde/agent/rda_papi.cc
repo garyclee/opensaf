@@ -284,8 +284,8 @@ static PCSRDA_RETURN_CODE pcs_rda_reg_callback(uint32_t cb_handle,
     }
 
     if (m_NCS_TASK_START(rda_callback_cb->task_handle) != NCSCC_RC_SUCCESS) {
-      m_NCS_MEM_FREE(rda_callback_cb, 0, 0, 0);
       m_NCS_TASK_RELEASE(rda_callback_cb->task_handle);
+      m_NCS_MEM_FREE(rda_callback_cb, 0, 0, 0);
       rc = PCSRDA_RC_TASK_SPAWN_FAILED;
       break;
     }

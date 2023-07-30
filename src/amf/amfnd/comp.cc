@@ -1993,6 +1993,7 @@ static void set_params_for_csi_attr_change_cbk(AVSV_AMF_CBK_INFO *cbk_info,
 
   /* copy the attributes */
   memset(&attr, 0, sizeof(AVSV_CSI_ATTRS));
+  memset(&csi_name, 0, sizeof(SaNameT));
   if (csi_rec->attrs.number != 0) {
     attr.list = static_cast<AVSV_ATTR_NAME_VAL *>(
         calloc(csi_rec->attrs.number, sizeof(AVSV_ATTR_NAME_VAL)));

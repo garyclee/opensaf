@@ -1,3 +1,15 @@
+OpenSAF 5.23.07 (released 2023-07-30)
+-------------------------------------
+
+    * amf: Fix errors reported by valgrind [#3339]
+    * pyosaf: correct type before cast to a ctypes value pointer [#3338]
+    * mds: fix coredump when run mdstest using mds q_ownership [#3337]
+    * evt: fix pointer used after free [#3332]
+    * rde: fix pointer used after free [#3332]
+    * rde: fix errors reported by Valgrind [#3333]
+    * log: check the queue capacity before retrieving an item [#3334]
+    * clm: Add an operation to excute a script [#2696]
+
 OpenSAF 5.23.03 (released 2023-03-28)
 -------------------------------------
 
