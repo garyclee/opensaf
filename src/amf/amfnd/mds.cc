@@ -1580,13 +1580,13 @@ done:
 
   Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
 
-  Notes         : This funtion as of now is only used to send the ACK-NACK msg
-                  to AvD. This funtion is introduced to overcome the problem
-                  of MDS dropping a msg when the role has changed but MDS in
-                  AvND has not updated its tables about the role change.
-                  Due to this problem MDS will try to send the msg to old
-                  active which may not be there in the system and hence the
-                  msg will be dropped.
+  Notes         : This funtion as of now is only used to send the ACK-NACK or
+                  TRACK-ACT msg to AvD. This funtion is introduced to overcome
+                  the problem of MDS dropping a msg when the role has changed
+                  but MDS in AvND has not updated its tables about the role
+                  change. Due to this problem MDS will try to send the msg to
+                  old active which may not be there in the system and hence
+                  the msg will be dropped.
                   With this funtion we are sending msg to the new active AvD
                   directly, without looking for its MDS role as seen by AvND.
 ******************************************************************************/
@@ -1611,7 +1611,7 @@ uint32_t avnd_mds_red_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest,
   send_info->i_msg = (NCSCONTEXT)msg;
   send_info->i_priority = MDS_SEND_PRIORITY_MEDIUM;
 
-  /* this is be used only for ACK NACK for AVD */
+  /* this is be used only for ACK-NACK/TRACK-ACT for AVD */
   if (msg->type != AVND_MSG_AVD) osafassert(0);
 
   send_info->i_to_svc = NCSMDS_SVC_ID_AVD;

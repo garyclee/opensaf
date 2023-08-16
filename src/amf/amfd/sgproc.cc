@@ -1263,6 +1263,7 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
     if ((node = avd_node_find_nodeid(node_id)) == nullptr) {
       LOG_WA("%s: invalid node ID (%x)", __FUNCTION__, node_id);
     } else {
+      LOG_WA("Sending node reboot order");
       avd_d2n_reboot_snd(node);
     }
     goto done;
