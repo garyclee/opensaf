@@ -1706,7 +1706,7 @@ int avnd_comp_config_reinit(AVND_COMP *comp) {
   const SaImmAttrValuesT_2 **attributes;
   SaImmHandleT immOmHandle;
   SaVersionT immVersion = {'A', 2, 15};
-  SaAisErrorT error;
+  SaAisErrorT error = SA_AIS_OK;
   const SaImmAttrNameT attributeNames[] = {
     const_cast<SaImmAttrNameT>("SA_IMM_SEARCH_GET_CONFIG_ATTR"),
     nullptr};
@@ -1767,6 +1767,10 @@ done3:
 done2:
   immutil_saImmOmFinalize(immOmHandle);
 done1:
+  if (res != 0 &&
+      (error == SA_AIS_ERR_TRY_AGAIN || error == SA_AIS_ERR_TIMEOUT)) {
+    res = error;
+  }
   TRACE_LEAVE2("%u", res);
   return res;
 }
