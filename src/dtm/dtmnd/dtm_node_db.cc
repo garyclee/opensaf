@@ -292,7 +292,7 @@ uint32_t dtm_node_delete(DTM_NODE_DB *node, KeyTypes type) {
       break;
 
     case KeyTypes::kDtmNodeIpKeyType:
-      if (node->node_ip != nullptr && node->pat_ip_address.key_info) {
+      if (strlen(node->node_ip) != 0 && node->pat_ip_address.key_info) {
         TRACE("DTM:Deleting node_ip from the  database with node_ip :%s as key",
               node->node_ip);
         if ((rc = ncs_patricia_tree_del(&dtms_cb->ip_addr_tree,

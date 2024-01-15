@@ -1901,7 +1901,7 @@ static int immnd_forkPbe(IMMND_CB *cb)
 		return -1;
 	}
 
-	strncpy(execPath, cb->mProgName, execDirLen);
+	memcpy(execPath, cb->mProgName, execDirLen);
 	execPath[execDirLen] = 0;
 	if ((execDirLen == 0) || (cb->mProgName[execDirLen - 1] != '/'))
 		strncat(execPath, "/", 2);
