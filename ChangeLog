@@ -1,3 +1,11 @@
+OpenSAF 5.24.02 (released 2024-02-28)
+-------------------------------------
+
+    * osaf: supports compile/build with gcc/g++ 12 [#3346]
+    * amf: retry if imm unavailable during recovery [#3344]
+    * amf: check the existing SG before creating a new one [#3345]
+    * amf: fix mismatch message id during sc fail-over [#3342]
+
 OpenSAF 5.23.07 (released 2023-07-30)
 -------------------------------------
 

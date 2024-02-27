@@ -18,6 +18,7 @@
 #include "base/getenv.h"
 #include "base/logtrace.h"
 #include "osaf/consensus/consensus.h"
+#include <array>
 
 int KeyValue::Execute(const std::string& command, std::string& output) {
   TRACE_ENTER();

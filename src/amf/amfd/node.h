@@ -166,7 +166,10 @@ class AVD_AVND {
 bool operator<(const AVD_AVND &lhs, const AVD_AVND &rhs);
 
 struct NodeNameCompare
-    : public std::binary_function<AVD_AVND *, AVD_AVND *, bool> {
+{
+  typedef AVD_AVND first_argument_type;
+  typedef AVD_AVND second_argument_type;
+  typedef bool result_type;
   bool operator()(const AVD_AVND *lhs, const AVD_AVND *rhs);
 };
 

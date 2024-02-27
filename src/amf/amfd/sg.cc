@@ -274,14 +274,20 @@ static AVD_SG *sg_create(const std::string &sg_name,
 
   TRACE_ENTER2("'%s'", sg_name.c_str());
 
-  SaNameT sgtype_dn;
-  error = immutil_getAttr("saAmfSGType", attributes, 0, &sgtype_dn);
-  osafassert(error == SA_AIS_OK);
-  sgt = sgtype_db->find(Amf::to_string(&sgtype_dn));
-  osafassert(sgt);
-  sg = sg_new(sg_name, sgt->saAmfSgtRedundancyModel);
-  sg->saAmfSGType = Amf::to_string(&sgtype_dn);
-  sg->sg_type = sgt;
+  sg = sg_db->find(sg_name);
+  if (sg == nullptr) {
+    SaNameT sgtype_dn;
+    error = immutil_getAttr("saAmfSGType", attributes, 0, &sgtype_dn);
+    osafassert(error == SA_AIS_OK);
+    sgt = sgtype_db->find(Amf::to_string(&sgtype_dn));
+    osafassert(sgt);
+    sg = sg_new(sg_name, sgt->saAmfSgtRedundancyModel);
+    sg->saAmfSGType = Amf::to_string(&sgtype_dn);
+    sg->sg_type = sgt;
+  } else {
+    TRACE("already created, refreshing config...");
+    sgt = sg->sg_type;
+  }
 
   if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSGSuHostNodeGroup"),
                       attributes, 0, &temp_name) == SA_AIS_OK) {

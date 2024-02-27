@@ -1206,7 +1206,8 @@ uint32_t avnd_di_msg_send(AVND_CB *cb, AVND_MSG *msg) {
   TRACE("Msg type '%u'", msg->info.avd->msg_type);
 
   /* Verify Ack nack msgs are not buffered */
-  if (m_AVSV_N2D_MSG_IS_VER_ACK_NACK(msg->info.avd)) {
+  if (m_AVSV_N2D_MSG_IS_VER_ACK_NACK(msg->info.avd) ||
+      m_AVSV_N2D_MSG_IS_PG_TRACK_ACT(msg->info.avd)) {
     /*send the response to active AvD (In case MDS has not updated its
        tables by this time) */
     TRACE_1("%s, Active AVD Adest: %" PRIu64, __FUNCTION__,

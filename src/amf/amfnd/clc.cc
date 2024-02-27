@@ -1969,9 +1969,17 @@ uint32_t avnd_comp_clc_xxxing_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp) {
       "'%s': Cleanup success event in the instantiating/restarting state",
       comp->name.c_str());
   /* Refresh the component configuration, it may have changed */
-  if (!m_AVND_IS_SHUTTING_DOWN(cb) && (avnd_comp_config_reinit(comp) != 0)) {
-    rc = NCSCC_RC_FAILURE;
-    goto done;
+  if (!m_AVND_IS_SHUTTING_DOWN(cb)) {
+    int res = avnd_comp_config_reinit(comp);
+    if (res != 0) {
+      if ((res == SA_AIS_ERR_TRY_AGAIN || res == SA_AIS_ERR_TIMEOUT) &&
+          avnd_comp_clc_cmd_execute(
+              cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP) != NCSCC_RC_SUCCESS) {
+        TRACE("AVND_COMP_CLC_CMD_TYPE_CLEANUP retry failed");
+      }
+      rc = NCSCC_RC_FAILURE;
+      goto done;
+    }
   }
 
   /*
