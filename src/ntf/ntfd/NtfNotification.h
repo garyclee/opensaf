@@ -29,6 +29,7 @@
 #include "ntfs_com.h"
 #include "ntf/common/ntfsv_msg.h"
 #include <tr1/memory>
+#include "base/time.h"
 
 #define NACK_THRESHOLD 4
 
@@ -67,6 +68,7 @@ class NtfNotification {
   SaNtfNotificationHeaderT* header();
   ntfsv_send_not_req_t* sendNotInfo_;
   bool loggFromCallback_;
+  bool is_overdue() const;
 
  private:
   NtfNotification();
@@ -80,6 +82,7 @@ class NtfNotification {
   typedef std::list<UniqueSubscriptionId> SubscriptionList;
   SubscriptionList subscriptionList;
   SubscriptionList::iterator idListPos;
+  uint64_t queue_at_;  // record time when notf enter queue
 };
 
 typedef std::tr1::shared_ptr<NtfNotification> NtfSmartPtr;

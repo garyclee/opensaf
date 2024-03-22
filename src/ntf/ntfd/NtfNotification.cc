@@ -49,6 +49,7 @@ NtfNotification::NtfNotification(SaNtfIdentifierT notificationId,
   ntfsv_get_ntf_header(sendNotInfo_, &header);
   *header->notificationId = notificationId_;
   notificationType_ = notificationType; /* deleted in destructor */
+  queue_at_ = base::TimespecToNanos(base::ReadMonotonicClock());
 }
 
 /**
@@ -265,6 +266,14 @@ void NtfNotification::removeSubscription(unsigned int clientId,
  * @return Pointer to the notification struct.
  */
 ntfsv_send_not_req_t* NtfNotification::getNotInfo() { return sendNotInfo_; }
+
+bool NtfNotification::is_overdue() const {
+  uint32_t max_time = NTFSV_LOGGER_RECORD_TIMEOUT_S;
+  timespec queue_at = base::NanosToTimespec(queue_at_);
+  timespec current = base::ReadMonotonicClock();
+  timespec max_queue_time{static_cast<time_t>(max_time), 0};
+  return (current - queue_at > max_queue_time);
+}
 
 /**
  * This method is called if a newly started standby asks for

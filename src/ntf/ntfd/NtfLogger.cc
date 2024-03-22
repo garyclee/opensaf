@@ -108,6 +108,12 @@ void saLogStreamOpenCallback(SaInvocationT invocation,
 
 void saLogWriteLogCallback(SaInvocationT invocation, SaAisErrorT error) {
   TRACE_ENTER2("Callback for notificationId %llu", invocation);
+  if (NtfAdmin::theNtfAdmin->logger.getFrontNotificationId() != invocation) {
+    TRACE("Notification had been processed by logd, but Id is not existed"
+          " in logger. Probably due to notification overdue, ignore "
+          "notificationId %llu", invocation);
+    return;
+  }
   if (SA_AIS_OK != error) {
     TRACE_1("Error when logging (%d)", error);
     NtfAdmin::theNtfAdmin->logger.disableAckWaiting();
@@ -378,9 +384,21 @@ void NtfLogger::disableAckWaiting() {
   notification->setWaitingAck(false);
 }
 
+SaNtfIdentifierT NtfLogger::getFrontNotificationId() {
+  return (queuedNotificationList.front()->getNotificationId());
+}
+
 void NtfLogger::logQueuedNotification() {
   if (!isLoggerBufferEmpty()) {
     NtfSmartPtr notification = queuedNotificationList.front();
+    if (notification->is_overdue() && notification->isWaitingAck()) {
+      LOG_NO("Notification overdue, remove notification Id: %llu",
+             notification->getNotificationId());
+      dequeueNotification();
+      resetLoggerBufferFullFlag();
+      sendLoggedConfirm(notification->getNotificationId());
+      notification = queuedNotificationList.front();
+    }
     if (notification->isWaitingAck()) return;
     TRACE_2("Log queued notification: %llu",
             notification->getNotificationId());
