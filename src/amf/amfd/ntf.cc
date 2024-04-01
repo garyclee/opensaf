@@ -809,6 +809,13 @@ AvdJobDequeueResultT NtfSend::exec(AVD_CL_CB* cb) {
     res = JOB_EXECUTED;
   } else if (rc == SA_AIS_ERR_TRY_AGAIN) {
     TRACE("TRY-AGAIN");
+    // In case NtfSend job and NTF service is busy with full buffer
+    // the AMFD will stuck to process this job. As consequence another
+    // job type will not be executed. Solution is to pop then put it
+    // into end of the queue.
+    Job* tmp = Fifo::dequeue();
+    TRACE("Move front to the end of queue");
+    Fifo::queue(tmp);
     res = JOB_ETRYAGAIN;
   } else if (rc == SA_AIS_ERR_TIMEOUT) {
     TRACE("TIMEOUT");
