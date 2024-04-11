@@ -73,7 +73,7 @@ class NtfLogger {
   void logQueuedNotification();
   bool isLoggerBufferEmpty() { return queuedNotificationList.empty(); }
   void disableAckWaiting();
-  SaNtfIdentifierT getFrontNotificationId();
+  bool isExistNotification(SaInvocationT invocation);
 
  private:
   SaAisErrorT initLog();

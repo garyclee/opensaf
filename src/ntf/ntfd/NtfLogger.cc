@@ -108,7 +108,7 @@ void saLogStreamOpenCallback(SaInvocationT invocation,
 
 void saLogWriteLogCallback(SaInvocationT invocation, SaAisErrorT error) {
   TRACE_ENTER2("Callback for notificationId %llu", invocation);
-  if (NtfAdmin::theNtfAdmin->logger.getFrontNotificationId() != invocation) {
+  if (!NtfAdmin::theNtfAdmin->logger.isExistNotification(invocation)) {
     TRACE("Notification had been processed by logd, but Id is not existed"
           " in logger. Probably due to notification overdue, ignore "
           "notificationId %llu", invocation);
@@ -384,8 +384,9 @@ void NtfLogger::disableAckWaiting() {
   notification->setWaitingAck(false);
 }
 
-SaNtfIdentifierT NtfLogger::getFrontNotificationId() {
-  return (queuedNotificationList.front()->getNotificationId());
+bool NtfLogger::isExistNotification(SaInvocationT invocation) {
+  if (isLoggerBufferEmpty()) return false;
+  return (queuedNotificationList.front()->getNotificationId() == invocation);
 }
 
 void NtfLogger::logQueuedNotification() {
@@ -397,6 +398,7 @@ void NtfLogger::logQueuedNotification() {
       dequeueNotification();
       resetLoggerBufferFullFlag();
       sendLoggedConfirm(notification->getNotificationId());
+      if (isLoggerBufferEmpty()) return;
       notification = queuedNotificationList.front();
     }
     if (notification->isWaitingAck()) return;
