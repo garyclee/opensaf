@@ -53,6 +53,30 @@ if PY3:
 				return self.value.decode('utf-8')
 			else:
 				return self.__repr__()
+
+		def __eq__(self, other):
+			if isinstance(other, str):
+				return self.value == other.encode('utf-8')
+			return super().__eq__(other)
+
+		def __ne__(self, other):
+			return not self.__eq__(other)
+
+		def __lt__(self, other):
+			if isinstance(other, str):
+				return self.value < other.encode('utf-8')
+			return super().__lt__(other)
+
+		def __gt__(self, other):
+			if isinstance(other, str):
+				return self.value > other.encode('utf-8')
+			return super().__gt__(other)
+
+		def __ge__(self, other):
+			return self.__gt__(other) or self.__eq__(other)
+
+		def __le__(self, other):
+			return self.__lt__(other) or self.__eq__(other)
 else:
 	SaStringT = ctypes.c_char_p
 
