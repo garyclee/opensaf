@@ -16,6 +16,7 @@
 #define OSAF_CONSENSUS_CONSENSUS_ENV_H_
 
 #include <string>
+#include <cstdint>
 #include "base/mutex.h"
 
 typedef struct _ConsensusCfg {
