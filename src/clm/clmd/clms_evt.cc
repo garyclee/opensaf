@@ -39,6 +39,7 @@
 
 static uint32_t process_api_evt(CLMSV_CLMS_EVT *evt);
 static uint32_t proc_clma_updn_mds_msg(CLMSV_CLMS_EVT *evt);
+static uint32_t proc_clmna_updn_mds_msg(CLMSV_CLMS_EVT *evt);
 static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT *evt);
 static uint32_t proc_rda_evt(CLMSV_CLMS_EVT *evt);
 static uint32_t proc_mds_quiesced_ack_msg(CLMSV_CLMS_EVT *evt);
@@ -77,7 +78,11 @@ static const CLMSV_CLMS_EVT_HANDLER clms_clmsv_top_level_evt_dispatch_tbl[] = {
     proc_mds_quiesced_ack_msg,
     proc_node_lock_tmr_exp_msg,
     proc_mds_node_evt,
-    proc_rda_evt};
+    proc_rda_evt,
+    nullptr,
+    nullptr,
+    proc_clmna_updn_mds_msg,
+    proc_clmna_updn_mds_msg};
 
 static const CLMSV_CLMS_CLMA_API_MSG_HANDLER clms_clma_api_msg_dispatcher[] = {
     proc_initialize_msg,   proc_finalize_msg, proc_track_start_msg,
@@ -1009,6 +1014,40 @@ done:
 
 /**
  * This is the function which is called when clms receives any
+ * CLMNA UP/DN message via MDS subscription.
+ *
+ * @param evt  - Message that was posted to the CLMS Mail box.
+ *
+ * @return  NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ *
+ */
+static uint32_t proc_clmna_updn_mds_msg(CLMSV_CLMS_EVT *evt) {
+  TRACE_ENTER();
+  SaClmNodeIdT node_id = evt->info.node_mds_info.node_id;
+  CLMS_CLUSTER_NODE *node = nullptr;
+
+  node = clms_node_get_by_id(node_id);
+  if (node == nullptr) {
+    LOG_WA("node is not exist");
+    return NCSCC_RC_FAILURE;
+  }
+
+  switch (evt->type) {
+    case CLMSV_CLMS_CLMNA_UP:
+      break;
+    case CLMSV_CLMS_CLMNA_DOWN:
+      node->nodeup = SA_FALSE;
+      break;
+    default:
+      TRACE("Unknown evt type!!!");
+      break;
+  }
+  TRACE_LEAVE();
+  return NCSCC_RC_SUCCESS;
+}
+
+/**
+ * This is the function which is called when clms receives any
  * a CLMA UP/DN message via MDS subscription.
  *
  * @param evt  - Message that was posted to the CLMS Mail box.
@@ -1737,6 +1776,7 @@ void clms_process_mbx(SYSF_MBX *mbx) {
       }
       break;
     case CLMSV_CLMS_CLMA_DOWN:
+    case CLMSV_CLMS_CLMNA_DOWN:
       clms_clmsv_top_level_evt_dispatch_tbl[msg->type](msg);
       break;
 
