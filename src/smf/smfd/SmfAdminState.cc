@@ -926,6 +926,9 @@ bool SmfAdminStateHandler::nodeGroupAdminOperation(
           saImmOmAdminOperationInvoke_2(ownerHandle_, &nodeGroupName, 0,
                                         adminOp, params, &oi_rc,
                                         smfd_cb->adminOpTimeout);
+      if ((imm_rc != SA_AIS_OK) || (oi_rc != SA_AIS_OK))
+        LOG_WA("%s: imm_rc: %s, oi_rc: %s", __FUNCTION__,
+            saf_error(imm_rc), saf_error(oi_rc));
       if ((imm_rc == SA_AIS_ERR_TRY_AGAIN) ||
           (imm_rc == SA_AIS_OK && oi_rc == SA_AIS_ERR_TRY_AGAIN)) {
         base::Sleep(base::MillisToTimespec(2000));
@@ -933,7 +936,8 @@ bool SmfAdminStateHandler::nodeGroupAdminOperation(
       } else if (imm_rc == SA_AIS_ERR_TIMEOUT) {
         // Retry
         continue;
-      } else if (imm_rc == SA_AIS_ERR_NO_OP) {
+      } else if ((imm_rc == SA_AIS_ERR_NO_OP) ||
+                (oi_rc == SA_AIS_ERR_NO_OP)) {
         // If an admin operation is already performed SA_AIS_ERR_NO_OP
         // is returned. Treat this as OK, just log it and return
         // operation success
