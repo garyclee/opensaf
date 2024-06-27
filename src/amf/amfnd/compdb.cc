@@ -1213,6 +1213,9 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
       comp->term_cbk_timeout = cmd->timeout;
       comp->use_comptype_attr->set(TerminateCallbackTimeout);
       comp->use_comptype_attr->set(CompTerminateTimeout);
+    } else if(!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
+      cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
+      comp->use_comptype_attr->set(CompTerminateTimeout);
     } else
       cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
   }
