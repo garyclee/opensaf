@@ -1102,9 +1102,7 @@ uint32_t ntfa_hdl_rec_del(ntfa_client_hdl_rec_t **list_head,
 
 	/* Remove subscribers of this client if there are any in subcriberNoList
 	 */
-	pthread_mutex_lock(&ntfa_cb.cb_lock);
 	ntfa_subscriber_del_by_handle(rm_node->local_hdl);
-	pthread_mutex_unlock(&ntfa_cb.cb_lock);
 
 	/* If the to be removed record is the first record */
 	if (list_iter == rm_node) {

@@ -1799,16 +1799,21 @@ SaAisErrorT saNtfFinalize(SaNtfHandleT ntfHandle)
 		 ** including all resources allocated by client if MDS send is
 		 ** succesful.
 		 **/
+		ncshm_give_hdl(ntfHandle);
+		pthread_mutex_lock(&ntfa_cb.cb_lock);
 		rc = ntfa_hdl_rec_del(&ntfa_cb.client_list, hdl_rec);
+		pthread_mutex_unlock(&ntfa_cb.cb_lock);
 		if (rc != NCSCC_RC_SUCCESS) {
 			TRACE_1("ntfa_hdl_rec_del failed");
 			rc = SA_AIS_ERR_BAD_HANDLE;
 		}
+		goto done_shutdown;
 	}
 
 done_give_hdl:
 	ncshm_give_hdl(ntfHandle);
 
+done_shutdown:
 	if (rc == SA_AIS_OK) {
 		rc = ntfa_shutdown(false);
 		if (rc != NCSCC_RC_SUCCESS)
