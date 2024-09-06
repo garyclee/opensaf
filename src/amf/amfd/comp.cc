@@ -44,6 +44,45 @@
 
 AmfDb<std::string, AVD_COMP> *comp_db = nullptr;
 
+/**
+ * Initializes a single AVD CLC-CLI command for a component from comptype_cmd.
+ * Argument of command will be get from attrname_cmd_argv or
+ * comptype_def_argv.
+ * In the case argv of attrname_cmd_argv not exits in IMM then the command
+ * will get argv from comptype_def_argv. If comptype_def_argv
+ * also not exits then will ignore argument for command.
+ * @param comp_info
+ * @param comptype_cmd
+ * @param comptype_def_argv
+ * @param attributes
+ * @param attrname_cmd_argv
+ */
+static void init_avd_clc_cli_command(char **comp_info,
+                                     const char *comptype_cmd,
+                                     const char *comptype_def_argv,
+                                     const SaImmAttrValuesT_2 **attributes,
+                                     const char *attrname_cmd_argv) {
+  size_t size;
+  const char *str;
+  char *cmd_argv;
+  size = strlen(comptype_cmd);
+  size += 1; /* Increase size for SPACE */
+
+  if ((str = immutil_getStringAttr(attributes, attrname_cmd_argv, 0)) ==
+      nullptr) {
+    str = comptype_def_argv;
+  }
+
+  if (str != nullptr) size += strlen(str);
+
+  *comp_info = (char *)calloc(size + 1, sizeof(char));
+  strcpy(*comp_info, comptype_cmd);
+  cmd_argv = *comp_info + strlen(comptype_cmd);
+  *cmd_argv++ = AVSV_CHAR_SPACE;
+
+  if (str != nullptr) strcpy(cmd_argv, str);
+}
+
 void avd_comp_db_add(AVD_COMP *comp) {
   const std::string comp_name(Amf::to_string(&comp->comp_info.name));
 
@@ -227,6 +266,11 @@ void avd_comp_delete(AVD_COMP *comp) {
   su->remove_comp(comp);
   avd_comptype_remove_comp(comp);
   comp_db->erase(Amf::to_string(&comp->comp_info.name));
+  free(comp->comp_info.init_info);
+  free(comp->comp_info.term_info);
+  free(comp->comp_info.clean_info);
+  free(comp->comp_info.amstart_info);
+  free(comp->comp_info.amstop_info);
   delete comp;
 }
 
@@ -1223,8 +1267,6 @@ static AVD_COMP *comp_create(const std::string &dn,
                              const SaImmAttrValuesT_2 **attributes) {
   int rc = -1;
   AVD_COMP *comp;
-  char *cmd_argv;
-  const char *str;
   const AVD_COMP_TYPE *comptype;
   SaNameT comp_type;
   SaAisErrorT error;
@@ -1259,17 +1301,11 @@ static AVD_COMP *comp_create(const std::string &dn,
     goto done;
   }
 
-  if (strlen(comptype->saAmfCtRelPathInstantiateCmd) > 0) {
-    strcpy(comp->comp_info.init_info, comptype->saAmfCtRelPathInstantiateCmd);
-    cmd_argv = comp->comp_info.init_info + strlen(comp->comp_info.init_info);
-    *cmd_argv++ = 0x20; /* Insert SPACE between cmd and args */
-
-    if ((str = immutil_getStringAttr(attributes, "saAmfCompInstantiateCmdArgv",
-                                     0)) == nullptr)
-      str = comptype->saAmfCtDefInstantiateCmdArgv;
-
-    if (str != nullptr) strcpy(cmd_argv, str);
-
+  if (!comptype->saAmfCtRelPathInstantiateCmd.empty()) {
+    init_avd_clc_cli_command(&comp->comp_info.init_info,
+                             comptype->saAmfCtRelPathInstantiateCmd.c_str(),
+                             comptype->saAmfCtDefInstantiateCmdArgv.c_str(),
+                             attributes, "saAmfCompInstantiateCmdArgv");
     comp->comp_info.init_len = strlen(comp->comp_info.init_info);
   }
 
@@ -1301,17 +1337,11 @@ static AVD_COMP *comp_create(const std::string &dn,
     comp->inst_retry_delay =
         avd_comp_global_attrs.saAmfDelayBetweenInstantiateAttempts;
 
-  if (strlen(comptype->saAmfCtRelPathTerminateCmd) > 0) {
-    strcpy(comp->comp_info.term_info, comptype->saAmfCtRelPathTerminateCmd);
-    cmd_argv = comp->comp_info.term_info + strlen(comp->comp_info.term_info);
-    *cmd_argv++ = 0x20; /* Insert SPACE between cmd and args */
-
-    if ((str = immutil_getStringAttr(attributes, "saAmfCompTerminateCmdArgv",
-                                     0)) == nullptr)
-      str = comptype->saAmfCtDefTerminateCmdArgv;
-
-    if (str != nullptr) strcpy(cmd_argv, str);
-
+  if (!comptype->saAmfCtRelPathTerminateCmd.empty()) {
+    init_avd_clc_cli_command(&comp->comp_info.term_info,
+                             comptype->saAmfCtRelPathTerminateCmd.c_str(),
+                             comptype->saAmfCtDefTerminateCmdArgv.c_str(),
+                             attributes, "saAmfCompTerminateCmdArgv");
     comp->comp_info.term_len = strlen(comp->comp_info.term_info);
   }
 
@@ -1321,17 +1351,11 @@ static AVD_COMP *comp_create(const std::string &dn,
     comp->comp_info.terminate_callback_timeout =
         comptype->saAmfCtDefCallbackTimeout;
 
-  if (strlen(comptype->saAmfCtRelPathCleanupCmd) > 0) {
-    strcpy(comp->comp_info.clean_info, comptype->saAmfCtRelPathCleanupCmd);
-    cmd_argv = comp->comp_info.clean_info + strlen(comp->comp_info.clean_info);
-    *cmd_argv++ = 0x20; /* Insert SPACE between cmd and args */
-
-    if ((str = immutil_getStringAttr(attributes, "saAmfCompCleanupCmdArgv",
-                                     0)) == nullptr)
-      str = comptype->saAmfCtDefCleanupCmdArgv;
-
-    if (str != nullptr) strcpy(cmd_argv, str);
-
+  if (!comptype->saAmfCtRelPathCleanupCmd.empty()) {
+    init_avd_clc_cli_command(&comp->comp_info.clean_info,
+                             comptype->saAmfCtRelPathCleanupCmd.c_str(),
+                             comptype->saAmfCtDefCleanupCmdArgv.c_str(),
+                             attributes, "saAmfCompCleanupCmdArgv");
     comp->comp_info.clean_len = strlen(comp->comp_info.clean_info);
   }
 
@@ -1339,18 +1363,11 @@ static AVD_COMP *comp_create(const std::string &dn,
                       attributes, 0, &comp->comp_info.clean_time) != SA_AIS_OK)
     comp->comp_info.clean_time = comptype->saAmfCtDefClcCliTimeout;
 
-  if (strlen(comptype->saAmfCtRelPathAmStartCmd) > 0) {
-    strcpy(comp->comp_info.amstart_info, comptype->saAmfCtRelPathAmStartCmd);
-    cmd_argv =
-        comp->comp_info.amstart_info + strlen(comp->comp_info.amstart_info);
-    *cmd_argv++ = 0x20; /* Insert SPACE between cmd and args */
-
-    if ((str = immutil_getStringAttr(attributes, "saAmfCompAmStartCmdArgv",
-                                     0)) == nullptr)
-      str = comptype->saAmfCtDefAmStartCmdArgv;
-
-    if (str != nullptr) strcpy(cmd_argv, str);
-
+  if (!comptype->saAmfCtRelPathAmStartCmd.empty()) {
+    init_avd_clc_cli_command(&comp->comp_info.amstart_info,
+                             comptype->saAmfCtRelPathAmStartCmd.c_str(),
+                             comptype->saAmfCtDefAmStartCmdArgv.c_str(),
+                             attributes, "saAmfCompAmStartCmdArgv");
     comp->comp_info.amstart_len = strlen(comp->comp_info.amstart_info);
   }
 
@@ -1365,17 +1382,11 @@ static AVD_COMP *comp_create(const std::string &dn,
     comp->comp_info.max_num_amstart =
         avd_comp_global_attrs.saAmfNumMaxAmStartAttempts;
 
-  if (strlen(comptype->saAmfCtRelPathAmStopCmd) > 0) {
-    strcpy(comp->comp_info.amstop_info, comptype->saAmfCtRelPathAmStopCmd);
-    cmd_argv =
-        comp->comp_info.amstop_info + strlen(comp->comp_info.amstop_info);
-    *cmd_argv++ = 0x20; /* Insert SPACE between cmd and args */
-
-    if ((str = immutil_getStringAttr(attributes, "saAmfCompAmStopCmdArgv",
-                                     0)) == nullptr)
-      str = comptype->saAmfCtDefAmStopCmdArgv;
-
-    if (str != nullptr) strcpy(cmd_argv, str);
+  if (!comptype->saAmfCtRelPathAmStopCmd.empty()) {
+    init_avd_clc_cli_command(&comp->comp_info.amstop_info,
+                             comptype->saAmfCtRelPathAmStopCmd.c_str(),
+                             comptype->saAmfCtDefAmStopCmdArgv.c_str(),
+                             attributes, "saAmfCompAmStopCmdArgv");
   }
 
   if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompAmStopTimeout"),

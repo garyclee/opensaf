@@ -91,9 +91,9 @@ typedef enum avnd_comp_clc_cmd_type {
 
 /* clc command parameter definition */
 typedef struct avnd_comp_clc_param {
-  char cmd[SAAMF_CLC_LEN]; /* cmd ascii string */
-  SaTimeT timeout;         /* cmd timeout value */
-  uint32_t len;            /* cmd len */
+  std::string cmd; /* cmd ascii string */
+  SaTimeT timeout; /* cmd timeout value */
+  uint32_t len;    /* cmd len */
 } AVND_COMP_CLC_CMD_PARAM;
 
 /* clc info definition (top level wrapper structure) */
@@ -691,31 +691,39 @@ typedef struct avnd_comp_tag {
 void m_AVND_COMP_OPER_STATE_AVD_SYNC(struct avnd_cb_tag *cb,
                                      const AVND_COMP *comp, uint32_t &o_rc);
 
+/* marco count argc the clc cmd string */
+#define m_AVND_COMP_CLC_COUNT_AGRC(clc_cmd, len, count)     \
+  {                                                         \
+    uint32_t i = 0;                                         \
+    (count)++;                                              \
+    while (i < (len)) {                                     \
+      if ((clc_cmd)[i++] == AVSV_CHAR_SPACE) {              \
+        (count)++;                                          \
+        while ((clc_cmd)[i++] == AVSV_CHAR_SPACE);          \
+      }                                                     \
+    }                                                       \
+    if ((clc_cmd)[0] == AVSV_CHAR_SPACE) (count)--;         \
+    if ((clc_cmd)[(len) - 1] == AVSV_CHAR_SPACE) (count)--; \
+  }
+
 /* macro to parse the clc cmd string */
-#define m_AVND_COMP_CLC_STR_PARSE(st, sc, ac, av, tav)       \
-  {                                                          \
-    char str[SAAMF_CLC_LEN], *tok = nullptr;                 \
-    /* copy the str as strtok modifies the original str */   \
-    strcpy(str, st);                                         \
-    ac = 0;                                                  \
-    if (nullptr != (tok = strtok(str, " "))) {               \
-      strncpy(sc, tok, SAAMF_CLC_LEN - 1);                   \
-      av[ac] = sc;                                           \
-    }                                                        \
-    ac++;                                                    \
-    while ((nullptr != (tok = strtok(nullptr, " "))) &&      \
-           (ac < (AVND_COMP_CLC_PARAM_MAX + 1))) {           \
-      if (strlen(tok) > AVND_COMP_CLC_PARAM_SIZE_MAX) break; \
-      strcpy(tav[ac], tok);                                  \
-      av[ac] = tav[ac];                                      \
-      ac++;                                                  \
-    }                                                        \
-    if (nullptr != tok) {                                    \
-      sc[0] = (char)(long)nullptr;                           \
-      av[0] = nullptr;                                       \
-      ac = 0;                                                \
-    } else                                                   \
-      av[ac] = nullptr;                                      \
+#define m_AVND_COMP_CLC_STR_PARSE(sc, av)               \
+  {                                                     \
+    char *tok = nullptr;                                \
+    uint32_t ac = 0;                                    \
+    if (nullptr != (tok = strtok(sc, " "))) {           \
+      (av)[ac] = strdup(tok);                           \
+    }                                                   \
+    ac = 1;                                             \
+    while ((nullptr != (tok = strtok(nullptr, " ")))) { \
+      (av)[ac] = strdup(tok);                           \
+      ac++;                                             \
+    }                                                   \
+    if (nullptr != tok) {                               \
+      (av)[0] = nullptr;                                \
+      ac = 0;                                           \
+    } else                                              \
+      (av)[ac] = nullptr;                               \
   }
 
 /* macros for comp proxy status */
