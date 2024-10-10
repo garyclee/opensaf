@@ -1088,72 +1088,61 @@ void ntfa_hdl_rec_force_del(ntfa_client_hdl_rec_t **list_head,
 		  access the handle record (ie. hdl db tree or hdl mngr) is
 		  removed. This is to disallow the waiting thread to access
 		  the hdl rec while other thread executes saAmfFinalize on it.
+		  Avoid using lock on ntfa_cb.cb_lock before destroy
+		  the handle record in this API as it may lead to deadlock
+		  situation in an application in which other APIs are called
+		  along with this in parallel.
 ******************************************************************************/
-uint32_t ntfa_hdl_rec_del(ntfa_client_hdl_rec_t **list_head,
-			  ntfa_client_hdl_rec_t *rm_node)
+uint32_t ntfa_hdl_rec_del(ntfa_cb_t *cb, ntfa_client_hdl_rec_t *rm_node)
 {
+	ntfa_client_hdl_rec_t *list_iter = NULL;
 	uint32_t rc = NCSCC_RC_FAILURE;
-	ntfa_client_hdl_rec_t *list_iter = *list_head;
 
 	TRACE_ENTER();
-
 	ncshm_give_hdl(rm_node->local_hdl);
 	/* TODO: free all resources allocated by the client */
 
-	/* Remove subscribers of this client if there are any in subcriberNoList
+	pthread_mutex_lock(&cb->cb_lock);
+
+	/* Remove subscribers of this client if there are any in
+	 * subcriberNoList
 	 */
 	ntfa_subscriber_del_by_handle(rm_node->local_hdl);
-
+	list_iter = cb->client_list;
 	/* If the to be removed record is the first record */
-	if (list_iter == rm_node) {
-		*list_head = rm_node->next;
-
-		/** detach & release the IPC
-		 **/
-		m_NCS_IPC_DETACH(&rm_node->mbx, ntfa_clear_mbx, NULL);
-		m_NCS_IPC_RELEASE(&rm_node->mbx, NULL);
-
-		ncshm_destroy_hdl(NCS_SERVICE_ID_NTFA, rm_node->local_hdl);
-		/** Free the channel records off this hdl
-		 **/
-		ntfa_notification_hdl_rec_list_del(&rm_node->notification_list);
-
-		/** free the hdl rec
-		 **/
-		free(rm_node);
+	if (cb->client_list == rm_node) {
+		cb->client_list = rm_node->next;
 		rc = NCSCC_RC_SUCCESS;
-		goto out;
 	} else { /* find the rec */
-
 		while (NULL != list_iter) {
 			if (list_iter->next == rm_node) {
 				list_iter->next = rm_node->next;
-
-				/** detach & release the IPC */
-				m_NCS_IPC_DETACH(&rm_node->mbx, ntfa_clear_mbx,
-						 NULL);
-				m_NCS_IPC_RELEASE(&rm_node->mbx, NULL);
-
-				ncshm_destroy_hdl(NCS_SERVICE_ID_NTFA,
-						  rm_node->local_hdl);
-				/** Free the channel records off this ntfa_hdl
-				 */
-				ntfa_notification_hdl_rec_list_del(
-				    &rm_node->notification_list);
-
-				/** free the hdl rec */
-				free(rm_node);
-
 				rc = NCSCC_RC_SUCCESS;
-				goto out;
+				break;
 			}
 			/* move onto the next one */
 			list_iter = list_iter->next;
 		}
 	}
-	TRACE("failed");
+	pthread_mutex_unlock(&cb->cb_lock);
 
-out:
+	if (rc != NCSCC_RC_SUCCESS) {
+		TRACE("Not found client in list %d", rm_node->ntfs_client_id);
+		return rc;
+	}
+	/** detach & release the IPC
+	 **/
+	m_NCS_IPC_DETACH(&rm_node->mbx, ntfa_clear_mbx, NULL);
+	m_NCS_IPC_RELEASE(&rm_node->mbx, NULL);
+
+	ncshm_destroy_hdl(NCS_SERVICE_ID_NTFA, rm_node->local_hdl);
+	/** Free the channel records off this hdl
+	 **/
+	ntfa_notification_hdl_rec_list_del(&rm_node->notification_list);
+
+	/** free the hdl rec
+	 **/
+	free(rm_node);
 	TRACE_LEAVE();
 	return rc;
 }

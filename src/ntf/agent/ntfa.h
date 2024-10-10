@@ -196,8 +196,7 @@ extern ntfa_notification_hdl_rec_t *ntfa_notification_hdl_rec_add(
 extern ntfa_filter_hdl_rec_t *ntfa_filter_hdl_rec_add(
     ntfa_client_hdl_rec_t **hdl_rec);
 extern void ntfa_hdl_list_del(ntfa_client_hdl_rec_t **);
-extern uint32_t ntfa_hdl_rec_del(ntfa_client_hdl_rec_t **,
-                                 ntfa_client_hdl_rec_t *);
+extern uint32_t ntfa_hdl_rec_del(ntfa_cb_t *cb, ntfa_client_hdl_rec_t *);
 extern void ntfa_hdl_rec_force_del(ntfa_client_hdl_rec_t **,
                                    ntfa_client_hdl_rec_t *);
 extern uint32_t ntfa_notification_hdl_rec_del(ntfa_notification_hdl_rec_t **,
