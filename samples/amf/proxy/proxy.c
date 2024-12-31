@@ -41,6 +41,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <saAmf.h>
+#include <ctype.h>
 
 #define MD5_LEN 32
 
