@@ -68,7 +68,7 @@ class NtfNotification {
   SaNtfNotificationHeaderT* header();
   ntfsv_send_not_req_t* sendNotInfo_;
   bool loggFromCallback_;
-  bool is_overdue() const;
+  bool is_overdue(uint32_t timeout) const;
 
  private:
   NtfNotification();

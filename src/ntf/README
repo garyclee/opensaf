@@ -244,6 +244,14 @@ writing notification is fail for long time, NTF has to write a big number of
 notifications whenever handling sending notification request and that will delay
 to handle other requests come to NTFD. The value of variable is from 10 to 5000.
 
+NTFSV_LOGGER_RECORD_TIMEOUT
+
+The logger record timeout is used to remove the overdue notification.
+When the file system is unresponsive and the logger buffer stays full for a
+long period of time, overload occurs. This variable is designed to fix the side
+effect of this problem like: ntf reject incoming request due to overloaded.
+The variable's value ranges from 5 to 30 seconds (by default, it is 10).
+
 for debug see DEBUG.
 
 COMMAND LINE INTERFACE

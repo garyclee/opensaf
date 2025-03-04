@@ -267,11 +267,10 @@ void NtfNotification::removeSubscription(unsigned int clientId,
  */
 ntfsv_send_not_req_t* NtfNotification::getNotInfo() { return sendNotInfo_; }
 
-bool NtfNotification::is_overdue() const {
-  uint32_t max_time = NTFSV_LOGGER_RECORD_TIMEOUT_S;
+bool NtfNotification::is_overdue(uint32_t timeout) const {
   timespec queue_at = base::NanosToTimespec(queue_at_);
   timespec current = base::ReadMonotonicClock();
-  timespec max_queue_time{static_cast<time_t>(max_time), 0};
+  timespec max_queue_time{static_cast<time_t>(timeout), 0};
   return (current - queue_at > max_queue_time);
 }
 

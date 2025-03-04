@@ -92,6 +92,20 @@ NtfLogger::NtfLogger() : readCounter(0), isLoggerBufferfull(false) {
       LOG_WA("Logger buffer is set too big, get default max instead: %d",
               logger_buffer_capacity);
     }
+
+  /* Get the logger record timeout from the environment variable.
+     The value should be from 5s to 30s (Default is 10s). */
+  logger_timeout_record = base::GetEnv("NTFSV_LOGGER_RECORD_TIMEOUT",
+            static_cast<uint32_t>(NTFSV_LOGGER_RECORD_TIMEOUT_DEFAULT));
+    if (logger_timeout_record < NTFSV_LOGGER_RECORD_TIMEOUT_MIN) {
+      logger_timeout_record = NTFSV_LOGGER_RECORD_TIMEOUT_MIN;
+      LOG_WA("Logger timeout is set too small, get default min instead: %d",
+              NTFSV_LOGGER_RECORD_TIMEOUT_MIN);
+    } else if (logger_timeout_record > NTFSV_LOGGER_RECORD_TIMEOUT_MAX) {
+      logger_timeout_record = NTFSV_LOGGER_RECORD_TIMEOUT_MAX;
+      LOG_WA("Logger timeout is set too big, get default max instead: %d",
+                NTFSV_LOGGER_RECORD_TIMEOUT_MAX);
+    }
 }
 
 /* Callbacks */
@@ -392,7 +406,8 @@ bool NtfLogger::isExistNotification(SaInvocationT invocation) {
 void NtfLogger::logQueuedNotification() {
   if (!isLoggerBufferEmpty()) {
     NtfSmartPtr notification = queuedNotificationList.front();
-    if (notification->is_overdue() && notification->isWaitingAck()) {
+    if (notification->is_overdue(logger_timeout_record)
+        && notification->isWaitingAck()) {
       LOG_NO("Notification overdue, remove notification Id: %llu",
              notification->getNotificationId());
       dequeueNotification();
