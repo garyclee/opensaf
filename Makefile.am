@@ -408,7 +408,7 @@ cppcheck: cppcheck_includes.txt
 cpplint:
 	@test -d $(top_builddir)/bin || mkdir $(top_builddir)/bin
 	@cpplint=$$(find $(top_builddir)/bin -name cpplint.py -mtime -30); \
-	test -z "$$cpplint" && wget -O $(top_builddir)/bin/cpplint.py https://raw.githubusercontent.com/google/styleguide/gh-pages/cpplint/cpplint.py 2>&1 && touch $(top_builddir)/bin/cpplint.py; \
+	test -z "$$cpplint" && wget -O $(top_builddir)/bin/cpplint.py https://raw.githubusercontent.com/cpplint/cpplint/refs/heads/develop/cpplint.py 2>&1 && touch $(top_builddir)/bin/cpplint.py; \
 	builddir=$$(cd $(top_builddir); pwd; cd - > /dev/null); \
 	srcdir=$$(cd $(top_srcdir); pwd; cd - > /dev/null); \
 	cd "$$srcdir"; find samples src \( -name '*.[CH]' -o -name '*.hh' -o -name '*.[ch]pp' -o -name '*.[ch]xx' \) -exec echo "Invalid file name: {}" \; 1>&2; \
