@@ -642,8 +642,8 @@ uint32_t mds_svc_op_unsubscribe(const NCSMDS_INFO *info) {
 		mds_subtn_tbl_del(svc_hdl, info->info.svc_cancel.i_svc_ids[i]);
 		MDS_SVC_LOG_INFO(UNSUBSCRIBE_TAG, info,
 			"Unsubscribe to svc_id = %s(%d) successful",
-			get_svc_names(info->info.svc_subscribe.i_svc_ids[i]),
-			info->info.svc_subscribe.i_svc_ids[i]);
+			get_svc_names(info->info.svc_cancel.i_svc_ids[i]),
+			info->info.svc_cancel.i_svc_ids[i]);
 	}
 	m_MDS_LEAVE();
 	return NCSCC_RC_SUCCESS;
