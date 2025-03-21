@@ -318,6 +318,7 @@ SaAisErrorT SmfCallback::send_callback_msg(SaSmfPhaseT phase,
         goto rem_invid;
       }
       free(evt);
+      goto done;
     }
   }
 rem_invid:
@@ -338,6 +339,7 @@ rem_invid:
     }
     smfd_cb_unlock();
   }
+done:
   osaf_extended_name_free(
       &smfsv_evt.info.smfnd.event.cbk_req_rsp.evt.cbk_evt.object_name);
   free(smfsv_evt.info.smfnd.event.cbk_req_rsp.evt.cbk_evt.cbk_label.label);
