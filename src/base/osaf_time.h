@@ -297,6 +297,7 @@ static inline bool osaf_is_timeout(const struct timespec* i_ts);
 
 static inline void osaf_clock_gettime(clockid_t i_clk_id,
                                       struct timespec* o_ts) {
+  if (o_ts == NULL) osaf_abort(0);
   if (clock_gettime(i_clk_id, o_ts) != 0) osaf_abort(i_clk_id);
 }
 

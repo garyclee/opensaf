@@ -51,11 +51,7 @@ int clock_gettime(clockid_t clock_id, struct timespec* tp) {
     errno = EINVAL;
     return -1;
   }
-  if (tp == nullptr) {
-    errno = EFAULT;
-    return -1;
-  }
-  if (tp != nullptr && clock_source != nullptr) *tp = *clock_source;
+  if (clock_source != nullptr) *tp = *clock_source;
   osaf_timespec_add(&realtime_clock, &mock_clock_gettime.execution_time,
                     &realtime_clock);
   osaf_timespec_add(&monotonic_clock, &mock_clock_gettime.execution_time,

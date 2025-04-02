@@ -15,6 +15,7 @@
  *
  */
 
+#include <cstdint>
 #include "base/sna.h"
 #include "gtest/gtest.h"
 
