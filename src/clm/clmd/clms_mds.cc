@@ -1237,6 +1237,10 @@ static uint32_t clms_mds_svc_event(struct ncsmds_callback_info *info) {
       evt->type = CLMSV_AVND_DOWN_EVT;
       evt->info.node_mds_info.node_id = info->info.svc_evt.i_node_id;
       evt->info.node_mds_info.nodeup = SA_FALSE;
+    } else if (info->info.svc_evt.i_svc_id == NCSMDS_SVC_ID_CLMNA) {
+      evt->type = CLMSV_CLMS_CLMNA_DOWN;
+      evt->info.mds_info.node_id = info->info.svc_evt.i_node_id;
+      evt->info.mds_info.mds_dest_id = info->info.svc_evt.i_dest;
     }
     if (evt->type) {
       /* Push the event and we are done */

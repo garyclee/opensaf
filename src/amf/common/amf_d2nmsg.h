@@ -166,11 +166,11 @@ typedef struct avsv_comp_info_tag {
                       * Checkpointing - Sent as a one time update.
                       */
 
-  char init_info[AVSV_MISC_STR_MAX_SIZE]; /* ASCII string of information for
-                                           * initialization of component
-                                           * Checkpointing - Sent as a one time
-                                           * update.
-                                           */
+  char *init_info; /* ASCII string of information for
+                    * initialization of component
+                    * Checkpointing - Sent as a one time
+                    * update.
+                    */
   char init_cmd_arg_info[AVSV_MISC_STR_MAX_SIZE];
 
   SaTimeT init_time; /* Time interval within which
@@ -184,11 +184,11 @@ typedef struct avsv_comp_info_tag {
                       * Checkpointing - Sent as a one time update.
                       */
 
-  char term_info[AVSV_MISC_STR_MAX_SIZE]; /* ASCII string of information for
-                                           * termination of component
-                                           * Checkpointing - Sent as a one time
-                                           * update.
-                                           */
+  char *term_info; /* ASCII string of information for
+                    * termination of component
+                    * Checkpointing - Sent as a one time
+                    * update.
+                    */
   char term_cmd_arg_info[AVSV_MISC_STR_MAX_SIZE];
 
   SaTimeT term_time; /* Time interval within which
@@ -202,10 +202,10 @@ typedef struct avsv_comp_info_tag {
                        * Checkpointing - Sent as a one time update.
                        */
 
-  char clean_info[AVSV_MISC_STR_MAX_SIZE]; /* ASCII string of information for
-                                            * cleanup of component Checkpointing
-                                            * - Sent as a one time update.
-                                            */
+  char *clean_info; /* ASCII string of information for
+                     * cleanup of component Checkpointing
+                     * - Sent as a one time update.
+                     */
   char clean_cmd_arg_info[AVSV_MISC_STR_MAX_SIZE];
 
   SaTimeT clean_time; /* Time interval within which
@@ -219,12 +219,12 @@ typedef struct avsv_comp_info_tag {
                          * Checkpointing - Sent as a one time update.
                          */
 
-  char amstart_info[AVSV_MISC_STR_MAX_SIZE]; /* ASCII
-                                              * string of information for
-                                              * AM start of a component
-                                              * Checkpointing - Sent as a one
-                                              * time update.
-                                              */
+  char *amstart_info; /* ASCII
+                       * string of information for
+                       * AM start of a component
+                       * Checkpointing - Sent as a one
+                       * time update.
+                       */
   char amstart_cmd_arg_info[AVSV_MISC_STR_MAX_SIZE];
 
   SaTimeT amstart_time; /* Time interval within which
@@ -238,12 +238,12 @@ typedef struct avsv_comp_info_tag {
                         * Checkpointing - Sent as a one time update.
                         */
 
-  char amstop_info[AVSV_MISC_STR_MAX_SIZE]; /* ASCII
-                                             * string of information for
-                                             * AM start of a component.
-                                             * Checkpointing - Sent as a one
-                                             * time update.
-                                             */
+  char *amstop_info; /* ASCII
+                      * string of information for
+                      * AM start of a component.
+                      * Checkpointing - Sent as a one
+                      * time update.
+                      */
   char amstop_cmd_arg_info[AVSV_MISC_STR_MAX_SIZE];
 
   SaTimeT amstop_time; /* Time interval within which

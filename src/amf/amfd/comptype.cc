@@ -95,9 +95,11 @@ static AVD_COMP_TYPE *comptype_create(const std::string &dn,
   (void)immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtSwBundle"),
                         attributes, 0, &ct_sw_bundle);
   compt->saAmfCtSwBundle = Amf::to_string(&ct_sw_bundle);
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtDefCmdEnv", 0)) !=
       nullptr)
-    strcpy(compt->saAmfCtDefCmdEnv, str);
+    compt->saAmfCtDefCmdEnv = str;
+
   (void)immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtDefClcCliTimeout"),
                         attributes, 0, &compt->saAmfCtDefClcCliTimeout);
   (void)immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtDefCallbackTimeout"),
@@ -105,10 +107,11 @@ static AVD_COMP_TYPE *comptype_create(const std::string &dn,
 
   if ((str = immutil_getStringAttr(attributes, "saAmfCtRelPathInstantiateCmd",
                                    0)) != nullptr)
-    strcpy(compt->saAmfCtRelPathInstantiateCmd, str);
+    compt->saAmfCtRelPathInstantiateCmd = str;
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtDefInstantiateCmdArgv",
                                    0)) != nullptr)
-    strcpy(compt->saAmfCtDefInstantiateCmdArgv, str);
+    compt->saAmfCtDefInstantiateCmdArgv = str;
 
   (void)immutil_getAttr(
       const_cast<SaImmAttrNameT>("saAmfCtDefInstantiationLevel"), attributes, 0,
@@ -116,28 +119,35 @@ static AVD_COMP_TYPE *comptype_create(const std::string &dn,
 
   if ((str = immutil_getStringAttr(attributes, "saAmfCtRelPathTerminateCmd",
                                    0)) != nullptr)
-    strcpy(compt->saAmfCtRelPathTerminateCmd, str);
+    compt->saAmfCtRelPathTerminateCmd = str;
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtDefTerminateCmdArgv",
                                    0)) != nullptr)
-    strcpy(compt->saAmfCtDefTerminateCmdArgv, str);
+    compt->saAmfCtDefTerminateCmdArgv = str;
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtRelPathCleanupCmd",
                                    0)) != nullptr)
-    strcpy(compt->saAmfCtRelPathCleanupCmd, str);
+    compt->saAmfCtRelPathCleanupCmd = str;
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtDefCleanupCmdArgv",
                                    0)) != nullptr)
-    strcpy(compt->saAmfCtDefCleanupCmdArgv, str);
+    compt->saAmfCtDefCleanupCmdArgv = str;
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtRelPathAmStartCmd",
                                    0)) != nullptr)
-    strcpy(compt->saAmfCtRelPathAmStartCmd, str);
+    compt->saAmfCtRelPathAmStartCmd = str;
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtDefAmStartCmdArgv",
                                    0)) != nullptr)
-    strcpy(compt->saAmfCtDefAmStartCmdArgv, str);
+    compt->saAmfCtDefAmStartCmdArgv = str;
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtRelPathAmStopCmd", 0)) !=
       nullptr)
-    strcpy(compt->saAmfCtRelPathAmStopCmd, str);
+    compt->saAmfCtRelPathAmStopCmd = str;
+
   if ((str = immutil_getStringAttr(attributes, "saAmfCtDefAmStopCmdArgv", 0)) !=
       nullptr)
-    strcpy(compt->saAmfCtDefAmStopCmdArgv, str);
+    compt->saAmfCtDefAmStopCmdArgv = str;
 
   if ((IS_COMP_SAAWARE(compt->saAmfCtCompCategory) ||
        IS_COMP_PROXIED_PI(compt->saAmfCtCompCategory) ||

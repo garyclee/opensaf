@@ -315,7 +315,7 @@ static int testNtfCleanup(SaNtfHandleT ntfHandle) {
 }
 
 static void capacityThresholds_01(void) {
-  SaMsgQueueThresholdsT thresholds;
+  SaMsgQueueThresholdsT thresholds = {0, 0};
   SaAisErrorT rc(saMsgQueueCapacityThresholdsSet(0xdeadbeef, &thresholds));
   aisrc_validate(rc, SA_AIS_ERR_BAD_HANDLE);
 }

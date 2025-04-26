@@ -73,6 +73,7 @@ class NtfLogger {
   void logQueuedNotification();
   bool isLoggerBufferEmpty() { return queuedNotificationList.empty(); }
   void disableAckWaiting();
+  bool isExistNotification(SaInvocationT invocation);
 
  private:
   SaAisErrorT initLog();
@@ -82,6 +83,7 @@ class NtfLogger {
   typedef std::list<NtfSmartPtr> QueuedNotificationsList;
   QueuedNotificationsList queuedNotificationList;
 
+  uint32_t logger_timeout_record;
   uint32_t logger_buffer_capacity;
 
   // The flag if logger buffer is full. This is set when checking the logger

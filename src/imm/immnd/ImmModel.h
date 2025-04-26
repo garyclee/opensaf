@@ -21,6 +21,7 @@
 
 #include <saImmOm.h>
 #include <cstdarg>
+#include <cstdint>
 #include <sys/types.h>
 #include <string>
 #include <vector>

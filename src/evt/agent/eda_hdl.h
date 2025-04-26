@@ -68,11 +68,11 @@ EDA_CHANNEL_HDL_REC *eda_find_chan_hdl_rec_by_chan_id(
 
 void eda_msg_destroy(EDSV_MSG *msg);
 
-uint32_t eda_extract_pattern_from_event(
+SaAisErrorT eda_extract_pattern_from_event(
     SaEvtEventPatternArrayT *from_pattern_array,
     SaEvtEventPatternArrayT **to_pattern_array);
 
-uint32_t eda_allocate_and_extract_pattern_from_event(
+SaAisErrorT eda_allocate_and_extract_pattern_from_event(
     SaEvtEventPatternArrayT *from_pattern_array,
     SaEvtEventPatternArrayT **to_pattern_array);
 

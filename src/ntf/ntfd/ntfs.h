@@ -57,6 +57,10 @@
 #define NTFSV_LOGGER_PERODIC_MAX_EVENT 50
 // Periodic timer. Using in the main poll when queue available
 #define NTFSV_LOGGER_PERODIC_POLL_TIMEOUT_MS 5000
+// Allowed queue time before notification overdue
+#define NTFSV_LOGGER_RECORD_TIMEOUT_DEFAULT 10
+#define NTFSV_LOGGER_RECORD_TIMEOUT_MIN 5
+#define NTFSV_LOGGER_RECORD_TIMEOUT_MAX 30
 
 /* ========================================================================
  *   TYPE DEFINITIONS

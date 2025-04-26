@@ -291,12 +291,13 @@ static void log_failed_exec(NCS_OS_PROC_EXEC_STATUS_INFO *exec_stat,
     LOG_NO("Exit code: %u", exec_stat->info.exit_with_code.exit_code);
 
   if (NCS_OS_PROC_EXEC_FAIL == exec_stat->value)
-    LOG_NO("CLC CLI script:'%s'", comp->clc_info.cmds[exec_cmd - 1].cmd);
+    LOG_NO("CLC CLI script:'%s'",
+           comp->clc_info.cmds[exec_cmd - 1].cmd.c_str());
 
   if (NCS_OS_PROC_EXIT_ON_SIGNAL == exec_stat->value)
     LOG_NO("Signal: %u, CLC CLI script:'%s'",
            exec_stat->info.exit_on_signal.signal_num,
-           comp->clc_info.cmds[exec_cmd - 1].cmd);
+           comp->clc_info.cmds[exec_cmd - 1].cmd.c_str());
 }
 
 /****************************************************************************
@@ -3107,10 +3108,10 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp,
   AVND_CLC_EVT *clc_evt;
   AVND_EVT *evt = 0;
   AVND_COMP_CLC_INFO *clc_info = &comp->clc_info;
-  char scr[SAAMF_CLC_LEN];
-  char *argv[AVND_COMP_CLC_PARAM_MAX + 2];
-  char tmp_argv[AVND_COMP_CLC_PARAM_MAX + 2][AVND_COMP_CLC_PARAM_SIZE_MAX];
+  char *scr = strdup(comp->clc_info.cmds[cmd_type - 1].cmd.c_str());
   uint32_t argc = 0, rc = NCSCC_RC_SUCCESS, count = 0;
+  m_AVND_COMP_CLC_COUNT_AGRC(scr, comp->clc_info.cmds[cmd_type - 1].len, argc);
+  char *argv[argc + 2];
   unsigned int env_counter;
   unsigned int i;
   SaStringT env;
@@ -3283,8 +3284,7 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp,
   arg.env_arg = env_set;
 
   /* tokenize the cmd */
-  m_AVND_COMP_CLC_STR_PARSE(clc_info->cmds[cmd_type - 1].cmd, scr, argc, argv,
-                            tmp_argv);
+  m_AVND_COMP_CLC_STR_PARSE(scr, argv);
 
   /* populate the cmd-info */
   cmd_info.i_script = argv[0];
@@ -3318,6 +3318,10 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp,
   }
   free(env_set);
 
+  for (count = 0; count < argc; count++) {
+    free(argv[count]);
+  }
+
   if (NCSCC_RC_SUCCESS != rc) {
     TRACE_2("The CLC CLI command execution failed");
     /* generate a cmd failure event; it'll be executed asynchronously */
@@ -3350,6 +3354,7 @@ err:
   if (evt) avnd_evt_destroy(evt);
 
 done:
+  free(scr);
   TRACE_LEAVE2("%u", rc);
   return rc;
 }

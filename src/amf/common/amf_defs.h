@@ -49,6 +49,9 @@
  */
 #define AVSV_MISC_STR_MAX_SIZE 256
 
+/* The define for character SPACE*/
+#define AVSV_CHAR_SPACE 0x20
+
 /* Minimum preferred num of su in 2N, N+M and NWay red model*/
 #define AVSV_SG_2N_PREF_INSVC_SU_MIN 2
 

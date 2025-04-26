@@ -1134,36 +1134,43 @@ done:
  * @param attributes
  * @param attr_name
  */
-static void init_clc_cli_command(AVND_COMP_CLC_CMD_PARAM *cmd,
+static void init_clc_cli_command(AVND_COMP_CLC_CMD_PARAM **cmd,
                                  const char *clc_cmd, char **clc_cmd_argv,
                                  const char *path_prefix,
                                  const SaImmAttrValuesT_2 **attributes,
                                  const char *attr_name) {
-  char *buf = cmd->cmd;
-  int i, j;
+  int i = 0;
   const char *argv;
+  /* Clear string in case re-init command */
+  if (!(*cmd)->cmd.empty()) {
+    (*cmd)->cmd.clear();
+  }
 
   // prepend with path prefix if available
-  if (path_prefix == nullptr)
-    i = snprintf(buf, sizeof(cmd->cmd), "%s", clc_cmd);
-  else
-    i = snprintf(buf, sizeof(cmd->cmd), "%s/%s", path_prefix, clc_cmd);
+  if (path_prefix == nullptr) {
+    (*cmd)->cmd.append(clc_cmd);
+  } else {
+    (*cmd)->cmd.append(path_prefix);
+    (*cmd)->cmd.push_back('/');
+    (*cmd)->cmd.append(clc_cmd);
+  }
 
   // append argv from comp type
-  j = 0;
-  while ((argv = clc_cmd_argv[j++]) != nullptr)
-    i += snprintf(&buf[i], sizeof(cmd->cmd) - i, " %s", argv);
+  while ((argv = clc_cmd_argv[i++]) != nullptr) {
+    (*cmd)->cmd.push_back(' ');
+    (*cmd)->cmd.append(argv);
+  }
 
   // append argv from comp instance
-  j = 0;
-  while ((argv = immutil_getStringAttr(attributes, attr_name, j++)) != nullptr)
-    i += snprintf(&buf[i], sizeof(cmd->cmd) - i, " %s", argv);
+  i = 0;
+  while ((argv = immutil_getStringAttr(attributes, attr_name, i++)) !=
+         nullptr) {
+    (*cmd)->cmd.push_back(' ');
+    (*cmd)->cmd.append(argv);
+  }
 
-  cmd->len = i;
-
-  /* Check for truncation, should alloc these strings dynamically instead */
-  osafassert((cmd->len > 0) && (cmd->len < sizeof(cmd->cmd)));
-  TRACE("cmd=%s", cmd->cmd);
+  (*cmd)->len = (*cmd)->cmd.length();
+  TRACE("cmd=%s", (*cmd)->cmd.c_str());
 }
 
 /**
@@ -1184,7 +1191,7 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 
   cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_INSTANTIATE - 1];
   if (comptype->saAmfCtRelPathInstantiateCmd != nullptr) {
-    init_clc_cli_command(cmd, comptype->saAmfCtRelPathInstantiateCmd,
+    init_clc_cli_command(&cmd, comptype->saAmfCtRelPathInstantiateCmd,
                          comptype->saAmfCtDefInstantiateCmdArgv, path_prefix,
                          attributes, "saAmfCompInstantiateCmdArgv");
   }
@@ -1201,7 +1208,7 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 
   cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_TERMINATE - 1];
   if (comptype->saAmfCtRelPathTerminateCmd != nullptr) {
-    init_clc_cli_command(cmd, comptype->saAmfCtRelPathTerminateCmd,
+    init_clc_cli_command(&cmd, comptype->saAmfCtRelPathTerminateCmd,
                          comptype->saAmfCtDefTerminateCmdArgv, path_prefix,
                          attributes, "saAmfCompTerminateCmdArgv");
   }
@@ -1213,13 +1220,16 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
       comp->term_cbk_timeout = cmd->timeout;
       comp->use_comptype_attr->set(TerminateCallbackTimeout);
       comp->use_comptype_attr->set(CompTerminateTimeout);
+    } else if(!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
+      cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
+      comp->use_comptype_attr->set(CompTerminateTimeout);
     } else
       cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
   }
 
   cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_CLEANUP - 1];
   if (comptype->saAmfCtRelPathCleanupCmd != nullptr) {
-    init_clc_cli_command(cmd, comptype->saAmfCtRelPathCleanupCmd,
+    init_clc_cli_command(&cmd, comptype->saAmfCtRelPathCleanupCmd,
                          comptype->saAmfCtDefCleanupCmdArgv, path_prefix,
                          attributes, "saAmfCompCleanupCmdArgv");
   }
@@ -1236,7 +1246,7 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 
   cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_AMSTART - 1];
   if (comptype->saAmfCtRelPathAmStartCmd != nullptr) {
-    init_clc_cli_command(cmd, comptype->saAmfCtRelPathAmStartCmd,
+    init_clc_cli_command(&cmd, comptype->saAmfCtRelPathAmStartCmd,
                          comptype->saAmfCtDefAmStartCmdArgv, path_prefix,
                          attributes, "saAmfCompAmStartCmdArgv");
     comp->is_am_en = true;
@@ -1250,7 +1260,7 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 
   cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_AMSTOP - 1];
   if (comptype->saAmfCtRelPathAmStopCmd != nullptr) {
-    init_clc_cli_command(cmd, comptype->saAmfCtRelPathAmStopCmd,
+    init_clc_cli_command(&cmd, comptype->saAmfCtRelPathAmStopCmd,
                          comptype->saAmfCtDefAmStopCmdArgv, path_prefix,
                          attributes, "saAmfCompAmStopCmdArgv");
   }
@@ -1263,7 +1273,7 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 
   cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_HC - 1];
   if (comptype->osafAmfCtRelPathHcCmd != nullptr) {
-    init_clc_cli_command(cmd, comptype->osafAmfCtRelPathHcCmd,
+    init_clc_cli_command(&cmd, comptype->osafAmfCtRelPathHcCmd,
                          comptype->osafAmfCtDefHcCmdArgv, path_prefix,
                          attributes, "osafAmfCompHcCmdArgv");
     comp->is_hc_cmd_configured = true;

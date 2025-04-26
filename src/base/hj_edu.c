@@ -170,7 +170,6 @@ uint32_t ncs_edu_ver_exec(EDU_HDL *edu_hdl, EDU_PROG_HANDLER edp,
 	if (uba == NULL) {
 		*o_err = EDU_ERR_UBAID_POINTER_NULL;
 		m_LEAP_DBG_SINK_VOID;
-		ncs_edu_free_uba_contents(uba);
 		return NCSCC_RC_FAILURE;
 	}
 	switch (op) {

@@ -16,11 +16,14 @@
  */
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/syscall.h>
+#include <sys/wait.h>
 
 #include "osaf/apitest/utest.h"
 #include "osaf/apitest/util.h"
 #include "ntf/apitest/tet_ntf.h"
 #include "ntf/apitest/ntf_api_with_try_again.h"
+#include "tet_ntf_common.h"
 
 SaNtfStateChangeNotificationT myNotification;
 void saNtfFinalize_01(void) {
@@ -156,6 +159,65 @@ void saNtfFinalize_06(void) {
   test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
 }
 
+void randomSleep() {
+  srand(time(0));
+  const timespec delay{rand() % 10, 0};
+  base::Sleep(delay);
+}
+
+void *initializeAndFinalize(void *arg) {
+  pid_t tid = syscall(SYS_gettid);
+  SaNtfHandleT ntfHandle1 = 0;
+  SaAisErrorT rc = SA_AIS_OK;
+
+  randomSleep();
+  while ((rc = NtfTest::saNtfInitialize(&ntfHandle1, &ntfSendCallbacks,
+                                        &ntfVersion)) != SA_AIS_OK) {
+    base::Sleep(base::kOneSecond);
+    printf("thread[%d]: init failed with error %s\n", tid, get_saf_error(rc));
+  }
+
+  randomSleep();
+  if ((rc = NtfTest::saNtfFinalize(ntfHandle1)) != SA_AIS_OK) {
+    printf("thread[%d]: finalize failed with error %s\n", tid,
+           get_saf_error(rc));
+  }
+
+  pthread_exit(NULL);
+}
+
+void saNtfFinalize_07(void) {
+  pid_t pid = fork();
+  if (pid == -1) {
+    test_validate(SA_AIS_ERR_LIBRARY, SA_AIS_OK);
+  } else if (pid == 0) {
+    // Child process
+    size_t clientmax = 500;
+    pthread_t thread[clientmax];
+    for (size_t i = 0; i < clientmax; i++) {
+      pthread_create(&thread[i], NULL, initializeAndFinalize, nullptr);
+    }
+    for (size_t i = 0; i < clientmax; i++) {
+      pthread_join(thread[i], NULL);
+    }
+    exit(0);
+  } else {
+    // Parent process
+    int status;
+    wait(&status);
+    if (WIFEXITED(status)) {
+      printf("Child process exited, status=%d\n", WEXITSTATUS(status));
+      test_validate(WEXITSTATUS(status), 0);
+    } else if (WIFSIGNALED(status) && WCOREDUMP(status)) {
+      printf("Coredump in child process\n");
+      test_validate(SA_AIS_ERR_LIBRARY, SA_AIS_OK);
+    } else {
+      printf("Child process was stopped by a signal\n");
+      test_validate(SA_AIS_OK, SA_AIS_OK);
+    }
+  }
+}
+
 __attribute__((constructor)) static void saNtfFinalize_constructor(void) {
   test_suite_add(2, "Life cycle, finalize, API 2");
   test_case_add(2, saNtfFinalize_01, "saNtfFinalize SA_AIS_OK");
@@ -170,4 +232,5 @@ __attribute__((constructor)) static void saNtfFinalize_constructor(void) {
       "SA_AIS_OK");
   test_case_add(2, saNtfFinalize_06,
       "saNtfFinalize SA_AIS_ERR_BAD_HANDLE - unintilized handle");
+  test_case_add(2, saNtfFinalize_07, "Intialize and saNtfFinalize in parallel");
 }

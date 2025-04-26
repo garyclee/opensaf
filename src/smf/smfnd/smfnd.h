@@ -76,7 +76,7 @@ extern "C" {
 #endif
 
 /* smfnd_amf.c */
-extern uint32_t smfnd_amf_init(smfnd_cb_t *cb);
+extern SaAisErrorT smfnd_amf_init(smfnd_cb_t *cb);
 
 /* smfnd_mds.c */
 extern uint32_t smfnd_mds_init(smfnd_cb_t *cb);

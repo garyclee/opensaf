@@ -1,3 +1,26 @@
+OpenSAF 5.25.04 (released 2025-04-26)
+-------------------------------------
+
+    * tool: fix error running test.sh on gcc14 [#3368]
+    * ntf: Add new configured variable for logger records timeout [#3363]
+    * smf: Fix osafsmfd coredump [#3367]
+    * build: Fix the invalid pylint url [#3366]
+    * mds: fix typo error [#3348]
+    * osaf: supports build with gcc/g++ 14 [#3365]
+    * ntf: update fix thread unsafe [#3361]
+    * imm: fix multiple value out of order when import from xml file [#3360]
+    * amf: Update amf clc cli with dynamic buffer [#3358]
+    * ntf: test case to test manage ntfa resource [#3357]
+    * ntf: fix thread unsafe [#3357]
+    * amf: handle saAmfCtDefClcCliTimeout correctly for non-proxied NPI component [#3355]
+    * smf: fix one step upgrade failed [#3354]
+    * clm: fix error printed in syslog [#3353]
+    * osaf: supports build with gcc/g++ 13 [#3352]
+    * pyosaf: Allow SaStringT compare with str by default [#3351]
+    * ntf: check existed notification before retrieving [#3350]
+    * amf: move ntf job to the end of queue [#3349]
+    * ntf: remove overdue notification from logger buffer [#3349]
+
 OpenSAF 5.24.02 (released 2024-02-28)
 -------------------------------------
 

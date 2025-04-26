@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cstdint>
 #include "base/getenv.h"
 #include "gtest/gtest.h"
 

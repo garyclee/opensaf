@@ -994,9 +994,9 @@ static void endElementHandler(void *userData, const xmlChar *name) {
       char *str = (char *)malloc(1);
 
       str[0] = '\0';
-      state->attrValueBuffers.push_front(str);
+      state->attrValueBuffers.push_back(str);
     } else if (state->isBase64Encoded) {
-      char *value = state->attrValueBuffers.front();
+      char *value = state->attrValueBuffers.back();
       int len = strlen(value);
 
       /* count the length of the decoded string */
@@ -1012,8 +1012,8 @@ static void endElementHandler(void *userData, const xmlChar *name) {
       }
       newvalue[newlen] = 0;
 
-      state->attrValueBuffers.pop_front();
-      state->attrValueBuffers.push_front(newvalue);
+      state->attrValueBuffers.pop_back();
+      state->attrValueBuffers.push_back(newvalue);
       free(value);
     }
 
@@ -1390,13 +1390,13 @@ static void charactersHandler(void *userData, const xmlChar *chars, int len) {
           strncpy(str, (const char *)chars, (size_t)len);
           str[len] = '\0';
 
-          state->attrValueBuffers.push_front(str);
+          state->attrValueBuffers.push_back(str);
         } else {
           /* CONTINUATION of CURRENT value, typically only happens for loooong
            * strings. */
           TRACE_8("APPEND TO CURRENT VALUE");
 
-          size_t oldsize = strlen(state->attrValueBuffers.front());
+          size_t oldsize = strlen(state->attrValueBuffers.back());
           TRACE_8("APPEND VALUE newsize:%u", (unsigned int)oldsize + len + 1);
 
           str = (char *)malloc(oldsize + len + 1);
@@ -1404,7 +1404,7 @@ static void charactersHandler(void *userData, const xmlChar *chars, int len) {
             LOG_ER("Failed to malloc value");
             exit(1);
           }
-          strncpy(str, state->attrValueBuffers.front(), oldsize + 1);
+          strncpy(str, state->attrValueBuffers.back(), oldsize + 1);
           TRACE_8("COPIED OLD VALUE %u %s", (unsigned int)oldsize, str);
 
           strncpy(str + oldsize, (const char *)chars, (size_t)len + 1);
@@ -1413,13 +1413,13 @@ static void charactersHandler(void *userData, const xmlChar *chars, int len) {
                   (unsigned int)oldsize + len + 1, str);
 
           /* Remove the old string */
-          free(state->attrValueBuffers.front());
-          state->attrValueBuffers.pop_front();
+          free(state->attrValueBuffers.back());
+          state->attrValueBuffers.pop_back();
           /* state->attrValueBuffers.clear();
              clear not appropriate since we could ALSO have several values!
-             We are here only operating on the front value in the list.
+             We are here only operating on the back value in the list.
           */
-          state->attrValueBuffers.push_front(str);
+          state->attrValueBuffers.push_back(str);
         }
       } else {
         LOG_ER("UNKNOWN PLACEMENT OF VALUE");

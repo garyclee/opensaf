@@ -92,6 +92,20 @@ NtfLogger::NtfLogger() : readCounter(0), isLoggerBufferfull(false) {
       LOG_WA("Logger buffer is set too big, get default max instead: %d",
               logger_buffer_capacity);
     }
+
+  /* Get the logger record timeout from the environment variable.
+     The value should be from 5s to 30s (Default is 10s). */
+  logger_timeout_record = base::GetEnv("NTFSV_LOGGER_RECORD_TIMEOUT",
+            static_cast<uint32_t>(NTFSV_LOGGER_RECORD_TIMEOUT_DEFAULT));
+    if (logger_timeout_record < NTFSV_LOGGER_RECORD_TIMEOUT_MIN) {
+      logger_timeout_record = NTFSV_LOGGER_RECORD_TIMEOUT_MIN;
+      LOG_WA("Logger timeout is set too small, get default min instead: %d",
+              NTFSV_LOGGER_RECORD_TIMEOUT_MIN);
+    } else if (logger_timeout_record > NTFSV_LOGGER_RECORD_TIMEOUT_MAX) {
+      logger_timeout_record = NTFSV_LOGGER_RECORD_TIMEOUT_MAX;
+      LOG_WA("Logger timeout is set too big, get default max instead: %d",
+                NTFSV_LOGGER_RECORD_TIMEOUT_MAX);
+    }
 }
 
 /* Callbacks */
@@ -108,6 +122,12 @@ void saLogStreamOpenCallback(SaInvocationT invocation,
 
 void saLogWriteLogCallback(SaInvocationT invocation, SaAisErrorT error) {
   TRACE_ENTER2("Callback for notificationId %llu", invocation);
+  if (!NtfAdmin::theNtfAdmin->logger.isExistNotification(invocation)) {
+    TRACE("Notification had been processed by logd, but Id is not existed"
+          " in logger. Probably due to notification overdue, ignore "
+          "notificationId %llu", invocation);
+    return;
+  }
   if (SA_AIS_OK != error) {
     TRACE_1("Error when logging (%d)", error);
     NtfAdmin::theNtfAdmin->logger.disableAckWaiting();
@@ -378,9 +398,24 @@ void NtfLogger::disableAckWaiting() {
   notification->setWaitingAck(false);
 }
 
+bool NtfLogger::isExistNotification(SaInvocationT invocation) {
+  if (isLoggerBufferEmpty()) return false;
+  return (queuedNotificationList.front()->getNotificationId() == invocation);
+}
+
 void NtfLogger::logQueuedNotification() {
   if (!isLoggerBufferEmpty()) {
     NtfSmartPtr notification = queuedNotificationList.front();
+    if (notification->is_overdue(logger_timeout_record)
+        && notification->isWaitingAck()) {
+      LOG_NO("Notification overdue, remove notification Id: %llu",
+             notification->getNotificationId());
+      dequeueNotification();
+      resetLoggerBufferFullFlag();
+      sendLoggedConfirm(notification->getNotificationId());
+      if (isLoggerBufferEmpty()) return;
+      notification = queuedNotificationList.front();
+    }
     if (notification->isWaitingAck()) return;
     TRACE_2("Log queued notification: %llu",
             notification->getNotificationId());
