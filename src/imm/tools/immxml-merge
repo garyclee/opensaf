@@ -78,7 +78,7 @@ class MergedImmDocument(BaseImmDocument):
         self.classDict = {}
         self.regexpObj = None
         self.dn_regexpObj = None
-        self.firstSourceDoc = None
+        self.encoding = None
         self.objectList = []
         self.objectDnNameDict = {}
         self.classes_parsed = 0
@@ -115,7 +115,6 @@ class MergedImmDocument(BaseImmDocument):
             abort_script("Did not find <imm:IMM-contents element in first "
                          "source file")
 
-        self.firstSourceDoc = doc
         self.isResultDocInitialized = True
         trace("Done copying elements from first source document.")
 
@@ -298,6 +297,9 @@ class MergedImmDocument(BaseImmDocument):
 
         doc = xml.dom.minidom.parse(file_name)
         # doc = self.open_xml_document_file_and_check_namespace(file_name)
+        if doc.encoding is not None and self.encoding is None:
+            if doc.encoding.lower() == "utf-8":
+                self.encoding = "utf-8"
 
         if not self.isResultDocInitialized:
             self.init_result_document(doc)
@@ -362,17 +364,12 @@ class MergedImmDocument(BaseImmDocument):
         # I think there should not be imm validation functionality in merge
         # tool (use validate_immfile instead)
 
-        print_info_stderr("encoding in first source xml document: %s",
-                          self.firstSourceDoc.encoding)
         tmp_output_file_name = Options.outputFilename + ".tmp"
         file_object = open(tmp_output_file_name, "w")
-
-        if self.firstSourceDoc.encoding is not None \
-                and self.firstSourceDoc.encoding.lower() == "utf-8":
-            encoding = "utf-8"
+        encoding = "utf-8"
+        if self.encoding == "utf-8":
             heading = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         else:
-            encoding = None
             heading = "<?xml version=\"1.0\"?>"
 
         file_object.write(heading)
