@@ -140,6 +140,7 @@ bool setBalancedExecLevel(const std::vector<std::string>& nodesforss,
     for (auto node : nodes) {
       if (isNodeInGroup(node, nodesforss)) {
         ingroup = true;
+        break;
       }
     }
     if (ingroup) {
@@ -156,19 +157,17 @@ bool setBalancedExecLevel(const std::vector<std::string>& nodesforss,
   }
   balanced_execlvl += 1;
 
-  // Move the exec-level forward for other procedures so we avoid to execute in
-  // parallel with balanced procedures
-  for (auto proc : ucamp->getProcedures()) {
-    if (proc->getExecLevel() >= balanced_execlvl) {
-      proc->setExecLevel(std::to_string(proc->getExecLevel() + numberofss));
-    }
-  }
-
   for (auto proc : ucamp->getProcedures()) {
     if (!proc->getBalancedGroup().empty()) {
       // This is a balanced procedure, set the new exec level
       proc->setExecLevel(
           std::to_string(proc->getExecLevel() + balanced_execlvl));
+    } else {
+      // Move the exec-level forward for other procedures so
+      // we avoid to execute in parallel with balanced procedures
+      if (proc->getExecLevel() >= balanced_execlvl) {
+        proc->setExecLevel(std::to_string(proc->getExecLevel() + numberofss));
+      }
     }
   }
   if (!merged.empty()) {
