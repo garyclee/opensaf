@@ -379,8 +379,8 @@ uint32_t smfa_cbk_ok_resp_process(SaSmfHandleT smfHandle,
 						hdl_prev->next_hdl =
 						    hdl_list->next_hdl;
 						/* Head node deleted.*/
-						if ((hdl_list->hdl ==
-						     hdl_prev->hdl)) {
+						if (hdl_list->hdl ==
+						     hdl_prev->hdl) {
 							cbk_list->hdl_list =
 							    hdl_prev->next_hdl;
 							/* No more resp
@@ -417,7 +417,7 @@ uint32_t smfa_cbk_ok_resp_process(SaSmfHandleT smfHandle,
 rmv_inv:
 	cbk_prev->next_cbk = cbk_list->next_cbk;
 	/* Last inv node.*/
-	if ((cbk_list->inv_id == cbk_prev->inv_id)) {
+	if (cbk_list->inv_id == cbk_prev->inv_id) {
 		cb->cbk_list = cbk_prev->next_cbk;
 	}
 	free(cbk_list);
@@ -479,7 +479,7 @@ uint32_t smfa_cbk_err_resp_process(SaInvocationT invocation, SaSmfHandleT hdl)
 rmv_inv:
 	cbk_prev->next_cbk = cbk_list->next_cbk;
 	/* Last inv node.*/
-	if ((cbk_list->inv_id == cbk_prev->inv_id)) {
+	if (cbk_list->inv_id == cbk_prev->inv_id) {
 		cb->cbk_list = cbk_prev->next_cbk;
 	}
 	free(cbk_list);

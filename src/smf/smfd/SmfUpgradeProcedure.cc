@@ -1268,9 +1268,13 @@ bool SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure *i_proc,
     LOG_NO("Copy the procedure init actions");
     i_proc->addInitActions((*proc_elem).getInitActions());
     for (const auto &actionElem : i_proc->getInitActions()) {
+      if (!actionElem) {
+        TRACE("Procedure init action %d skip", initActionId);
+        continue;
+      }
       const SmfCallbackAction *cbkAction =
           dynamic_cast<const SmfCallbackAction *>(actionElem);
-      if (cbkAction != NULL) {
+      if (cbkAction) {
         const_cast<SmfCallbackAction *>(cbkAction)->setCallbackProcedure(this);
       }
       // Renumber to action id aviod DN name collision in the merged procedure
@@ -1282,9 +1286,13 @@ bool SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure *i_proc,
     LOG_NO("Copy the procedure wrapup actions");
     i_proc->addWrapupActions((*proc_elem).getWrapupActions());
     for (const auto &actionElem : i_proc->getWrapupActions()) {
+      if (!actionElem) {
+        TRACE("Procedure wrapup action %d skip", wrapupActionId);
+        continue;
+      }
       const SmfCallbackAction *cbkAction =
           dynamic_cast<const SmfCallbackAction *>(actionElem);
-      if (cbkAction != NULL) {
+      if (cbkAction) {
         const_cast<SmfCallbackAction *>(cbkAction)->setCallbackProcedure(this);
       }
       // Renumber to action id aviod DN name collision in the merged procedure
@@ -2656,8 +2664,7 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
   TRACE_ENTER();
   std::string dnDeactUnit = "safSmfDu=smfDeactivationUnit";
   std::string dnActUnit = "safSmfAu=smfActivationUnit";
-  int strSize = 64;
-  char str[strSize];
+  char str[11] = {};
 
   /* Create the SaSmfStep object */
   SmfImmRTCreateOperation icoSaSmfStep;
@@ -2674,28 +2681,28 @@ SaAisErrorT SmfUpgradeProcedure::createImmStep(SmfUpgradeStep *i_step) {
   SmfImmAttribute attrsaSmfStepMaxRetry;
   attrsaSmfStepMaxRetry.SetAttributeName("saSmfStepMaxRetry");
   attrsaSmfStepMaxRetry.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
-  snprintf(str, strSize, "%d", i_step->getMaxRetry());
+  snprintf(str, sizeof(str), "%u", i_step->getMaxRetry());
   attrsaSmfStepMaxRetry.AddAttributeValue(str);
   icoSaSmfStep.AddValue(attrsaSmfStepMaxRetry);
 
   SmfImmAttribute attrsaSmfStepRetryCount;
   attrsaSmfStepRetryCount.SetAttributeName("saSmfStepRetryCount");
   attrsaSmfStepRetryCount.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
-  snprintf(str, strSize, "%d", i_step->getRetryCount());
+  snprintf(str, sizeof(str), "%u", i_step->getRetryCount());
   attrsaSmfStepRetryCount.AddAttributeValue(str);
   icoSaSmfStep.AddValue(attrsaSmfStepRetryCount);
 
   SmfImmAttribute attrsaSmfStepRestartOption;
   attrsaSmfStepRestartOption.SetAttributeName("saSmfStepRestartOption");
   attrsaSmfStepRestartOption.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
-  snprintf(str, strSize, "%d", i_step->getRestartOption());
+  snprintf(str, sizeof(str), "%u", i_step->getRestartOption());
   attrsaSmfStepRestartOption.AddAttributeValue(str);
   icoSaSmfStep.AddValue(attrsaSmfStepRestartOption);
 
   SmfImmAttribute attrsaSmfStepState;
   attrsaSmfStepState.SetAttributeName("saSmfStepState");
   attrsaSmfStepState.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
-  snprintf(str, strSize, "%d", i_step->getState());
+  snprintf(str, sizeof(str), "%d", i_step->getState());
   attrsaSmfStepState.AddAttributeValue(str);
   icoSaSmfStep.AddValue(attrsaSmfStepState);
 
@@ -3350,9 +3357,6 @@ SaAisErrorT SmfUpgradeProcedure::getImmStepsMergedSingleStep() {
   std::list<std::string> stepList;
 
   TRACE_ENTER();
-  SmfUpgradeStep *newStep = new (std::nothrow) SmfUpgradeStep;
-  osafassert(newStep != NULL);
-
   // Read the single step from IMM
   if (immutil.getChildren(getDn(), stepList, SA_IMM_SUBLEVEL, "SaSmfStep") ==
       false) {
@@ -3374,6 +3378,9 @@ SaAisErrorT SmfUpgradeProcedure::getImmStepsMergedSingleStep() {
     TRACE_LEAVE();
     return SA_AIS_ERR_NOT_EXIST;
   }
+
+  SmfUpgradeStep *newStep = new (std::nothrow) SmfUpgradeStep;
+  osafassert(newStep != NULL);
 
   TRACE("Copy step basic data from IMM into the new merged step.");
   if (newStep->init((const SaImmAttrValuesT_2 **)attributes) != SA_AIS_OK) {
@@ -3409,7 +3416,7 @@ SaAisErrorT SmfUpgradeProcedure::getImmStepsMergedSingleStep() {
   if (newStep->getState() == SA_SMF_STEP_INITIAL) {
     mergeStepIntoSingleStep(this,
                             newStep);  // Just merge again, as before si-swap
-    addProcStep(newStep);
+    if (newStep) addProcStep(newStep);
   } else if (newStep->getState() == SA_SMF_STEP_EXECUTING) {
     // Fetch AU/DU and step swNode from IMM steps
     SaAisErrorT rc = readCampaignImmModel(newStep);
@@ -3451,10 +3458,14 @@ SaAisErrorT SmfUpgradeProcedure::getImmStepsMergedSingleStep() {
       LOG_NO("Copy the procedure init actions");
       addInitActions((*proc_iter).getInitActions());
       for (const auto &actioniter : getInitActions()) {
+        if (!actioniter) {
+          TRACE("Procedure init action %d skip", initActionId);
+          continue;
+        }
         // For the callback actions, set new calback procedure pointer
         const SmfCallbackAction *cbkAction =
             dynamic_cast<const SmfCallbackAction *>(actioniter);
-        if (cbkAction != NULL) {
+        if (cbkAction) {
           const_cast<SmfCallbackAction *>(cbkAction)->setCallbackProcedure(
               this);
         }
@@ -3469,11 +3480,15 @@ SaAisErrorT SmfUpgradeProcedure::getImmStepsMergedSingleStep() {
       LOG_NO("Copy the procedure wrapup actions");
       addWrapupActions((*proc_iter).getWrapupActions());
       for (const auto &actioniter : getWrapupActions()) {
+        if (!actioniter) {
+          TRACE("procedure wrapup action %d skip", wrapupActionId);
+          continue;
+        }
         // For the callback actions, set new calback procedure
         // For the callback actions, set new calback procedure pointer
         const SmfCallbackAction *cbkAction =
             dynamic_cast<const SmfCallbackAction *>(actioniter);
-        if (cbkAction != NULL) {
+        if (cbkAction) {
           const_cast<SmfCallbackAction *>(cbkAction)->setCallbackProcedure(
               this);
         }
@@ -3745,7 +3760,6 @@ SaAisErrorT SmfUpgradeProcedure::bundleRefFromSsCampaignImmModel(
       SmfCampaignThread::instance()->campaign()->getUpgradeCampaign();
   const std::vector<SmfUpgradeProcedure *> &procedures =
       camp->getOriginalProcedures();
-  std::vector<SmfUpgradeProcedure *>::const_iterator proc_iter;
   std::list<SmfBundleRef> bundlesOldProcSS;
   std::list<SmfBundleRef *> bundlesOldProcRO;
   for (const auto &proc_elem : procedures) {
@@ -4132,9 +4146,9 @@ bool SmfUpgradeProcedure::isCompRestartable(const std::string &i_compDN) {
   bool rc = true;
   SaImmAttrValuesT_2 **attributes;
   bool instanceCompDisableRestartIsSet = false;
-  SaBoolT instanceCompDisableRestart;
+  SaBoolT instanceCompDisableRestart = SA_FALSE;
   bool instanceCtDefDisableRestartIsSet = false;
-  SaBoolT instanceCtDefDisableRestart;
+  SaBoolT instanceCtDefDisableRestart = SA_FALSE;
 
   SmfImmUtils immUtil;
 

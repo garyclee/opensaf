@@ -375,7 +375,7 @@ SmfCampResultT SmfCampStateInitial::executeInit(SmfUpgradeCampaign *i_camp) {
   TRACE_ENTER();
   TRACE("SmfCampStateExecuting::executeInit, Running campaign init actions");
 
-  if (i_camp->m_campInit.execute() != SA_AIS_OK) {
+  if (!i_camp->m_campInit.execute()) {
     std::string error = "Campaign init failed";
     LOG_ER("%s", error.c_str());
     SmfCampaignThread::instance()->campaign()->setError(error);
@@ -1847,7 +1847,7 @@ SmfCampResultT SmfCampRollingBack::rollbackInit(SmfUpgradeCampaign *i_camp) {
   // succeeds. Write the same value, just for synchronization purposes.
   changeState(i_camp, SmfCampRollingBack::instance());
 
-  if (i_camp->m_campInit.rollback() != SA_AIS_OK) {
+  if (!i_camp->m_campInit.rollback()) {
     std::string error = "Campaign init rollback failed";
     LOG_ER("%s", error.c_str());
     SmfCampaignThread::instance()->campaign()->setError(error);

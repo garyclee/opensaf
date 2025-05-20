@@ -135,7 +135,7 @@ class SmfImmOperation {
   // get the correct operation descriptor
   enum OperationType { NotSet, Create, Delete, Modify };
 
-  const OperationType GetOperationType() { return imm_operation_; }
+  OperationType GetOperationType() const { return imm_operation_; }
   const modelmodify::CreateDescriptor GetCreateDescriptor() {
     return object_create_;
   }

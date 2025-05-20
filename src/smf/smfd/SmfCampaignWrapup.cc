@@ -182,8 +182,11 @@ bool SmfCampaignWrapup::rollbackCampWrapup() {
   LOG_NO("CAMP: Campaign wrapup, rollback wrapup actions (%zu)",
          m_campWrapupAction.size());
   for (auto& elem : m_campWrapupAction) {
-    SmfImmCcbAction* immCcb = NULL;
-    if ((immCcb = dynamic_cast<SmfImmCcbAction*>(elem)) != NULL) {
+    if (!elem) {
+      TRACE("SmfCampaignWrapup rollback campWrapupAction skip");
+      continue;
+    }
+    if (dynamic_cast<SmfImmCcbAction*>(elem)) {
       /* Since noone of these IMM CCB has been executed it's no point
          in trying to roll them back */
       TRACE("SmfCampaignWrapup skipping immCcb rollback %d", (*elem).getId());

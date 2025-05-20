@@ -447,7 +447,7 @@ SaAisErrorT SmfUpgradeCampaign::tooManyRestarts(bool *o_result) {
   TRACE_ENTER();
   SaAisErrorT rc = SA_AIS_OK;
   SaImmAttrValuesT_2 **attributes;
-  int curCnt = 0;
+  SaUint32T curCnt = 0;
 
   /* Read the SmfCampRestartInfo object smfCampRestartCnt attr */
   std::string obj = "smfRestartInfo=info," +
@@ -472,8 +472,8 @@ SaAisErrorT SmfUpgradeCampaign::tooManyRestarts(bool *o_result) {
     SmfImmAttribute attrsmfCampRestartCnt;
     attrsmfCampRestartCnt.SetAttributeName("smfCampRestartCnt");
     attrsmfCampRestartCnt.SetAttributeType("SA_IMM_ATTR_SAUINT32T");
-    char buf[5];
-    snprintf(buf, 4, "%u", curCnt);
+    char buf[11] = {};
+    snprintf(buf, sizeof(buf), "%u", curCnt);
     attrsmfCampRestartCnt.AddAttributeValue(buf);
     imoCampRestartInfo.AddValue(attrsmfCampRestartCnt);
 
@@ -484,8 +484,8 @@ SaAisErrorT SmfUpgradeCampaign::tooManyRestarts(bool *o_result) {
     }
   }
 
-  int maxCnt = smfd_cb->smfCampMaxRestart;
-  TRACE("maxCnt=%d, curCnt=%d", maxCnt, curCnt);
+  SaUint32T maxCnt = smfd_cb->smfCampMaxRestart;
+  TRACE("maxCnt=%u, curCnt=%u", maxCnt, curCnt);
   if (curCnt > maxCnt) {
     TRACE("TRUE");
     *o_result = true;
@@ -1035,7 +1035,7 @@ void SmfUpgradeCampaign::resetMaintenanceState() {
   uint32_t retry_cnt = 0;
   while (++retry_cnt <= MAX_NO_RETRIES) {
     rc = immUtil.doImmOperations(operations);
-    if (rc != SA_AIS_OK && rc == SA_AIS_ERR_TRY_AGAIN) {
+    if (rc == SA_AIS_ERR_TRY_AGAIN) {
       /*
        * TRY_AGAIN is returned only when ccb is aborted
        * with Resource abort in error string.
