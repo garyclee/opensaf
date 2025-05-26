@@ -24,8 +24,10 @@ readonly etcd_options=""
 readonly etcd_timeout="3s"
 readonly heartbeat_interval=2
 readonly etcd_tolerance_timeout=6
+readonly timeout_shell="5s"
 
 export ETCDCTL_API=3
+ETCDCTL="timeout $timeout_shell etcdctl $etcd_options --dial-timeout=${etcd_timeout}"
 
 # get
 #   retrieve <value> of <key> from key-value store
@@ -38,7 +40,7 @@ export ETCDCTL_API=3
 get() {
   readonly key="$1"
 
-  if output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout get "$directory$key" 2>&1)
+  if output=$($ETCDCTL get "$directory$key" 2>&1)
   then
     key_=$(echo "$output" | tail -n2 | head -n1)
     value=$(echo "$output" | tail -n1)
@@ -76,7 +78,7 @@ setkey() {
 
   if [ $timeout -gt 0 ]; then
     # create lease
-    if output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout lease grant $timeout)
+    if output=$($ETCDCTL lease grant $timeout)
     then
       lease_id=$(echo $output | awk '{print $2}')
       lease_param="--lease="$lease_id""
@@ -87,7 +89,7 @@ setkey() {
     lease_param=""
   fi
 
-  if etcdctl $etcd_options --dial-timeout $etcd_timeout put "$directory$key" \
+  if $ETCDCTL put "$directory$key" \
     "$value" "$lease_param" >/dev/null
   then
     return 0
@@ -115,7 +117,7 @@ create_key() {
 
   if [ $timeout -gt 0 ]; then
     # create lease
-    if output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout lease grant $timeout)
+    if output=$($ETCDCTL lease grant $timeout)
     then
       lease_id=$(echo $output | awk '{print $2}')
       lease_param="--lease="$lease_id""
@@ -132,12 +134,12 @@ create_key() {
     put \""$directory$key"\" \""$value"\" "$lease_param"
 
   "
-  output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout txn <<< "$transaction")
+  output=$($ETCDCTL txn <<< "$transaction")
   if [[ "$output" == *"OK"* ]]; then
     return 0
   fi
 
-  if output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout get "$directory$key" | tail -n1)
+  if output=$($ETCDCTL get "$directory$key" | tail -n1)
   then
     return 1
   else
@@ -165,7 +167,7 @@ setkey_match_prev() {
 
   if [ $timeout -gt 0 ]; then
     # create lease
-    if output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout lease grant $timeout)
+    if output=$($ETCDCTL lease grant $timeout)
     then
       lease_id=$(echo $output | awk '{print $2}')
       lease_param="--lease="$lease_id""
@@ -182,7 +184,7 @@ setkey_match_prev() {
     put \""$directory$key"\" \""$value"\" "$lease_param"
 
   "
-  output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout txn <<< "$transaction")
+  output=$($ETCDCTL txn <<< "$transaction")
   if [[ "$output" == *"OK"* ]]; then
     return 0
   fi
@@ -200,8 +202,7 @@ setkey_match_prev() {
 erase() {
   readonly key="$1"
 
-  if etcdctl $etcd_options --dial-timeout $etcd_timeout \
-    del "$directory$key" >/dev/null 2>&1
+  if $ETCDCTL del "$directory$key" >/dev/null 2>&1
   then
     return 0
   else
@@ -228,7 +229,7 @@ lock() {
     put \""$directory$keyname"\" \""$owner"\"
 
   "
-  output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout txn <<< "$transaction")
+  output=$($ETCDCTL txn <<< "$transaction")
   if [[ "$output" == *"OK"* ]]; then
     return 0
   fi
@@ -239,12 +240,12 @@ lock() {
     put \""$directory$keyname"\" \""$owner"\"
 
   "
-  output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout txn <<< "$transaction")
+  output=$($ETCDCTL txn <<< "$transaction")
   if [[ "$output" == *"OK"* ]]; then
     return 0
   fi
 
-  current_owner=$(etcdctl $etcd_options --dial-timeout $etcd_timeout get "$directory$keyname" | tail -n1)
+  current_owner=$($ETCDCTL get "$directory$keyname" | tail -n1)
   # see if we already hold the lock
   if [ "$current_owner" = "$owner" ]; then
     return 0
@@ -295,7 +296,7 @@ unlock() {
     put \""$directory$keyname"\" \"\"
 
     "
-    output=$(etcdctl $etcd_options --dial-timeout $etcd_timeout txn <<< "$transaction")
+    output=$($ETCDCTL txn <<< "$transaction")
     if [[ "$output" == *"OK"* ]]; then
       return 0
     fi
@@ -315,8 +316,7 @@ unlock() {
     return 2
   fi
 
-  if etcdctl $etcd_options --dial-timeout $etcd_timeout \
-    del "$directory$keyname" >/dev/null 2>&1
+  if $ETCDCTL del "$directory$keyname" >/dev/null 2>&1
   then
     return 0
   else
@@ -354,7 +354,7 @@ watch() {
       result=$?
       if [ "$result" -gt 1 ]; then
         # etcd down?, check the healthiness of self endpoint
-        $(etcdctl endpoint health >/dev/null 2>&1)
+        $($ETCDCTL endpoint health >/dev/null 2>&1)
         is_healthy=$?
         ((tol_timeout=tol_timeout+heartbeat_interval))
         if [ $tol_timeout -ge $etcd_tolerance_timeout ] || [ $is_healthy -ne 0 ]; then
