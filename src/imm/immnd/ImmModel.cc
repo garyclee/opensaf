@@ -5402,7 +5402,7 @@ SaAisErrorT ImmModel::adminOwnerChange(const struct immsv_a2nd_admown_set* req,
             if (i2 != sCcbVector.end() && (*i2)->isActive()) {
               std::string oldOwner;
               objectInfo->getAdminOwnerName(&oldOwner);
-              if (!release && (adm->mAdminOwnerName == oldOwner)) {
+              if (!release && adm && adm->mAdminOwnerName == oldOwner) {
                 TRACE("Idempotent adminOwner set for %s on %s",
                       oldOwner.c_str(), objectName.c_str());
               } else if (!release && oldOwner.empty()
@@ -5447,7 +5447,8 @@ SaAisErrorT ImmModel::adminOwnerChange(const struct immsv_a2nd_admown_set* req,
                       if (i2 != sCcbVector.end() && (*i2)->isActive()) {
                         std::string oldOwner;
                         subObj->getAdminOwnerName(&oldOwner);
-                        if (!release && adm->mAdminOwnerName == oldOwner) {
+                        if (!release && adm &&
+                            adm->mAdminOwnerName == oldOwner) {
                           TRACE("Idempotent adminOwner set for %s on %s",
                                 oldOwner.c_str(), subObjName.c_str());
                         } else {

@@ -148,23 +148,36 @@ static char** parse_reserved_class_names(const char* input)
 			LOG_ER("The reserved name `%s` is invalid!", token);
 			goto freedata;
 		}
-		result = (char**)realloc(result, sizeof(char*) * ++n_elements);
+		char **temp =
+		    (char **)realloc(result, sizeof(char *) * ++n_elements);
+		if (temp == NULL) {
+			LOG_ER("Memory allocation failed during realloc!");
+			goto freedata;
+		}
+		result = temp;
 		result[n_elements - 1] = strdup(token);
 		token = strsep(&dup, ",");
 	}
 
-	result = (char**)realloc(result, sizeof(char*) * (n_elements + 1));
+	char **temp = (char**)realloc(result, sizeof(char*) * (n_elements + 1));
+	if (temp == NULL) {
+		LOG_ER("Final realloc failed!");
+		goto freedata;
+	}
+	result = temp;
 	result[n_elements] = 0;
 
 	free(tofree);
 	return result;
 
 freedata:
-	for (i = 0; i < n_elements; i++) {
-		if (result[i]) free(result[i]);
+	if (result != NULL) {
+		for (i = 0; i < n_elements; i++) {
+			if (result[i]) free(result[i]);
+		}
+		free(result);
 	}
 	free(tofree);
-	free(result);
 	return NULL;
 }
 

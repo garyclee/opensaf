@@ -2806,7 +2806,6 @@ mds_send_fail:
     }
   }
 
-clm_left:
 skip_over_send:
 bad_sync:
 bad_handle1:
@@ -2839,6 +2838,7 @@ free_obj:
     free(p); /*free-2 */
   }
 
+clm_left:
 bad_handle:
   if (locked) {
     m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);

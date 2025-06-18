@@ -213,7 +213,7 @@ static void saImmOiAdminOperationCallback(
 	SaAisErrorT err =
 	    immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 	if (err != SA_AIS_OK) {
-		fprintf(stderr, "Reply on admin operation failed, err:%u\n",
+		fprintf(stderr, "Reply on admin operation failed, err:%d\n",
 			err);
 	}
 }

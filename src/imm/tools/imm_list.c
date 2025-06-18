@@ -103,7 +103,7 @@ static void print_attr_value_raw(SaImmValueTypeT attrValueType,
 		printf("%llu", *((SaUint64T *)attrValue));
 		break;
 	case SA_IMM_ATTR_SATIMET:
-		printf("%llu", *((SaTimeT *)attrValue));
+		printf("%lld", *((SaTimeT *)attrValue));
 		break;
 	case SA_IMM_ATTR_SAFLOATT:
 		printf("%.8g", *((SaFloatT *)attrValue));
@@ -168,7 +168,7 @@ static void print_attr_value(SaImmValueTypeT attrValueType,
 
 		ctime_r(&time, buf);
 		buf[strlen(buf) - 1] = '\0'; /* Remove new line */
-		printf("%llu (0x%llx, %s)", *((SaTimeT *)attrValue),
+		printf("%lld (0x%llx, %s)", *((SaTimeT *)attrValue),
 		       *((SaTimeT *)attrValue), buf);
 		break;
 	}
@@ -412,7 +412,7 @@ static void display_object(const char *name,
 			   char delimiter,
 			   const SaImmAttrNameT *attributeNames)
 {
-	int i = 0, j;
+	SaUint32T i = 0, j;
 	SaImmAttrValuesT_2 *attr;
 	SaNameT objectName;
 	SaAisErrorT error;
@@ -509,15 +509,27 @@ int main(int argc, char *argv[])
 			break;
 
 		switch (c) {
-		case 'a':
-			attributeNames = realloc(
+		case 'a': {
+			SaImmAttrNameT *temp = realloc(
 			    attributeNames, ++len * sizeof(SaImmAttrNameT));
+			if (temp == NULL) {
+				fprintf(stderr, "realloc() error");
+				if (attributeNames) {
+					for (int i = 0; i < len - 1; i++) {
+						if (attributeNames[i] != NULL)
+							free(attributeNames[i]);
+					}
+					free(attributeNames);
+				}
+				exit(EXIT_FAILURE);
+			}
+			attributeNames = temp;
 			attributeNames[len - 2] = strdup(optarg);
 			attributeNames[len - 1] = NULL;
 			if (!is_existed_delimiter)
 				delimiter = ':';
 			pretty_print = 0;
-			break;
+		} break;
 		case 'c':
 			class_desc_print = 1;
 			break;

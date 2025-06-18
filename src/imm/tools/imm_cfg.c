@@ -241,7 +241,7 @@ static void free_attr_value(SaImmValueTypeT attrValueType,
 
 static void free_attr_values(SaImmAttrValuesT_2 *attrValues)
 {
-	int i;
+	SaUint32T i;
 
 	if (attrValues) {
 		free(attrValues->attrName);
@@ -257,7 +257,7 @@ static void free_attr_values(SaImmAttrValuesT_2 *attrValues)
 
 static void free_attr_mod(SaImmAttrModificationT_2 *attrMod)
 {
-	int i;
+	SaUint32T i;
 	if (attrMod) {
 		if (attrMod->modAttr.attrName)
 			free(attrMod->modAttr.attrName);
@@ -594,10 +594,18 @@ int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
 			}
 		}
 		if (!attrAdded) {
-
-			attrValues = realloc(attrValues,
-					     (attr_len + 1) *
-						 sizeof(SaImmAttrValuesT_2 *));
+			SaImmAttrValuesT_2 **temp = NULL;
+			temp = realloc(attrValues,
+				       (attr_len + 1) *
+					   sizeof(SaImmAttrValuesT_2 *));
+			if (temp == NULL) {
+				fprintf(stderr, "realloc() error");
+				free(attrValue->attrName);
+				free(attrValue->attrValues);
+				free(attrValue);
+				goto done;
+			}
+			attrValues = temp;
 			attrValues[attr_len - 1] = attrValue;
 			attrValues[attr_len] = NULL;
 			attr_len++;
@@ -845,9 +853,15 @@ int object_modify(const SaNameT **objectNames, char **optargs, int optargs_len)
 		}
 
 		if (!attrAdded) {
-			attrMods = realloc(
-			    attrMods, (attr_len + 1) *
-					  sizeof(SaImmAttrModificationT_2 *));
+			SaImmAttrModificationT_2 **temp = NULL;
+			temp = realloc(attrMods,
+				       (attr_len + 1) *
+					   sizeof(SaImmAttrModificationT_2 *));
+			if (temp == NULL) {
+				fprintf(stderr, "realloc() error");
+				goto done;
+			}
+			attrMods = temp;
 			attrMods[attr_len - 1] = attrMod;
 			attrMods[attr_len] = NULL;
 			attr_len++;
@@ -1766,11 +1780,17 @@ static int imm_operation(int argc, char *argv[])
 				strictParse = 1;
 			}
 			break;
-		case 'a':
-			optargs =
+		case 'a': {
+			char **temp = NULL;
+			temp =
 			    realloc(optargs, ++optargs_len * sizeof(char *));
+			if (temp == NULL) {
+				fprintf(stderr, "realloc() error");
+				exit(EXIT_FAILURE);
+			}
+			optargs = temp;
 			optargs[optargs_len - 1] = strdup(optarg);
-			break;
+		} break;
 		case 'c':
 			className = optarg;
 			op = verify_setoption(op, CREATE_OBJECT);
@@ -1933,10 +1953,23 @@ static int imm_operation(int argc, char *argv[])
 	}
 
 	if (op == DELETE_CLASS) {
+		SaImmClassNameT *temp = NULL;
 		while (optind < argc) {
-			classNames =
+			temp =
 			    realloc(classNames, (classNames_len + 1) *
 						    sizeof(SaImmClassNameT *));
+			if (temp == NULL) {
+				fprintf(stderr, "operation DELETE_CLASS - "
+						"realloc failed\n");
+				if (classNames)
+					free(classNames);
+				rc = EXIT_FAILURE;
+				if (!transaction_mode) {
+					goto done_om_finalize;
+				}
+				exit(rc);
+			}
+			classNames = temp;
 			classNames[classNames_len - 1] =
 			    ((SaImmClassNameT)argv[optind++]);
 			classNames[classNames_len++] = NULL;
@@ -1979,10 +2012,19 @@ static int imm_operation(int argc, char *argv[])
 			goto done_om_finalize;
 		}
 	} else {
+		SaNameT **temp = NULL;
 		while (optind < argc) {
-			objectNames =
-			    realloc(objectNames,
+			temp = realloc(objectNames,
 				    (objectNames_len + 1) * sizeof(SaNameT *));
+			if (temp == NULL) {
+				fprintf(stderr, "realloc failed\n");
+				rc = EXIT_FAILURE;
+				if (!transaction_mode) {
+					goto done_om_finalize;
+				}
+				exit(rc);
+			}
+			objectNames = temp;
 			objectName = objectNames[objectNames_len - 1] =
 			    malloc(sizeof(SaNameT));
 			objectNames[objectNames_len++] = NULL;

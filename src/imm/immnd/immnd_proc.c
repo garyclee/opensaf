@@ -893,8 +893,9 @@ void immnd_adjustEpoch(IMMND_CB *cb, bool increment)
 		 */
 	}
 
-	int newEpoch = immModel_adjustEpoch(cb, cb->mMyEpoch, &continuationId,
-					    &pbeConn, pbeNodeIdPtr, increment);
+	SaUint32T newEpoch =
+	    immModel_adjustEpoch(cb, cb->mMyEpoch, &continuationId, &pbeConn,
+				 pbeNodeIdPtr, increment);
 	if (newEpoch != cb->mMyEpoch) {
 		/*This case only relevant when persistent epoch overrides
 		   last epoch, i.e. after reload at cluster start. */
@@ -1424,8 +1425,8 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, bool iAmCoordNow)
 							      &oi_cl_node);
 					osafassert(oi_cl_node);
 					osafassert(!(oi_cl_node->mIsStale));
-					for (int ix = 0; ix < ccbIdArrSize;
-					     ++ix) {
+					for (unsigned int ix = 0;
+					     ix < ccbIdArrSize; ++ix) {
 						TRACE_2(
 						    "Fetch ccb outcome for ccb%u, nodeId:%u, conn:%u implId:%u",
 						    ccbIdArr[ix], pbeNodeId,
@@ -1723,7 +1724,7 @@ static bool immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration,
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMD;
 		send_evt.info.immd.type = IMMD_EVT_ND2D_ABORT_CCB;
-		int ix;
+		unsigned int ix;
 		immModel_getNonCriticalCcbs(cb, &ccbIdArr, &ccbIdArrSize);
 
 		for (ix = 0; ix < ccbIdArrSize; ++ix) {

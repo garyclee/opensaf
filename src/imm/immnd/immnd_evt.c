@@ -4718,7 +4718,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 				send_evt.info.imma.info.ccbCompl.implId = 0;
 				send_evt.info.imma.info.ccbCompl.invocation =
 				    applCtn;
-				int ix = 0;
+				unsigned int ix = 0;
 				for (; ix < applArrSize && err == SA_AIS_OK;
 				     ++ix) {
 					SaImmOiHandleT implHandle =
@@ -4806,7 +4806,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 			}
 
 			if (arrSize) {
-				int ix;
+				unsigned int ix;
 				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 				send_evt.type = IMMSV_EVT_TYPE_IMMA;
 				send_evt.info.imma.type =
@@ -4873,7 +4873,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 				    evt->info.ccbUpcallRsp.ccbId;
 				send_evt.info.imma.info.ccbCompl.implId = 0;
 				send_evt.info.imma.info.ccbCompl.invocation = 0;
-				int ix = 0;
+				unsigned int ix = 0;
 				for (; ix < applArrSize && err == SA_AIS_OK;
 				     ++ix) {
 					SaImmOiHandleT implHandle =
@@ -5490,7 +5490,7 @@ static void immnd_evt_pbe_rt_obj_deletes_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 
 noreply:
 	if (spApplConn && (evt->info.ccbUpcallRsp.result == SA_AIS_OK)) {
-		int ix = 0;
+		unsigned int ix = 0;
 		SaImmHandleT tmp_hdl =
 		    m_IMMSV_PACK_HANDLE(spApplConn, cb->node_id);
 		/*Fetch client node for Special applier OI */
@@ -5531,7 +5531,7 @@ noreply:
 
 done:
 	if (arrSize) {
-		int ix;
+		unsigned int ix;
 		for (ix = 0; ix < arrSize; ++ix) {
 			free(objNameArr[ix]);
 		}
@@ -7307,7 +7307,7 @@ static void immnd_evt_proc_object_create(IMMND_CB *cb, IMMND_EVT *evt,
 			/* Re-use the adminOwner member of the ccbCreate message
 			  to hold the invocation id. In this case, 0 => no reply
 			  is expected. */
-			int ix = 0;
+			unsigned int ix = 0;
 			for (; ix < arrSize && err == SA_AIS_OK; ++ix) {
 				implHandle = m_IMMSV_PACK_HANDLE(
 				    applConnArr[ix], cb->node_id);
@@ -7615,7 +7615,7 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb, IMMND_EVT *evt,
 			/* Re-use the adminOwner member of the ccbModify message
 			  to hold the invocation id. In this case, 0 => no reply
 			  is expected. */
-			int ix = 0;
+			unsigned int ix = 0;
 			for (; ix < arrSize && err == SA_AIS_OK; ++ix) {
 				bool isSpecialApplier = false;
 				send_evt.info.imma.info.objModify.attrMods =
@@ -8168,7 +8168,7 @@ static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId,
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_OI_CCB_ABORT_UC;
-		int ix = 0;
+		unsigned int ix = 0;
 		for (; ix < arrSize; ++ix) {
 			/*Look up the client node for the implementer, using
 			 * implConn */
@@ -8215,7 +8215,7 @@ static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_OI_CCB_ABORT_UC;
 		send_evt.info.imma.info.ccbCompl.ccbId = ccbId;
-		int ix = 0;
+		unsigned int ix = 0;
 		for (; ix < applArrSize; ++ix) {
 			SaImmOiHandleT implHandle =
 			    m_IMMSV_PACK_HANDLE(applConnArr[ix], cb->node_id);
@@ -8427,7 +8427,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 				      : IMMA_EVT_ND2A_OI_OBJ_DELETE_UC;
 			send_evt.info.imma.info.objDelete.ccbId =
 			    evt->info.objDelete.ccbId;
-			int ix = 0;
+			unsigned int ix = 0;
 			for (; ix < arrSize && err == SA_AIS_OK; ++ix) {
 				if (implConnArr[ix] == 0) {
 					/* implConn zero => ony for PBE or
@@ -8528,7 +8528,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 		/* Re-use the adminOwner member of the ccbDelete message to hold
 		   the invocation id. In this case, 0 => no reply is expected.
 		 */
-		int ix = 0;
+		unsigned int ix = 0;
 		for (; ix < arrSize && err == SA_AIS_OK;
 		     ++ix) { /* Iterate over deleted objects */
 			SaUint32T *applConnArr = NULL;
@@ -8543,7 +8543,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 			    cb, &objName, evt->info.objDelete.ccbId,
 			    &applConnArr, true);
 
-			int ix2 = 0;
+			unsigned int ix2 = 0;
 			for (; ix2 < arrSize2 && err == SA_AIS_OK;
 			     ++ix2) { /* Iterate over applier connections for
 					 object */
@@ -8661,7 +8661,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 	}
 
 	if (arrSize) {
-		int ix;
+		unsigned int ix;
 		free(implConnArr);
 		implConnArr = NULL;
 		free(invocArr);
@@ -8921,7 +8921,7 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 	}
 
 	if (spApplConn && (err == SA_AIS_OK) && !delayedReply) {
-		int ix = 0;
+		unsigned int ix = 0;
 		/* Indicates object is marked with SA_IMM_ATTR_NOTIFY and
 		   special applier is present at this node and we dont need to
 		   wait for ack from PBE (non persistent RTO or PBE not
@@ -8963,7 +8963,7 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb, IMMND_EVT *evt,
 
 done:
 	if (arrSize) {
-		int ix;
+		unsigned int ix;
 		for (ix = 0; ix < arrSize; ++ix) {
 			free(objNameArr[ix]);
 		}
@@ -9201,7 +9201,7 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb, IMMND_EVT *evt,
 			send_evt.type = IMMSV_EVT_TYPE_IMMA;
 			send_evt.info.imma.type =
 			    IMMA_EVT_ND2A_OI_CCB_COMPLETED_UC;
-			int ix = 0;
+			unsigned int ix = 0;
 			for (; ix < arrSize && err == SA_AIS_OK; ++ix) {
 
 				/*Look up the client node for the implementer,
@@ -9431,7 +9431,7 @@ skip_send:
 				send_evt.info.imma.info.ccbCompl.implId = 0;
 				send_evt.info.imma.info.ccbCompl.invocation =
 				    applCtn;
-				int ix = 0;
+				unsigned int ix = 0;
 				for (; ix < applArrSize && err == SA_AIS_OK;
 				     ++ix) {
 					implHandle = m_IMMSV_PACK_HANDLE(
@@ -9514,7 +9514,7 @@ skip_send:
 				    evt->info.ccbId;
 				send_evt.info.imma.info.ccbCompl.implId = 0;
 				send_evt.info.imma.info.ccbCompl.invocation = 0;
-				int ix = 0;
+				unsigned int ix = 0;
 				for (; ix < applArrSize && err == SA_AIS_OK;
 				     ++ix) {
 					implHandle = m_IMMSV_PACK_HANDLE(
@@ -10214,7 +10214,7 @@ uint32_t immnd_evt_proc_pbe_prto_purge_mutations(IMMND_CB *cb, IMMND_EVT *evt,
 		uint32_t rc = NCSCC_RC_SUCCESS;
 		IMMSV_EVT send_evt;
 		IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-		int ix = 0;
+		unsigned int ix = 0;
 		osafassert(reqConnArr);
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;

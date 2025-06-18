@@ -172,7 +172,7 @@ static range_obj_t *gen_pop_tree(unsigned int level, range_obj_t *rootObj,
 
 	if (reminder) {
 		fprintf(stderr,
-			"error - Returning with nonzero reminder r:%u ix:%u\n",
+			"error - Returning with nonzero reminder r:%u ix:%d\n",
 			reminder, ix);
 		abort();
 	}

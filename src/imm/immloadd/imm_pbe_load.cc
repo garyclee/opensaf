@@ -254,7 +254,7 @@ bool loadClassFromPbe(void *pbeHandle, SaImmHandleT immHandle,
     SaImmAttrFlagsT attrFlags = 0LL;
     SaImmAttrValueT attDflt = NULL;
     char buf[32];
-    snprintf(buf, 32, "Row(%u): <", ++r);
+    snprintf(buf, 32, "Row(%d): <", ++r);
     std::string rowStr(buf);
     AttrInfo *attr_info = NULL;
     char *val;

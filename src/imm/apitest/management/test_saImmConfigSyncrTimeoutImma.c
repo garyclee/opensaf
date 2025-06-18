@@ -27,22 +27,22 @@
 static int get_pid_immnd()
 {
 	FILE *f;
-	int pid;
+	int pid = -1;
 	const char *osafimmnd_pid_file = PKGPIDDIR "/osafimmnd.pid";
 	if ((f = fopen(osafimmnd_pid_file, "r")) == NULL) {
 		fprintf(stderr, "Failed to open %s\n", osafimmnd_pid_file);
 		return -1;
 	}
 
-	if (fscanf(f, "%d", &pid) == 0) {
+	if (fscanf(f, "%d", &pid) != 1) {
 		fprintf(stderr, "Could not read PID from file %s\n",
 			osafimmnd_pid_file);
-		return -1;
+		pid = -1;
 	}
 
 	if (fclose(f) != 0) {
 		fprintf(stderr, "Could not close file\n");
-		return -1;
+		pid = -1;
 	}
 	return pid;
 }

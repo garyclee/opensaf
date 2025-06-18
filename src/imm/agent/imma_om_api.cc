@@ -7732,7 +7732,7 @@ mds_send_fail:
     free(req->searchParam.choice.oneAttrParam.attrName.buf); /*free-2 */
     req->searchParam.choice.oneAttrParam.attrName.buf = NULL;
     req->searchParam.choice.oneAttrParam.attrName.size = 0;
-    if (searchParam->searchOneAttr.attrValue) { /*free-3 */
+    if (searchParam && searchParam->searchOneAttr.attrValue) { /*free-3 */
       immsv_evt_free_att_val(&(req->searchParam.choice.oneAttrParam.attrValue),
                              searchParam->searchOneAttr.attrValueType);
     }

@@ -211,7 +211,7 @@ void print_param(SaImmAdminOperationParamsT_2 *param)
 
 		ctime_r(&time, buf);
 		buf[strlen(buf) - 1] = '\0'; /* Remove new line */
-		printf("%-50s %-12s %llu (0x%llx, %s)\n", param->paramName,
+		printf("%-50s %-12s %lld (0x%llx, %s)\n", param->paramName,
 		       "SA_TIME_T", (*((SaTimeT *)param->paramBuffer)),
 		       (*((SaTimeT *)param->paramBuffer)), buf);
 	} break;
@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			break;
-		case 'O':
+		case 'O': {
 			if (operationId != -1) {
 				fprintf(
 				    stderr,
@@ -337,9 +337,15 @@ int main(int argc, char *argv[])
 			}
 			operationId = SA_IMM_PARAM_ADMOP_ID_ESC;
 			params_len++;
-			params = realloc(
+			const SaImmAdminOperationParamsT_2 **tmp = realloc(
 			    params, (params_len + 1) *
 					sizeof(SaImmAdminOperationParamsT_2 *));
+			if (tmp == NULL){
+				fprintf(stderr, "realloc() error");
+				if (params) free(params);
+				exit(EXIT_FAILURE);
+			}
+			params =  tmp;
 			param = malloc(sizeof(SaImmAdminOperationParamsT_2));
 			params[params_len - 1] = param;
 			params[params_len] = NULL;
@@ -348,8 +354,8 @@ int main(int argc, char *argv[])
 			param->paramBuffer = malloc(sizeof(SaStringT));
 			*((SaStringT *)(param->paramBuffer)) = strdup(optarg);
 			opName = strdup(optarg);
-			break;
-		case 'p':
+		} break;
+		case 'p': {
 			params_len++;
 			const SaImmAdminOperationParamsT_2 **tmp = realloc(
 			    params, (params_len + 1) *
@@ -368,7 +374,7 @@ int main(int argc, char *argv[])
 					optarg);
 				exit(EXIT_FAILURE);
 			}
-			break;
+		} break;
 		case 't':
 			timeoutVal = strtoll(optarg, (char **)NULL, 10);
 
