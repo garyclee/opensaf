@@ -1249,7 +1249,9 @@ bool SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure *i_proc,
         } else {
           LOG_NO(
               "SmfUpgradeProcedure::mergeStepIntoSingleStep: Procedure scope not found (forAddRemove/forModify)");
-          delete newStep;
+          if (i_newStep == nullptr){
+            delete newStep;
+          }
           TRACE_LEAVE();
           return false;
         }
@@ -3414,9 +3416,13 @@ SaAisErrorT SmfUpgradeProcedure::getImmStepsMergedSingleStep() {
   newStep->setProcedure(this);
 
   if (newStep->getState() == SA_SMF_STEP_INITIAL) {
-    mergeStepIntoSingleStep(this,
-                            newStep);  // Just merge again, as before si-swap
-    if (newStep) addProcStep(newStep);
+    if(!mergeStepIntoSingleStep(this,
+                            newStep)) {  // Just merge again, as before si-swap
+      delete newStep;
+      TRACE_LEAVE();
+      return SA_AIS_ERR_INIT;
+    }
+    addProcStep(newStep);
   } else if (newStep->getState() == SA_SMF_STEP_EXECUTING) {
     // Fetch AU/DU and step swNode from IMM steps
     SaAisErrorT rc = readCampaignImmModel(newStep);
