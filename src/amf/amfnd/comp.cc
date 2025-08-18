@@ -2151,7 +2151,7 @@ uint32_t avnd_comp_cbk_send(AVND_CB *cb, AVND_COMP *comp,
 
       /* determine csi name */
       if (SA_AMF_CSI_TARGET_ALL != csi_flag)
-        csi_name = csi_rec->name.c_str();
+        csi_name = csi_rec->name;
       else
         csi_name = "";
 

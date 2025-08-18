@@ -3802,13 +3802,16 @@ void SG_NPM::node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su) {
       if (su == su->sg_of_su->max_assigned_su) {
         /* Max_assigned_su is assigned  quiesced state as part of SI transfer
         and the node went down */
+        TRACE("SI transfer failed %s, max_assigned_su '%s'"
+              "min_assigned_su '%s'",
+              su->sg_of_su->si_tobe_redistributed->name.c_str(),
+              su->sg_of_su->max_assigned_su->name.c_str(),
+              su->sg_of_su->min_assigned_su->name.c_str());
         su->sg_of_su->max_assigned_su = nullptr;
         su->sg_of_su->min_assigned_su = nullptr;
         su->sg_of_su->si_tobe_redistributed = nullptr;
         m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(cb, su->sg_of_su,
                                         AVSV_CKPT_AVD_SI_TRANS);
-        TRACE("SI transfer failed for SI '%s' as max_assigned_su went down",
-              su->sg_of_su->si_tobe_redistributed->name.c_str());
       }
     }
 

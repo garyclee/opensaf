@@ -3112,6 +3112,7 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp,
   uint32_t argc = 0, rc = NCSCC_RC_SUCCESS, count = 0;
   m_AVND_COMP_CLC_COUNT_AGRC(scr, comp->clc_info.cmds[cmd_type - 1].len, argc);
   char *argv[argc + 2];
+  memset(argv, 0, sizeof(argv));
   unsigned int env_counter;
   unsigned int i;
   SaStringT env;

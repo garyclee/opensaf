@@ -1717,6 +1717,7 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata) {
     LOG_WA("Comp modify completed (STDBY): comp does not exist");
     return SA_AIS_OK;
   }
+  osafassert(comp);
 
   while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
     const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;

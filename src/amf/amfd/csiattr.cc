@@ -591,7 +591,6 @@ static void csiattr_modify_apply(CcbUtilOperationData_t *opdata) {
         memcpy(tmp_csi_attr->name_value.string_ptr, value, strlen(value) + 1);
         osaf_extended_name_alloc(tmp_csi_attr->name_value.string_ptr,
                                  &tmp_csi_attr->name_value.value);
-        i = 1;
       } else {
         for (i = 0; i < attribute->attrValuesNumber; i++) {
           char *value = *(char **)attribute->attrValues[i++];
